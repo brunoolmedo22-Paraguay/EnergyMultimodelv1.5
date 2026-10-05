@@ -1,0 +1,18 @@
+HOTFIX STREAMLIT COMMUNITY CLOUD - Energy MultiModel V1.4
+
+1. Copie requirements.txt para a RAIZ do repositorio, substituindo o atual.
+2. Copie .gitignore para a RAIZ do repositorio.
+3. Remova do GitHub pastas __pycache__ e arquivos *.pyc que ja estejam versionados.
+4. Commit + push.
+
+IMPORTANTE: o log mostrou Python 3.14.7. A versao do Python do Community Cloud NAO e controlada por requirements.txt.
+Para mudar para Python 3.12, e necessario excluir o deployment atual e criar novamente:
+
+- Repository: energy_multimodel_v1.4
+- Branch: main
+- Main file: app.py
+- Advanced settings > Python version: 3.12
+
+Depois clique Deploy.
+
+Este hotfix fixa as dependencias para evitar backtracking e builds diferentes a cada deploy.
