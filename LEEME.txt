@@ -1,0 +1,3 @@
+HOTFIX V1.6.1
+Reemplazar únicamente orchestrator_app.py en la raíz del repositorio.
+Corrección: alias interno fc/h2 de la PEMFC en SOURCE_LABELS y SOURCE_ICONS.

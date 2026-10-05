@@ -42,8 +42,8 @@ PAGE_ICONS = {
     "Resultados dos Modelos": "▤",
     "Exportar Resultados": "⇩",
 }
-SOURCE_LABELS = {"solar": "Solar", "wind": "Eólica", "battery": "Bateria", "h2": "H₂ / PEMFC", "thermal": "Térmica"}
-SOURCE_ICONS = {"solar": "☀️", "wind": "🌬️", "battery": "🔋", "h2": "💧", "thermal": "🔥"}
+SOURCE_LABELS = {"solar": "Solar", "wind": "Eólica", "battery": "Bateria", "fc": "H₂ / PEMFC", "h2": "H₂ / PEMFC", "thermal": "Térmica"}
+SOURCE_ICONS = {"solar": "☀️", "wind": "🌬️", "battery": "🔋", "fc": "💧", "h2": "💧", "thermal": "🔥"}
 CHART_CONFIG = {"displaylogo": False, "responsive": True, "modeBarButtonsToRemove": ["lasso2d", "select2d"]}
 
 ORCHESTRATOR_CSS = """
