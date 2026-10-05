@@ -1564,7 +1564,7 @@ def render_source_landing() -> None:
         <div class="source-shell">
           <div class="source-eyebrow">Energy MultiModel · Biblioteca modular</div>
           <div class="source-title">QUAL RECURSO DESEJA ANALISAR?</div>
-          <div class="source-copy">Selecione o recurso energético. Cada módulo mantém sua própria física, entradas e indicadores, mas entrega séries temporais compatíveis com a futura integração ao otimizador central.</div>
+          <div class="source-copy">Selecione o recurso energético. Cada módulo mantém sua própria física, entradas e indicadores, e também pode ser usado como bancada individual; o fluxo principal já integra esses modelos ao otimizador central.</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1635,8 +1635,9 @@ elif source == "mix":
     from mix_app import render_mix_app
     render_mix_app()
 elif source == "ems":
-    from ems_app import render_ems_app
-    render_ems_app()
+    # Compatibilidade com sessões antigas da V1.5: o EMS deixou de ser uma app separada.
+    st.session_state["energy_source"] = None
+    st.rerun()
 else:
     # Solar reutiliza a implementação consolidada já existente neste arquivo.
     navigation = sidebar()

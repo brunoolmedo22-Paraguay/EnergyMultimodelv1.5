@@ -1,7 +1,7 @@
 """Integração Energy MultiModel ↔ EMS de despacho ótimo (100 % Python).
 
 Fluxo: módulos da plataforma → ``ponte`` (pacote de troca nos esquemas de CSV
-do EMS) → ``executor`` (montar_fontes → despacho → relatório) → ``ems_app``.
+do EMS) → ``executor`` (montar_fontes → despacho → relatório). Na V1.6, a UI principal consome essa cadeia através de ``orchestrator_runtime``; ``ems_app`` fica apenas como referência legada.
 O EMS MATLAB original, do qual o núcleo foi portado, está em
 ``reference_models/ems_matlab``.
 """
