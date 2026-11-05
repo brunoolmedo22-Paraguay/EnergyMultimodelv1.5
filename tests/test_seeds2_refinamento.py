@@ -289,6 +289,22 @@ class BalancoTest(unittest.TestCase):
         for termo in ("couplings", "bus_kind", "nominal_voltage_V", "load_coupling"):
             self.assertNotIn(termo, doc)
 
+    def test_usina_parcialmente_representada_no_esquema_logico(self):
+        from seeds2.ui.forms import balance_data
+
+        cfg = v16_equivalent_config()
+        plant = cfg["equipment"][0]
+        plant["arrays"].append(C.new_array("Arranjo declarado", mode="declarado", declared_kWp=3.5,
+                                           declared_source="projeto"))
+        data = balance_data(cfg, A.build_plan(cfg))
+        node = next(n for n in data["sources"] if n["name"] == plant["name"])
+        self.assertEqual(node["status"], "parcial")
+        self.assertEqual(node["status_label"], "Parcialmente representado no EMS")
+        other = next(n for n in data["sources"] if n["name"] == cfg["equipment"][1]["name"])
+        self.assertEqual(other["status"], A.REPRESENTED)
+        self.assertIsNone(data["grid"])                                    # rede não declarada → nada desenhado
+        self.assertIn("não um esquema unifilar", data["scope_note"])
+
 
 # ======================================================================= backups v2 e migrações
 class MigracaoTest(_Tmp):
@@ -526,6 +542,19 @@ class GeolocalizacaoTest(unittest.TestCase):
         self.assertTrue(r["ok"])
         self.assertIsNone(r["accuracy_m"])
         self.assertNotIn("±", r["message"])
+
+    def test_procedencia_das_coordenadas_ao_confirmar(self):
+        from seeds2.ui.forms import location_source
+
+        meta = {"lat": -25.4434, "lon": -54.5861, "accuracy_m": 28.0, "captured_at": "2026-11-05T11:00:00Z"}
+        r = location_source(-25.4434, -54.5861, meta, None)               # aceitas sem alteração
+        self.assertEqual(r, {"source": "navegador", "accuracy_m": 28.0, "captured_at": "2026-11-05T11:00:00Z"})
+        r = location_source(-25.4434, -54.5870, meta, None)               # corrigidas manualmente
+        self.assertEqual(r, {"source": "manual", "accuracy_m": None, "captured_at": None})
+        old = {**C.new_location(), "latitude": 1.0, "longitude": 2.0, **r, "source": "navegador", "accuracy_m": 9.0}
+        self.assertEqual(location_source(1.0, 2.0, None, old)["source"], "navegador")   # reedição sem mexer: preservada
+        self.assertEqual(location_source(1.5, 2.0, None, old)["source"], "manual")
+        self.assertEqual(location_source(None, None, None, None)["source"], "manual")
 
     def test_localizacao_e_opcional_e_validada_ao_salvar(self):
         loc = C.new_location()

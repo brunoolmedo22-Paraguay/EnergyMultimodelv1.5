@@ -301,6 +301,20 @@ def identification_cards(cfg: dict, *, key: str) -> None:
                    "quando você confirma o formulário.")
 
 
+def location_source(lat: Any, lon: Any, meta: dict | None, old: dict | None) -> dict:
+    """Procedência das coordenadas a gravar (função pura).
+
+    * iguais às recebidas do navegador nesta edição → ``navegador`` (com precisão e instante da leitura);
+    * iguais às já salvas → procedência anterior preservada;
+    * qualquer outro caso (digitadas ou corrigidas manualmente) → ``manual``, sem precisão."""
+    meta, old = meta or {}, old or {}
+    if meta and lat == meta.get("lat") and lon == meta.get("lon"):
+        return {"source": "navegador", "accuracy_m": meta.get("accuracy_m"), "captured_at": meta.get("captured_at")}
+    if lat == old.get("latitude") and lon == old.get("longitude") and old.get("source") in C.LOCATION_SOURCES:
+        return {"source": old["source"], "accuracy_m": old.get("accuracy_m"), "captured_at": old.get("captured_at")}
+    return {"source": "manual", "accuracy_m": None, "captured_at": None}
+
+
 def apply_identification(cfg: dict, *, key: str) -> list[str]:
     """Valida e aplica os dois cartões à cópia de trabalho. Devolve erros (vazio = aplicado)."""
     ss = st.session_state
@@ -315,16 +329,12 @@ def apply_identification(cfg: dict, *, key: str) -> list[str]:
         errs.append("Selecione o modo de operação previsto.")
     lat, lon = ss.get(k["lat"]), ss.get(k["lon"])
     meta = ss.get(f"{key}_geo_meta") or {}
-    from_browser = bool(meta) and lat == meta.get("lat") and lon == meta.get("lon")
     old = cfg["installation"].get("location") or C.new_location()
     loc = {**C.new_location(), "country": (ss.get(k["country"]) or "").strip(), "region": (ss.get(k["region"]) or "").strip(),
            "city": (ss.get(k["city"]) or "").strip(), "address": (ss.get(k["address"]) or "").strip(),
            "latitude": lat, "longitude": lon, "timezone": (ss.get(k["tz"]) or "").strip(),
            "timezone_suggested": ss.get(f"{key}_geo_tz") or old.get("timezone_suggested") or ""}
-    if from_browser:
-        loc.update(source="navegador", accuracy_m=meta.get("accuracy_m"), captured_at=meta.get("captured_at"))
-    elif lat == old.get("latitude") and lon == old.get("longitude") and old.get("source") in C.LOCATION_SOURCES:
-        loc.update(source=old["source"], accuracy_m=old.get("accuracy_m"), captured_at=old.get("captured_at"))
+    loc.update(location_source(lat, lon, meta, old))
     errs += [i.message for i in C.errors(C.validate_location(loc))]
     if errs:
         return errs
@@ -347,13 +357,15 @@ def balance_data(cfg: dict, plan) -> dict:
     for eq in cfg.get("equipment", []):
         ms = plan.for_equipment(eq["id"]) if plan else []
         sts = {m.status for m in ms}
+        # Usina FV com parte dos arranjos representada: "parcial" (nunca rotulada como incompleta/completa).
         status = (A.REPRESENTED if sts == {A.REPRESENTED} else A.DISABLED if sts == {A.DISABLED} else
-                  A.INCOMPATIBLE if A.INCOMPATIBLE in sts and A.REPRESENTED not in sts else
-                  A.INCOMPLETE if sts else "")
+                  "parcial" if A.REPRESENTED in sts else
+                  A.INCOMPATIBLE if A.INCOMPATIBLE in sts else A.INCOMPLETE if sts else "")
         f = facts(eq)
         node = {"name": eq["name"], "kind": eq["kind"], "kind_label": KIND_LABELS[eq["kind"]], "enabled": bool(eq.get("enabled", True)),
                 "detail": f"{f[0][1]}" if f and f[0][1] not in ("—", "") else "", "status": status,
-                "status_label": A.STATUS_LABELS.get(status, "") if status else ""}
+                "status_label": ("Parcialmente representado no EMS" if status == "parcial" else
+                                 A.STATUS_LABELS.get(status, "") if status else "")}
         (storage if eq["kind"] == "battery" else sources).append(node)
     dem = cfg.get("demand") or {}
     grid = (cfg.get("energy_balance") or {}).get("grid_connection")

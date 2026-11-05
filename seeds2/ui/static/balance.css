@@ -12,6 +12,7 @@
 .bal-src .tx { min-width: 0; flex: 1; }
 .bal-st { flex: none; font-size: 11px; font-weight: 800; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; }
 .bal-st.representado { color: #2E8B57; background: rgba(46,139,87,.14); } .bal-st.incompativel { color: #C2364A; background: rgba(194,54,74,.14); }
+.bal-st.parcial { color: #2F6FED; background: rgba(47,111,237,.14); }
 .bal-st.incompleto { color: #C77700; background: rgba(199,119,0,.14); } .bal-st.desabilitado { color: #5B6B7C; background: rgba(91,107,124,.14); }
 .bal-arrow { display: grid; place-items: center; color: var(--sd-accent); }
 .bal-arrow svg { width: 38px; height: 38px; }

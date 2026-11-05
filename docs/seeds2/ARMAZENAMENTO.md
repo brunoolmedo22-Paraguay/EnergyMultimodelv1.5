@@ -16,13 +16,13 @@ com poucas escritas e algumas sessões simultâneas. Nada é guardado só no nav
 O `.gitignore` bloqueia `*.db`, `*.sqlite*`, `*.seeds2backup.zip`, `seeds2_data/` e `.seeds2/`.
 A interface mostra o caminho em uso (comissionamento, Gestão → Instalação, Alcance).
 
-## Esquema (v1)
+## Esquema do banco (`PRAGMA user_version` = 2)
 
 | Tabela | Conteúdo |
 |---|---|
 | `microgrid` | **uma** linha (`CHECK (id = 1)`): documento atual, revisão, impressão digital, uid |
-| `revisions` | snapshots completos imutáveis (triggers bloqueiam UPDATE/DELETE), nota e origem (`commissioning`, `edit`, `restore`, `revert`) |
-| `blobs` | CSVs importados (conteúdo + SHA-256 verificado na leitura) |
+| `revisions` | snapshots completos imutáveis (triggers bloqueiam UPDATE/DELETE), nota e origem (`commissioning`, `edit`, `restore`, `revert`, `migration`, `run_conditions`) |
+| `blobs` | CSVs importados e pacotes originais do PEMFC ModelLab (conteúdo + SHA-256 verificado na leitura) |
 | `simulation_runs` | procedência de cada rodada: revisão, impressões digitais, origem, exclusões, resumo |
 | `meta` | registro de migrações |
 
@@ -34,19 +34,31 @@ A interface mostra o caminho em uso (comissionamento, Gestão → Instalação, 
 - **Sem revisões vazias:** salvar conteúdo idêntico não cria revisão.
 - **Proteção contra perda:** histórico imutável + "Reverter" (cria nova revisão com o conteúdo antigo).
 - **Integridade referencial:** a configuração não pode referenciar blobs inexistentes.
-- **Migrações:** `PRAGMA user_version` + lista ordenada `MIGRATIONS`; antes de migrar um banco
-  existente é feita a cópia `seeds2.db.bak-v<N>`; banco de versão mais nova que o software é recusado.
-- **Documento versionado:** `schema_version` do documento (v1); versões desconhecidas são rejeitadas.
+- **Migrações do banco:** `PRAGMA user_version` + lista ordenada `MIGRATIONS` (+ passos Python em
+  `MIGRATION_STEPS`); antes de migrar um banco existente é feita a cópia `seeds2.db.bak-v<N>`; banco de
+  versão mais nova que o software é recusado sem alteração.
+  - **v1 → v2 (refinamento do Piso 1):** sem mudança de tabelas; o documento atual é migrado (v1 → v2) e
+    gravado como **nova revisão** (origem `migration`, nota com o resumo). Se a migração ou a validação
+    falhar, a transação é desfeita e o banco permanece na v1 (`StoreError`, nada corrompido). Revisões
+    antigas continuam intactas (imutáveis) e são migradas **na leitura** (histórico, reverter, backup).
+- **Documento versionado:** `schema_version` do documento (atual: 2; v1 aceito e migrado por
+  `seeds2/microgrid/migrations.py`); versões desconhecidas são rejeitadas. A migração nunca descarta valores
+  conhecidos: o que não pode ser reinterpretado (topologia v1) vai para `legacy` e é sinalizado.
 
-## Backup (`.seeds2backup.zip`)
+## Backup (`.seeds2backup.zip`) — formato 2
 
 ```
 manifest.json      formato, versões (backup/banco/documento/app), uid, revisão, impressão digital,
                    SHA-256 de cada arquivo, metadados dos blobs
-configuration.json documento da configuração
+configuration.json documento da configuração (v2)
 history.json       metadados das revisões (sem documentos)
-blobs/<sha256>     CSVs importados
+blobs/<sha256>     CSVs importados e pacotes originais do PEMFC ModelLab referenciados pela configuração
 ```
+
+O mesmo arquivo é oferecido como "EXPORTAR CONFIGURAÇÃO DA MICRORREDE (ZIP)" na etapa 05 e em Gestão.
+Backups do **formato 1** (Piso 1 original, documento v1) continuam aceitos: a configuração é migrada para
+v2 na inspeção (`BackupInspection.migrated`) e a restauração grava o documento já migrado. Verificado com um
+backup v1 real (`tests/fixtures/seeds2_backup_v1_piso1.zip`).
 
 Nome do arquivo ASCII (acentos transliterados) para portabilidade.
 
@@ -54,9 +66,9 @@ Nome do arquivo ASCII (acentos transliterados) para portabilidade.
 
 1. **Inspeção de arquivo não confiável** (`inspect_backup`, nunca levanta exceção — todo defeito vira
    mensagem de rejeição):
-   - limites: ≤ 16 entradas; ≤ 8 MiB por JSON; ≤ 50 MiB por CSV; ≤ 124 MiB descomprimidos no total,
+   - limites: ≤ 64 entradas; ≤ 8 MiB por JSON; ≤ 50 MiB por blob; ≤ 256 MiB descomprimidos no total,
      **contados lendo os dados em blocos** (o tamanho declarado no ZIP não é confiável — proteção
-     contra *zip bombs*); arquivo de entrada ≤ 124 MiB;
+     contra *zip bombs*); arquivo de entrada ≤ 256 MiB;
    - estrutura: nomes permitidos apenas (`manifest.json`, `configuration.json`, `history.json`,
      `blobs/<sha256>`), sem duplicatas, diretórios, caminhos externos, criptografia ou compressão
      diferente de *stored/deflate*;
@@ -83,3 +95,11 @@ Nome do arquivo ASCII (acentos transliterados) para portabilidade.
 - Não publique o banco, backups ou CSVs da empresa em repositórios.
 - Uma instância por microrrede: para outra instalação, use outro `SEEDS2_DATA_DIR` em outro
   servidor/serviço (não há seletor de microrredes por desenho).
+
+## Importação de dispositivos do PEMFC ModelLab
+
+`seeds2/microgrid/modellab.py` trata o arquivo como não confiável: `.pmldevice.zip` (≤ 25 MiB, ≤ 2000
+entradas, ≤ 20 MiB por entrada, ≤ 80 MiB descomprimidos contados em blocos, nomes `records/<tipo>/<id>.json`
+e `blobs/<sha256>`, hashes canônicos dos registros conferidos com o manifesto `pemfc-modellab/workspace`)
+ou `profile.json` (`pemfc-modellab/profile`). O original é gravado como blob somente ao confirmar o
+equipamento e passa a fazer parte dos backups. Nenhuma sincronização ou conexão com o ModelLab.

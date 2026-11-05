@@ -44,6 +44,7 @@ BORDER = colors.HexColor("#D3DBE4")
 OK = colors.HexColor("#2E8B57")
 WARN = colors.HexColor("#B06A00")
 BAD = colors.HexColor("#C2364A")
+PARTIAL = colors.HexColor("#2F6FED")
 KIND_COLORS = {"pv": "#E0891E", "wind": "#2F6FED", "battery": "#3C9D5D", "pemfc": "#0E7C86", "thermal": "#D1495B"}
 ND = "Não declarado"
 PAGE_W, PAGE_H = A4
@@ -127,8 +128,41 @@ def P(text: str, style: str = "body") -> Paragraph:
 
 # ---------------------------------------------------------------------------------------------- blocos
 def section(num: int, title: str, kicker: str) -> list:
-    return [CondPageBreak(60 * mm), Spacer(1, 6 * mm), P(f"{num:02d} · {_t(kicker).upper()}", "eyebrow"), P(_t(title), "h1"),
-            _rule(), Spacer(1, 2.5 * mm)]
+    head = [Spacer(1, 6 * mm), P(f"{num:02d} · {_t(kicker).upper()}", "eyebrow"), P(_t(title), "h1"), _rule(), Spacer(1, 2.5 * mm)]
+    for f in head:              # o título nunca fica órfão no fim da página: acompanha o primeiro bloco da seção
+        f.keepWithNext = 1
+        f._seeds_head = True
+    return [CondPageBreak(60 * mm), *head]
+
+
+def _glue_headings(story: list) -> list:
+    """Une o título de seção ao primeiro bloco seguinte. O ReportLab não agrupa ``keepWithNext`` com um
+    ``KeepTogether`` subsequente (contêineres são excluídos), então o título ficaria órfão no fim da página."""
+    out: list = []
+    i = 0
+    while i < len(story):
+        f = story[i]
+        if getattr(f, "_seeds_head", False):
+            j = i
+            while j < len(story) and getattr(story[j], "_seeds_head", False):
+                j += 1
+            head = story[i:j]
+            for h in head:
+                h.keepWithNext = 0
+            nxt = story[j] if j < len(story) else None
+            if isinstance(nxt, KeepTogether):
+                out.append(KeepTogether(head + list(nxt._content)))
+                i = j + 1
+            elif nxt is not None:
+                out.append(KeepTogether(head + [nxt]))
+                i = j + 1
+            else:
+                out.extend(head)
+                i = j
+            continue
+        out.append(f)
+        i += 1
+    return out
 
 
 def _rule(color=TEAL, width=1.1) -> Table:
@@ -269,7 +303,8 @@ def balance_drawing(cfg: dict, plan: A.SimulationPlan, width: float) -> Drawing:
         nonlocal y
         ms = plan.for_equipment(e["id"])
         sts = {m.status for m in ms}
-        stc = OK if sts == {A.REPRESENTED} else MUTED if sts == {A.DISABLED} else BAD if A.INCOMPATIBLE in sts and A.REPRESENTED not in sts else WARN
+        stc = (OK if sts == {A.REPRESENTED} else MUTED if sts == {A.DISABLED} else PARTIAL if A.REPRESENTED in sts else
+               BAD if A.INCOMPATIBLE in sts else WARN)
         d.add(Rect(0, y - 9, colw, 12.5, rx=3, ry=3, fillColor=colors.HexColor("#F6F9FB"), strokeColor=BORDER, strokeWidth=0.5))
         d.add(Rect(0, y - 9, 3, 12.5, fillColor=colors.HexColor(KIND_COLORS.get(e["kind"], "#5B6B7C")), strokeColor=None))
         name = _plain(e["name"])
@@ -306,7 +341,9 @@ def balance_drawing(cfg: dict, plan: A.SimulationPlan, width: float) -> Drawing:
     d.add(Rect(dx, cy + 6, dw, 32, rx=5, ry=5, fillColor=colors.HexColor("#F1EEFA"), strokeColor=colors.HexColor("#B9A9E6"), strokeWidth=0.8))
     d.add(String(dx + dw / 2, cy + 25, "Atendimento da demanda", fontName="Helvetica-Bold", fontSize=7.6, fillColor=INK, textAnchor="middle"))
     dem = C.DEMAND_SOURCES.get((cfg.get("demand") or {}).get("source"), "")
-    d.add(String(dx + dw / 2, cy + 14, _plain(dem)[:38], fontName="Helvetica", fontSize=6.3, fillColor=MUTED, textAnchor="middle"))
+    dem_txt = _plain(dem)
+    dem_txt = dem_txt if len(dem_txt) <= 38 else dem_txt[:37].rstrip() + "…"
+    d.add(String(dx + dw / 2, cy + 14, dem_txt, fontName="Helvetica", fontSize=6.3, fillColor=MUTED, textAnchor="middle"))
     if (cfg.get("energy_balance") or {}).get("grid_connection") == "conectada":
         d.add(Rect(dx, cy - 30, dw, 26, rx=5, ry=5, fillColor=colors.white, strokeColor=MUTED, strokeWidth=0.8, strokeDashArray=[3, 2]))
         d.add(String(dx + dw / 2, cy - 15, "Rede elétrica (conexão declarada)", fontName="Helvetica-Bold", fontSize=6.8, fillColor=INK, textAnchor="middle"))
@@ -391,7 +428,7 @@ def _decorations(meta: dict):
         c.drawString(MARGIN_X, PAGE_H - 11 * mm, "SEEDS2 · RELATÓRIO TÉCNICO DE CONFIGURAÇÃO")
         c.setFont("Helvetica", 7.4)
         c.setFillColor(MUTED)
-        c.drawRightString(PAGE_W - MARGIN_X, PAGE_H - 11 * mm, _plain(meta["name"])[:70] + (" · PRELIMINAR" if meta["preliminary"] else ""))
+        c.drawRightString(PAGE_W - MARGIN_X, PAGE_H - 11 * mm, (_plain(meta["name"]) if len(_plain(meta["name"])) <= 70 else _plain(meta["name"])[:69].rstrip() + "…") + (" · PRELIMINAR" if meta["preliminary"] else ""))
         c.setStrokeColor(BORDER)
         c.setLineWidth(0.5)
         c.line(MARGIN_X, 15 * mm, PAGE_W - MARGIN_X, 15 * mm)
@@ -702,6 +739,10 @@ def _content(stored, store, plan: A.SimulationPlan, meta: dict) -> list:
     # 08 balanço energético
     out += section(8, "Modelo de balanço energético", "Esquema lógico")
     out.append(balance_drawing(cfg, plan, W))
+    legend = " · ".join(f'<font color="{c.hexval().replace("0x", "#")}" size="12">•</font> {t}' for c, t in (
+        (OK, "representado no EMS"), (PARTIAL, "parcialmente representado"), (WARN, "configuração incompleta"),
+        (BAD, "não representável"), (MUTED, "desabilitado")))
+    out.append(P(legend, "small"))
     out.append(Spacer(1, 2 * mm))
     out.append(P("Esquema LÓGICO: fontes e armazenamento → balanço energético agregado (soma de potências a cada passo de 1 min) → "
                  "atendimento da demanda. <b>Não é um esquema unifilar</b>: não representa barramentos, tensões, inversores ou "
@@ -796,5 +837,5 @@ def build_report(stored, store=None, *, generated: datetime | None = None) -> by
           "06 Baterias · 07 PEMFC e térmica · 08 Modelo de balanço energético · 09 Compatibilidade com a simulação · "
           "10 Demanda e dados · 11 Rastreabilidade e alcance (seções sem equipamentos registrados são omitidas).", "small"),
     ]
-    doc.build(cover_story + _content(stored, store, plan, meta), canvasmaker=_NumberedCanvas)
+    doc.build(cover_story + _glue_headings(_content(stored, store, plan, meta)), canvasmaker=_NumberedCanvas)
     return buf.getvalue()

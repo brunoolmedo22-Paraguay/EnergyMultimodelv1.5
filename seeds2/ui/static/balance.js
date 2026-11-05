@@ -1,7 +1,7 @@
 // Esquema LÓGICO do balanço energético (gerado da configuração salva). NÃO é um diagrama unifilar:
 // não há barramentos, tensões, conversores nem conexões físicas — apenas a agregação de potência/energia
 // que o EMS realiza: fontes e armazenamento → balanço agregado → atendimento da demanda.
-const GLYPH = { representado: "✓", incompativel: "!", incompleto: "!", desabilitado: "–" };
+const GLYPH = { representado: "✓", parcial: "½", incompativel: "!", incompleto: "!", desabilitado: "–" };
 const ARROW = `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 20h24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M24 13l8 7-8 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function el(t, c, x) { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
 function src(n, i) {
@@ -43,7 +43,7 @@ export default function (component) {
   flow.append(c1, a1, c2, a2, c3);
   root.appendChild(flow);
   const lg = el("div", "bal-legend");
-  for (const [k, t] of [["representado", "Representado no EMS"], ["incompleto", "Configuração incompleta"], ["incompativel", "Não representável"], ["desabilitado", "Desabilitado"]]) {
+  for (const [k, t] of [["representado", "Representado no EMS"], ["parcial", "Parcialmente representado"], ["incompleto", "Configuração incompleta"], ["incompativel", "Não representável"], ["desabilitado", "Desabilitado"]]) {
     const s = el("span"); s.append(el("i", `bal-st ${k}`, GLYPH[k]), el("span", null, t)); lg.appendChild(s);
   }
   root.appendChild(lg);
