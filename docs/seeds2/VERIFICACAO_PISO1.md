@@ -3,7 +3,42 @@
 Ambiente da verificação: Linux, Python 3.13.18, `requirements.txt` desta branch (Streamlit 1.66.1,
 reportlab 4.4.10, pypdf 6.21.4), Chromium/Playwright para os testes em navegador. Data: 2026-11-05.
 
-## H-01 — Exclusão concorrente de microrredes (hotfix do PR #5; verificação atual)
+## H-02 / H-03 — Auditoria do PR #5 (verificação atual)
+
+**Reprodução ANTES da correção** (código `b8f721c`, scripts determinísticos com `Event`):
+* **H-02**: A valida X (incarnação `ff12ccb7`) e para antes da lápide; B exclui X; C reimporta X (incarnação
+  `53be8b04`); A continua → `delete OK` e **a microrrede reimportada desapareceu** (sem linha, sem diretório).
+* **H-03**: o leitor verifica a lápide (revisão 1, sem lápide) e para; outra sessão grava a revisão 2 e a lápide
+  é confirmada; o leitor continua → **`load` devolveu a revisão 2** (consultou um estado diferente do verificado,
+  já com lápide).
+
+**Depois da correção** (mesmos scripts): H-02 → `StaleDeletionError`, microrrede reimportada intacta (linha,
+diretório, incarnação e conteúdo); H-03 → `load` devolve a **revisão 1** (instantâneo verificado).
+
+**Suíte:** `python -m pytest tests/ -q` → **237 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP).
+`test_seeds2_concorrencia.py` (27) + `test_seeds2_gestor.py` (32) executados **10 vezes**: 59/59 em todas. Cada
+teste de concorrência termina conferindo as invariantes de armazenamento (todo diretório com linha da MESMA
+incarnação e documento salvo; nenhuma linha sem diretório; `.staging`, `.trash` e `.quarantine` vazios).
+
+| Intercalação | Teste | Resultado |
+|---|---|---|
+| H-02: obsoleta antes da lápide (cenário da auditoria) | `test_obsoleta_antes_da_lapide` | `StaleDeletionError`; nova incarnação intacta, sem lápide |
+| H-02: obsoleta entre lápide e reivindicação | `test_obsoleta_entre_lapide_e_reivindicacao` | `StaleDeletionError` na reivindicação; nova intacta |
+| H-02: outro processo recupera durante a pausa + reimportação | `test_recuperacao_de_outro_processo_durante_a_pausa_apos_a_lapide` | `StaleDeletionError`; nova intacta |
+| H-02: reivindicada, recuperação conclui, reimportação, remoção tardia | `test_reivindicada_e_concluida_pela_recuperacao_antes_da_reimportacao` | A conclui (sua incarnação já removida) sem tocar na nova |
+| H-02: diálogo vinculado à incarnação vista | `test_exclusao_vinculada_a_incarnacao_vista_pelo_usuario`, `test_dialogo_de_exclusao_vinculado_a_incarnacao` (interface) | recusa; nova intacta; botão de exclusão some com aviso |
+| H-02: remoção física nunca remove outra incarnação | `test_remocao_fisica_nunca_remove_outra_incarnacao` (anomalia forçada) | `RegistryError`; `recover()` (2×) também não remove |
+| H-02: lápide registra a incarnação; lápide antiga recuperável | `test_lapide_registra_a_incarnacao_e_...` | ok |
+| Duas exclusões simultâneas do mesmo UID | `test_duas_exclusoes_simultaneas_uma_efetiva` | uma efetiva |
+| H-03: leitura antes da lápide | `test_leitura_iniciada_antes_da_lapide_termina_no_instantaneo_anterior` | revisão 1 (estado verificado); leituras novas recusadas |
+| H-03: exportação durante gravação | `test_exportacao_usa_um_unico_instantaneo` | manifesto, histórico e configuração da revisão 1 |
+| H-03: leitura aberta × exclusão | `test_leitura_nao_bloqueia_gravacao_nem_exclusao` | exclusão não espera o leitor; leitor termina no seu instantâneo |
+
+**Preservação científica:** `main` × `c4aade6` com a mesma carga walk-forward → despacho `P_kW` com o mesmo hash,
+custo R$ 417,684638, 120 passos, 0 kWh não atendidos (configuração padrão V1.6 e microrrede do catálogo);
+`git diff origin/main` vazio nos diretórios científicos.
+
+## H-01 — Exclusão concorrente de microrredes (hotfix do PR #5)
 
 **Defeito reproduzido no código anterior** (`ad1d736`): com uma gravação de outra sessão intercalada entre a
 verificação de gravações e o `rename` da exclusão, `save()` devolveu **revisão 2 (sucesso)** e a microrrede foi

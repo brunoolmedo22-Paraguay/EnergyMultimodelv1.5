@@ -127,6 +127,44 @@ Qualquer falha → erro claro, **nenhuma microrrede criada**, original intacto e
 abertura. A adoção não se repete (nem depois de excluir a microrrede adotada). O `seeds2.db` original fica como
 respaldo verificável; pode ser removido manualmente depois de conferido. Banco anterior vazio → catálogo vazio.
 
+### H-02 — Exclusão vinculada à incarnação (auditoria do PR #5)
+
+**Defeito (reproduzido em `b8f721c`).** `delete(X)` validava X no catálogo e só depois gravava a lápide,
+reivindicava e removia — sem conferir QUAL incarnação de X estava tocando. Intercalação: A valida X (incarnação
+I1) e para; B exclui X por completo; C reimporta X (incarnação I2); A continua → a lápide caía no banco NOVO, a
+reivindicação marcava a NOVA linha e a remoção apagava a microrrede reimportada.
+
+**Correção.** Toda exclusão é vinculada a uma incarnação — a que o usuário via no diálogo
+(`expected_incarnation`) ou a atual do catálogo no início:
+1. **lápide (L2)**: sob `BEGIN IMMEDIATE` do banco, confere `meta.incarnation`; divergência →
+   `StaleDeletionError` (subclasse de `MicrogridNotFound`) e nada é gravado. A lápide registra a incarnação;
+2. **reivindicação (L1)**: `UPDATE ... WHERE state = 'ready' AND incarnation = ?`; linha de outra incarnação →
+   `StaleDeletionError`;
+3. **remoção física (L1)**: só se a linha é `deleting` DESSA incarnação e o banco do diretório é dessa
+   incarnação (ou já ausente); `DELETE ... AND incarnation IS ?`;
+4. **recuperação**: lápide de linhas `deleting` conferida com a incarnação da linha; linha `ready` só é
+   concluída se o banco tem lápide E a mesma incarnação; tudo reconferido sob L1 antes de mover. Lápides
+   gravadas pela versão anterior (sem o campo de incarnação) continuam recuperáveis (vale a incarnação do banco).
+   Divergência — que o protocolo não produz — nunca resulta em remoção.
+
+Enquanto existe a linha de X (`ready` ou `deleting`), nenhuma importação de X é aceita (UID duplicado conferido
+sob L1); por isso a reimportação só acontece depois da remoção completa, e a exclusão tardia de A ou falha
+(`StaleDeletionError`) ou encontra a sua incarnação já removida (sucesso, sem tocar na nova). Sem bloqueios
+aninhados e sem bloqueio global.
+
+### H-03 — Leituras em transação de instantâneo único
+
+**Defeito (reproduzido em `b8f721c`).** `_read()` verificava a lápide numa consulta em modo autocommit e
+consultava os dados em outra: com uma revisão e a lápide confirmadas no meio, a leitura que verificara a
+revisão 1 sem lápide devolveu a revisão 2 de um banco já com lápide. `export_backup` lia configuração, blobs,
+histórico e versão em cinco conexões distintas (o manifesto podia divergir do `history.json`).
+
+**Política.** `_read()` abre uma **transação de leitura** (`BEGIN` DEFERRED); em WAL o instantâneo é fixado na
+primeira consulta — a própria verificação de lápide/incarnação — e todas as consultas daquela leitura veem o
+mesmo estado. Leitura cujo instantâneo é anterior à lápide termina sobre esse **estado anterior válido**;
+leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloqueiam gravações nem a exclusão
+(WAL). `export_backup` usa um único instantâneo.
+
 ## Banco de cada microrrede (`PRAGMA user_version` = 2)
 
 | Tabela | Conteúdo |
