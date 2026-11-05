@@ -1,5 +1,5 @@
-"""Gestão da Microrrede: manutenção da configuração da ÚNICA instalação (inventário, topologia, demanda,
-identificação, histórico de revisões, rodadas registradas, backup e restauração).
+"""Gestão da Microrrede: manutenção da configuração da ÚNICA instalação (inventário, balanço energético, demanda,
+identificação e localização, relatório técnico, histórico de revisões, rodadas registradas, backup e restauração).
 
 As alterações ficam como **edição pendente** (cópia de trabalho) até "Salvar alterações", que grava uma
 nova revisão imutável preservando a identidade da instalação. Nunca se cria outra microrrede.
@@ -13,20 +13,22 @@ import streamlit as st
 from seeds2.microgrid import config as C
 from seeds2.microgrid.store import IdentityError, StoreError, backup_filename
 
-from . import forms, session, shell
+from . import exports, forms, session, shell
 
-TABS = {"inventario": "Inventário", "topologia": "Topologia", "demanda": "Demanda e dados",
-        "instalacao": "Instalação", "historico": "Histórico e backups"}
-ORIGIN_LABELS = {"commissioning": "comissionamento", "edit": "edição", "restore": "restauração", "revert": "reversão"}
+TABS = {"inventario": "Inventário", "balanco": "Balanço energético", "demanda": "Demanda e dados",
+        "instalacao": "Instalação", "historico": "Relatório, histórico e backups"}
+TAB_ALIASES = {"topologia": "balanco"}       # links antigos continuam funcionando
+ORIGIN_LABELS = {"commissioning": "comissionamento", "edit": "edição", "restore": "restauração", "revert": "reversão",
+                 "migration": "migração", "run_conditions": "condições da rodada"}
 
 
 def _identity(cfg: dict, saved) -> None:
     inst = cfg["installation"]
     shell.hero("Gestão da Microrrede", inst.get("name") or "Microrrede",
-               inst.get("description") or "Inventário, topologia, parâmetros técnicos e manutenção da configuração desta instalação.",
+               inst.get("description") or "Inventário, balanço energético, parâmetros técnicos e manutenção da configuração desta instalação.",
                [("Natureza", C.NATURE_OPTIONS.get(inst.get("nature"), "não declarada")),
                 ("Modo", C.OPERATION_MODE_OPTIONS.get(inst.get("operation_mode"), "não declarado")),
-                ("Local", inst.get("location") or ""),
+                ("Local", forms.location_text(inst.get("location"))),
                 ("Revisão salva", str(saved.revision) if saved else "—"),
                 ("Identidade", inst["uid"][:12] + "…")])
 
@@ -71,7 +73,16 @@ def render() -> None:
     _identity(cfg, saved)
     _pending_bar()
     r = shell.route()
-    tab = r.get("tab") if r.get("tab") in TABS else "inventario"
+    tab = TAB_ALIASES.get(r.get("tab"), r.get("tab"))
+    tab = tab if tab in TABS else "inventario"
+    miss = C.identification_missing(cfg)
+    if miss and tab != "instalacao":
+        c1, c2 = st.columns([4, 1.2], vertical_alignment="center")
+        c1.warning("Identificação incompleta (configuração anterior a esta versão): " + shell.md(", ".join(miss)) +
+                   ". O inventário existente é preservado.")
+        if c2.button("Completar identificação", key="mg_complete_ident", width="stretch"):
+            shell.go("gestao", "instalacao")
+            st.rerun()
     sel = st.segmented_control("Seção", list(TABS), default=tab, format_func=TABS.get, key=f"mg_tab_{tab}",
                                label_visibility="collapsed")
     if sel and sel != tab:
@@ -80,7 +91,7 @@ def render() -> None:
     plan = session.plan(cfg)
     with st.container(key=f"mg_stage_{tab}"):
         st.html('<div class="sd-stage"></div>')
-        {"inventario": _inventory, "topologia": _topology, "demanda": _demand, "instalacao": _installation,
+        {"inventario": _inventory, "balanco": _balance, "demanda": _demand, "instalacao": _installation,
          "historico": _history}[tab](cfg, plan)
 
 
@@ -89,12 +100,19 @@ def _inventory(cfg, plan) -> None:
     st.caption("Alterações no inventário entram como edição pendente; use **Salvar alterações** para gravar uma nova revisão.")
 
 
-def _topology(cfg, plan) -> None:
-    forms.topology_view(cfg, plan, key="mg_topo")
-    forms.grid_notice(cfg)
-    if forms.topology_form(cfg, submit="Aplicar à edição", key="mg_topo_form"):
+def _balance(cfg, plan) -> None:
+    st.caption("Esquema lógico do balanço energético agregado usado pelo EMS. Não é um esquema unifilar: barramentos, "
+               "tensões e acoplamentos físicos não são modelados nesta versão.")
+    forms.balance_view(cfg, plan, key="mg_bal")
+    if forms.grid_form(cfg, key="mg_bal"):
         forms.bump()
         st.rerun()
+    forms.grid_notice(cfg)
+    legacy = (cfg.get("legacy") or {}).get("topology_v1")
+    if legacy:
+        with st.expander("Topologia declarada na versão anterior (somente rastreabilidade)"):
+            st.caption((cfg.get("legacy") or {}).get("topology_v1_note", ""))
+            st.json(legacy, expanded=False)
 
 
 def _demand(cfg, plan) -> None:
@@ -113,9 +131,16 @@ def _installation(cfg, plan) -> None:
     st.caption(f"Identidade estável da instalação: `{inst['uid']}` · criada {shell.fmt_time(inst.get('created_at'))} · "
                f"comissionada {shell.fmt_time(cfg['commissioning'].get('completed_at'))}. Alterar o nome ou a descrição "
                "não cria outra microrrede.")
-    if forms.installation_form(cfg, submit="Aplicar à edição", key="mg_inst"):
-        forms.bump()
-        st.rerun()
+    forms.identification_cards(cfg, key="mg_inst")
+    _, c2 = st.columns([2, 1])
+    if c2.button("Aplicar à edição", key="mg_inst_apply", type="primary", width="stretch"):
+        errs = forms.apply_identification(cfg, key="mg_inst")
+        if errs:
+            for e in errs:
+                st.error(shell.md(e))
+        else:
+            forms.bump()
+            st.rerun()
     st.markdown('<div class="sd-section">Armazenamento e acesso</div>', unsafe_allow_html=True)
     s = session.store()
     st.markdown(f"- Banco local: `{s.path}` (esquema v{s.db_version()}); diretório definido por `SEEDS2_DATA_DIR`.\n"
@@ -126,6 +151,8 @@ def _installation(cfg, plan) -> None:
 def _history(cfg, plan) -> None:
     s = session.store()
     saved = session.saved()
+    st.markdown('<div class="sd-section">Documentação da configuração</div>', unsafe_allow_html=True)
+    exports.export_actions(key="mg_exp")
     st.markdown('<div class="sd-section">Revisões da configuração</div>', unsafe_allow_html=True)
     hist = s.history(limit=200)
     if hist:

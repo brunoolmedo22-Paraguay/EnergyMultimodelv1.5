@@ -137,8 +137,8 @@ def changes(old: dict | None, new: dict | None) -> list[str]:
     if old is None:
         return ["Nova configuração ainda não salva."]
     out: list[str] = []
-    labels = {"name": "nome", "description": "descrição", "location": "localização", "latitude": "latitude",
-              "longitude": "longitude", "timezone": "fuso horário", "nature": "natureza", "operation_mode": "modo operativo"}
+    labels = {"name": "nome", "description": "descrição", "location": "localização", "nature": "natureza",
+              "operation_mode": "modo operativo"}
     for k, lab in labels.items():
         if old["installation"].get(k) != new["installation"].get(k):
             out.append(f"Instalação: {lab}")
@@ -150,17 +150,14 @@ def changes(old: dict | None, new: dict | None) -> list[str]:
         out.append(f"Retirado: {oe[i]['name']} ({KIND_LABELS[oe[i]['kind']]})")
     for i in ne.keys() & oe.keys():
         a, b = oe[i], ne[i]
-        fields = [k for k in ("name", "tag", "serial", "enabled", "notes") if a.get(k) != b.get(k)]
+        fields = [k for k in ("name", "tag", "serial", "enabled", "notes", "imported") if a.get(k) != b.get(k)]
         fields += [k for k in b["params"] if a["params"].get(k) != b["params"].get(k)]
+        if a.get("arrays") != b.get("arrays"):
+            fields.append("arranjos")
         if fields:
             out.append(f"Alterado: {b['name']} ({', '.join(fields)})")
-    to, tn = old["topology"], new["topology"]
-    if {k: v for k, v in to.items() if k != "couplings"} != {k: v for k, v in tn.items() if k != "couplings"}:
-        out.append("Topologia elétrica")
-    for i in ne.keys() & oe.keys():
-        if to.get("couplings", {}).get(i) != tn.get("couplings", {}).get(i):
-            out.append(f"Topologia: acoplamento de {ne[i]['name']}")
-    for section, lab in (("demand", "Demanda e dados"), ("climate", "Clima"), ("commissioning", "Comissionamento")):
+    for section, lab in (("energy_balance", "Balanço energético (conexão com a rede)"), ("demand", "Demanda e dados"),
+                         ("climate", "Clima"), ("run_conditions", "Condições da rodada"), ("commissioning", "Comissionamento")):
         if old.get(section) != new.get(section):
             out.append(lab)
     return out

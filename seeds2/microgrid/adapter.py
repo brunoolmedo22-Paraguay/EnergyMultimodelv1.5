@@ -28,7 +28,7 @@ from typing import Any
 import pandas as pd
 
 from . import config as C
-from .references import KIND_LABELS, PEMFC_REF_KEY, battery_ref_parts
+from .references import KIND_LABELS, battery_ref_parts
 
 REPRESENTED, DISABLED, INCOMPLETE, INCOMPATIBLE = "representado", "desabilitado", "incompleto", "incompativel"
 STATUS_LABELS = {REPRESENTED: "Representado no EMS", DISABLED: "Desabilitado", INCOMPLETE: "Configuração incompleta",
@@ -46,11 +46,12 @@ class Mapping:
     status: str
     target: str | None = None
     reason: str = ""
+    parent: str | None = None          # FV: id da usina à qual o arranjo pertence
 
     def as_dict(self) -> dict:
         return {"id": self.id, "name": self.name, "kind": self.kind, "kind_label": KIND_LABELS.get(self.kind, self.kind),
                 "status": self.status, "status_label": STATUS_LABELS[self.status], "target": self.target,
-                "reason": self.reason}
+                "reason": self.reason, "parent": self.parent}
 
 
 @dataclass
@@ -63,6 +64,12 @@ class SimulationPlan:
     climate_descriptor: dict = field(default_factory=dict)
     config_revision: int | None = None
     config_fingerprint: str | None = None
+    run_conditions: dict = field(default_factory=dict)
+    pv_installed_kWp: float = 0.0       # soma nominal registrada (calculada + declarada) das usinas habilitadas
+    pv_represented_kWp: float = 0.0     # parte efetivamente representada na rodada (arranjos homogêneos aceitos)
+
+    def for_equipment(self, eq_id: str) -> list[Mapping]:
+        return [m for m in self.mappings if m.id == eq_id or m.parent == eq_id]
 
     @property
     def excluded(self) -> list[Mapping]:
@@ -82,12 +89,14 @@ class SimulationPlan:
 
     @property
     def spec_fingerprint(self) -> str:
-        payload = {"spec": self.spec, "load": self.load_descriptor, "climate": self.climate_descriptor}
+        payload = {"spec": self.spec, "load": self.load_descriptor, "climate": self.climate_descriptor,
+                   "run_conditions": self.run_conditions}
         return hashlib.sha256(C.canonical_json(payload).encode("utf-8")).hexdigest()
 
     def provenance(self) -> dict:
         return {"origin": "microrrede", "config_revision": self.config_revision,
                 "config_fingerprint": self.config_fingerprint, "spec_fingerprint": self.spec_fingerprint,
+                "run_conditions": self.run_conditions,
                 "represented": [m.as_dict() for m in self.represented],
                 "excluded": [m.as_dict() for m in self.excluded]}
 
@@ -101,19 +110,22 @@ def _inactive_spec() -> dict:
     return spec
 
 
-def _group_key(eq: dict) -> tuple:
-    p = eq["params"]
-    k = eq["kind"]
-    if k == "pv":
-        return (p["reference"], int(p["n_series"]), float(p["soiling_pct"]))
-    if k == "wind":
+def _group_key(kind: str, unit: dict, soc0: float | None = None) -> tuple:
+    """Chave de equivalência física no modelo existente (mesma referência e mesma configuração por unidade)."""
+    if kind == "pv":            # unit = arranjo
+        return (unit["reference"], int(unit["n_series"]), float(unit["soiling_pct"]))
+    p = unit["params"]
+    if kind == "wind":
         return (p["reference"], bool(p.get("apply_grid_loss") or False))
-    if k == "battery":
-        return (p["reference"], int(p["n_series"]), float(p["soc0_pct"]), float(p["soc_min_pct"]),
-                float(p["soc_max_pct"]), float(p["c_discharge"]), float(p["c_charge"]))
-    if k == "pemfc":
+    if kind == "battery":
+        from .derived import battery_derived
+
+        d = battery_derived(p)
+        return (p["model_reference"], int(p["model_n_series"]), float(soc0), float(p["soc_min_pct"]),
+                float(p["soc_max_pct"]), float(d["c_discharge"][0]), float(d["c_charge"][0]))
+    if kind == "pemfc":
         return (p["reference"], p["power_basis"])
-    return (eq["id"],)
+    return (unit["id"],)
 
 
 def _describe_group(kind: str, key: tuple) -> str:
@@ -122,103 +134,148 @@ def _describe_group(kind: str, key: tuple) -> str:
     if kind == "wind":
         return f"{key[0]}{' · perda genérica' if key[1] else ''}"
     if kind == "battery":
-        return f"{key[0]} · Ns={key[1]} · SOC {key[2]:g}/{key[3]:g}/{key[4]:g}% · {key[5]:g}C/{key[6]:g}C"
+        return f"{key[0]} · Ns={key[1]} · SOC {key[2]:g}/{key[3]:g}/{key[4]:g}% · {key[5]:.3g}C/{key[6]:.3g}C"
     if kind == "pemfc":
         return f"{key[0]} · base {key[1]}"
     return str(key)
 
 
 def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | None = None) -> SimulationPlan:
+    from .derived import battery_derived, pv_array_kWp
+
     spec = _inactive_spec()
     mappings: list[Mapping] = []
     warnings: list[str] = []
     blockers: list[str] = []
     candidates: dict[str, list[dict]] = {k: [] for k in TARGET}
+    soc0_map = dict(((config.get("run_conditions") or {}).get("battery_soc0_pct") or {}))
+    run_conditions: dict = {"battery_soc0_pct": {}}
+    pv_installed = 0.0
+
+    def ok(uid, name, kind, target, reason="", parent=None):
+        mappings.append(Mapping(uid, name, kind, REPRESENTED, target, reason, parent))
+
+    def bad(uid, name, kind, reason, parent=None, status=INCOMPATIBLE):
+        mappings.append(Mapping(uid, name, kind, status, None, reason, parent))
 
     for eq in config.get("equipment", []):
-        base = dict(id=eq["id"], name=eq["name"], kind=eq["kind"])
+        kind = eq["kind"]
         if not eq.get("enabled", True):
-            mappings.append(Mapping(**base, status=DISABLED, reason="Desabilitado na Gestão da Microrrede; não entra na rodada."))
+            bad(eq["id"], eq["name"], kind, "Desabilitado na Gestão da Microrrede; não entra na rodada.", status=DISABLED)
             continue
         issues = C.errors(C.equipment_issues(eq))
-        missing = C.missing_required(eq)
-        if issues or missing:
-            why = "; ".join([i.message for i in issues] + ([f"faltam: {', '.join(missing)}"] if missing else []))
-            mappings.append(Mapping(**base, status=INCOMPLETE, reason=why))
+        if issues:
+            bad(eq["id"], eq["name"], kind, "; ".join(i.message for i in issues), status=INCOMPLETE)
             continue
-        candidates[eq["kind"]].append(eq)
+        if kind == "pv":
+            arrays = eq.get("arrays") or []
+            if not arrays:
+                bad(eq["id"], eq["name"], kind, "Usina sem arranjos cadastrados.", status=INCOMPLETE)
+            for a in arrays:
+                label = f"{eq['name']} · {a['name']}"
+                kwp, _ = pv_array_kWp(a)
+                pv_installed += kwp or 0.0
+                if a.get("mode") == "declarado":
+                    bad(a["id"], label, kind, "Arranjo com potência nominal declarada, sem módulo identificado: o modelo "
+                        "fotovoltaico existente exige o datasheet do módulo e Ns/Np. Potência registrada, não simulada.",
+                        parent=eq["id"])
+                    continue
+                missing = C.array_missing(a)
+                if missing:
+                    bad(a["id"], label, kind, "faltam: " + ", ".join(missing), parent=eq["id"], status=INCOMPLETE)
+                    continue
+                candidates["pv"].append({"unit": a, "eq": eq, "label": label})
+            continue
+        missing = C.missing_required(eq)
+        if missing:
+            bad(eq["id"], eq["name"], kind, "faltam: " + ", ".join(missing), status=INCOMPLETE)
+            continue
+        if kind == "battery":
+            s0 = soc0_map.get(eq["id"])
+            p = eq["params"]
+            if s0 is None:
+                bad(eq["id"], eq["name"], kind, "SOC inicial da rodada não definido (Simulação → Condições da rodada).",
+                    status=INCOMPLETE)
+                continue
+            if not float(p["soc_min_pct"]) <= float(s0) <= float(p["soc_max_pct"]):
+                bad(eq["id"], eq["name"], kind, f"SOC inicial da rodada ({s0:g} %) fora dos limites operacionais "
+                    f"[{p['soc_min_pct']:g}, {p['soc_max_pct']:g}] %.", status=INCOMPLETE)
+                continue
+            for w in battery_derived(p, C.battery_model_energy_kWh(eq))["warnings"]:
+                warnings.append(f"{eq['name']}: {w}")
+            candidates["battery"].append({"unit": eq, "eq": eq, "label": eq["name"], "soc0": float(s0)})
+            continue
+        if kind == "pemfc" and eq["params"]["reference"] == C.PEMFC_IMPORT_REF:
+            from .modellab import INTEGRATION_PENDING
+            bad(eq["id"], eq["name"], kind, INTEGRATION_PENDING)
+            continue
+        candidates[kind].append({"unit": eq, "eq": eq, "label": eq["name"]})
 
-    def ok(eq: dict, target: str, reason: str = "") -> None:
-        mappings.append(Mapping(eq["id"], eq["name"], eq["kind"], REPRESENTED, target, reason))
-
-    def bad(eq: dict, reason: str) -> None:
-        mappings.append(Mapping(eq["id"], eq["name"], eq["kind"], INCOMPATIBLE, None, reason))
-
-    # ---- grupos homogêneos (pv, wind, battery, pemfc)
+    # ---- grupos homogêneos (FV por arranjo; eólica, bateria e PEMFC por equipamento)
     for kind in ("pv", "wind", "battery", "pemfc"):
-        eqs = candidates[kind]
-        if not eqs:
+        items = candidates[kind]
+        if not items:
             continue
         groups: dict[tuple, list[dict]] = {}
-        for eq in eqs:
-            groups.setdefault(_group_key(eq), []).append(eq)
+        for it in items:
+            groups.setdefault(_group_key(kind, it["unit"], it.get("soc0")), []).append(it)
+        parent = (lambda it: it["eq"]["id"]) if kind == "pv" else (lambda it: None)
         if len(groups) > 1:
             desc = " | ".join(_describe_group(kind, k) for k in groups)
-            for eq in eqs:
-                bad(eq, f"{len(groups)} configurações distintas de {KIND_LABELS[kind]} habilitadas ({desc}). O EMS V1.6 "
-                        "representa um único tipo por tecnologia; desabilite as que não devem entrar na rodada.")
+            unit_word = "arranjos" if kind == "pv" else "configurações"
+            for it in items:
+                bad(it["unit"]["id"], it["label"], kind,
+                    f"{len(groups)} {unit_word} distintas de {KIND_LABELS[kind]} habilitadas ({desc}). O EMS V1.6 representa "
+                    "um único tipo por tecnologia (sem médias entre módulos/configurações diferentes); desabilite ou "
+                    "ajuste os que não devem entrar na rodada.", parent=parent(it))
             continue
         key, members = next(iter(groups.items()))
         target = TARGET[kind]
-        agg = f"agregado com {len(members) - 1} equipamento(s) idêntico(s)" if len(members) > 1 else ""
+        agg = f"agregado com {len(members) - 1} unidade(s) idêntica(s)" if len(members) > 1 else ""
         if kind == "pv":
-            spec["solar"].update(active=True, module_key=key[0], n_series=key[1],
-                                 n_parallel=sum(int(e["params"]["n_parallel"]) for e in members), soiling_losses_pct=key[2])
+            n_par = sum(int(it["unit"]["n_parallel"]) for it in members)
+            spec["solar"].update(active=True, module_key=key[0], n_series=key[1], n_parallel=n_par, soiling_losses_pct=key[2])
         elif kind == "wind":
-            count = sum(int(e["params"]["count"]) for e in members)
+            count = sum(int(it["unit"]["params"]["count"]) for it in members)
             spec["wind"].update(active=True, turbine_key=key[0], turbine_count=count, apply_grid_loss=key[1])
             lo, hi = V16_UI_RANGES["wind_count"]
             if not lo <= count <= hi:
                 warnings.append(f"Quantidade total de aerogeradores ({count}) fora da faixa usada na interface V1.6 ({lo}–{hi}).")
         elif kind == "battery":
             model, cell = battery_ref_parts(key[0])
-            np_total = sum(int(e["params"]["n_parallel"]) for e in members)
+            np_total = sum(int(it["unit"]["params"]["model_n_parallel"]) for it in members)
             spec["battery"].update(active=True, model=model, key=cell, Ns=key[1], Np=np_total, soc0=key[2] / 100.0,
                                    soc_min=key[3] / 100.0, soc_max=key[4] / 100.0, c_desc=key[5], c_carga=key[6])
+            run_conditions["battery_soc0_pct"] = {it["unit"]["id"]: it["soc0"] for it in members}
             for name, val in (("battery_Ns", key[1]), ("battery_Np", np_total)):
                 lo, hi = V16_UI_RANGES[name]
                 if not lo <= val <= hi:
                     warnings.append(f"{name} = {val} fora da faixa usada na interface V1.6 ({lo}–{hi}).")
         elif kind == "pemfc":
-            if key[0] != PEMFC_REF_KEY:
-                for eq in members:
-                    bad(eq, "Perfil PEMFC não suportado pelo motor atual.")
-                continue
-            n = sum(int(e["params"]["quantity"]) for e in members)
+            n = sum(int(it["unit"]["params"]["quantity"]) for it in members)
             spec["fc"].update(active=True, N_fc=n, base=key[1])
             lo, hi = V16_UI_RANGES["N_fc"]
             if not lo <= n <= hi:
                 warnings.append(f"N_fc = {n} fora da faixa usada na interface V1.6 ({lo}–{hi}).")
-        for eq in members:
-            ok(eq, target, agg)
+        for it in members:
+            ok(it["unit"]["id"], it["label"], kind, target, agg, parent=parent(it))
 
     # ---- térmica: uma única pequena unidade geradora
-    th = candidates["thermal"]
-    plants = [e for e in th if e["params"]["dynamic"] != "local_generator"]
-    for eq in plants:
-        bad(eq, "Dinâmica 'Usina termelétrica de grande porte' não é suportada pelo runtime integrado V1.6 "
-                "(que usa a pequena unidade geradora). Disponível apenas na bancada Térmica.")
+    th = [it["unit"] for it in candidates["thermal"]]
+    for eq in [e for e in th if e["params"]["dynamic"] != "local_generator"]:
+        bad(eq["id"], eq["name"], "thermal", "Dinâmica 'Usina termelétrica de grande porte' não é suportada pelo runtime "
+            "integrado V1.6 (que usa a pequena unidade geradora). Disponível apenas na bancada Térmica.")
     locals_ = [e for e in th if e["params"]["dynamic"] == "local_generator"]
     if len(locals_) > 1:
         for eq in locals_:
-            bad(eq, f"{len(locals_)} unidades térmicas habilitadas; o EMS V1.6 representa uma única unidade térmica "
-                    "(potências e rampas distintas não são agregáveis sem alterar a formulação).")
+            bad(eq["id"], eq["name"], "thermal", f"{len(locals_)} unidades térmicas habilitadas; o EMS V1.6 representa uma "
+                "única unidade térmica (potências e rampas distintas não são agregáveis sem alterar a formulação).")
     elif len(locals_) == 1:
         p = locals_[0]["params"]
         spec["thermal"].update(active=True, pmax_kW=float(p["pmax_kW"]), pmin_kW=float(p["pmin_kW"]),
                                cvu=float(p["cvu_rs_MWh"]), ramp=float(p["ramp_kW_min"] or 0.0),
                                partida=float(p["startup_cost_rs"]))
-        ok(locals_[0], "thermal", "" if p.get("ramp_kW_min") else "sem limite de rampa declarado")
+        ok(locals_[0]["id"], locals_[0]["name"], "thermal", "thermal", "" if p.get("ramp_kW_min") else "sem limite de rampa declarado")
 
     # ---- clima, demanda e bloqueios
     clim = config.get("climate") or {}
@@ -233,17 +290,21 @@ def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | 
             warnings.append("Solar/eólica usarão o clima SINTÉTICO diário (demonstração), não medições da instalação.")
     if not any(spec[k]["active"] for k in ("fc", "battery", "thermal")):
         blockers.append("Nenhuma fonte despachável representável (H₂/PEMFC, bateria ou térmica): o EMS exige ao menos uma.")
-    dem = config.get("demand") or {}
-    load_descriptor = demand_descriptor(dem)
+    load_descriptor = demand_descriptor(config.get("demand") or {})
     if not load_descriptor:
         blockers.append("Demanda da microrrede não definida ou incompleta (Gestão → Demanda e dados).")
+    pv_repr = 0.0
+    if spec["solar"]["active"]:
+        from .derived import pv_module_stc
+        pv_repr = pv_module_stc(spec["solar"]["module_key"])["P_W"] * spec["solar"]["n_series"] * spec["solar"]["n_parallel"] / 1000.0
 
     order = {k: i for i, k in enumerate(("pv", "wind", "battery", "pemfc", "thermal"))}
-    ids = [e["id"] for e in config.get("equipment", [])]
-    mappings.sort(key=lambda m: (order.get(m.kind, 9), ids.index(m.id) if m.id in ids else 0))
+    pos = {e["id"]: i for i, e in enumerate(config.get("equipment", []))}
+    mappings.sort(key=lambda m: (order.get(m.kind, 9), pos.get(m.parent or m.id, 0)))
     return SimulationPlan(spec=spec, mappings=mappings, blockers=blockers, warnings=warnings,
                           load_descriptor=load_descriptor, climate_descriptor=climate_descriptor,
-                          config_revision=revision, config_fingerprint=fingerprint)
+                          config_revision=revision, config_fingerprint=fingerprint, run_conditions=run_conditions,
+                          pv_installed_kWp=pv_installed, pv_represented_kWp=pv_repr)
 
 
 # ------------------------------------------------------------------ demanda e clima

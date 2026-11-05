@@ -1,0 +1,13 @@
+.geo { display: flex; flex-direction: column; gap: 8px; }
+.geo-btn { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer;
+  width: 100%; padding: 11px 16px; border-radius: 10px; font-weight: 750; font-size: 13.5px; letter-spacing: .06em; color: #fff;
+  background: var(--sd-accent); box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--sd-accent) 60%, transparent);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease; touch-action: manipulation; }
+.geo-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.geo-btn:focus-visible { outline: 2.5px solid var(--sd-accent); outline-offset: 3px; }
+.geo-btn[aria-busy="true"] { cursor: progress; filter: saturate(.6); }
+.geo-btn svg { width: 18px; height: 18px; }
+.geo-btn[aria-busy="true"] svg { animation: geospin 1s linear infinite; }
+@keyframes geospin { to { transform: rotate(360deg); } }
+.geo-msg { font-size: 12.5px; line-height: 1.45; color: var(--sd-muted); min-height: 1em; }
+.geo-msg.ok { color: #2E8B57; } .geo-msg.bad { color: #C2364A; } .geo-msg.warn { color: #B06A00; }

@@ -1,0 +1,241 @@
+{
+ "climate": {
+  "csv": null,
+  "notes": "",
+  "provenance": "sintetico",
+  "source": "sintetico"
+ },
+ "commissioning": {
+  "completed": true,
+  "completed_at": "2026-11-05T11:01:55+00:00",
+  "step": 5
+ },
+ "demand": {
+  "copel": {
+   "day": null,
+   "duration_min": null,
+   "start_h": null
+  },
+  "csv": {
+   "blob": "48c7bcb010707726edf031602ad987eac29e07b7ea894a054dc6f19ff0c7122b",
+   "columns": [
+    "t_min",
+    "P_kW"
+   ],
+   "duration_min": 120,
+   "duration_total_min": 179.0,
+   "filename": "medicao_carga_bloco_c.csv",
+   "rows": 180,
+   "start_min": 0,
+   "t0": "2026-09-01 00:00:00"
+  },
+  "notes": "",
+  "provenance": "medido",
+  "source": "csv",
+  "timezone": "America/Sao_Paulo",
+  "walkforward": {
+   "profile": "Normal",
+   "scenario": "Ideal",
+   "start_hour": 12
+  }
+ },
+ "equipment": [
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-ee8f91a6904d",
+   "kind": "pv",
+   "name": "Arranjo FV 1",
+   "notes": "",
+   "params": {
+    "n_parallel": 5,
+    "n_series": 2,
+    "reference": "CS7L-590MS",
+    "soiling_pct": 0.0
+   },
+   "serial": "",
+   "tag": "PV-01",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-5bd7e51c243a",
+   "kind": "pv",
+   "name": "Arranjo FV 2",
+   "notes": "",
+   "params": {
+    "n_parallel": 5,
+    "n_series": 2,
+    "reference": "CS7L-590MS",
+    "soiling_pct": 0.0
+   },
+   "serial": "",
+   "tag": "PV-02",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-f4f9b92dbfe7",
+   "kind": "pemfc",
+   "name": "Bloco PEMFC A",
+   "notes": "",
+   "params": {
+    "power_basis": "entregue",
+    "quantity": 3,
+    "reference": "EQUIVALENT_65KW_HORIZON_CONSTRAINED"
+   },
+   "serial": "",
+   "tag": "FC-A",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-17cfdef1f588",
+   "kind": "pemfc",
+   "name": "Bloco PEMFC B",
+   "notes": "",
+   "params": {
+    "power_basis": "entregue",
+    "quantity": 1,
+    "reference": "EQUIVALENT_65KW_HORIZON_CONSTRAINED"
+   },
+   "serial": "",
+   "tag": "FC-B",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-0adf828eb494",
+   "kind": "battery",
+   "name": "Banco de baterias 1",
+   "notes": "",
+   "params": {
+    "c_charge": 0.5,
+    "c_discharge": 1.0,
+    "n_parallel": 66,
+    "n_series": 200,
+    "reference": "tremblay:liion_3p3v_2p3ah",
+    "soc0_pct": 60.0,
+    "soc_max_pct": 90.0,
+    "soc_min_pct": 20.0
+   },
+   "serial": "",
+   "tag": "BAT-01",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-831e3fba10c2",
+   "kind": "battery",
+   "name": "Banco de baterias 2",
+   "notes": "",
+   "params": {
+    "c_charge": 0.5,
+    "c_discharge": 1.0,
+    "n_parallel": 66,
+    "n_series": 200,
+    "reference": "tremblay:liion_3p3v_2p3ah",
+    "soc0_pct": 60.0,
+    "soc_max_pct": 90.0,
+    "soc_min_pct": 20.0
+   },
+   "serial": "",
+   "tag": "BAT-02",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-9be9bf37788f",
+   "kind": "wind",
+   "name": "Aerogerador EWT",
+   "notes": "",
+   "params": {
+    "apply_grid_loss": false,
+    "count": 1,
+    "reference": "EWT DW61-1MW"
+   },
+   "serial": "",
+   "tag": "WT-01",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": false,
+   "id": "eq-c80e172a734d",
+   "kind": "thermal",
+   "name": "Gerador diesel",
+   "notes": "",
+   "params": {
+    "cvu_rs_MWh": 1100.0,
+    "dynamic": "local_generator",
+    "fuel_preset": "Óleo diesel",
+    "pmax_kW": 80.0,
+    "pmin_kW": 20.0,
+    "ramp_kW_min": 20.0,
+    "startup_cost_rs": 50.0
+   },
+   "serial": "",
+   "tag": "GD-01",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  },
+  {
+   "created_at": "2026-11-05T11:01:55+00:00",
+   "enabled": true,
+   "id": "eq-e35457c71fb1",
+   "kind": "battery",
+   "name": "Banco sem dados",
+   "notes": "",
+   "params": {
+    "c_charge": null,
+    "c_discharge": null,
+    "n_parallel": null,
+    "n_series": null,
+    "reference": null,
+    "soc0_pct": null,
+    "soc_max_pct": null,
+    "soc_min_pct": null
+   },
+   "serial": "",
+   "tag": "BAT-99",
+   "updated_at": "2026-11-05T11:01:55+00:00"
+  }
+ ],
+ "installation": {
+  "created_at": "2026-11-05T11:01:55+00:00",
+  "description": "Fixture de teste automatizado",
+  "latitude": -25.4428,
+  "location": "Foz do Iguaçu, PR",
+  "longitude": -54.5784,
+  "name": "Laboratório de Microrredes — Bloco C (v1)",
+  "nature": "laboratorio",
+  "operation_mode": "isolada",
+  "timezone": "America/Sao_Paulo",
+  "uid": "eb6a898d51f34705a3d8bbe21bda151d"
+ },
+ "retired": [],
+ "schema_version": 1,
+ "topology": {
+  "bus_kind": "CC",
+  "bus_label": "Barramento principal",
+  "couplings": {
+   "eq-0adf828eb494": "conversor_bidirecional",
+   "eq-17cfdef1f588": "conversor_cc_cc",
+   "eq-5bd7e51c243a": "conversor_cc_cc",
+   "eq-831e3fba10c2": "conversor_bidirecional",
+   "eq-9be9bf37788f": "inversor",
+   "eq-c80e172a734d": "nao_declarado",
+   "eq-e35457c71fb1": "nao_declarado",
+   "eq-ee8f91a6904d": "conversor_cc_cc",
+   "eq-f4f9b92dbfe7": "conversor_cc_cc"
+  },
+  "grid_connection": "isolada",
+  "load_coupling": "conversor_cc_cc",
+  "nominal_voltage_V": 400.0
+ }
+}

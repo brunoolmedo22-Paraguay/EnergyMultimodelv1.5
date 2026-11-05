@@ -171,6 +171,7 @@ def panel(view: str) -> None:
                       f"<b>salva</b> (revisão {saved.revision if saved else '—'}).", "warn")
     if plan is None:
         return
+    run_conditions_editor(saved, plan)
     manual = bool(ss.get("orq_manual"))
     title = ("Especificação MANUAL no console V1.6" if manual else
              f"Configuração aplicada · revisão {plan.config_revision} · {str(plan.config_fingerprint)[:12]}…")
@@ -205,6 +206,47 @@ def panel(view: str) -> None:
             shell.go("gestao", "inventario")
             st.rerun()
         c2.caption(f"Impressão digital da especificação: `{plan.spec_fingerprint[:16]}…`")
+
+
+def run_conditions_editor(saved, plan: A.SimulationPlan) -> None:
+    """SOC inicial das baterias: CONDIÇÃO DA RODADA (seção ``run_conditions``), não dado do inventário."""
+    from seeds2.microgrid.store import ConflictError, StoreError
+
+    batts = [e for e in saved.config["equipment"] if e["kind"] == "battery" and e.get("enabled", True)
+             and not C.missing_required(e) and not C.errors(C.equipment_issues(e))]
+    if not batts:
+        return
+    soc0 = saved.config["run_conditions"]["battery_soc0_pct"]
+    pending = [e for e in batts if e["id"] not in soc0]
+    with st.expander("Condições da rodada — SOC inicial das baterias" + (" (definir)" if pending else ""), expanded=bool(pending)):
+        st.caption("O SOC inicial é uma condição de cada rodada (não é característica permanente do banco). Fica registrado "
+                   "na procedência da rodada. Deve estar entre os limites operacionais do banco.")
+        vals = {}
+        cols = st.columns(min(3, len(batts)))
+        for i, eq in enumerate(batts):
+            p = eq["params"]
+            vals[eq["id"]] = cols[i % len(cols)].number_input(
+                f"{shell.md(eq['name'])} · SOC inicial [%]", min_value=0.0, max_value=100.0, value=soc0.get(eq["id"]),
+                format="%.4g", placeholder="não definido", key=f"ops_soc0_{eq['id']}_{saved.revision}",
+                help=f"Limites operacionais do banco: {p['soc_min_pct']:g}–{p['soc_max_pct']:g} %.")
+        dirty = session.is_dirty()
+        if dirty:
+            st.caption("Salve ou descarte a edição pendente em Gestão antes de alterar as condições da rodada.")
+        if st.button("Salvar condições da rodada", key="ops_soc0_save", disabled=dirty):
+            cfg = copy.deepcopy(saved.config)
+            for eid, v in vals.items():
+                if v is None:
+                    cfg["run_conditions"]["battery_soc0_pct"].pop(eid, None)
+                else:
+                    cfg["run_conditions"]["battery_soc0_pct"][eid] = float(v)
+            try:
+                session.store().save(cfg, saved.revision, origin="run_conditions",
+                                     note="Condições da rodada: SOC inicial " + ", ".join(f"{v:g} %" for v in vals.values() if v is not None))
+            except (ConflictError, StoreError) as exc:
+                st.error(shell.md(exc))
+            else:
+                session.discard()
+                st.rerun()
 
 
 def render(view: str, legacy_css: Callable[[], None]) -> None:

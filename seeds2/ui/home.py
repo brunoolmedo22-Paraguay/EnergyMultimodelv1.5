@@ -29,11 +29,19 @@ def render() -> None:
                inst.get("description") or "Configuração física persistente da instalação energética.",
                [("Natureza", C.NATURE_OPTIONS.get(inst.get("nature"), "não declarada")),
                 ("Modo", C.OPERATION_MODE_OPTIONS.get(inst.get("operation_mode"), "não declarado")),
-                ("Local", inst.get("location") or ""), ("Fuso", inst.get("timezone") or ""),
+                ("Local", forms.location_text(inst.get("location"))), ("Fuso", (inst.get("location") or {}).get("timezone") or ""),
                 ("Comissionada", shell.fmt_time(cfg["commissioning"].get("completed_at"))),
                 ("Revisão", f"{saved.revision} · {saved.fingerprint[:10]}…")])
     if session.is_dirty():
         shell.callout("Há <b>edição pendente</b> em Gestão da Microrrede ainda não salva.", "warn")
+    miss = C.identification_missing(cfg)
+    if miss:
+        c1, c2 = st.columns([4, 1.2], vertical_alignment="center")
+        c1.warning("Identificação incompleta: " + shell.md(", ".join(miss)) + ". Complete-a em Gestão → Instalação "
+                   "(o inventário existente é preservado).")
+        if c2.button("Completar identificação", key="home_complete_ident", width="stretch"):
+            shell.go("gestao", "instalacao")
+            st.rerun()
     by = {k: [e for e in cfg["equipment"] if e["kind"] == k] for k in KINDS}
     tiles = []
     for k in ("pv", "wind", "pemfc", "thermal"):
@@ -64,8 +72,8 @@ def render() -> None:
     st.write("")
     c1, c2 = st.columns([1.55, 1], gap="large")
     with c1:
-        st.markdown('<div class="sd-section">Organização elétrica declarada</div>', unsafe_allow_html=True)
-        forms.topology_view(cfg, plan, key="home_topo")
+        st.markdown('<div class="sd-section">Esquema lógico do balanço energético</div>', unsafe_allow_html=True)
+        forms.balance_view(cfg, plan, key="home_bal")
     with c2:
         st.markdown('<div class="sd-section">Prontidão para simulação</div>', unsafe_allow_html=True)
         rows = []

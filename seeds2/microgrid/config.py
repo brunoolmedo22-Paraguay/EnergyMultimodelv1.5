@@ -1,14 +1,16 @@
-"""Documento de configuração da ÚNICA microrrede desta instalação.
+"""Documento de configuração da ÚNICA microrrede desta instalação (esquema v2).
 
-A configuração é um documento JSON (dicionários simples) para garantir ida-e-volta exata
-com o armazenamento. Este módulo define:
+Separação de domínio (Piso 1 — refinamento):
 
-* a estrutura (``new_config``/``new_equipment``) e a versão do documento;
-* a especificação de parâmetros por tecnologia (unidade, faixa, obrigatoriedade para simular);
-* a validação estrutural e física (``validate``) e o estado de cada equipamento.
+* **Inventário físico permanente** — ``equipment`` (dados de placa/datasheet, quantidades, limites);
+* **Referências técnicas** — catálogos lidos em ``references.py`` (somente leitura);
+* **Parametrização do modelo científico** — grupo "modelo" da bateria (célula, Ns/Np), separado do datasheet;
+* **Condições de simulação** — ``run_conditions`` (p. ex. SOC inicial da rodada), fora do inventário;
+* **Modelo lógico de balanço** — ``energy_balance`` (sem barramentos, tensões ou acoplamentos fictícios).
 
-Não há aqui nenhuma equação dos modelos. Valores ausentes são PERMITIDOS (o usuário não é
-obrigado a inventar dados): eles apenas impedem que o equipamento seja "tecnicamente configurado".
+Não há aqui nenhuma equação dos modelos. Valores ausentes são PERMITIDOS (o usuário não é obrigado a inventar
+dados): apenas impedem que o equipamento seja "tecnicamente configurado" para a simulação.
+Migração de documentos antigos: ``migrations.py``.
 """
 from __future__ import annotations
 
@@ -24,8 +26,10 @@ from typing import Any, Iterable
 from .references import (KINDS, PEMFC_REF_KEY, THERMAL_DYNAMIC_KEYS, battery_references, pv_references,
                          thermal_fuel_presets, wind_references)
 
-DOC_SCHEMA_VERSION = 1
+DOC_SCHEMA_VERSION = 2
 EQUIPMENT_ID_RE = re.compile(r"^eq-[0-9a-f]{12}$")
+ARRAY_ID_RE = re.compile(r"^arr-[0-9a-f]{12}$")
+PEMFC_IMPORT_REF = "modellab_import"
 
 NATURE_OPTIONS = {
     "industrial": "Industrial",
@@ -42,17 +46,10 @@ OPERATION_MODE_OPTIONS = {
     "conectada_ilhamento": "Conectada, com capacidade declarada de ilhamento",
     "nao_definido": "Ainda não definido",
 }
-BUS_KIND_OPTIONS = {"CA": "Barramento CA", "CC": "Barramento CC", "nao_declarado": "Não declarado"}
 GRID_CONNECTION_OPTIONS = {"isolada": "Sem conexão com a rede", "conectada": "Conectada à rede de distribuição",
                            "nao_declarada": "Não declarada"}
-COUPLING_OPTIONS = {
-    "inversor": "Inversor (CC→CA)",
-    "conversor_cc_cc": "Conversor CC-CC",
-    "conversor_bidirecional": "Conversor bidirecional",
-    "retificador": "Retificador (CA→CC)",
-    "direto": "Acoplamento direto",
-    "nao_declarado": "Não declarado",
-}
+LOCATION_SOURCES = {"manual": "Informada manualmente", "navegador": "Geolocalização do navegador (confirmada)",
+                    "migrado": "Migrada da configuração anterior"}
 DEMAND_SOURCES = {
     "nao_definida": "Ainda não definida",
     "walkforward": "Perfil de referência walk-forward (embarcação, 2 h)",
@@ -67,6 +64,16 @@ PROVENANCE_KINDS = {
 }
 CLIMATE_SOURCES = {"sintetico": "Sintético diário (explícito, para demonstração)", "csv": "CSV climático importado"}
 PEMFC_POWER_BASIS = {"entregue": "Potência entregue (líquida)", "stack": "Potência do stack (legado)"}
+PV_ARRAY_MODES = {"modulo": "Módulos identificados (datasheet)", "declarado": "Potência nominal declarada"}
+BATTERY_CHEMISTRIES = {
+    "li_lfp": "Íon-lítio LFP", "li_nmc": "Íon-lítio NMC", "li_outro": "Íon-lítio (outra química)",
+    "chumbo_acido": "Chumbo-ácido", "nicd": "Níquel-cádmio (NiCd)", "nimh": "Níquel-hidreto metálico (NiMH)",
+    "outra": "Outra",
+}
+SOC_LIMIT_SOURCES = {"sugerido": "Valor inicial sugerido pelo SEEDS2 (não é limite do fabricante)",
+                     "fabricante": "Documentado pelo fabricante", "instalacao": "Definido pela instalação",
+                     "migrado": "Migrado da configuração anterior"}
+SOC_MIN_DEFAULT, SOC_MAX_DEFAULT = 20.0, 80.0
 
 
 def utc_now() -> str:
@@ -79,25 +86,33 @@ class ParamSpec:
     name: str
     label: str
     unit: str
-    type: str                       # "int" | "float" | "choice" | "bool"
+    type: str                       # "int" | "float" | "choice" | "bool" | "text"
     required: bool = True           # obrigatório para SIMULAR (não para registrar)
     min: float | None = None
     max: float | None = None
     min_exclusive: bool = False
     max_exclusive: bool = False
     help: str = ""
-    default: Any = None             # usado SÓ para opções de modelagem, nunca para dados físicos
+    default: Any = None             # opções de modelagem e valores iniciais explicitamente pedidos (SOC 20/80, sujeira 0)
+    group: str = "principal"        # "principal" (datasheet/inventário) | "modelo" (parametrização científica)
 
 
 def _choices(kind: str, name: str) -> dict[str, str]:
-    if kind == "pv" and name == "reference":
+    if kind in ("pv", "pv_array") and name == "reference":
         return {k: r.label for k, r in pv_references().items()}
+    if kind == "pv_array" and name == "mode":
+        return dict(PV_ARRAY_MODES)
     if kind == "wind" and name == "reference":
         return {k: r.label for k, r in wind_references().items()}
-    if kind == "battery" and name == "reference":
+    if kind == "battery" and name == "model_reference":
         return {k: r.label for k, r in battery_references().items()}
+    if kind == "battery" and name == "chemistry":
+        return dict(BATTERY_CHEMISTRIES)
+    if kind == "battery" and name == "soc_limits_source":
+        return dict(SOC_LIMIT_SOURCES)
     if kind == "pemfc" and name == "reference":
-        return {PEMFC_REF_KEY: "Sistema PEMFC equivalente · Horizon VLIIPro50-22 (aproximado)"}
+        return {PEMFC_REF_KEY: "Sistema PEMFC equivalente · Horizon VLIIPro50-22 (aproximado)",
+                PEMFC_IMPORT_REF: "Dispositivo importado do PEMFC ModelLab"}
     if kind == "pemfc" and name == "power_basis":
         return dict(PEMFC_POWER_BASIS)
     if kind == "thermal" and name == "dynamic":
@@ -113,13 +128,8 @@ def choices(kind: str, name: str) -> dict[str, str]:
 
 
 PARAM_SPECS: dict[str, tuple[ParamSpec, ...]] = {
-    "pv": (
-        ParamSpec("reference", "Módulo FV (referência)", "", "choice", help="Módulo do catálogo config/pv_database.py."),
-        ParamSpec("n_series", "Módulos em série por string", "módulos", "int", min=1),
-        ParamSpec("n_parallel", "Strings em paralelo", "strings", "int", min=1),
-        ParamSpec("soiling_pct", "Perdas por sujeira", "%", "float", min=0, max=100, max_exclusive=True,
-                  help="Declare 0 se nenhuma perda for considerada; não há valor presumido."),
-    ),
+    # A usina FV não tem parâmetros próprios: é composta por arranjos (ARRAY_SPECS).
+    "pv": (),
     "wind": (
         ParamSpec("reference", "Aerogerador (referência)", "", "choice", help="Curva original de config/wind_turbine_database.py."),
         ParamSpec("count", "Quantidade de aerogeradores", "unidades", "int", min=1),
@@ -127,17 +137,27 @@ PARAM_SPECS: dict[str, tuple[ParamSpec, ...]] = {
                   help="Opção do modelo eólico existente (perda genérica fixa)."),
     ),
     "battery": (
-        ParamSpec("reference", "Célula e modelo (referência)", "", "choice"),
-        ParamSpec("n_series", "Células em série (Ns)", "células", "int", min=1),
-        ParamSpec("n_parallel", "Ramos em paralelo (Np)", "ramos", "int", min=1),
-        ParamSpec("soc0_pct", "SOC inicial", "%", "float", min=0, max=100),
-        ParamSpec("soc_min_pct", "SOC mínimo operacional", "%", "float", min=0, max=100),
-        ParamSpec("soc_max_pct", "SOC máximo operacional", "%", "float", min=0, max=100),
-        ParamSpec("c_discharge", "Taxa máxima de descarga", "C", "float", min=0, min_exclusive=True),
-        ParamSpec("c_charge", "Taxa máxima de carga", "C", "float", min=0, min_exclusive=True),
+        ParamSpec("manufacturer", "Fabricante", "", "text", required=False),
+        ParamSpec("model", "Modelo", "", "text", required=False),
+        ParamSpec("chemistry", "Tecnologia / química", "", "choice", required=False),
+        ParamSpec("energy_kWh", "Energia nominal", "kWh", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("capacity_Ah", "Capacidade nominal", "Ah", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("voltage_V", "Tensão nominal", "V", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("power_kW", "Potência nominal", "kW", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("i_charge_max_A", "Corrente máx. contínua de carga", "A", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("i_discharge_max_A", "Corrente máx. contínua de descarga", "A", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("c_charge_max", "Taxa máxima de carga", "C", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("c_discharge_max", "Taxa máxima de descarga", "C", "float", required=False, min=0, min_exclusive=True),
+        ParamSpec("soc_min_pct", "SOC mínimo operacional", "%", "float", min=0, max=100, default=SOC_MIN_DEFAULT),
+        ParamSpec("soc_max_pct", "SOC máximo operacional", "%", "float", min=0, max=100, default=SOC_MAX_DEFAULT),
+        ParamSpec("soc_limits_source", "Origem dos limites de SOC", "", "choice", required=False, default="sugerido"),
+        ParamSpec("model_reference", "Modelo e célula de referência", "", "choice", group="modelo",
+                  help="Tremblay–Dessaint ou circuito 2 RC (models/battery_model.py)."),
+        ParamSpec("model_n_series", "Células em série (Ns)", "células", "int", min=1, group="modelo"),
+        ParamSpec("model_n_parallel", "Ramos em paralelo (Np)", "ramos", "int", min=1, group="modelo"),
     ),
     "pemfc": (
-        ParamSpec("reference", "Perfil PEMFC (referência)", "", "choice", default=PEMFC_REF_KEY),
+        ParamSpec("reference", "Perfil / dispositivo PEMFC", "", "choice", default=PEMFC_REF_KEY),
         ParamSpec("quantity", "Sistemas/stacks instalados", "unidades", "int", min=1),
         ParamSpec("power_basis", "Base do envelope de potência no EMS", "", "choice", default="entregue",
                   help="Convenção do EMS V1.6: 'entregue' já é potência líquida (ηFC=1 no balanço)."),
@@ -154,13 +174,44 @@ PARAM_SPECS: dict[str, tuple[ParamSpec, ...]] = {
         ParamSpec("startup_cost_rs", "Custo de partida", "R$", "float", min=0),
     ),
 }
-
 PARAM_INDEX = {kind: {p.name: p for p in specs} for kind, specs in PARAM_SPECS.items()}
+
+ARRAY_SPECS: tuple[ParamSpec, ...] = (
+    ParamSpec("mode", "Forma de cadastro", "", "choice", default="modulo"),
+    ParamSpec("reference", "Módulo FV (referência)", "", "choice", help="Módulo do catálogo config/pv_database.py."),
+    ParamSpec("n_series", "Módulos em série por string", "módulos", "int", min=1),
+    ParamSpec("n_parallel", "Strings em paralelo", "strings", "int", min=1),
+    ParamSpec("soiling_pct", "Perdas por sujeira", "%", "float", min=0, max=100, max_exclusive=True, default=0.0,
+              help="0 % = hipótese de perdas por sujeira NÃO consideradas (não é uma medição de limpeza)."),
+    ParamSpec("declared_kWp", "Potência nominal declarada", "kWp", "float", min=0, min_exclusive=True),
+    ParamSpec("declared_source", "Procedência da potência declarada", "", "text", required=False),
+)
+ARRAY_INDEX = {p.name: p for p in ARRAY_SPECS}
+ARRAY_FIELDS = set(ARRAY_INDEX) | {"id", "name", "notes", "soiling_default", "migrated_from"}
+# Parâmetros obrigatórios para o arranjo ser "tecnicamente configurado", conforme a forma de cadastro.
+ARRAY_REQUIRED = {"modulo": ("reference", "n_series", "n_parallel", "soiling_pct"), "declarado": ("declared_kWp",)}
 
 
 # ======================================================== construção
 def new_equipment_id() -> str:
     return f"eq-{uuid.uuid4().hex[:12]}"
+
+
+def new_array_id() -> str:
+    return f"arr-{uuid.uuid4().hex[:12]}"
+
+
+def new_array(name: str = "", **values: Any) -> dict:
+    arr = {"id": values.pop("id", None) or new_array_id(), "name": str(name).strip(), "notes": values.pop("notes", "") or ""}
+    arr.update({p.name: p.default for p in ARRAY_SPECS})
+    arr["soiling_default"] = True               # 0 % aplicado como hipótese padrão até o usuário declarar
+    if "soiling_pct" in values:
+        arr["soiling_default"] = False
+    arr.update(values)
+    unknown = set(arr) - ARRAY_FIELDS
+    if unknown:
+        raise ValueError(f"Campos desconhecidos para arranjo: {sorted(unknown)}")
+    return arr
 
 
 def new_equipment(kind: str, name: str, **fields: Any) -> dict:
@@ -181,9 +232,18 @@ def new_equipment(kind: str, name: str, **fields: Any) -> dict:
         "created_at": now,
         "updated_at": now,
     }
+    if kind == "pv":
+        eq["arrays"] = list(fields.pop("arrays", []) or [])
+    if kind == "pemfc":
+        eq["imported"] = fields.pop("imported", None)
     if fields:
         raise ValueError(f"Campos desconhecidos para equipamento: {sorted(fields)}")
     return eq
+
+
+def new_location() -> dict:
+    return {"country": "", "region": "", "city": "", "address": "", "latitude": None, "longitude": None,
+            "timezone": "", "source": "manual", "accuracy_m": None, "captured_at": None, "timezone_suggested": ""}
 
 
 def new_config(name: str = "") -> dict:
@@ -194,25 +254,15 @@ def new_config(name: str = "") -> dict:
             "uid": uuid.uuid4().hex,
             "name": str(name).strip(),
             "description": "",
-            "location": "",
-            "latitude": None,
-            "longitude": None,
-            "timezone": "",
             "nature": None,
             "operation_mode": None,
+            "location": new_location(),
             "created_at": now,
         },
         "commissioning": {"completed": False, "step": 1, "completed_at": None},
         "equipment": [],
         "retired": [],
-        "topology": {
-            "bus_kind": "nao_declarado",
-            "bus_label": "Barramento principal",
-            "nominal_voltage_V": None,
-            "grid_connection": "nao_declarada",
-            "couplings": {},
-            "load_coupling": "nao_declarado",
-        },
+        "energy_balance": {"grid_connection": "nao_declarada"},
         "demand": {
             "source": "nao_definida",
             "walkforward": {"scenario": None, "profile": None, "start_hour": None},
@@ -224,6 +274,8 @@ def new_config(name: str = "") -> dict:
             "notes": "",
         },
         "climate": {"source": "sintetico", "csv": None, "provenance": "sintetico", "notes": ""},
+        "run_conditions": {"battery_soc0_pct": {}},
+        "migrations": [],
     }
 
 
@@ -235,8 +287,10 @@ def add_equipment(config: dict, eq: dict) -> dict:
     if find_equipment(config, eq["id"]) is not None:
         raise ValueError(f"Identificador duplicado: {eq['id']}")
     config.setdefault("equipment", []).append(eq)
-    config["topology"].setdefault("couplings", {}).setdefault(eq["id"], "nao_declarado")
     return eq
+
+
+EDITABLE_FIELDS = ("name", "tag", "serial", "enabled", "notes", "arrays", "imported")
 
 
 def update_equipment(config: dict, eq_id: str, **changes: Any) -> dict:
@@ -247,9 +301,9 @@ def update_equipment(config: dict, eq_id: str, **changes: Any) -> dict:
         raise ValueError("Identificador e tipo de um equipamento são imutáveis.")
     params = changes.pop("params", None)
     for k, v in changes.items():
-        if k not in ("name", "tag", "serial", "enabled", "notes"):
+        if k not in EDITABLE_FIELDS or (k == "arrays" and eq["kind"] != "pv") or (k == "imported" and eq["kind"] != "pemfc"):
             raise ValueError(f"Campo não editável: {k}")
-        eq[k] = v.strip() if isinstance(v, str) else v
+        eq[k] = v.strip() if isinstance(v, str) else copy.deepcopy(v)
     if params is not None:
         unknown = set(params) - set(PARAM_INDEX[eq["kind"]])
         if unknown:
@@ -265,7 +319,7 @@ def retire_equipment(config: dict, eq_id: str, reason: str = "") -> dict:
     if eq is None:
         raise KeyError(f"Equipamento inexistente: {eq_id}")
     config["equipment"] = [e for e in config["equipment"] if e["id"] != eq_id]
-    config["topology"].get("couplings", {}).pop(eq_id, None)
+    (config.get("run_conditions") or {}).get("battery_soc0_pct", {}).pop(eq_id, None)
     rec = copy.deepcopy(eq)
     rec["retired_at"] = utc_now()
     rec["retired_reason"] = str(reason or "")
@@ -297,18 +351,67 @@ def _num_ok(spec: ParamSpec, v: Any) -> str | None:
     return None
 
 
-def validate_param(kind: str, name: str, value: Any) -> str | None:
-    spec = PARAM_INDEX[kind][name]
+def _check_value(kind: str, spec: ParamSpec, value: Any) -> str | None:
     if value is None:
         return None
     if spec.type == "choice":
-        opts = _choices(kind, name)
+        opts = _choices(kind, spec.name)
         if not isinstance(value, str):
             return "deve ser um identificador de referência (texto)"
         return None if value in opts else f"valor {value[:80]!r} não pertence às referências disponíveis"
     if spec.type == "bool":
         return None if isinstance(value, bool) else "deve ser verdadeiro/falso"
+    if spec.type == "text":
+        return None if isinstance(value, str) and len(value) <= 500 else "deve ser texto (até 500 caracteres)"
     return _num_ok(spec, value)
+
+
+def validate_param(kind: str, name: str, value: Any) -> str | None:
+    return _check_value(kind, PARAM_INDEX[kind][name], value)
+
+
+def array_issues(arr: Any, prefix: str) -> list[Issue]:
+    if not isinstance(arr, dict):
+        return [Issue("error", prefix, "Arranjo inválido.")]
+    out: list[Issue] = []
+    if not ARRAY_ID_RE.match(str(arr.get("id", ""))):
+        out.append(Issue("error", f"{prefix}.id", "Identificador de arranjo inválido."))
+    if not isinstance(arr.get("name"), str) or not arr["name"].strip():
+        out.append(Issue("error", f"{prefix}.name", "Nome do arranjo é obrigatório."))
+    for k in ("notes",):
+        if not isinstance(arr.get(k, ""), str):
+            out.append(Issue("error", f"{prefix}.{k}", "Deve ser texto."))
+    if not isinstance(arr.get("soiling_default", False), bool):
+        out.append(Issue("error", f"{prefix}.soiling_default", "Estrutura inválida."))
+    for u in sorted(set(arr) - ARRAY_FIELDS):
+        out.append(Issue("error", f"{prefix}.{u}", "Campo desconhecido para arranjo."))
+    if arr.get("mode") not in PV_ARRAY_MODES:
+        out.append(Issue("error", f"{prefix}.mode", "Forma de cadastro do arranjo inválida."))
+    for spec in ARRAY_SPECS:
+        if spec.name == "mode":
+            continue
+        msg = _check_value("pv_array", spec, arr.get(spec.name))
+        if msg:
+            out.append(Issue("error", f"{prefix}.{spec.name}", f"{spec.label}: {msg}."))
+    return out
+
+
+def array_missing(arr: dict) -> list[str]:
+    req = ARRAY_REQUIRED.get(arr.get("mode"), ())
+    return [ARRAY_INDEX[k].label for k in req if arr.get(k) is None]
+
+
+def _imported_issues(imp: Any, prefix: str) -> list[Issue]:
+    if imp is None:
+        return []
+    if not isinstance(imp, dict):
+        return [Issue("error", prefix, "Dados de importação inválidos.")]
+    out = []
+    if not re.fullmatch(r"[0-9a-f]{64}", str(imp.get("blob", ""))):
+        out.append(Issue("error", f"{prefix}.blob", "Pacote original do dispositivo importado ausente."))
+    if not isinstance(imp.get("device"), dict) or not isinstance(imp.get("calibrations"), list):
+        out.append(Issue("error", prefix, "Metadados do dispositivo importado incompletos."))
+    return out
 
 
 def equipment_issues(eq: dict, prefix: str = "") -> list[Issue]:
@@ -329,24 +432,34 @@ def equipment_issues(eq: dict, prefix: str = "") -> list[Issue]:
     params = eq.get("params")
     if not isinstance(params, dict):
         return out + [Issue("error", f"{p}.params", "Parâmetros ausentes.")]
-    unknown = set(params) - set(PARAM_INDEX[kind])
-    for u in sorted(unknown):
+    for u in sorted(set(params) - set(PARAM_INDEX[kind])):
         out.append(Issue("error", f"{p}.params.{u}", "Parâmetro desconhecido para este tipo."))
     for name, value in params.items():
         if name in PARAM_INDEX[kind]:
             msg = validate_param(kind, name, value)
             if msg:
                 out.append(Issue("error", f"{p}.params.{name}", f"{PARAM_INDEX[kind][name].label}: {msg}."))
-    # relações físicas entre parâmetros (só quando ambos foram declarados)
     g = params.get
+    if kind == "pv":
+        arrays = eq.get("arrays")
+        if not isinstance(arrays, list):
+            out.append(Issue("error", f"{p}.arrays", "Lista de arranjos ausente ou inválida."))
+        else:
+            seen = set()
+            for i, a in enumerate(arrays):
+                out.extend(array_issues(a, f"{p}.arrays[{i}]"))
+                if isinstance(a, dict):
+                    if a.get("id") in seen:
+                        out.append(Issue("error", f"{p}.arrays[{i}].id", "Identificador de arranjo duplicado."))
+                    seen.add(a.get("id"))
     if kind == "battery":
-        lo, hi, s0 = g("soc_min_pct"), g("soc_max_pct"), g("soc0_pct")
-        if lo is not None and hi is not None and lo >= hi:
+        lo, hi = g("soc_min_pct"), g("soc_max_pct")
+        if isinstance(lo, (int, float)) and isinstance(hi, (int, float)) and lo >= hi:
             out.append(Issue("error", f"{p}.params.soc_min_pct", "SOC mínimo deve ser menor que o SOC máximo."))
-        if s0 is not None and lo is not None and s0 < lo:
-            out.append(Issue("error", f"{p}.params.soc0_pct", "SOC inicial abaixo do SOC mínimo."))
-        if s0 is not None and hi is not None and s0 > hi:
-            out.append(Issue("error", f"{p}.params.soc0_pct", "SOC inicial acima do SOC máximo."))
+    if kind == "pemfc":
+        out.extend(_imported_issues(eq.get("imported"), f"{p}.imported"))
+        if g("reference") == PEMFC_IMPORT_REF and not eq.get("imported"):
+            out.append(Issue("error", f"{p}.imported", "Referência 'importado do ModelLab' sem dispositivo importado."))
     if kind == "thermal":
         if g("pmin_kW") is not None and g("pmax_kW") is not None and g("pmin_kW") > g("pmax_kW"):
             out.append(Issue("error", f"{p}.params.pmin_kW", "Potência mínima técnica não pode superar a potência máxima."))
@@ -354,25 +467,95 @@ def equipment_issues(eq: dict, prefix: str = "") -> list[Issue]:
 
 
 def missing_required(eq: dict) -> list[str]:
-    """Parâmetros obrigatórios para simulação ainda não declarados (rótulos)."""
-    if eq.get("kind") not in PARAM_SPECS:
-        return []
+    """O que ainda falta para o equipamento ser tecnicamente configurado PARA A SIMULAÇÃO (rótulos)."""
+    kind = eq.get("kind")
     params = eq.get("params") or {}
-    return [s.label for s in PARAM_SPECS[eq["kind"]] if s.required and params.get(s.name) is None]
+    if kind == "pv":
+        arrays = eq.get("arrays") or []
+        if not arrays:
+            return ["ao menos um arranjo"]
+        out = []
+        for a in arrays:
+            out += [f"{a.get('name') or 'arranjo'}: {m}" for m in array_missing(a)]
+        return out
+    if kind not in PARAM_SPECS:
+        return []
+    out = [s.label for s in PARAM_SPECS[kind] if s.required and params.get(s.name) is None]
+    if kind == "battery":
+        from .derived import battery_derived
+        d = battery_derived(params)
+        for side, label in (("c_charge", "Taxa máxima de carga (ou corrente máx. + capacidade)"),
+                            ("c_discharge", "Taxa máxima de descarga (ou corrente máx. + capacidade)")):
+            if d[side][0] is None:
+                out.append(label)
+    return out
 
 
 def is_configured(eq: dict) -> bool:
     return not missing_required(eq) and not [i for i in equipment_issues(eq) if i.level == "error"]
 
 
-def _str_field(obj: dict, key: str, path: str, out: list[Issue], required: bool = False) -> None:
+def battery_physically_registered(eq: dict) -> bool:
+    """Banco descrito por ao menos uma grandeza nominal de datasheet (energia, capacidade ou tensão)."""
+    p = eq.get("params") or {}
+    return any(p.get(k) is not None for k in ("energy_kWh", "capacity_Ah", "voltage_V"))
+
+
+def battery_model_parametrized(eq: dict) -> bool:
+    p = eq.get("params") or {}
+    return all(p.get(k) is not None for k in ("model_reference", "model_n_series", "model_n_parallel"))
+
+
+def _str_field(obj: dict, key: str, path: str, out: list[Issue], required: bool = False, maxlen: int = 2000) -> None:
     v = obj.get(key)
     if v is None and not required:
         return
-    if not isinstance(v, str):
+    if not isinstance(v, str) or len(v) > maxlen:
         out.append(Issue("error", f"{path}.{key}", "Deve ser texto."))
     elif required and not v.strip():
         out.append(Issue("error", f"{path}.{key}", "Campo obrigatório."))
+
+
+def validate_location(loc: Any, path: str = "installation.location") -> list[Issue]:
+    if not isinstance(loc, dict):
+        return [Issue("error", path, "Estrutura inválida.")]
+    out: list[Issue] = []
+    for k in ("country", "region", "city", "address", "timezone", "timezone_suggested"):
+        _str_field(loc, k, path, out, maxlen=300)
+    for k, lim in (("latitude", 90.0), ("longitude", 180.0)):
+        v = loc.get(k)
+        if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float)) or not -lim <= v <= lim):
+            out.append(Issue("error", f"{path}.{k}", f"Deve estar entre −{lim:g}° e {lim:g}°."))
+    if (loc.get("latitude") is None) != (loc.get("longitude") is None):
+        out.append(Issue("error", f"{path}.latitude", "Informe latitude e longitude juntas (ou nenhuma)."))
+    acc = loc.get("accuracy_m")
+    if acc is not None and (isinstance(acc, bool) or not isinstance(acc, (int, float)) or acc < 0):
+        out.append(Issue("error", f"{path}.accuracy_m", "Precisão estimada inválida."))
+    if loc.get("source") not in LOCATION_SOURCES:
+        out.append(Issue("error", f"{path}.source", "Origem da localização inválida."))
+    if loc.get("captured_at") is not None and not isinstance(loc.get("captured_at"), str):
+        out.append(Issue("error", f"{path}.captured_at", "Deve ser texto."))
+    tz = loc.get("timezone") or ""
+    if tz:
+        try:
+            from zoneinfo import ZoneInfo
+            ZoneInfo(tz)
+        except Exception:
+            out.append(Issue("error", f"{path}.timezone", f"Fuso horário IANA desconhecido: {tz[:60]!r}."))
+    return out
+
+
+def identification_missing(config: dict) -> list[str]:
+    """Campos obrigatórios da identificação ainda vazios (configurações antigas podem não tê-los)."""
+    inst = config.get("installation") or {}
+    out = []
+    if not str(inst.get("name") or "").strip():
+        out.append("Nome da instalação")
+    if inst.get("nature") is None:
+        out.append("Natureza da atividade")
+    if inst.get("operation_mode") is None:
+        out.append("Modo de operação previsto")
+    return out
 
 
 def validate(config: dict) -> list[Issue]:
@@ -393,18 +576,21 @@ def _validate(config: dict) -> list[Issue]:
     if config.get("schema_version") != DOC_SCHEMA_VERSION:
         out.append(Issue("error", "schema_version",
                          f"Versão de documento {config.get('schema_version')!r} não suportada (esperado {DOC_SCHEMA_VERSION})."))
-    for section in ("installation", "commissioning", "topology", "demand", "climate"):
+    for section in ("installation", "commissioning", "energy_balance", "demand", "climate", "run_conditions"):
         if not isinstance(config.get(section), dict):
             out.append(Issue("error", section, "Seção ausente ou inválida."))
     if not isinstance(config.get("equipment"), list) or not isinstance(config.get("retired", []), list):
         out.append(Issue("error", "equipment", "Inventário ausente ou inválido."))
+    if not isinstance(config.get("migrations", []), list):
+        out.append(Issue("error", "migrations", "Histórico de migrações inválido."))
+    if "legacy" in config and not isinstance(config["legacy"], dict):
+        out.append(Issue("error", "legacy", "Estrutura inválida."))
     if any(i.level == "error" for i in out):
         return out
-    # tipos das subestruturas: um tipo errado "falso" (p. ex. lista vazia) não pode passar despercebido
     typed = [("commissioning.completed", config["commissioning"].get("completed"), bool),
-             ("topology.couplings", config["topology"].get("couplings"), dict),
              ("demand.walkforward", config["demand"].get("walkforward"), dict),
-             ("demand.copel", config["demand"].get("copel"), dict)]
+             ("demand.copel", config["demand"].get("copel"), dict),
+             ("run_conditions.battery_soc0_pct", config["run_conditions"].get("battery_soc0_pct"), dict)]
     for path, val, typ in typed:
         if not isinstance(val, typ):
             out.append(Issue("error", path, "Estrutura inválida."))
@@ -417,32 +603,19 @@ def _validate(config: dict) -> list[Issue]:
     for k in ("timezone", "notes"):
         if not isinstance(config["demand"].get(k, ""), str):
             out.append(Issue("error", f"demand.{k}", "Deve ser texto."))
-    if not isinstance(config["topology"].get("bus_label", ""), str):
-        out.append(Issue("error", "topology.bus_label", "Deve ser texto."))
     if any(i.level == "error" for i in out):
         return out
 
     inst = config["installation"]
     if not re.fullmatch(r"[0-9a-f]{32}", str(inst.get("uid", ""))):
         out.append(Issue("error", "installation.uid", "Identidade da instalação inválida."))
-    _str_field(inst, "name", "installation", out, required=True)
-    for k in ("description", "location", "timezone"):
-        _str_field(inst, k, "installation", out)
+    _str_field(inst, "name", "installation", out, required=True, maxlen=300)
+    _str_field(inst, "description", "installation", out)
     if inst.get("nature") is not None and inst["nature"] not in NATURE_OPTIONS:
         out.append(Issue("error", "installation.nature", "Natureza da instalação inválida."))
     if inst.get("operation_mode") is not None and inst["operation_mode"] not in OPERATION_MODE_OPTIONS:
         out.append(Issue("error", "installation.operation_mode", "Modo operativo inválido."))
-    for k, lim in (("latitude", 90.0), ("longitude", 180.0)):
-        v = inst.get(k)
-        if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float)) or not -lim <= v <= lim):
-            out.append(Issue("error", f"installation.{k}", f"Deve estar entre −{lim:g}° e {lim:g}°."))
-    tz = inst.get("timezone") or ""
-    if tz:
-        try:
-            from zoneinfo import ZoneInfo
-            ZoneInfo(tz)
-        except Exception:
-            out.append(Issue("error", "installation.timezone", f"Fuso horário IANA desconhecido: {tz!r}."))
+    out.extend(validate_location(inst.get("location")))
 
     ids: set[str] = set()
     for eq in config["equipment"]:
@@ -460,25 +633,19 @@ def _validate(config: dict) -> list[Issue]:
         if isinstance(r, dict) and r.get("id") in ids:
             out.append(Issue("error", f"retired[{r.get('id')}]", "Equipamento retirado com identificador ainda ativo."))
 
-    topo = config["topology"]
-    if topo.get("bus_kind") not in BUS_KIND_OPTIONS:
-        out.append(Issue("error", "topology.bus_kind", "Tipo de barramento inválido."))
-    if topo.get("grid_connection") not in GRID_CONNECTION_OPTIONS:
-        out.append(Issue("error", "topology.grid_connection", "Estado de conexão à rede inválido."))
-    v = topo.get("nominal_voltage_V")
-    if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0):
-        out.append(Issue("error", "topology.nominal_voltage_V", "Tensão nominal declarada deve ser > 0 V."))
-    for eid, c in (topo.get("couplings") or {}).items():
-        if eid not in ids:
-            out.append(Issue("error", f"topology.couplings.{eid}", "Acoplamento referencia equipamento inexistente."))
-        elif c not in COUPLING_OPTIONS:
-            out.append(Issue("error", f"topology.couplings.{eid}", "Tipo de acoplamento inválido."))
-    if topo.get("load_coupling") not in COUPLING_OPTIONS:
-        out.append(Issue("error", "topology.load_coupling", "Acoplamento da demanda inválido."))
-    mode, grid = inst.get("operation_mode"), topo.get("grid_connection")
-    if mode == "isolada" and grid == "conectada":
-        out.append(Issue("warning", "topology.grid_connection",
-                         "Modo operativo 'isolada' declarado, mas a topologia indica conexão à rede."))
+    bal = config["energy_balance"]
+    if bal.get("grid_connection") not in GRID_CONNECTION_OPTIONS:
+        out.append(Issue("error", "energy_balance.grid_connection", "Estado de conexão à rede inválido."))
+    if inst.get("operation_mode") == "isolada" and bal.get("grid_connection") == "conectada":
+        out.append(Issue("warning", "energy_balance.grid_connection",
+                         "Modo operativo 'isolada' declarado, mas a instalação está declarada como conectada à rede."))
+
+    batt = {e["id"] for e in config["equipment"] if isinstance(e, dict) and e.get("kind") == "battery"}
+    for eid, v in config["run_conditions"]["battery_soc0_pct"].items():
+        if eid not in batt:
+            out.append(Issue("error", f"run_conditions.battery_soc0_pct.{eid}", "SOC inicial para banco inexistente."))
+        elif isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 <= v <= 100:
+            out.append(Issue("error", f"run_conditions.battery_soc0_pct.{eid}", "SOC inicial deve estar entre 0 e 100 %."))
 
     dem = config["demand"]
     if dem.get("source") not in DEMAND_SOURCES:
@@ -516,34 +683,50 @@ def fingerprint(config: dict) -> str:
     return hashlib.sha256(canonical_json(config).encode("utf-8")).hexdigest()
 
 
+# ======================================================== grandezas nominais (resumos de inventário)
 def installed_power_kW(eq: dict) -> float | None:
-    """Potência nominal declarada (derivada da referência × quantidade). None se faltarem dados."""
+    """Potência nominal registrada. FV: soma dos arranjos com potência calculável ou declarada."""
     p = eq.get("params") or {}
     try:
-        if eq["kind"] == "pv" and p.get("reference") and p.get("n_series") and p.get("n_parallel"):
-            return pv_references()[p["reference"]].summary["P_STC [W]"] * p["n_series"] * p["n_parallel"] / 1000.0
+        if eq["kind"] == "pv":
+            from .derived import pv_plant_summary
+            s = pv_plant_summary(eq)
+            return s["total_kWp"] if (s["n_computed"] or s["n_declared"]) else None
         if eq["kind"] == "wind" and p.get("reference") and p.get("count"):
             return wind_references()[p["reference"]].summary["P_nominal [kW]"] * p["count"]
         if eq["kind"] == "thermal" and p.get("pmax_kW"):
             return float(p["pmax_kW"])
-        if eq["kind"] == "pemfc" and p.get("quantity"):
+        if eq["kind"] == "pemfc" and p.get("quantity") and p.get("reference") == PEMFC_REF_KEY:
             from .references import pemfc_max_net_power_kW
             return pemfc_max_net_power_kW() * p["quantity"]
+        if eq["kind"] == "pemfc" and p.get("quantity") and p.get("reference") == PEMFC_IMPORT_REF:
+            w = ((eq.get("imported") or {}).get("device") or {}).get("rated_power_W")
+            return float(w) * p["quantity"] / 1000.0 if isinstance(w, (int, float)) and not isinstance(w, bool) else None
     except KeyError:
         return None
     return None
 
 
-def battery_energy_kWh(eq: dict) -> float | None:
+def battery_model_energy_kWh(eq: dict) -> float | None:
+    """Energia da PARAMETRIZAÇÃO do modelo científico (V·Q da célula × Ns × Np), não do datasheet."""
     p = eq.get("params") or {}
-    if eq.get("kind") != "battery" or not (p.get("reference") and p.get("n_series") and p.get("n_parallel")):
+    if eq.get("kind") != "battery" or not battery_model_parametrized(eq):
         return None
     from .references import battery_cell
     try:
-        v, q = battery_cell(p["reference"])
+        v, q = battery_cell(p["model_reference"])
     except KeyError:
         return None
-    return v * q * p["n_series"] * p["n_parallel"] / 1000.0
+    return v * q * p["model_n_series"] * p["model_n_parallel"] / 1000.0
+
+
+def battery_energy_kWh(eq: dict) -> float | None:
+    """Energia nominal do banco: declarada/derivada do datasheet; senão, a da parametrização do modelo."""
+    if eq.get("kind") != "battery":
+        return None
+    from .derived import battery_derived
+    e = battery_derived(eq.get("params") or {})["energy_kWh"][0]
+    return e if e is not None else battery_model_energy_kWh(eq)
 
 
 THERMAL_DYNAMICS = THERMAL_DYNAMIC_KEYS

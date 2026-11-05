@@ -1,9 +1,0 @@
-.topo { display: flex; flex-direction: column; gap: 10px; }
-.topo-svg { width: 100%; height: auto; display: block; margin: 0 auto; background: var(--sd-card); border: 1px solid var(--sd-border); border-radius: 14px; box-shadow: var(--sd-shadow); }
-.topo-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--sd-muted); }
-.topo-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.lg-line { width: 22px; height: 0; border-top: 2px solid var(--sd-muted); } .lg-line.dash { border-top-style: dashed; }
-.lg-dot { width: 9px; height: 9px; border-radius: 50%; }
-.topo-note { font-size: 12px; line-height: 1.45; color: var(--sd-muted); }
-.topo-svg text { font-family: var(--st-font, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif); }
-.topo-node { animation: sd-rise .3s ease both; }
