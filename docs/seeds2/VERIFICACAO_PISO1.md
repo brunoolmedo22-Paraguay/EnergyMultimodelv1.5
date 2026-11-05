@@ -34,6 +34,11 @@ incarnação e documento salvo; nenhuma linha sem diretório; `.staging`, `.tras
 | H-03: exportação durante gravação | `test_exportacao_usa_um_unico_instantaneo` | manifesto, histórico e configuração da revisão 1 |
 | H-03: leitura aberta × exclusão | `test_leitura_nao_bloqueia_gravacao_nem_exclusao` | exclusão não espera o leitor; leitor termina no seu instantâneo |
 
+**Chromium real (após H-02/H-03, diretórios vazios, com reinício do servidor):** `e2e_gestor_microrredes.js`
+**52/52** (multi 39 com a exclusão definitiva de B; reinício 6; tablet 2; legado 5) e `e2e_piso1_microrrede.js`
+**66/66** (comissionar 41; reabrir 21 com rodada EMS real; tablet 4), sem exceções nem erros de JavaScript. Ao final,
+o armazenamento do Gestor tinha exatamente as 2 microrredes esperadas e `.trash`, `.staging` e `.quarantine` vazios.
+
 **Preservação científica:** `main` × `c4aade6` com a mesma carga walk-forward → despacho `P_kW` com o mesmo hash,
 custo R$ 417,684638, 120 passos, 0 kWh não atendidos (configuração padrão V1.6 e microrrede do catálogo);
 `git diff origin/main` vazio nos diretórios científicos.
