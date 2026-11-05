@@ -39,6 +39,7 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 6. `seeds2/` só **adapta** configurações: nunca reformule o EMS ou os modelos para "caber" equipamentos. Agregue apenas o que é fisicamente equivalente no modelo existente; o resto é marcado como não representável (nunca omitido em silêncio).
 7. Não inventar fichas técnicas, fabricantes, preços, procedências ou validações; valores desconhecidos ficam vazios ("não declarado"). Perfis de referência e clima sintético nunca são "medidos".
 8. Nunca versionar bancos (`*.db`), backups (`*.seeds2backup.zip`) ou dados da instalação.
+   **Exceção documentada e restrita:** fixtures **sintéticas e auditadas**, usadas exclusivamente em testes de regressão (p. ex. `tests/fixtures/seeds2_backup_v1_piso1.zip`, que reproduz o formato de backup v1). Cada uma deve: conter apenas dados fictícios gerados para teste (nenhum dado de instalação, empresa ou medição real); ter origem, gerador e finalidade registrados em `tests/fixtures/README.md`; ser revisada no PR que a introduz. A exceção **não** autoriza versionar backups ou bancos reais/operacionais, nem cópias de `SEEDS2_DATA_DIR`.
 
 ## Observações conhecidas (não corrigidas)
 

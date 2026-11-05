@@ -5,14 +5,14 @@ reportlab 4.4.10, pypdf 6.21.4), Chromium/Playwright para os testes em navegador
 
 ## 0. Refinamento do Piso 1 (verificação atual)
 
-**Suíte:** `python -m pytest tests/ -q` → **158 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
+**Suíte:** `python -m pytest tests/ -q` → **163 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
 pré-existentes).
 
 | Arquivo | Testes | Cobertura principal |
 |---|---|---|
 | testes V1.6 pré-existentes | 63 | modelos, EMS, ponte, console V1.6 (sem alteração de tolerâncias) |
 | `test_seeds2_microgrid.py` | 40 | persistência, backups maliciosos, restauração atômica, adaptador, rodada EMS real (portados para o documento v2) |
-| `test_seeds2_refinamento.py` | 28 | FV por arranjo (STC, heterogêneos, kWp declarado sem módulo inventado, sujeira padrão), curvas eólicas dos dados originais, bateria por datasheet (estimativas, SOC 20/80 sugerido, taxa C só com I+Ah, SOC0 como condição da rodada), importação ModelLab (pacote real, adulterado/inválido rejeitado, blob no backup, pendente de integração), balanço lógico (sem acoplamentos; usina parcial), **migrações a partir de dados v1 reais** (documento, backup formato 1, banco SQLite v1 com `.bak-v1` e histórico, documento inválido não corrompe), **rodada EMS com config migrada = V1.6**, PDF (seções, valores exatos, "Não declarado", PRELIMINAR, sem `None`/`nan`), geolocalização (concedida, negada, indisponível, insegura, tempo esgotado, coordenadas inválidas, procedência navegador × manual) |
+| `test_seeds2_refinamento.py` | 33 | FV por arranjo (STC, heterogêneos, kWp declarado sem módulo inventado, sujeira padrão), curvas eólicas dos dados originais, bateria por datasheet (estimativas, SOC 20/80 sugerido, taxa C só com I+Ah, SOC0 como condição da rodada), importação ModelLab (pacote real, adulterado/inválido rejeitado, blob no backup, pendente de integração), balanço lógico (sem acoplamentos; usina parcial), **migrações a partir de dados v1 reais** (documento, backup formato 1, banco SQLite v1 com `.bak-v1` e histórico, documento inválido não corrompe; cópia `.bak-v1` consistente com WAL, leitor aberto, falha/rollback, concorrência, espera limitada), **rodada EMS com config migrada = V1.6**, PDF (seções, valores exatos, "Não declarado", PRELIMINAR, sem `None`/`nan`), geolocalização (concedida, negada, indisponível, insegura, tempo esgotado, coordenadas inválidas, procedência navegador × manual) |
 | `test_seeds2_app.py` | 27 | AppTest: cartões da etapa 01, catálogo → editor → confirmação de pendência, FV com vários arranjos, edição direta, balanço sem acoplamentos e aviso de compra da rede, exportações, Gestão, Simulação/condições da rodada, inserções HTML |
 
 **Navegador real (Chromium)**, `tools/e2e/e2e_piso1_microrrede.js`, a partir de diretório de dados vazio,
@@ -28,6 +28,16 @@ edição direta da bateria (configuração avançada), SOC inicial como condiç�
 exclusão confirmada (arranjo declarado), PDF ativado, backup/restauração, arquivo inválido rejeitado,
 resultado obsoleto após mudança; tablet retrato/paisagem sem rolagem horizontal (Início, Gestão, Balanço);
 tema escuro. Capturas inspecionadas visualmente; o PDF foi revisado página a página.
+
+**Auditoria do PR #4 — cópia `.bak-v1` com WAL.** `MigracaoWalTest` (5 testes) monta um banco v1 realista (fixture v1 + CSV)
+com todas as transações ainda no `-wal` (gravador aberto, checkpoint desligado) e verifica: o `.db` sozinho não contém os dados
+(pré-condição do defeito); com um **leitor com transação aberta**, a migração conclui em < 5 s, a cópia aberta sozinha em outro
+diretório passa em `integrity_check`, está em journal `delete`, `user_version = 1`, contém microrrede, revisões 1–2, blob (SHA-256)
+e rodada, e restaurada é migrada pelo SEEDS2 para o mesmo estado; o leitor mantém seu instantâneo e depois vê a migração; o
+gravador original volta a gravar (sem bloqueio residual); falha injetada após a cópia → rollback completo, cópia íntegra, nova
+abertura migra uma vez; 3 aberturas concorrentes → uma única revisão `migration`, reabrir não reescreve a cópia; gravador
+concorrente é serializado e seu commit consta na cópia; espera da cópia limitada (erro em ~0,5 s, sem `.tmp`). Com o código
+anterior (`shutil.copy2`) estes testes falham.
 
 Defeitos encontrados e corrigidos nesta verificação: mensagem de geolocalização duplicada (componente JS +
 Python); usina parcialmente representada rotulada como "Configuração incompleta" no esquema lógico (novo

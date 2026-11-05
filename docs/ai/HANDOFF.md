@@ -24,10 +24,11 @@
 - **Etapa 03:** "Esquema lógico do balanço energético" sustituye la topología eléctrica; sólo queda la declaración de conexión a la red con aviso (EMS sin import/export; déficit ≠ compra de la red). Topología v1 preservada en `legacy.topology_v1`. Usina parcialmente representada se muestra como tal.
 - **Exportaciones** (etapa 05 y Gestão → "Relatório, histórico e backups"): ZIP (backup formato 2, acepta formato 1) y **informe técnico PDF** local (reportlab; "Não declarado"; PRELIMINAR antes de la activación; sin afirmaciones de certificación).
 - Base de datos v2: migración del documento como nueva revisión (`origin = migration`), copia `.bak-v1`, revisiones antiguas migradas en lectura.
+- **Corrección de la auditoría del PR #4 (review del 2026-11-05):** la copia `.bak-v<N>` previa a la migración ya no usa `shutil.copy2` (no incluía el contenido del `-wal`; reproducido: la copia quedaba sin tablas). Ahora usa la **API de backup de SQLite** en una conexión propia mientras la migración retiene `BEGIN IMMEDIATE` (copia = estado exacto migrado), espera acotada (`BACKUP_COPY_TIMEOUT_S`), archivo autosuficiente (journal DELETE) verificado con `integrity_check` y publicado con `os.replace`. Copia + todas las migraciones pendientes en **una única transacción**; versión releída bajo el bloqueo (idempotente con aperturas concurrentes); fallos → rollback y `StoreError`. `CLAUDE.md` regla 8: excepción restringida a fixtures sintéticas auditadas (`tests/fixtures/README.md`).
 - Dependencias nuevas: `reportlab==4.4.10`, `pypdf==6.21.4` (sólo tests). Archivos de UI eliminados: `ui/static/topology.*`.
 
 **Validado (por Claude Code, en esta rama, 2026-11-05)**
-- `python -m pytest tests/ -q` → **158 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP preexistentes).
+- `python -m pytest tests/ -q` → **163 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP preexistentes), tras la corrección del backup WAL (158 antes de ella).
 - Migraciones desde **datos v1 reales** generados con el código de `main` antes de los cambios (`tests/fixtures/`): documento, backup formato 1, banco SQLite v1 (histórico y rodadas preservados, `.bak-v1`, idempotente, documento inválido no corrompe); **rodada EMS con la configuración migrada = configuración V1.6** (mismo despacho y costo).
 - Chromium (`tools/e2e/e2e_piso1_microrrede.js`, diretório vacío, reinicio del servidor): 64 verificaciones aprobadas, sin excepciones ni errores JS; tablet sin scroll horizontal; tema oscuro. Capturas e informe PDF revisados visualmente. Detalle: `docs/seeds2/VERIFICACAO_PISO1.md` §0.
 - **Sin CI**: nada fue reejecutado de forma independiente.
@@ -39,6 +40,9 @@
 - Decisiones anteriores (Piso 1) siguen vigentes: SQLite local, revisiones inmutables, simulación sólo con la configuración **guardada**, sin autenticación en este piso.
 
 ## 4. Pendencias / observaciones
+
+- Hallazgo de la corrección: `Connection.backup()` desde la **misma** conexión que retiene `BEGIN IMMEDIATE` queda en espera infinita (CPython reintenta BUSY/LOCKED sin límite); por eso la copia usa otra conexión y un `progress` con plazo. No volver a ese patrón.
+- En modo journal no-WAL un lector abierto impide el commit de cualquier escritor (comportamiento de SQLite); el store siempre abre en WAL.
 
 - **Decisión científica:** cómo (y si) usar el perfil V–I calibrado del ModelLab en la simulación; hoy sólo se registra.
 - **Decisión metodológica (Marília):** equipos heterogéneos de una misma tecnología (incl. arranjos FV distintos) y más de una unidad térmica en el EMS; hoy son excluidos con motivo.

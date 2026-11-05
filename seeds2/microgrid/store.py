@@ -21,8 +21,8 @@ import io
 import json
 import os
 import re
-import shutil
 import sqlite3
+import time
 import zipfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -41,6 +41,7 @@ SUPPORTED_BACKUP_FORMATS = (1, 2)          # v1 = Piso 1 original (documento v1,
 SUPPORTED_DOC_VERSIONS = (1, 2)
 BACKUP_SUFFIX = ".seeds2backup.zip"
 MAX_BLOB_BYTES = 50 * 1024 * 1024
+BACKUP_COPY_TIMEOUT_S = 30.0               # espera máxima por bloqueios ao copiar o banco antes de migrar
 # Limites da importação de backup (arquivo NÃO confiável). Dados referenciados: CSVs de demanda e clima e
 # pacotes de dispositivos importados do ModelLab; o total descomprimido é contado lendo os dados, não pelo
 # tamanho declarado no ZIP.
@@ -226,6 +227,43 @@ class MicrogridStore:
         with self._read() as con:
             return int(con.execute("PRAGMA user_version").fetchone()[0])
 
+    def _backup_copy(self, dest: Path, timeout_s: float = BACKUP_COPY_TIMEOUT_S) -> None:
+        """Cópia transacionalmente consistente do banco pela API de backup do SQLite.
+
+        Inclui o conteúdo ainda no ``-wal`` (uma cópia do arquivo ``.db`` não o inclui). Usa uma conexão PRÓPRIA,
+        sem transação aberta: em WAL ela só precisa de um instantâneo de leitura, compatível com o bloqueio de
+        escrita mantido pela migração. ``pages=-1`` copia tudo num único passo (um único instantâneo). A espera
+        por bloqueios é limitada (o laço de repetição do ``Connection.backup`` seria infinito). O resultado é
+        um arquivo autossuficiente (journal DELETE, sem ``-wal``/``-shm``), verificado e publicado atomicamente."""
+        tmp = dest.with_name(dest.name + ".tmp")
+        tmp.unlink(missing_ok=True)
+        deadline = time.monotonic() + timeout_s
+
+        def progress(_status: int, _remaining: int, _total: int) -> None:
+            if time.monotonic() > deadline:
+                raise StoreError("tempo esgotado ao copiar o banco (bloqueado por outra conexão)")
+
+        src = sqlite3.connect(self.path, timeout=timeout_s, isolation_level=None)
+        try:
+            dst = sqlite3.connect(tmp, isolation_level=None)
+            try:
+                src.backup(dst, pages=-1, progress=progress, sleep=0.05)
+                dst.execute("PRAGMA journal_mode=DELETE")
+                check = dst.execute("PRAGMA integrity_check").fetchone()[0]
+            finally:
+                dst.close()
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
+        finally:
+            src.close()
+        if check != "ok":
+            tmp.unlink(missing_ok=True)
+            raise StoreError(f"cópia de segurança não passou na verificação de integridade: {check}")
+        with open(tmp, "rb") as fh:
+            os.fsync(fh.fileno())
+        os.replace(tmp, dest)
+
     def _migrate(self) -> None:
         existed = self.path.exists() and self.path.stat().st_size > 0
         with self._read() as con:
@@ -233,21 +271,47 @@ class MicrogridStore:
         if current > LATEST_DB_VERSION:
             raise StoreError(f"O banco {self.path} usa o esquema v{current}, mais novo que este software "
                              f"(v{LATEST_DB_VERSION}). Atualize o SEEDS2; o banco não foi alterado.")
-        pending = [(v, stmts) for v, stmts in MIGRATIONS if v > current]
-        if not pending:
+        if not any(v > current for v, _ in MIGRATIONS):
             return
-        if existed and current > 0:
-            shutil.copy2(self.path, self.path.with_name(f"{self.path.name}.bak-v{current}"))
-        for version, stmts in pending:
-            with self._tx() as con:
-                for s in stmts:
-                    con.execute(s)
-                step = MIGRATION_STEPS.get(version)
-                if step is not None:
-                    step(con)
-                con.execute(f"PRAGMA user_version = {int(version)}")
-                con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_to', ?)", (str(version),))
-                con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_at', ?)", (C.utc_now(),))
+        # Uma única transação de escrita para cópia + todas as migrações pendentes:
+        # * BEGIN IMMEDIATE garante que nenhuma outra conexão grave entre a cópia e a migração (a cópia é
+        #   exatamente o estado migrado) e serializa aberturas concorrentes;
+        # * a versão é relida sob o bloqueio (outra conexão pode ter migrado antes) → idempotente;
+        # * qualquer falha desfaz tudo (rollback): o banco permanece na versão anterior.
+        con = self._connect()
+        try:
+            try:
+                con.execute("BEGIN IMMEDIATE")
+                current = int(con.execute("PRAGMA user_version").fetchone()[0])
+                pending = [(v, stmts) for v, stmts in MIGRATIONS if v > current]
+                if not pending:
+                    con.execute("ROLLBACK")
+                    return
+                if existed and current > 0:
+                    self._backup_copy(self.path.with_name(f"{self.path.name}.bak-v{current}"))
+                for version, stmts in pending:
+                    for s in stmts:
+                        con.execute(s)
+                    step = MIGRATION_STEPS.get(version)
+                    if step is not None:
+                        step(con)
+                    con.execute(f"PRAGMA user_version = {int(version)}")
+                    con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_to', ?)", (str(version),))
+                    con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_at', ?)", (C.utc_now(),))
+                con.execute("COMMIT")
+            except BaseException:
+                if con.in_transaction:
+                    con.execute("ROLLBACK")
+                raise
+        except sqlite3.Error as exc:
+            raise StoreError(f"Migração do banco interrompida (banco mantido na versão anterior): {exc}") from None
+        except StoreError as exc:
+            msg = str(exc)
+            if "banco mantido na versão anterior" not in msg:
+                msg = f"Migração do banco interrompida (banco mantido na versão anterior): {msg}"
+            raise StoreError(msg) from None
+        finally:
+            con.close()
 
     # ------------------------------------------------------------ leitura
     def load(self) -> Stored | None:

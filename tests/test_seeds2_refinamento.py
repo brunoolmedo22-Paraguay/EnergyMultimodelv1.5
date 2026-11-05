@@ -11,10 +11,13 @@ import json
 import shutil
 import sqlite3
 import tempfile
+import threading
+import time
 import unittest
 import zipfile
 from hashlib import sha256
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -26,6 +29,7 @@ from seeds2.microgrid.derived import battery_derived, pv_array_kWp, pv_array_nom
 from seeds2.microgrid.migrations import MigrationError, migrate_document
 from seeds2.microgrid.modellab import ImportRejected, canonical_sha256, imported_record, parse_modellab_file
 from seeds2.microgrid.references import wind_curve
+from seeds2.microgrid import store as store_mod
 from seeds2.microgrid.store import MIGRATIONS, MicrogridStore, StoreError
 from seeds2_fixtures import FIXTURES, V1_BACKUP, V1_CONFIG, battery_params, module_array, pv_plant, v16_equivalent_config
 
@@ -442,6 +446,210 @@ class MigracaoTest(_Tmp):
         with sqlite3.connect(db) as c2:
             self.assertEqual(c2.execute("PRAGMA user_version").fetchone()[0], 1)   # banco mantido em v1
             self.assertEqual(json.loads(c2.execute("SELECT document FROM microgrid").fetchone()[0]), bad)
+
+
+
+# ======================================================================= cópia .bak consistente com WAL (revisão do PR #4)
+class MigracaoWalTest(_Tmp):
+    """A cópia anterior à migração deve incluir o que ainda está no ``-wal`` (``shutil.copy2`` do ``.db`` não incluía),
+    com leitores abertos, sem bloqueios indevidos e sem quebrar atomicidade/idempotência."""
+
+    def _v1_db_in_wal(self) -> tuple[sqlite3.Connection, dict]:
+        """Banco v1 realista (fixture v1 real + CSV do backup v1) com TODAS as transações ainda no WAL: a conexão
+        gravadora fica aberta e o checkpoint automático desligado."""
+        v1 = json.loads(V1_CONFIG.read_text(encoding="utf-8"))
+        with zipfile.ZipFile(V1_BACKUP) as z:
+            blob_name = next(n for n in z.namelist() if n.startswith("blobs/"))
+            blob = z.read(blob_name)
+        sha = blob_name.split("/", 1)[1]
+        self.assertEqual(sha256(blob).hexdigest(), sha)
+        w = sqlite3.connect(self.dir / "seeds2.db", isolation_level=None, timeout=1.0)
+        self.assertEqual(w.execute("PRAGMA journal_mode=WAL").fetchone()[0], "wal")
+        w.execute("PRAGMA wal_autocheckpoint=0")
+        w.execute("BEGIN")
+        for stmt in MIGRATIONS[0][1]:
+            w.execute(stmt)
+        w.execute("PRAGMA user_version = 1")
+        w.execute("COMMIT")
+        uid = v1["installation"]["uid"]
+        docs = {1: copy.deepcopy(v1), 2: copy.deepcopy(v1)}
+        docs[1]["installation"]["description"] = "revisão 1"
+        w.execute("INSERT INTO blobs VALUES (?,?,?,?,?,?)", (sha, "medicao.csv", "text/csv", len(blob), blob, "2026-11-01"))
+        for rev, doc in docs.items():                                       # transações recentes, separadas
+            w.execute("INSERT INTO revisions VALUES (?,?,?,?,?,?,?)", (rev, uid, C.fingerprint(doc), json.dumps(doc),
+                                                                         f"2026-11-0{rev}T00:00:00+00:00", f"v1 rev {rev}", "edit"))
+        w.execute("INSERT INTO microgrid VALUES (1,?,?,?,?,?)", (uid, 2, C.fingerprint(docs[2]), json.dumps(docs[2]),
+                                                                 "2026-11-02T00:00:00+00:00"))
+        w.execute("INSERT INTO simulation_runs(created_at, config_revision, config_fingerprint, spec_fingerprint, spec_origin) "
+                  "VALUES ('2026-11-02', 2, ?, ?, 'microrrede')", (C.fingerprint(docs[2]), "f" * 64))
+        self.assertGreater((self.dir / "seeds2.db-wal").stat().st_size, 0)
+        return w, {"uid": uid, "docs": docs, "blob_sha": sha, "blob": blob}
+
+    def _assert_v1_copy(self, bak: Path, exp: dict) -> None:
+        """A cópia é um banco SQLite autossuficiente (aberto sozinho, em outro diretório) com o estado v1 completo."""
+        iso = self.dir / "isolado"
+        iso.mkdir(exist_ok=True)
+        alone = iso / "copia.db"
+        shutil.copyfile(bak, alone)                                          # somente o arquivo .bak, sem sidecars
+        con = sqlite3.connect(alone)
+        try:
+            self.assertEqual(con.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+            self.assertEqual(con.execute("PRAGMA journal_mode").fetchone()[0], "delete")
+            self.assertEqual(con.execute("PRAGMA user_version").fetchone()[0], 1)
+            row = con.execute("SELECT installation_uid, revision, document FROM microgrid").fetchone()
+            self.assertEqual((row[0], row[1]), (exp["uid"], 2))
+            self.assertEqual(json.loads(row[2]), exp["docs"][2])
+            revs = con.execute("SELECT revision, document, origin FROM revisions ORDER BY revision").fetchall()
+            self.assertEqual([(r, json.loads(d), o) for r, d, o in revs],
+                             [(1, exp["docs"][1], "edit"), (2, exp["docs"][2], "edit")])
+            sha, content = con.execute("SELECT sha256, content FROM blobs").fetchone()
+            self.assertEqual((sha, sha256(content).hexdigest(), bytes(content)), (exp["blob_sha"], exp["blob_sha"], exp["blob"]))
+            self.assertEqual(con.execute("SELECT count(*) FROM simulation_runs").fetchone()[0], 1)
+        finally:
+            con.close()
+
+    def test_copia_inclui_wal_com_leitor_aberto(self):
+        w, exp = self._v1_db_in_wal()
+        # Pré-condição do defeito: o arquivo .db sozinho ainda NÃO contém os dados (estão no -wal).
+        raw = self.dir / "raw.db"
+        shutil.copyfile(self.dir / "seeds2.db", raw)
+        with sqlite3.connect(raw) as c:
+            self.assertNotIn(("microgrid",), c.execute("SELECT name FROM sqlite_master").fetchall())
+        raw.unlink()
+        reader = sqlite3.connect(self.dir / "seeds2.db", isolation_level=None, timeout=1.0)
+        reader.execute("BEGIN")                                              # leitor com instantâneo aberto
+        self.assertEqual(reader.execute("SELECT revision FROM microgrid").fetchone()[0], 2)
+        t0 = time.monotonic()
+        store = MicrogridStore(self.dir)                                     # abre → copia → migra
+        self.assertLess(time.monotonic() - t0, 5.0)                          # o leitor não bloqueia a migração
+        self.assertEqual(store.db_version(), MIGRATIONS[-1][0])
+        bak = self.dir / "seeds2.db.bak-v1"
+        self.assertTrue(bak.exists())
+        for side in ("seeds2.db.bak-v1-wal", "seeds2.db.bak-v1-shm", "seeds2.db.bak-v1.tmp"):
+            self.assertFalse((self.dir / side).exists(), side)
+        self._assert_v1_copy(bak, exp)
+        # O leitor manteve seu instantâneo (v1) e, ao encerrá-lo, enxerga a migração.
+        self.assertEqual(reader.execute("SELECT revision FROM microgrid").fetchone()[0], 2)
+        reader.execute("COMMIT")
+        self.assertEqual(reader.execute("SELECT revision FROM microgrid").fetchone()[0], 3)
+        reader.close()
+        # Nenhum bloqueio residual: a conexão gravadora original volta a gravar imediatamente.
+        w.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('pos_migracao', 'ok')")
+        w.close()
+        # A cópia é utilizável pelo próprio SEEDS2: restaurada em outro diretório, migra para o mesmo estado.
+        other = self.dir / "restaurado"
+        other.mkdir()
+        shutil.copyfile(bak, other / "seeds2.db")
+        again = MicrogridStore(other)
+        self.assertEqual(again.load().fingerprint, store.load().fingerprint)
+        self.assertEqual(again.get_blob(exp["blob_sha"]), exp["blob"])
+
+    def test_falha_apos_a_copia_desfaz_tudo_e_nova_abertura_migra(self):
+        w, exp = self._v1_db_in_wal()
+        reader = sqlite3.connect(self.dir / "seeds2.db", isolation_level=None, timeout=1.0)
+        reader.execute("BEGIN")
+        reader.execute("SELECT count(*) FROM revisions").fetchone()
+
+        def falha(con):
+            con.execute("UPDATE microgrid SET revision = 99")               # escrita parcial antes da falha
+            raise sqlite3.OperationalError("falha simulada durante a migração")
+
+        with mock.patch.dict(store_mod.MIGRATION_STEPS, {2: falha}):
+            with self.assertRaises(StoreError) as ctx:
+                MicrogridStore(self.dir)
+        self.assertIn("banco mantido na versão anterior", str(ctx.exception))
+        reader.execute("COMMIT")
+        reader.close()
+        with sqlite3.connect(self.dir / "seeds2.db") as c:                   # rollback completo
+            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 1)
+            self.assertEqual(c.execute("SELECT revision FROM microgrid").fetchone()[0], 2)
+            self.assertEqual(c.execute("SELECT count(*) FROM revisions").fetchone()[0], 2)
+            self.assertIsNone(c.execute("SELECT value FROM meta WHERE key = 'migrated_to'").fetchone())
+        self._assert_v1_copy(self.dir / "seeds2.db.bak-v1", exp)            # cópia do estado anterior, íntegra
+        w.close()
+        store = MicrogridStore(self.dir)                                     # nova tentativa (sem falha)
+        self.assertEqual(store.load().revision, 3)
+        self.assertEqual([h["origin"] for h in store.history()].count("migration"), 1)
+        self._assert_v1_copy(self.dir / "seeds2.db.bak-v1", exp)
+
+    def test_aberturas_concorrentes_migram_uma_unica_vez_e_reabrir_e_idempotente(self):
+        w, exp = self._v1_db_in_wal()
+        w.close()
+        start, errors, stores = threading.Barrier(3), [], []
+
+        def abrir():
+            start.wait()
+            try:
+                stores.append(MicrogridStore(self.dir))
+            except Exception as exc:                                        # pragma: no cover - reportado abaixo
+                errors.append(exc)
+
+        threads = [threading.Thread(target=abrir) for _ in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+        self.assertFalse(any(t.is_alive() for t in threads), "migração concorrente travou")
+        self.assertEqual(errors, [])
+        self.assertEqual(len(stores), 3)
+        hist = stores[0].history()
+        self.assertEqual([h["revision"] for h in hist], [3, 2, 1])
+        self.assertEqual([h["origin"] for h in hist].count("migration"), 1)
+        bak = self.dir / "seeds2.db.bak-v1"
+        self._assert_v1_copy(bak, exp)
+        before = (bak.stat().st_mtime_ns, bak.read_bytes())
+        reopened = MicrogridStore(self.dir)                                  # nada pendente: nada muda
+        self.assertEqual(reopened.load().revision, 3)
+        self.assertEqual((bak.stat().st_mtime_ns, bak.read_bytes()), before)
+
+    def test_gravador_concorrente_e_serializado_e_a_copia_inclui_seu_commit(self):
+        w, exp = self._v1_db_in_wal()
+        w.close()
+        locked, release = threading.Event(), threading.Event()
+
+        def gravador():
+            c = sqlite3.connect(self.dir / "seeds2.db", isolation_level=None, timeout=5.0)
+            c.execute("BEGIN IMMEDIATE")
+            c.execute("INSERT INTO meta(key, value) VALUES ('gravado_antes', 'sim')")
+            locked.set()
+            release.wait(5)
+            time.sleep(0.3)
+            c.execute("COMMIT")
+            c.close()
+
+        t = threading.Thread(target=gravador)
+        t.start()
+        self.assertTrue(locked.wait(5))
+        release.set()
+        t0 = time.monotonic()
+        store = MicrogridStore(self.dir)                                     # espera o commit e então migra
+        elapsed = time.monotonic() - t0
+        t.join(timeout=10)
+        self.assertFalse(t.is_alive())
+        self.assertLess(elapsed, 5.0)
+        self.assertEqual(store.load().revision, 3)
+        with sqlite3.connect(self.dir / "seeds2.db.bak-v1") as c:           # a cópia é o estado exato antes da migração
+            self.assertEqual(c.execute("SELECT value FROM meta WHERE key = 'gravado_antes'").fetchone()[0], "sim")
+            self.assertEqual(c.execute("PRAGMA user_version").fetchone()[0], 1)
+
+    def test_espera_pela_copia_e_limitada(self):
+        store = MicrogridStore(self.dir)
+        x = sqlite3.connect(store.path, isolation_level=None)
+        x.execute("PRAGMA locking_mode=EXCLUSIVE")                          # bloqueia qualquer leitura de outra conexão
+        x.execute("BEGIN IMMEDIATE")
+        x.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('k', 'v')")
+        x.execute("COMMIT")
+        dest = self.dir / "copia.bak"
+        t0 = time.monotonic()
+        with self.assertRaises(StoreError):
+            store._backup_copy(dest, timeout_s=0.5)
+        self.assertLess(time.monotonic() - t0, 5.0)                          # sem espera infinita
+        self.assertFalse(dest.exists())
+        self.assertFalse(dest.with_name(dest.name + ".tmp").exists())
+        x.close()
+        store._backup_copy(dest, timeout_s=0.5)                              # liberado: a cópia funciona
+        with sqlite3.connect(dest) as c:
+            self.assertEqual(c.execute("SELECT value FROM meta WHERE key = 'k'").fetchone()[0], "v")
 
 
 # ======================================================================= relatório PDF (aceitação 17)

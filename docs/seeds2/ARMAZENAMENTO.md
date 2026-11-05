@@ -35,8 +35,15 @@ A interface mostra o caminho em uso (comissionamento, Gestão → Instalação, 
 - **Proteção contra perda:** histórico imutável + "Reverter" (cria nova revisão com o conteúdo antigo).
 - **Integridade referencial:** a configuração não pode referenciar blobs inexistentes.
 - **Migrações do banco:** `PRAGMA user_version` + lista ordenada `MIGRATIONS` (+ passos Python em
-  `MIGRATION_STEPS`); antes de migrar um banco existente é feita a cópia `seeds2.db.bak-v<N>`; banco de
-  versão mais nova que o software é recusado sem alteração.
+  `MIGRATION_STEPS`); banco de versão mais nova que o software é recusado sem alteração. Uma única
+  transação `BEGIN IMMEDIATE` cobre cópia + todas as migrações pendentes: a versão é relida sob o bloqueio
+  (aberturas concorrentes migram uma única vez) e qualquer falha desfaz tudo.
+  - **Cópia `seeds2.db.bak-v<N>`** antes de migrar um banco existente: feita pela **API de backup do SQLite**
+    (`Connection.backup`, um único passo/instantâneo) numa conexão própria, enquanto a migração mantém o
+    bloqueio de escrita — inclui o conteúdo ainda no `-wal` (uma cópia do arquivo `.db` não incluiria) e é
+    exatamente o estado migrado. Leitores abertos não bloqueiam (WAL); a espera por bloqueios é limitada
+    (`BACKUP_COPY_TIMEOUT_S`); a cópia é um arquivo autossuficiente (journal `DELETE`, sem `-wal`/`-shm`),
+    verificada com `PRAGMA integrity_check` e publicada atomicamente (`.tmp` → `os.replace`).
   - **v1 → v2 (refinamento do Piso 1):** sem mudança de tabelas; o documento atual é migrado (v1 → v2) e
     gravado como **nova revisão** (origem `migration`, nota com o resumo). Se a migração ou a validação
     falhar, a transação é desfeita e o banco permanece na v1 (`StoreError`, nada corrompido). Revisões
