@@ -339,11 +339,19 @@ class MicrogridStore:
 
     @contextmanager
     def _read(self) -> Iterator[sqlite3.Connection]:
+        """Leitura numa TRANSAÇÃO de leitura explícita (H-03). Em WAL, o instantâneo é fixado na primeira consulta
+        — a própria verificação da lápide/incarnação — e todas as consultas seguintes desta leitura veem o MESMO
+        estado. Política: uma leitura cujo instantâneo é anterior à lápide termina sobre esse estado válido
+        anterior; uma leitura iniciada depois do COMMIT da lápide é recusada. Nunca se verifica um estado e se
+        consulta outro."""
         con = self._connect()
         try:
+            con.execute("BEGIN")                        # DEFERRED: o instantâneo nasce na verificação abaixo
             self._check_alive(con)
             yield con
         finally:
+            if con.in_transaction:
+                con.execute("ROLLBACK")                 # somente leitura: nada a confirmar
             con.close()
 
     def stamp_incarnation(self, incarnation: str) -> str:
@@ -412,22 +420,30 @@ class MicrogridStore:
             con.close()
 
     # ------------------------------------------------------------ leitura
-    def load(self) -> Stored | None:
-        with self._read() as con:
-            row = con.execute("SELECT * FROM microgrid WHERE id = 1").fetchone()
+    @staticmethod
+    def _load_con(con: sqlite3.Connection) -> Stored | None:
+        row = con.execute("SELECT * FROM microgrid WHERE id = 1").fetchone()
         if row is None:
             return None
         return Stored(json.loads(row["document"]), int(row["revision"]), row["fingerprint"], row["saved_at"])
+
+    def load(self) -> Stored | None:
+        with self._read() as con:
+            return self._load_con(con)
 
     def is_commissioned(self) -> bool:
         s = self.load()
         return bool(s and s.config.get("commissioning", {}).get("completed"))
 
+    @staticmethod
+    def _history_con(con: sqlite3.Connection, limit: int) -> list[dict]:
+        rows = con.execute("SELECT revision, fingerprint, saved_at, note, origin FROM revisions "
+                           "ORDER BY revision DESC LIMIT ?", (int(limit),)).fetchall()
+        return [dict(r) for r in rows]
+
     def history(self, limit: int = 50) -> list[dict]:
         with self._read() as con:
-            rows = con.execute("SELECT revision, fingerprint, saved_at, note, origin FROM revisions "
-                               "ORDER BY revision DESC LIMIT ?", (int(limit),)).fetchall()
-        return [dict(r) for r in rows]
+            return self._history_con(con, limit)
 
     def get_revision(self, revision: int) -> Stored:
         with self._read() as con:
@@ -535,7 +551,11 @@ class MicrogridStore:
 
     def get_blob(self, digest: str) -> bytes:
         with self._read() as con:
-            row = con.execute("SELECT content FROM blobs WHERE sha256 = ?", (digest,)).fetchone()
+            return self._get_blob_con(con, digest)
+
+    @staticmethod
+    def _get_blob_con(con: sqlite3.Connection, digest: str) -> bytes:
+        row = con.execute("SELECT content FROM blobs WHERE sha256 = ?", (digest,)).fetchone()
         if row is None:
             raise StoreError(f"Dado de entrada {digest[:12]}… não encontrado no armazenamento local.")
         data = bytes(row["content"])
@@ -570,21 +590,26 @@ class MicrogridStore:
 
     # ------------------------------------------------------------ backup / restauração
     def export_backup(self) -> bytes:
-        cur = self.load()
-        if cur is None:
-            raise StoreError("Não há configuração salva para exportar.")
+        """Backup de UM instantâneo (H-03): configuração, blobs, histórico e versão lidos na mesma transação de
+        leitura — o manifesto nunca descreve uma revisão diferente da do histórico ou dos dados."""
         from seeds2 import APP_VERSION
 
-        files: dict[str, bytes] = {"configuration.json": json.dumps(cur.config, ensure_ascii=False, indent=2).encode("utf-8")}
+        files: dict[str, bytes] = {}
         blob_meta = {}
         with self._read() as con:
+            cur = self._load_con(con)
+            if cur is None:
+                raise StoreError("Não há configuração salva para exportar.")
+            files["configuration.json"] = json.dumps(cur.config, ensure_ascii=False, indent=2).encode("utf-8")
             for b in sorted(self._referenced_blobs(cur.config)):
-                files[f"blobs/{b}"] = self.get_blob(b)
+                files[f"blobs/{b}"] = self._get_blob_con(con, b)
                 blob_meta[b] = self._blob_meta(con, b)
-        files["history.json"] = json.dumps(self.history(limit=10_000), ensure_ascii=False, indent=2).encode("utf-8")
+            history = self._history_con(con, 10_000)
+            db_version = int(con.execute("PRAGMA user_version").fetchone()[0])
+        files["history.json"] = json.dumps(history, ensure_ascii=False, indent=2).encode("utf-8")
         manifest = {
             "format": BACKUP_FORMAT, "format_version": BACKUP_FORMAT_VERSION,
-            "db_schema_version": self.db_version(), "doc_schema_version": cur.config.get("schema_version"),
+            "db_schema_version": db_version, "doc_schema_version": cur.config.get("schema_version"),
             "app_version": APP_VERSION, "created_at": C.utc_now(),
             "installation_uid": cur.config["installation"]["uid"], "installation_name": cur.config["installation"]["name"],
             "revision": cur.revision, "fingerprint": cur.fingerprint, "blobs": blob_meta,

@@ -179,7 +179,7 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
             st.html(f'<div class="gc"><div class="gc-top"><span class="gc-chip s-erro">Armazenamento indisponível</span></div>'
                     f'<div class="gc-uid">ID {escape(uid)}</div><div class="gc-desc">{escape(error or "")}</div></div>')
             if st.button("EXCLUIR MICRORREDE", key=f"g_del_{uid}", icon=":material/delete:", width="stretch"):
-                _ss()[DLG] = {"type": "delete", "uid": uid}
+                _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}
                 st.rerun()
             return
         st.html(_card_html(entry, s))
@@ -209,7 +209,7 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
                 st.error(shell.md(exc))
         if c3.button("Excluir", key=f"g_del_{uid}", icon=":material/delete:", width="stretch",
                      help="EXCLUIR MICRORREDE — exclusão definitiva com confirmação"):
-            _ss()[DLG] = {"type": "delete", "uid": uid}
+            _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}   # H-02: vínculo
             st.rerun()
         for kind, label, mime in (("zip", "⬇ Baixar ZIP", "application/zip"), ("pdf", "⬇ Baixar relatório PDF", "application/pdf")):
             ready = _ss().get(f"gestor_{kind}", {}).get(uid)
@@ -228,6 +228,15 @@ def _close_dialog() -> None:
 def _delete_dialog() -> None:
     reg = session.registry()
     uid = (_ss().get(DLG) or {}).get("uid")
+    bound = (_ss().get(DLG) or {}).get("incarnation")         # incarnação que o usuário via ao pedir a exclusão
+    current = reg.get(uid)
+    if current is not None and bound is not None and current.incarnation != bound:
+        st.warning("Esta microrrede foi substituída por outra com o mesmo identificador (excluída e reimportada em "
+                   "outra sessão). Nada será excluído; feche e confira o Gestor.")
+        if st.button("Fechar", key="gd_close_stale"):
+            _close_dialog()
+            st.rerun()
+        return
     if not reg.exists(uid):
         st.info("Esta microrrede não existe mais no catálogo.")
         if st.button("Fechar", key="gd_close"):
@@ -282,7 +291,7 @@ def _delete_dialog() -> None:
             st.error("Credencial administrativa inválida. Nada foi excluído.")
             return
         try:
-            reg.delete(uid)
+            reg.delete(uid, expected_incarnation=bound)
         except (RegistryError, StoreError) as exc:
             st.error(shell.md(exc))
             return

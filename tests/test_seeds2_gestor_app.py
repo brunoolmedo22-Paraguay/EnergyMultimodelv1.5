@@ -302,6 +302,23 @@ class ExportacaoExclusaoTest(_Base):
         self.assertEqual(sqlite3.connect(self.reg().open(b).path).execute("SELECT document, revision FROM microgrid").fetchall(), snap)
         self.assertTrue(any("excluída definitivamente" in s.value for s in app.success))
 
+    def test_dialogo_de_exclusao_vinculado_a_incarnacao(self):                # H-02 na interface
+        a = self.make("Vinculada")
+        reg = self.reg()
+        z = reg.open(a).export_backup()
+        with mock.patch.dict(os.environ, {"SEEDS2_DEV_MODE": "1"}):
+            app = self._abrir_exclusao(a)                                 # diálogo aberto com a incarnação atual
+            reg.delete(a)                                                 # outra sessão exclui...
+            reg.import_new(z)                                             # ...e reimporta o MESMO uid
+            new_inc = self.reg().get(a).incarnation
+            app.run()
+            _ok(self, app)
+            self.assertTrue(any("substituída" in w.value for w in app.warning))
+            self.assertNotIn("EXCLUIR DEFINITIVAMENTE", [x.label for x in app.button])
+        e = self.reg().get(a)
+        self.assertEqual(e.incarnation, new_inc)                          # a nova microrrede segue intacta
+        self.assertEqual(self.reg().open(a).load().revision, 1)
+
     def test_exclusao_protegida_por_credencial(self):
         a = self.make("Protegida")
         with mock.patch.dict(os.environ, {"SEEDS2_ADMIN_PASSWORD": "segredo-adm"}):

@@ -22,7 +22,7 @@ from pathlib import Path
 from unittest import mock
 
 from seeds2.microgrid import config as C
-from seeds2.microgrid.registry import MicrogridNotFound, MicrogridRegistry, RegistryError
+from seeds2.microgrid.registry import MicrogridNotFound, MicrogridRegistry, RegistryError, StaleDeletionError
 from seeds2.microgrid.store import MicrogridDeletedError, MicrogridStore, MissingStoreError
 from seeds2_fixtures import v16_equivalent_config
 
@@ -69,7 +69,28 @@ class _Base(unittest.TestCase):
         self.b = self._make("B")
 
     def tearDown(self):
-        self._t.cleanup()
+        try:
+            if not getattr(self, "anomalia_forcada", False):
+                self.assert_storage_invariants()
+        finally:
+            self._t.cleanup()
+
+    def assert_storage_invariants(self) -> None:
+        """Sem bases vazias, diretórios órfãos ou resíduos: todo diretório em microgrids/ tem linha no catálogo
+        com a MESMA incarnação e um documento salvo; .staging, .trash e .quarantine vazios."""
+        with sqlite3.connect(self.reg.path) as con:
+            rows = dict(con.execute("SELECT uid, incarnation FROM microgrids").fetchall())
+        for d in self.reg.microgrids_dir.iterdir():
+            self.assertIn(d.name, rows, f"diretório sem linha no catálogo: {d.name}")
+            db = d / "seeds2.db"
+            self.assertTrue(db.is_file(), f"diretório sem banco: {d.name}")
+            self.assertEqual(_raw(db, "SELECT value FROM meta WHERE key = 'incarnation'")[0][0], rows[d.name])
+            self.assertEqual(_raw(db, "SELECT count(*) FROM microgrid")[0][0], 1, f"banco vazio: {d.name}")
+        for uid in rows:
+            self.assertTrue(self.reg.dir_for(uid).is_dir(), f"linha sem diretório: {uid}")
+        self.assertEqual(list(self.reg.staging_dir.iterdir()), [])
+        self.assertEqual(list(self.reg.trash_dir.iterdir()), [])
+        self.assertFalse(self.reg.quarantine_dir.exists() and list(self.reg.quarantine_dir.iterdir()))
 
     def _make(self, name: str) -> str:
         cfg = v16_equivalent_config(name)
@@ -464,6 +485,225 @@ class IndependenciaTest(_Base):
         self.assert_gone(self.a)
         self.assertEqual(self.reg.open(self.b).load().revision, 2)
         self.assertEqual(len(self.reg.open(self.b).runs()), 1)
+
+
+
+# =========================================================================== H-02 — exclusão × reimportação do mesmo UID
+class ExclusaoObsoletaTest(_Base):
+    """A exclusão fica vinculada à incarnação que viu; entre a validação e cada etapa seguinte, outra sessão
+    exclui X por completo e uma terceira reimporta X (mesmo UID, nova incarnação)."""
+
+    def setUp(self):
+        super().setUp()
+        # sessões B e C já em execução (instâncias criadas ANTES da intercalação: sem recover() no meio)
+        self.B = MicrogridRegistry(self.dir, adopt_legacy=False)
+        self.C = MicrogridRegistry(self.dir, adopt_legacy=False)
+
+    def _excluir_e_reimportar(self, z: bytes) -> dict:
+        self.B.delete(self.a)                                             # sessão B exclui X por completo
+        uid, _ = self.C.import_new(z)                                     # sessão C reimporta o MESMO uid
+        self.assertEqual(uid, self.a)
+        return {"inc": self.reg.get(self.a).incarnation, "snap": _snapshot(self.reg.open(self.a))}
+
+    def assert_new_intact(self, new: dict) -> None:
+        e = self.reg.get(self.a)
+        self.assertIsNotNone(e)
+        self.assertEqual(e.incarnation, new["inc"])
+        self.assertTrue(self.reg.dir_for(self.a).exists())
+        self.assertIsNone(self.reg._lifecycle(self.a))                   # nenhuma lápide na nova incarnação
+        self.assertEqual(_snapshot(self.reg.open(self.a)), new["snap"])
+        self.assertEqual(self.reg.open(self.a).load().revision, 1)
+
+    def test_obsoleta_antes_da_lapide(self):                              # intercalação da auditoria
+        z = self.reg.open(self.a).export_backup()
+        old_inc = self.reg.get(self.a).incarnation
+        A = MicrogridRegistry(self.dir, adopt_legacy=False)
+        paused, go = threading.Event(), threading.Event()
+        orig = A._tombstone
+
+        def tomb(uid, **kw):
+            paused.set()                                                  # A já validou X (incarnação antiga)
+            if not go.wait(T):
+                raise RuntimeError("liberação não recebida")
+            return orig(uid, **kw)
+        A._tombstone = tomb
+        run = _Run(lambda: A.delete(self.a))
+        run.start()
+        self.assertTrue(paused.wait(T))
+        new = self._excluir_e_reimportar(z)
+        self.assertNotEqual(new["inc"], old_inc)
+        go.set()
+        run.join(T)
+        self.assertIsInstance(run.error, StaleDeletionError)
+        self.assert_new_intact(new)
+
+    def test_obsoleta_entre_lapide_e_reivindicacao(self):
+        z = self.reg.open(self.a).export_backup()
+        A = MicrogridRegistry(self.dir, adopt_legacy=False)
+        done, release, _ = self.pause_after_tombstone(A)                  # A gravou a lápide da incarnação antiga
+        run = _Run(lambda: A.delete(self.a))
+        run.start()
+        self.assertTrue(done.wait(T))
+        new = self._excluir_e_reimportar(z)
+        release.set()
+        run.join(T)
+        self.assertIsInstance(run.error, StaleDeletionError)               # reivindicação confere a incarnação
+        self.assert_new_intact(new)
+
+    def test_recuperacao_de_outro_processo_durante_a_pausa_apos_a_lapide(self):
+        z = self.reg.open(self.a).export_backup()
+        A = MicrogridRegistry(self.dir, adopt_legacy=False)
+        done, release, _ = self.pause_after_tombstone(A)
+        run = _Run(lambda: A.delete(self.a))
+        run.start()
+        self.assertTrue(done.wait(T))
+        MicrogridRegistry(self.dir)                                       # novo processo: recover() conclui (lápide)
+        self.assertIsNone(self.reg.get(self.a))
+        uid, _ = self.C.import_new(z)                                     # reimportação após a recuperação
+        new = {"inc": self.reg.get(uid).incarnation, "snap": _snapshot(self.reg.open(uid))}
+        release.set()
+        run.join(T)
+        self.assertIsInstance(run.error, StaleDeletionError)               # A não reivindica a nova incarnação
+        self.assert_new_intact(new)
+
+    def test_reivindicada_e_concluida_pela_recuperacao_antes_da_reimportacao(self):
+        z = self.reg.open(self.a).export_backup()
+        A = MicrogridRegistry(self.dir, adopt_legacy=False)
+        paused, go = threading.Event(), threading.Event()
+        orig = A._finish_deletion
+
+        def finish(uid, inc):
+            paused.set()                                                  # A reivindicou; remoção ainda não feita
+            if not go.wait(T):
+                raise RuntimeError("liberação não recebida")
+            return orig(uid, inc)
+        A._finish_deletion = finish
+        run = _Run(lambda: A.delete(self.a))
+        run.start()
+        self.assertTrue(paused.wait(T))
+        MicrogridRegistry(self.dir)                                       # outro processo inicia: recover() conclui
+        self.assertFalse(self.reg.dir_for(self.a).exists())
+        uid, _ = self.C.import_new(z)                                     # reimportação após a recuperação
+        new = {"inc": self.reg.get(uid).incarnation, "snap": _snapshot(self.reg.open(uid))}
+        go.set()
+        run.join(T)
+        self.assertIsNone(run.error)                                      # a incarnação de A foi, de fato, excluída
+        self.assert_new_intact(new)                                       # e a remoção tardia de A não tocou na nova
+
+    def test_exclusao_vinculada_a_incarnacao_vista_pelo_usuario(self):
+        z = self.reg.open(self.a).export_backup()
+        seen = self.reg.get(self.a).incarnation                          # o diálogo foi aberto aqui
+        new = self._excluir_e_reimportar(z)
+        with self.assertRaises(StaleDeletionError):
+            self.reg.delete(self.a, expected_incarnation=seen)
+        self.assert_new_intact(new)
+        self.reg.delete(self.a, expected_incarnation=new["inc"])          # vinculada à atual: exclui
+        self.assert_gone(self.a)
+
+    def test_remocao_fisica_nunca_remove_outra_incarnacao(self):
+        self.anomalia_forcada = True                                      # estado inconsistente criado de propósito
+        inc = self.reg.get(self.a).incarnation
+        with sqlite3.connect(self.reg.path) as con:                      # estado anômalo forçado: linha "deleting" da
+            con.execute("UPDATE microgrids SET state = 'deleting' WHERE uid = ?", (self.a,))   # incarnação inc...
+        with sqlite3.connect(self.reg.dir_for(self.a) / "seeds2.db") as con:
+            con.execute("UPDATE meta SET value = ? WHERE key = 'incarnation'", ("f" * 32,))    # ...diretório de outra
+        snap = _snapshot_raw(self.reg.dir_for(self.a))
+        with self.assertRaises(RegistryError):
+            self.reg._finish_deletion(self.a, inc)
+        for _ in range(2):
+            MicrogridRegistry(self.dir)                                   # recover() também não remove
+        self.assertTrue(self.reg.dir_for(self.a).exists())
+        self.assertEqual(_snapshot_raw(self.reg.dir_for(self.a)), snap)
+
+    def test_lapide_registra_a_incarnacao_e_lapide_antiga_sem_ela_e_recuperavel(self):
+        inc = self.reg.get(self.a).incarnation
+        done, release, _ = self.pause_after_tombstone(self.reg)
+        run = _Run(lambda: self.reg.delete(self.a))
+        run.start()
+        self.assertTrue(done.wait(T))
+        tomb = json.loads(_raw(self.reg.dir_for(self.a) / "seeds2.db", "SELECT value FROM meta WHERE key = 'lifecycle'")[0][0])
+        self.assertEqual(tomb["incarnation"], inc)
+        release.set()
+        run.join(T)
+        self.assertIsNone(run.error)
+        # lápide gravada pela versão anterior (sem incarnação) numa exclusão interrompida → recuperável
+        with sqlite3.connect(self.reg.dir_for(self.b) / "seeds2.db") as con:
+            con.execute("INSERT INTO meta(key, value) VALUES ('lifecycle', ?)", (json.dumps({"state": "deleted"}),))
+        r = MicrogridRegistry(self.dir)
+        self.assertIsNone(r.get(self.b))
+        self.assertFalse(r.dir_for(self.b).exists())
+
+
+# =========================================================================== H-03 — leituras transacionais
+class LeituraTransacionalTest(_Base):
+    def _pause_after_check(self, store: MicrogridStore) -> tuple[threading.Event, threading.Event]:
+        checked, go = threading.Event(), threading.Event()
+        orig = store._check_alive
+
+        def check(con):
+            orig(con)                                                     # instantâneo fixado nesta consulta
+            checked.set()
+            if not go.wait(T):
+                raise RuntimeError("liberação não recebida")
+        store._check_alive = check
+        return checked, go
+
+    def test_leitura_iniciada_antes_da_lapide_termina_no_instantaneo_anterior(self):
+        reader = self.reg.open(self.a)
+        checked, go = self._pause_after_check(reader)
+        run = _Run(reader.load)
+        run.start()
+        self.assertTrue(checked.wait(T))
+        writer, cfg = self.edited(self.a, "revisão 2")
+        self.assertEqual(writer.save(cfg, 1).revision, 2)                 # confirmada depois da verificação
+        self.reg._tombstone(self.a, incarnation=self.reg.get(self.a).incarnation)   # lápide confirmada
+        go.set()
+        run.join(T)
+        self.assertIsNone(run.error)
+        self.assertEqual(run.result.revision, 1)                          # estado verificado == estado lido
+        self.assertNotEqual(run.result.config["installation"]["description"], "revisão 2")
+        fresh = self.reg.dir_for(self.a)
+        with self.assertRaises(MicrogridDeletedError):                    # leitura iniciada depois: recusada
+            MicrogridStore(fresh, must_exist=True, fixed_uid=self.a).load()
+        with self.assertRaises(MicrogridDeletedError):
+            writer.load()
+
+    def test_exportacao_usa_um_unico_instantaneo(self):
+        from seeds2.microgrid.store import inspect_backup_data
+
+        exporter = self.reg.open(self.a)
+        checked, go = self._pause_after_check(exporter)
+        run = _Run(exporter.export_backup)
+        run.start()
+        self.assertTrue(checked.wait(T))
+        writer, cfg = self.edited(self.a, "revisão 2")
+        h = writer.put_blob(b"t_min,P_kW\n0,5\n1,6\n", "novo.csv")
+        cfg["demand"].update(source="csv", provenance="medido", csv={"blob": h, "filename": "novo.csv", "start_min": 0,
+                                                                     "duration_min": 2})
+        writer.save(cfg, 1)                                               # revisão 2 durante a exportação
+        go.set()
+        run.join(T)
+        self.assertIsNone(run.error)
+        rep = inspect_backup_data(run.result)
+        self.assertTrue(rep.ok, rep.errors)
+        hist = json.loads(__import__("zipfile").ZipFile(__import__("io").BytesIO(run.result)).read("history.json"))
+        self.assertEqual((rep.manifest["revision"], max(r["revision"] for r in hist), len(hist)), (1, 1, 1))
+        self.assertEqual(hist[0]["fingerprint"], rep.manifest["fingerprint"])
+        self.assertNotEqual(rep.config["installation"]["description"], "revisão 2")
+        self.assertEqual(writer.load().revision, 2)
+
+    def test_leitura_nao_bloqueia_gravacao_nem_exclusao(self):
+        reader = self.reg.open(self.a)
+        checked, go = self._pause_after_check(reader)
+        run = _Run(reader.history)
+        run.start()
+        self.assertTrue(checked.wait(T))                                  # transação de leitura aberta
+        self.reg.delete(self.a, lock_timeout_s=5.0)                       # WAL: exclusão não espera o leitor
+        go.set()
+        run.join(T)
+        self.assertIsNone(run.error)
+        self.assertEqual([h["revision"] for h in run.result], [1])
+        self.assert_gone(self.a)
 
 
 if __name__ == "__main__":
