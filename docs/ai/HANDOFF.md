@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-gestor-microrredes` · **PR:** _(ver sección 2; pendiente de revisión, sin merge)_ · **estado:** Gestor de microrredes implementado y verificado en la rama; **no integrado en `main`**.
+**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-gestor-microrredes` · **PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5)** (pendiente de revisión; sin merge) · **estado:** Gestor de microrredes implementado y verificado en la rama; **no integrado en `main`**.
 
 ## 1. Estado actual
 
