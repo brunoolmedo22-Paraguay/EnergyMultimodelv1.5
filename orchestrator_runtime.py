@@ -456,6 +456,8 @@ def export_bundle(
             "energia_vertida_kWh": float(r["rel"]["energia_vertida_kWh"]),
             "avisos": list(r.get("avisos", [])),
             "quando": item.get("quando"),
+            # SEEDS2: procedência da configuração (revisão/impressões digitais ou "manual").
+            "origem_configuracao": item.get("origem"),
         }
         zf.writestr("05_resumo_execucao.json", json.dumps(_json_safe(resumo), indent=2, ensure_ascii=False))
         if item.get("validacao") is not None:

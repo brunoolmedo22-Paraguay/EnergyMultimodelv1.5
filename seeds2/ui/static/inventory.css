@@ -1,0 +1,38 @@
+.inv { display: flex; flex-direction: column; gap: 16px; }
+.inv-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.inv-search { flex: 1 1 260px; min-width: 180px; }
+.inv-count { font-size: 12.5px; color: var(--sd-muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 16px; }
+.inv-card { position: relative; display: flex; flex-direction: column; gap: 11px; min-height: 226px; padding: 15px 16px 12px;
+  background: var(--sd-card); border: 1px solid var(--sd-border); border-radius: 14px; box-shadow: var(--sd-shadow);
+  cursor: pointer; outline: none; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, opacity .16s;
+  animation: sd-rise .28s ease both; }
+.inv-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; border-radius: 14px 0 0 14px; background: var(--kc, var(--sd-accent)); opacity: .85; }
+.inv-card:hover, .inv-card:focus-visible { transform: translateY(-2px); box-shadow: var(--sd-shadow-hi); border-color: color-mix(in srgb, var(--kc, var(--sd-accent)) 45%, var(--sd-border)); }
+.inv-card:focus-visible { box-shadow: var(--sd-shadow-hi), 0 0 0 3px color-mix(in srgb, var(--sd-accent) 30%, transparent); }
+.inv-card.is-off { opacity: .62; } .inv-card.is-off::before { background: var(--s-off); }
+.k-pv { --kc: var(--k-pv); } .k-wind { --kc: var(--k-wind); } .k-battery { --kc: var(--k-battery); } .k-pemfc { --kc: var(--k-pemfc); } .k-thermal { --kc: var(--k-thermal); }
+.inv-head { display: flex; justify-content: space-between; gap: 10px; }
+.inv-kind { font-size: 11px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; color: var(--kc, var(--sd-accent)); }
+.inv-name { margin: 2px 0 0; font-size: 16px; font-weight: 700; line-height: 1.25; word-break: break-word; }
+.inv-sub { font-size: 12.5px; color: var(--sd-muted); margin-top: 2px; }
+.inv-icon { color: var(--kc, var(--sd-accent)); flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--kc, var(--sd-accent)) 11%, transparent); }
+.inv-icon svg { width: 26px; height: 26px; }
+.inv-states { display: flex; flex-wrap: wrap; gap: 6px; }
+.inv-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; padding: 9px 0; border-top: 1px dashed var(--sd-border); border-bottom: 1px dashed var(--sd-border); }
+.inv-kv { display: flex; flex-direction: column; min-width: 0; } .inv-kv .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--sd-muted); }
+.inv-kv .v { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-reason { font-size: 12px; line-height: 1.4; color: var(--sd-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.inv-reason.warn { color: #B06A00; } .inv-reason.bad { color: var(--s-bad); }
+.inv-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--sd-muted); }
+.inv-add { align-items: center; justify-content: center; text-align: center; border: 1.5px dashed color-mix(in srgb, var(--sd-accent) 55%, var(--sd-border));
+  background: color-mix(in srgb, var(--sd-accent) 5%, var(--sd-card)); box-shadow: none; }
+.inv-add::before { display: none; }
+.inv-add .plus { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; font-weight: 300; line-height: 1;
+  color: #fff; background: var(--sd-accent); box-shadow: 0 6px 16px color-mix(in srgb, var(--sd-accent) 35%, transparent); transition: transform .18s; }
+.inv-add:hover .plus { transform: scale(1.07) rotate(90deg); }
+.inv-add .add-t { font-weight: 700; font-size: 15.5px; } .inv-add .add-s { font-size: 12.5px; color: var(--sd-muted); max-width: 240px; }
+.inv-add.big { grid-column: 1 / -1; min-height: 220px; }
+.inv-none { grid-column: 1 / -1; padding: 28px; text-align: center; color: var(--sd-muted); border: 1px dashed var(--sd-border); border-radius: 12px; }
+@media (max-width: 640px) { .inv-grid { grid-template-columns: 1fr; } .inv-card { min-height: 0; } }
