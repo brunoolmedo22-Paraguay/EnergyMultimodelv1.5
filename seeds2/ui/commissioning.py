@@ -2,8 +2,8 @@
 
 O progresso é salvo no armazenamento local a cada etapa (revisões com origem ``commissioning``):
 fechar o navegador ou reiniciar o servidor não perde o que foi registrado, e é possível voltar a
-etapas anteriores. Só a etapa 01 (nome) é obrigatória para salvar; o restante pode ficar pendente,
-com indicação explícita do que falta para simular.
+etapas anteriores. A etapa 01 exige nome, natureza da atividade e modo de operação; o restante pode ficar
+pendente, com indicação explícita do que falta para simular.
 """
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ import streamlit as st
 from seeds2.microgrid import config as C
 from seeds2.microgrid.references import KIND_LABELS, KINDS
 
-from . import forms, session, shell
+from . import equipment, exports, forms, session, shell
 
-STEPS = [(1, "Identificação"), (2, "Inventário energético"), (3, "Configuração elétrica"),
+STEPS = [(1, "Identificação e localização"), (2, "Inventário energético"), (3, "Balanço energético"),
          (4, "Parâmetros operacionais"), (5, "Revisão e ativação")]
 STEP_KEY = "mg_cstep"
 
@@ -29,14 +29,15 @@ def _states(cfg: dict | None, plan, saved_exists: bool, current: int) -> list[di
             state, reason = "bloqueada", "salve a identificação primeiro"
         elif cfg is not None:
             if n == 1:
-                state = "completa" if cfg["installation"].get("name") and saved_exists else "progresso"
+                miss = C.identification_missing(cfg)
+                state, reason = ("completa", "") if saved_exists and not miss else \
+                    (("atencao", "falta: " + ", ".join(miss).lower()) if saved_exists else ("progresso", ""))
             elif n == 2:
                 k = len(cfg["equipment"])
                 state, reason = ("completa", f"{k} equipamento(s)") if k else ("atencao", "nenhum equipamento")
             elif n == 3:
-                t = cfg["topology"]
-                ok = t["bus_kind"] != "nao_declarado" and t["grid_connection"] != "nao_declarada"
-                state, reason = ("completa", "") if ok else ("atencao", "barramento ou conexão não declarados")
+                ok = cfg["energy_balance"]["grid_connection"] != "nao_declarada"
+                state, reason = ("completa", "") if ok else ("atencao", "conexão com a rede não declarada")
             elif n == 4:
                 inc = [e for e in cfg["equipment"] if e.get("enabled", True) and not C.is_configured(e)]
                 dem = bool(plan and plan.load_descriptor)
@@ -44,7 +45,7 @@ def _states(cfg: dict | None, plan, saved_exists: bool, current: int) -> list[di
                     state = "completa"
                 else:
                     state = "atencao"
-                    reason = " · ".join(([f"{len(inc)} equipamento(s) incompleto(s)"] if inc else []) + ([] if dem else ["demanda não definida"]))
+                    reason = " · ".join(([f"{len(inc)} equipamento(s) pendente(s)"] if inc else []) + ([] if dem else ["demanda não definida"]))
             elif n == 5:
                 state = "progresso" if current == 5 else "pendente"
         if n == current and state == "pendente":
@@ -91,8 +92,8 @@ def render() -> None:
     shell.hero("Comissionamento · primeira configuração",
                "Configure a microrrede desta instalação",
                "Esta instalação do SEEDS2 administra uma única microrrede. Registre-a uma vez: identificação, equipamentos, "
-               "organização elétrica, parâmetros e demanda. O progresso é salvo localmente a cada etapa; depois da ativação, "
-               "a configuração é mantida em Gestão da Microrrede.",
+               "modelo de balanço energético, parâmetros e demanda. O progresso é salvo localmente a cada etapa; depois da "
+               "ativação, a configuração é mantida em Gestão da Microrrede.",
                [("Armazenamento", str(session.store().path))] + ([("Revisão", str(saved.revision))] if saved else []))
     shell.component("stepper")(key="seeds_stepper", data={"steps": _states(cfg, plan, saved is not None, step), "current": step},
                                on_action_change=_on_stepper)
@@ -102,11 +103,18 @@ def render() -> None:
 
 
 def _step1(cfg: dict, plan) -> None:
-    st.markdown('<div class="sd-section">Etapa 01 — Identificação da instalação</div>', unsafe_allow_html=True)
-    st.caption("Somente o nome é obrigatório. Campos não declarados ficam explicitamente marcados como tal.")
-    if forms.installation_form(cfg, submit="Salvar e continuar →", key="cm_inst"):
+    st.markdown('<div class="sd-section">Etapa 01 — Identificação e localização</div>', unsafe_allow_html=True)
+    forms.identification_cards(cfg, key="cm_ident")
+    st.write("")
+    _, c2 = st.columns([2, 1])
+    if c2.button("Salvar e continuar →", key="cm_ident_save", type="primary", width="stretch"):
+        errs = forms.apply_identification(cfg, key="cm_ident")
+        if errs:
+            for e in errs:
+                st.error(shell.md(e))
+            return
         cfg["commissioning"]["step"] = 2
-        if session.save(note="Comissionamento: identificação", origin="commissioning"):
+        if session.save(note="Comissionamento: identificação e localização", origin="commissioning"):
             st.session_state[STEP_KEY] = 2
             forms.bump()
             st.rerun()
@@ -117,7 +125,7 @@ def _step1(cfg: dict, plan) -> None:
 def _step2(cfg: dict, plan) -> None:
     st.markdown('<div class="sd-section">Etapa 02 — Inventário energético</div>', unsafe_allow_html=True)
     st.caption("Registre os equipamentos solares, eólicos, de armazenamento, PEMFC e térmicos. Várias unidades da mesma "
-               "tecnologia são permitidas. Cada inclusão é salva imediatamente.")
+               "tecnologia são permitidas. Cada registro confirmado é salvo imediatamente.")
     forms.inventory(cfg, plan, autosave=True, key="cm_inv")
     if not cfg["equipment"]:
         shell.callout("Nenhum equipamento registrado. É possível continuar e registrar depois, mas a simulação exigirá ao "
@@ -126,14 +134,15 @@ def _step2(cfg: dict, plan) -> None:
 
 
 def _step3(cfg: dict, plan) -> None:
-    st.markdown('<div class="sd-section">Etapa 03 — Configuração elétrica</div>', unsafe_allow_html=True)
-    st.caption("Topologia simplificada de barramento comum, coerente com o balanço de potência do EMS atual.")
-    forms.topology_view(cfg, plan, key="cm_topo")
-    forms.grid_notice(cfg)
-    if forms.topology_form(cfg, submit="Salvar configuração elétrica", key="cm_topo_form"):
-        session.save(note="Comissionamento: topologia", origin="commissioning")
+    st.markdown('<div class="sd-section">Etapa 03 — Esquema lógico do balanço energético</div>', unsafe_allow_html=True)
+    st.caption("O SEEDS2 integra modelos energéticos para um balanço de potência e energia agregado. Não há configuração "
+               "de barramentos, tensões ou acoplamentos físicos nesta versão.")
+    forms.balance_view(cfg, plan, key="cm_bal")
+    if forms.grid_form(cfg, key="cm_bal"):
+        session.save(note="Comissionamento: conexão com a rede declarada", origin="commissioning")
         forms.bump()
         st.rerun()
+    forms.grid_notice(cfg)
     _nav(3)
 
 
@@ -147,7 +156,7 @@ def _step4(cfg: dict, plan) -> None:
         missing = C.missing_required(eq)
         with st.container(border=True, key=f"cm_op_{eq['id']}"):
             c1, c2, c3 = st.columns([3.2, 1.2, 1.2], vertical_alignment="center")
-            state = "configurado" if not missing else "faltam: " + ", ".join(missing)
+            state = "configurado para simulação" if not missing else "pendente: " + ", ".join(missing)
             c1.html(f"<b>{escape(eq['name'])}</b> · {escape(KIND_LABELS[eq['kind']])}<br>"
                     f"<span class='sd-muted'>{escape(state)}</span>")
             en = c2.toggle("Habilitado", value=bool(eq.get("enabled", True)), key=f"cm_en_{eq['id']}_{forms.token()}")
@@ -155,11 +164,9 @@ def _step4(cfg: dict, plan) -> None:
                 C.update_equipment(cfg, eq["id"], enabled=en)
                 forms.after_change(True, f"Disponibilidade alterada: {eq['name']}", "commissioning")
             if c3.button("Parâmetros", key=f"cm_edit_{eq['id']}", width="stretch"):
-                forms.open_equipment(eq["id"], autosave=True)
+                equipment.open_edit(eq["id"], True)
                 st.rerun()
-    dlg = st.session_state.get("mg_dialog")
-    if dlg and dlg.get("type") == "equipment":
-        forms.equipment_dialog()
+    equipment.maybe_dialog()
     st.markdown('<div class="sd-section">Demanda da instalação</div>', unsafe_allow_html=True)
     if forms.demand_editor(cfg, key="cm_dem", submit="Salvar demanda"):
         session.save(note="Comissionamento: demanda", origin="commissioning")
@@ -184,18 +191,24 @@ def _step5(cfg: dict, plan) -> None:
     e_bat = sum(C.battery_energy_kWh(e) or 0 for e in by_kind["battery"])
     tiles.append(("Armazenamento", forms.fmt(e_bat, 1, "kWh") if by_kind["battery"] else "—", f"{len(by_kind['battery'])} banco(s)"))
     shell.kpis(tiles)
-    forms.topology_view(cfg, plan, key="cm_review_topo")
+    forms.balance_view(cfg, plan, key="cm_review_bal")
     html, _ = forms.readiness_checks(cfg, plan)
     st.html(f'<div class="sd-section">Verificação técnica</div>{html}')
     st.caption("✓ completo/compatível · ! requer informação ou será excluído da simulação · ✕ bloqueio · – desabilitado")
+    st.markdown('<div class="sd-section">Documentação da configuração</div>', unsafe_allow_html=True)
+    exports.export_actions(key="cm_exp")
     st.write("")
     shell.callout("A ativação conclui o comissionamento e abre o ambiente habitual. Nada impede completar ou alterar dados "
                   "depois, em <b>Gestão da Microrrede</b>, sem criar outra microrrede.")
+    miss = C.identification_missing(cfg)
+    if miss:
+        st.warning("Complete a identificação (etapa 01) antes de ativar: " + shell.md(", ".join(miss)))
     c1, _, c3 = st.columns([1, 1.2, 1.8])
     if c1.button("← Voltar", key="cm_back_5", width="stretch"):
         _goto(4)
         st.rerun()
-    if c3.button("Ativar microrrede e concluir comissionamento", key="cm_activate", type="primary", width="stretch"):
+    if c3.button("Ativar microrrede e concluir comissionamento", key="cm_activate", type="primary", width="stretch",
+                 disabled=bool(miss)):
         cfg["commissioning"].update(completed=True, step=5, completed_at=C.utc_now())
         if session.save(note="Comissionamento concluído — microrrede ativada", origin="commissioning"):
             st.session_state.pop(STEP_KEY, None)

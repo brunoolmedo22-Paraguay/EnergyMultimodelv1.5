@@ -5,7 +5,7 @@ Aplicação Streamlit para modelos energéticos (Solar, Eólica, Térmica, Bater
 ## Arquitetura
 
 - `app.py` — ponto de entrada (`python -m streamlit run app.py`). Roteia por `st.session_state["energy_source"]`: `None` → shell SEEDS2 (`seeds2/ui/main.py`); `"solar"|"wind"|"thermal"|"battery"|"h2"|"mix"` → bancada individual; `"ems"` (sessão legada V1.5) → volta ao shell. `legacy_css()` (CSS V1.6) só é aplicado às telas V1.6. A UI solar está no próprio `app.py`.
-- `seeds2/` — Piso 1 (sem ciência): `microgrid/` (`references.py` leitura dos catálogos, `config.py` documento/validação, `store.py` SQLite em `SEEDS2_DATA_DIR`, `adapter.py` inventário → `model_spec` V1.6) e `ui/` (shell, comissionamento, Gestão, ponte `operations.py` com o console V1.6, componentes `st.components.v2` em `ui/static/`). Detalhes: `docs/seeds2/ARQUITETURA_PISO1.md`, `docs/seeds2/ARMAZENAMENTO.md`.
+- `seeds2/` — Piso 1 (sem ciência): `microgrid/` (`references.py` leitura dos catálogos, `config.py` documento v2/validação, `migrations.py` migração versionada do documento, `derived.py` estimativas nominais FV/bateria, `modellab.py` importação validada do PEMFC ModelLab, `store.py` SQLite em `SEEDS2_DATA_DIR`, `adapter.py` inventário → `model_spec` V1.6), `report/pdf.py` (relatório técnico PDF local) e `ui/` (shell, comissionamento, Gestão, diálogo de equipamentos `equipment.py`, exportações `exports.py`, ponte `operations.py` com o console V1.6, componentes `st.components.v2` em `ui/static/`). Detalhes: `docs/seeds2/ARQUITETURA_PISO1.md`, `docs/seeds2/ARMAZENAMENTO.md`.
 - Navegação SEEDS2: Comissionamento (1º acesso) → Início · Gestão da Microrrede · Simulação · Resultados · Alcance. Simulação/Resultados renderizam o console V1.6 com a configuração **salva** transferida pelo adaptador.
 - `orchestrator_app.py` — console V1.6 (UI). Páginas: Visão Geral → Módulo de Carga → Modelos → Otimizador → Resultados do Otimizador → Resultados dos Modelos → Exportar Resultados. Bancadas individuais: página **Modelos** (expander) e Início (expander). Respeita `orq_run_gate`, grava `origem` na rodada e chama `orq_after_run` (registro de procedência).
 - `orchestrator_runtime.py` — integração sem UI: modelos físicos → pacote de troca → EMS.
@@ -25,7 +25,7 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 - Requer Streamlit 1.66.1 (`st.components.v2`). `tests/conftest.py` aponta `SEEDS2_DATA_DIR` para um diretório temporário: a suíte **nunca** usa o armazenamento real (`~/.seeds2`).
 - `tests/test_app_smoke.py` e `EMSAppSmokeTest` usam `streamlit.testing.v1.AppTest`. `tests/apptest_utils.abrir()` cria uma microrrede comissionada equivalente à configuração padrão V1.6 (`tests/seeds2_fixtures.py`) e abre a vista Simulação.
 - `tests/apptest_utils.py` contorna limitações do AppTest (não são defeitos da app): widgets obsoletos após `st.rerun()` e (no 1.49) `st.segmented_control` com valor string. Use `continuar(app)` para seguir a navegação após um clique que dispara `st.rerun()`.
-- `tests/test_seeds2_microgrid.py` (backend, persistência com reabertura em novo processo, backup, adaptador, rodada EMS real) e `tests/test_seeds2_app.py` (UI SEEDS2).
+- `tests/test_seeds2_microgrid.py` (backend, persistência com reabertura em novo processo, backup, adaptador, rodada EMS real), `tests/test_seeds2_refinamento.py` (FV por arranjos, bateria/eólica/ModelLab, migrações a partir de dados v1 reais em `tests/fixtures/`, PDF, geolocalização) e `tests/test_seeds2_app.py` (UI SEEDS2). Não regenerar as fixtures v1: foram produzidas pelo código anterior ao documento v2.
 - Navegador real: `tools/e2e/e2e_piso1_microrrede.js` (fases comissionar → reinício do servidor → reabrir → tablet); ver `docs/seeds2/VERIFICACAO_PISO1.md`.
 - Os testes de UI devem refletir a navegação real; não remova nem enfraqueça asserções para fazê-los passar.
 
@@ -39,6 +39,7 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 6. `seeds2/` só **adapta** configurações: nunca reformule o EMS ou os modelos para "caber" equipamentos. Agregue apenas o que é fisicamente equivalente no modelo existente; o resto é marcado como não representável (nunca omitido em silêncio).
 7. Não inventar fichas técnicas, fabricantes, preços, procedências ou validações; valores desconhecidos ficam vazios ("não declarado"). Perfis de referência e clima sintético nunca são "medidos".
 8. Nunca versionar bancos (`*.db`), backups (`*.seeds2backup.zip`) ou dados da instalação.
+   **Exceção documentada e restrita:** fixtures **sintéticas e auditadas**, usadas exclusivamente em testes de regressão (p. ex. `tests/fixtures/seeds2_backup_v1_piso1.zip`, que reproduz o formato de backup v1). Cada uma deve: conter apenas dados fictícios gerados para teste (nenhum dado de instalação, empresa ou medição real); ter origem, gerador e finalidade registrados em `tests/fixtures/README.md`; ser revisada no PR que a introduz. A exceção **não** autoriza versionar backups ou bancos reais/operacionais, nem cópias de `SEEDS2_DATA_DIR`.
 
 ## Observações conhecidas (não corrigidas)
 

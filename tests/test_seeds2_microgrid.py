@@ -164,31 +164,42 @@ class ValidacaoTest(unittest.TestCase):
         cfg = v16_equivalent_config()
         bat = next(e for e in cfg["equipment"] if e["kind"] == "battery")
         bat["params"].update(soc_min_pct=80.0, soc_max_pct=50.0)
-        cfg["equipment"][0]["params"]["n_series"] = 0
+        cfg["equipment"][0]["arrays"][0]["n_series"] = 0
         cfg["equipment"][1]["id"] = cfg["equipment"][0]["id"]
         th = C.new_equipment("thermal", "Gerador", params={"dynamic": "local_generator", "pmax_kW": 10.0, "pmin_kW": 20.0})
         cfg["equipment"].append(th)
-        cfg["installation"]["latitude"] = 123.0
-        cfg["installation"]["timezone"] = "Marte/Olympus"
+        cfg["installation"]["location"]["latitude"] = 123.0
+        cfg["installation"]["location"]["longitude"] = 0.0
+        cfg["installation"]["location"]["timezone"] = "Marte/Olympus"
+        bat["params"]["capacity_Ah"] = -5.0
+        cfg["run_conditions"]["battery_soc0_pct"][bat["id"]] = 140.0
         msgs = " | ".join(f"{i.path}: {i.message}" for i in C.errors(C.validate(cfg)))
         for esperado in ("SOC mínimo deve ser menor", "n_series", "Identificador duplicado",
-                         "mínima técnica não pode superar", "latitude", "Fuso horário"):
+                         "mínima técnica não pode superar", "latitude", "Fuso horário", "Capacidade nominal",
+                         "SOC inicial deve estar entre"):
             self.assertIn(esperado, msgs)
 
     def test_referencias_inexistentes_e_parametros_desconhecidos(self):
         cfg = v16_equivalent_config()
-        cfg["equipment"][0]["params"]["reference"] = "MODULO-INVENTADO"
+        cfg["equipment"][0]["arrays"][0]["reference"] = "MODULO-INVENTADO"
+        cfg["equipment"][1]["arrays"][0]["inventado"] = 1
         cfg["equipment"][2]["params"]["inventado"] = 1
         msgs = " | ".join(i.message for i in C.errors(C.validate(cfg)))
         self.assertIn("não pertence às referências", msgs)
         self.assertIn("Parâmetro desconhecido", msgs)
+        self.assertIn("Campo desconhecido para arranjo", msgs)
 
     def test_valores_ausentes_sao_permitidos_mas_incompletos(self):
         eq = C.new_equipment("battery", "Banco sem dados")
         self.assertEqual(C.errors(C.equipment_issues(eq)), [])
         self.assertFalse(C.is_configured(eq))
-        self.assertIn("SOC inicial", C.missing_required(eq))
-        self.assertIsNone(eq["params"]["n_series"])                       # nada é presumido
+        self.assertIn("Células em série (Ns)", C.missing_required(eq))
+        self.assertIsNone(eq["params"]["model_n_series"])                 # nada é presumido
+        self.assertIsNone(eq["params"]["energy_kWh"])
+        self.assertNotIn("soc0_pct", eq["params"])                         # SOC inicial não é dado do inventário
+        plant = C.new_equipment("pv", "Usina sem arranjos")
+        self.assertEqual(C.errors(C.equipment_issues(plant)), [])
+        self.assertEqual(C.missing_required(plant), ["ao menos um arranjo"])
 
     def test_perfil_de_referencia_nao_pode_ser_medido(self):
         cfg = v16_equivalent_config()
@@ -200,11 +211,13 @@ class ValidacaoTest(unittest.TestCase):
         n = len(cfg["equipment"])
         eq = C.add_equipment(cfg, C.new_equipment("wind", "Aerogerador novo", params={"reference": "EWT DW61-1MW", "count": 1}))
         self.assertEqual(len(cfg["equipment"]), n + 1)
-        self.assertIn(eq["id"], cfg["topology"]["couplings"])
         C.retire_equipment(cfg, eq["id"], "desmontado")
         self.assertEqual(len(cfg["equipment"]), n)
         self.assertEqual(cfg["retired"][-1]["id"], eq["id"])
-        self.assertNotIn(eq["id"], cfg["topology"]["couplings"])
+        self.assertEqual(C.errors(C.validate(cfg)), [])
+        bat = next(e for e in cfg["equipment"] if e["kind"] == "battery")
+        C.retire_equipment(cfg, bat["id"])                                   # condição de rodada do banco sai junto
+        self.assertNotIn(bat["id"], cfg["run_conditions"]["battery_soc0_pct"])
         self.assertEqual(C.errors(C.validate(cfg)), [])
         with self.assertRaises(ValueError):
             C.update_equipment(cfg, cfg["equipment"][0]["id"], kind="wind")
@@ -456,9 +469,12 @@ class BackupMaliciosoTest(_TmpStore):
         variantes = {
             "equipment como objeto": mut(lambda c: c.__setitem__("equipment", {})),
             "equipment com inteiros": mut(lambda c: c.__setitem__("equipment", [1, 2])),
-            "referência como lista": mut(lambda c: c["equipment"][0]["params"].__setitem__("reference", ["x"])),
-            "parâmetro como objeto": mut(lambda c: c["equipment"][0]["params"].__setitem__("n_series", {"a": 1})),
-            "couplings como lista": mut(lambda c: c["topology"].__setitem__("couplings", [])),
+            "referência como lista": mut(lambda c: c["equipment"][0]["arrays"][0].__setitem__("reference", ["x"])),
+            "parâmetro como objeto": mut(lambda c: c["equipment"][0]["arrays"][0].__setitem__("n_series", {"a": 1})),
+            "arranjos como objeto": mut(lambda c: c["equipment"][0].__setitem__("arrays", {})),
+            "balanço como lista": mut(lambda c: c.__setitem__("energy_balance", [])),
+            "condições como lista": mut(lambda c: c["run_conditions"].__setitem__("battery_soc0_pct", [])),
+            "localização como texto": mut(lambda c: c["installation"].__setitem__("location", "x")),
             "installation como texto": mut(lambda c: c.__setitem__("installation", "x")),
             "natureza como lista": mut(lambda c: c["installation"].__setitem__("nature", ["industrial"])),
             "demanda csv como texto": mut(lambda c: c["demand"].__setitem__("csv", "x")),
@@ -575,9 +591,10 @@ class AdaptadorTest(unittest.TestCase):
         self.assertEqual(len(plan.represented), 6)
 
     def test_equipamentos_nao_representaveis_sao_identificados(self):
+        from seeds2_fixtures import module_array, pv_plant
+
         cfg = v16_equivalent_config()
-        C.add_equipment(cfg, C.new_equipment("pv", "Arranjo heterogêneo", params={
-            "reference": "CS3W-450MS", "n_series": 3, "n_parallel": 2, "soiling_pct": 2.0}))
+        C.add_equipment(cfg, pv_plant("Usina heterogênea", module_array("Arranjo B", "CS3W-450MS", 3, 2, 2.0)))
         C.add_equipment(cfg, C.new_equipment("thermal", "UTE", params={
             "dynamic": "thermal_plant", "pmax_kW": 500.0, "pmin_kW": 100.0, "cvu_rs_MWh": 420.0, "startup_cost_rs": 0.0}))
         C.add_equipment(cfg, C.new_equipment("wind", "Aerogerador sem dados"))
@@ -585,16 +602,20 @@ class AdaptadorTest(unittest.TestCase):
             "dynamic": "local_generator", "pmax_kW": 80.0, "pmin_kW": 20.0, "cvu_rs_MWh": 1100.0, "startup_cost_rs": 50.0}))
         plan = A.build_plan(cfg)
         st = {m.name: m.status for m in plan.mappings}
-        self.assertEqual(len(plan.mappings), len(cfg["equipment"]))      # nenhum omitido
-        self.assertEqual(st["Arranjo heterogêneo"], A.INCOMPATIBLE)
-        self.assertEqual(st["Arranjo FV 1"], A.INCOMPATIBLE)            # grupo heterogêneo: nenhum escolhido
+        n_units = sum(len(e["arrays"]) if e["kind"] == "pv" else 1 for e in cfg["equipment"])
+        self.assertEqual(len(plan.mappings), n_units)                    # nenhum omitido (FV: por arranjo)
+        self.assertEqual(st["Usina heterogênea · Arranjo B"], A.INCOMPATIBLE)
+        self.assertEqual(st["Arranjo FV 1 · Arranjo 01"], A.INCOMPATIBLE)  # grupo heterogêneo: nenhum escolhido
         self.assertEqual(st["UTE"], A.INCOMPATIBLE)
         self.assertEqual(st["Aerogerador sem dados"], A.INCOMPLETE)
         self.assertEqual(st[off["name"]], A.DISABLED)
         self.assertFalse(plan.spec["solar"]["active"])
+        self.assertEqual(plan.pv_represented_kWp, 0.0)
+        self.assertAlmostEqual(plan.pv_installed_kWp, 11.8 + 0.45 * 6)     # instalado ≠ simulado
         self.assertTrue(plan.needs_ack)
         self.assertEqual({m.name for m in plan.excluded},
-                         {"Arranjo heterogêneo", "Arranjo FV 1", "Arranjo FV 2", "UTE", "Aerogerador sem dados"})
+                         {"Usina heterogênea · Arranjo B", "Arranjo FV 1 · Arranjo 01", "Arranjo FV 2 · Arranjo 01",
+                          "UTE", "Aerogerador sem dados"})
         self.assertTrue(all(m.reason for m in plan.excluded))
 
     def test_bloqueios_sem_despachavel_ou_sem_demanda(self):

@@ -15,9 +15,16 @@ def render() -> None:
         st.markdown("""
 #### Implementado no Piso 1
 - **Uma microrrede por instalação** do SEEDS2: comissionamento, identidade estável e manutenção da configuração.
+- **Identificação e localização** opcionais da instalação; a localização automática usa apenas o navegador,
+  por clique do usuário, sem geocodificação externa (cidade/estado/endereço nunca são inferidos).
 - **Inventário** de equipamentos solares, eólicos, baterias, PEMFC e térmicos (várias unidades por tecnologia),
-  com referências técnicas dos catálogos existentes e procedência declarada.
-- **Topologia simplificada** de barramento comum (declarativa), coerente com o balanço de potência do EMS.
+  com referências técnicas dos catálogos existentes e procedência declarada. A FV é registrada como
+  **usina → arranjos**, com valores nominais STC por arranjo homogêneo (estimativas com hipóteses explícitas).
+- **Esquema lógico do balanço energético**: mostra quais equipamentos entram no balanço do EMS; não é um
+  diagrama elétrico (sem barramentos, tensões ou acoplamentos).
+- **Importação de dispositivos do PEMFC ModelLab** (pacote validado e preservado no backup), registrada como
+  *pendente de integração científica*: não altera a simulação.
+- **Exportação** da configuração (ZIP verificável) e **relatório técnico em PDF**, gerados localmente.
 - **Persistência local** em SQLite: revisões imutáveis, controle de concorrência, backups verificáveis.
 - **Adaptador** inventário → contrato agregado do orquestrador V1.6, com identificação explícita de
   equipamentos não representáveis e procedência (revisão + impressão digital) de cada rodada.
@@ -27,13 +34,17 @@ def render() -> None:
         st.markdown("""
 #### Não implementado (fora do alcance atual)
 - **Operação em tempo real**, aquisição de medições ou comando de equipamentos (Centro de Operação: próximo piso).
-- **Fluxo de potência**, tensões, proteções ou transitórios elétricos — a topologia é apenas declarativa.
-- **Importação/exportação com a rede e tarifas**: declarar conexão à rede não as habilita no EMS.
+- **Fluxo de potência**, tensões, proteções, acoplamentos ou transitórios elétricos — o esquema de balanço é lógico.
+- **Importação/exportação com a rede e tarifas**: declarar conexão à rede não as habilita no EMS; um déficit do
+  EMS não equivale a uma compra de energia da rede.
 - **Agregação de equipamentos heterogêneos** da mesma tecnologia no EMS (são identificados e excluídos, nunca omitidos).
 - **Usina termelétrica de grande porte** no runtime integrado (somente na bancada Térmica).
-- **Perfis calibrados do PEMFC ModelLab** (integração futura; não se inventam parâmetros dinâmicos/BoP).
+- **Simulação com perfis calibrados do PEMFC ModelLab**: o dispositivo importado é guardado, mas a simulação
+  continua usando o perfil equivalente do catálogo (não se inventam parâmetros dinâmicos/BoP).
 - **Autenticação e perfis de acesso**: qualquer usuário da aplicação pode alterar a configuração.
-- **Validação física experimental** dos modelos nesta instalação.
+- **Validação física experimental** dos modelos nesta instalação; o relatório PDF não é certificação nem laudo.
+- **Simulação de arranjos FV heterogêneos agregados**: apenas arranjos homogêneos são agregados no EMS; a potência
+  instalada pode diferir da potência simulada (a diferença é mostrada).
 """)
     st.markdown("#### Dados e procedência")
     st.markdown("""

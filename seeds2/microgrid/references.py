@@ -92,6 +92,35 @@ def wind_references() -> dict[str, Reference]:
     return out
 
 
+CURVE_SOURCE_LABELS = {
+    "manufacturer_table": "Tabela de potência do fabricante (valores exatos do documento)",
+    "datasheet_graph_digitized": "Curva digitalizada de gráfico do fabricante (aproximada; não é medição certificada)",
+}
+
+
+def wind_curve(key: str) -> dict | None:
+    """Curva potência × vento ORIGINAL do catálogo (pontos inalterados), com procedência e qualidade."""
+    entry = TURBINE_DB.get(key)
+    if not entry:
+        return None
+    curve = entry.get("curve") or {}
+    pts = curve.get("points") or []
+    if not pts:
+        return None
+    src = entry.get("source") or {}
+    stype = curve.get("source_type", "")
+    return {"points": [(float(v), float(p)) for v, p in pts], "source_type": stype,
+            "source_label": CURVE_SOURCE_LABELS.get(stype, f"Procedência da curva: {stype or 'não informada'}"),
+            "digitized": stype != "manufacturer_table",
+            "reference_density_kg_m3": curve.get("reference_density_kg_m3"),
+            "quality": (entry.get("quality") or {}).get("power_curve"), "notes": str(curve.get("notes") or ""),
+            "document": src.get("document"), "reference": src.get("reference"), "pages": src.get("pages")}
+
+
+def wind_spec(key: str) -> dict:
+    return dict((TURBINE_DB.get(key) or {}).get("spec") or {})
+
+
 # ------------------------------------------------------------------- Bateria
 @lru_cache(maxsize=1)
 def battery_references() -> dict[str, Reference]:

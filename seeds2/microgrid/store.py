@@ -21,8 +21,8 @@ import io
 import json
 import os
 import re
-import shutil
 import sqlite3
+import time
 import zipfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -31,18 +31,23 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from . import config as C
+from .migrations import MigrationError, migrate_document
 
 DB_FILENAME = "seeds2.db"
 ENV_DATA_DIR = "SEEDS2_DATA_DIR"
 BACKUP_FORMAT = "seeds2-microgrid-backup"
-BACKUP_FORMAT_VERSION = 1
+BACKUP_FORMAT_VERSION = 2
+SUPPORTED_BACKUP_FORMATS = (1, 2)          # v1 = Piso 1 original (documento v1, migrado na importação)
+SUPPORTED_DOC_VERSIONS = (1, 2)
 BACKUP_SUFFIX = ".seeds2backup.zip"
 MAX_BLOB_BYTES = 50 * 1024 * 1024
-# Limites da importação de backup (arquivo NÃO confiável). Uma configuração referencia no máximo 2 CSVs
-# (demanda e clima); o total descomprimido é contado lendo os dados, não pelo tamanho declarado no ZIP.
-MAX_BACKUP_ENTRIES = 16
+BACKUP_COPY_TIMEOUT_S = 30.0               # espera máxima por bloqueios ao copiar o banco antes de migrar
+# Limites da importação de backup (arquivo NÃO confiável). Dados referenciados: CSVs de demanda e clima e
+# pacotes de dispositivos importados do ModelLab; o total descomprimido é contado lendo os dados, não pelo
+# tamanho declarado no ZIP.
+MAX_BACKUP_ENTRIES = 64
 MAX_JSON_BYTES = 8 * 1024 * 1024
-MAX_BACKUP_UNCOMPRESSED = 2 * MAX_BLOB_BYTES + 3 * MAX_JSON_BYTES
+MAX_BACKUP_UNCOMPRESSED = 256 * 1024 * 1024
 MAX_BACKUP_BYTES = MAX_BACKUP_UNCOMPRESSED
 _READ_CHUNK = 1024 * 1024
 _HEX32 = re.compile(r"[0-9a-f]{32}")
@@ -101,8 +106,38 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
                excluded TEXT NOT NULL DEFAULT '[]',
                summary TEXT NOT NULL DEFAULT '{}')""",
     ]),
+    # v2 (refinamento do Piso 1): sem mudança de tabelas; o documento atual é migrado (v1 → v2) e gravado
+    # como NOVA revisão (origem "migration"). Revisões antigas permanecem intactas e são migradas na leitura.
+    (2, []),
 ]
 LATEST_DB_VERSION = MIGRATIONS[-1][0]
+
+
+def _migrate_current_document(con: sqlite3.Connection) -> None:
+    row = con.execute("SELECT * FROM microgrid WHERE id = 1").fetchone()
+    if row is None:
+        return
+    doc = json.loads(row["document"])
+    try:
+        new, applied = migrate_document(doc)
+    except MigrationError as exc:
+        raise StoreError(f"Migração do documento falhou (banco mantido na versão anterior): {exc}") from None
+    if not applied:
+        return
+    issues = C.errors(C.validate(new))
+    if issues:
+        raise StoreError("Migração do documento não validou (banco mantido na versão anterior): "
+                         + "; ".join(f"{i.path}: {i.message}" for i in issues[:5]))
+    text = json.dumps(new, ensure_ascii=False)
+    fp, now, rev = C.fingerprint(new), C.utc_now(), int(row["revision"]) + 1
+    note = f"Migração automática do documento v{doc.get('schema_version')} → v{new['schema_version']}: " + \
+           "; ".join(applied[-1]["notes"])[:900]
+    con.execute("INSERT INTO revisions(revision, installation_uid, fingerprint, document, saved_at, note, origin) "
+                "VALUES (?,?,?,?,?,?,?)", (rev, row["installation_uid"], fp, text, now, note, "migration"))
+    con.execute("UPDATE microgrid SET revision=?, fingerprint=?, document=?, saved_at=? WHERE id = 1", (rev, fp, text, now))
+
+
+MIGRATION_STEPS = {2: _migrate_current_document}
 
 
 class StoreError(Exception):
@@ -143,6 +178,7 @@ class BackupInspection:
     config: dict | None = None
     blobs: dict[str, tuple[bytes, dict]] = field(default_factory=dict)
     same_installation: bool | None = None
+    migrated: bool = False
 
 
 def resolve_data_dir(explicit: str | os.PathLike | None = None) -> Path:
@@ -191,6 +227,43 @@ class MicrogridStore:
         with self._read() as con:
             return int(con.execute("PRAGMA user_version").fetchone()[0])
 
+    def _backup_copy(self, dest: Path, timeout_s: float = BACKUP_COPY_TIMEOUT_S) -> None:
+        """Cópia transacionalmente consistente do banco pela API de backup do SQLite.
+
+        Inclui o conteúdo ainda no ``-wal`` (uma cópia do arquivo ``.db`` não o inclui). Usa uma conexão PRÓPRIA,
+        sem transação aberta: em WAL ela só precisa de um instantâneo de leitura, compatível com o bloqueio de
+        escrita mantido pela migração. ``pages=-1`` copia tudo num único passo (um único instantâneo). A espera
+        por bloqueios é limitada (o laço de repetição do ``Connection.backup`` seria infinito). O resultado é
+        um arquivo autossuficiente (journal DELETE, sem ``-wal``/``-shm``), verificado e publicado atomicamente."""
+        tmp = dest.with_name(dest.name + ".tmp")
+        tmp.unlink(missing_ok=True)
+        deadline = time.monotonic() + timeout_s
+
+        def progress(_status: int, _remaining: int, _total: int) -> None:
+            if time.monotonic() > deadline:
+                raise StoreError("tempo esgotado ao copiar o banco (bloqueado por outra conexão)")
+
+        src = sqlite3.connect(self.path, timeout=timeout_s, isolation_level=None)
+        try:
+            dst = sqlite3.connect(tmp, isolation_level=None)
+            try:
+                src.backup(dst, pages=-1, progress=progress, sleep=0.05)
+                dst.execute("PRAGMA journal_mode=DELETE")
+                check = dst.execute("PRAGMA integrity_check").fetchone()[0]
+            finally:
+                dst.close()
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
+        finally:
+            src.close()
+        if check != "ok":
+            tmp.unlink(missing_ok=True)
+            raise StoreError(f"cópia de segurança não passou na verificação de integridade: {check}")
+        with open(tmp, "rb") as fh:
+            os.fsync(fh.fileno())
+        os.replace(tmp, dest)
+
     def _migrate(self) -> None:
         existed = self.path.exists() and self.path.stat().st_size > 0
         with self._read() as con:
@@ -198,18 +271,47 @@ class MicrogridStore:
         if current > LATEST_DB_VERSION:
             raise StoreError(f"O banco {self.path} usa o esquema v{current}, mais novo que este software "
                              f"(v{LATEST_DB_VERSION}). Atualize o SEEDS2; o banco não foi alterado.")
-        pending = [(v, stmts) for v, stmts in MIGRATIONS if v > current]
-        if not pending:
+        if not any(v > current for v, _ in MIGRATIONS):
             return
-        if existed and current > 0:
-            shutil.copy2(self.path, self.path.with_name(f"{self.path.name}.bak-v{current}"))
-        for version, stmts in pending:
-            with self._tx() as con:
-                for s in stmts:
-                    con.execute(s)
-                con.execute(f"PRAGMA user_version = {int(version)}")
-                con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_to', ?)", (str(version),))
-                con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_at', ?)", (C.utc_now(),))
+        # Uma única transação de escrita para cópia + todas as migrações pendentes:
+        # * BEGIN IMMEDIATE garante que nenhuma outra conexão grave entre a cópia e a migração (a cópia é
+        #   exatamente o estado migrado) e serializa aberturas concorrentes;
+        # * a versão é relida sob o bloqueio (outra conexão pode ter migrado antes) → idempotente;
+        # * qualquer falha desfaz tudo (rollback): o banco permanece na versão anterior.
+        con = self._connect()
+        try:
+            try:
+                con.execute("BEGIN IMMEDIATE")
+                current = int(con.execute("PRAGMA user_version").fetchone()[0])
+                pending = [(v, stmts) for v, stmts in MIGRATIONS if v > current]
+                if not pending:
+                    con.execute("ROLLBACK")
+                    return
+                if existed and current > 0:
+                    self._backup_copy(self.path.with_name(f"{self.path.name}.bak-v{current}"))
+                for version, stmts in pending:
+                    for s in stmts:
+                        con.execute(s)
+                    step = MIGRATION_STEPS.get(version)
+                    if step is not None:
+                        step(con)
+                    con.execute(f"PRAGMA user_version = {int(version)}")
+                    con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_to', ?)", (str(version),))
+                    con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('migrated_at', ?)", (C.utc_now(),))
+                con.execute("COMMIT")
+            except BaseException:
+                if con.in_transaction:
+                    con.execute("ROLLBACK")
+                raise
+        except sqlite3.Error as exc:
+            raise StoreError(f"Migração do banco interrompida (banco mantido na versão anterior): {exc}") from None
+        except StoreError as exc:
+            msg = str(exc)
+            if "banco mantido na versão anterior" not in msg:
+                msg = f"Migração do banco interrompida (banco mantido na versão anterior): {msg}"
+            raise StoreError(msg) from None
+        finally:
+            con.close()
 
     # ------------------------------------------------------------ leitura
     def load(self) -> Stored | None:
@@ -234,7 +336,12 @@ class MicrogridStore:
             row = con.execute("SELECT * FROM revisions WHERE revision = ?", (int(revision),)).fetchone()
         if row is None:
             raise StoreError(f"Revisão {revision} inexistente.")
-        return Stored(json.loads(row["document"]), int(row["revision"]), row["fingerprint"], row["saved_at"])
+        doc = json.loads(row["document"])
+        try:
+            doc, _ = migrate_document(doc)       # revisões antigas permanecem gravadas como estavam
+        except MigrationError as exc:
+            raise StoreError(f"Revisão {revision}: {exc}") from None
+        return Stored(doc, int(row["revision"]), row["fingerprint"], row["saved_at"])
 
     # ------------------------------------------------------------ escrita
     @staticmethod
@@ -248,6 +355,12 @@ class MicrogridStore:
             csv = sec.get("csv") if isinstance(sec, dict) else None
             if isinstance(csv, dict) and isinstance(csv.get("blob"), str) and csv["blob"]:
                 refs.add(csv["blob"])
+        for section in ("equipment", "retired"):
+            items = config.get(section)
+            for eq in items if isinstance(items, list) else []:
+                imp = eq.get("imported") if isinstance(eq, dict) else None
+                if isinstance(imp, dict) and isinstance(imp.get("blob"), str) and imp["blob"]:
+                    refs.add(imp["blob"])
         return refs
 
     @staticmethod
@@ -418,11 +531,11 @@ class MicrogridStore:
 
         if m.get("format") != BACKUP_FORMAT:
             return ["Formato não reconhecido: não é um backup de microrrede do SEEDS2."]
-        if not is_int(m.get("format_version")) or m["format_version"] != BACKUP_FORMAT_VERSION:
+        if not is_int(m.get("format_version")) or m["format_version"] not in SUPPORTED_BACKUP_FORMATS:
             return ["Versão de formato de backup não suportada."]
         if not is_int(m.get("db_schema_version")) or not 1 <= m["db_schema_version"] <= LATEST_DB_VERSION:
             errs.append("Versão de esquema do banco ausente, inválida ou mais nova que este SEEDS2.")
-        if not is_int(m.get("doc_schema_version")) or m["doc_schema_version"] != C.DOC_SCHEMA_VERSION:
+        if not is_int(m.get("doc_schema_version")) or m["doc_schema_version"] not in SUPPORTED_DOC_VERSIONS:
             errs.append("Versão do documento de configuração ausente ou incompatível.")
         if not is_int(m.get("revision")) or m["revision"] < 1:
             errs.append("Campo 'revision' ausente ou inválido.")
@@ -547,6 +660,18 @@ class MicrogridStore:
                 rep.errors.append("history.json com estrutura inválida.")
         if C.fingerprint(cfg) != manifest["fingerprint"]:
             rep.errors.append("A impressão digital da configuração não confere com o manifesto.")
+        if cfg.get("schema_version") != manifest["doc_schema_version"]:
+            rep.errors.append("A versão do documento não confere com o manifesto.")
+        if rep.errors:
+            return
+        try:
+            cfg, applied = migrate_document(cfg)
+        except MigrationError as exc:
+            raise _BackupRejected(f"Configuração incompatível: {exc}") from None
+        if applied:
+            rep.warnings.append(f"Backup no formato anterior (documento v{manifest['doc_schema_version']}): será migrado "
+                                f"para o esquema atual — " + "; ".join(applied[-1]["notes"]))
+            rep.migrated = True
         for issue in C.errors(C.validate(cfg)):
             rep.errors.append(f"Configuração incompatível: {issue.path}: {issue.message}")
         if rep.errors:
@@ -589,7 +714,7 @@ class MicrogridStore:
         doc, fp = self._prepare(rep.config)
         m = rep.manifest
         note = (f"Restaurado do backup de {m['created_at'][:40]} (revisão {m['revision']} da origem, "
-                f"{m['fingerprint'][:12]}…)")
+                f"{m['fingerprint'][:12]}…)" + (" — migrado do formato anterior" if rep.migrated else ""))
         with self._tx() as con:
             return self._write_revision(con, doc, fp, expected_revision, note=note, origin="restore",
                                         allow_identity_change=bool(confirm_identity_change), new_blobs=rep.blobs)

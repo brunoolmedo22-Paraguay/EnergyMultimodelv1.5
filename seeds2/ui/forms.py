@@ -3,9 +3,11 @@
 Regras: nenhum valor físico é pré-preenchido (campos vazios = "não declarado"); toda grandeza mostra
 unidade; referências exibem a procedência do catálogo; alterações vão para a cópia de trabalho e são
 salvas imediatamente (``autosave``, comissionamento) ou ficam pendentes até "Salvar" (Gestão).
+O editor de equipamentos (catálogo de tecnologias e editores por tecnologia) está em ``equipment.py``.
 """
 from __future__ import annotations
 
+from functools import partial
 from html import escape
 from typing import Any
 
@@ -14,7 +16,8 @@ import streamlit as st
 
 from seeds2.microgrid import adapter as A
 from seeds2.microgrid import config as C
-from seeds2.microgrid.references import KIND_LABELS, KINDS, THERMAL_PRESET_NOTE, references_for, thermal_fuel_presets
+from seeds2.microgrid.derived import battery_derived, pv_plant_summary
+from seeds2.microgrid.references import KIND_LABELS, KINDS, references_for
 
 from . import session, shell
 
@@ -44,13 +47,26 @@ def after_change(autosave: bool, note: str, origin: str = "edit") -> None:
 
 
 def ref_label(eq: dict) -> str | None:
-    ref = (eq.get("params") or {}).get("reference")
-    if eq["kind"] == "thermal":
-        dyn = (eq.get("params") or {}).get("dynamic")
+    p = eq.get("params") or {}
+    k = eq["kind"]
+    if k == "thermal":
+        dyn = p.get("dynamic")
         return C.choices("thermal", "dynamic").get(dyn) if dyn else None
-    if not ref:
-        return None
-    r = references_for(eq["kind"]).get(ref)
+    if k == "pv":
+        refs = {a.get("reference") for a in eq.get("arrays") or [] if a.get("mode") == "modulo" and a.get("reference")}
+        n = len(eq.get("arrays") or [])
+        return f"{n} arranjo(s) · {len(refs)} modelo(s) de módulo" if n else None
+    if k == "battery":
+        txt = " ".join(x for x in (p.get("manufacturer"), p.get("model")) if x)
+        chem = C.BATTERY_CHEMISTRIES.get(p.get("chemistry"))
+        return " · ".join(x for x in (txt, chem) if x) or None
+    if k == "pemfc":
+        if p.get("reference") == C.PEMFC_IMPORT_REF:
+            dev = (eq.get("imported") or {}).get("device") or {}
+            return f"ModelLab · {dev.get('name') or 'dispositivo importado'}"
+        return "Perfil equivalente SEEDS2 (aproximado)" if p.get("reference") else None
+    ref = p.get("reference")
+    r = references_for(k).get(ref) if ref else None
     return r.label if r else ref
 
 
@@ -58,17 +74,22 @@ def facts(eq: dict) -> list[tuple[str, str]]:
     p = eq.get("params") or {}
     k = eq["kind"]
     if k == "pv":
-        return [("Potência STC", fmt(C.installed_power_kW(eq), 2, "kWp")),
-                ("Arranjo", f"{p.get('n_series') or '—'} × {p.get('n_parallel') or '—'}"),
-                ("Sujeira", fmt(p.get("soiling_pct"), 1, "%")), ("Módulos", str((p.get('n_series') or 0) * (p.get('n_parallel') or 0) or "—"))]
+        s = pv_plant_summary(eq)
+        return [("Potência registrada", fmt(s["total_kWp"], 2, "kWp") if (s["n_computed"] or s["n_declared"]) else "—"),
+                ("Arranjos", str(s["n_arrays"])), ("Calculada", fmt(s["computed_kWp"], 2, "kWp")),
+                ("Declarada", fmt(s["declared_kWp"], 2, "kWp"))]
     if k == "wind":
         return [("Potência nominal", fmt(C.installed_power_kW(eq), 0, "kW")), ("Quantidade", str(p.get("count") or "—")),
                 ("Perda genérica", "sim" if p.get("apply_grid_loss") else "não"), ("", "")]
     if k == "battery":
-        return [("Energia nominal", fmt(C.battery_energy_kWh(eq), 1, "kWh")),
-                ("Ns × Np", f"{p.get('n_series') or '—'} × {p.get('n_parallel') or '—'}"),
+        d = battery_derived(p)
+        e, basis, _ = d["energy_kWh"]
+        me = C.battery_model_energy_kWh(eq)
+        return [("Energia nominal", f"{fmt(e, 1, 'kWh')}{' (estim.)' if basis == 'derivada' else ''}" if e is not None else
+                 (f"{fmt(me, 1, 'kWh')} (modelo)" if me is not None else "—")),
+                ("Tensão nominal", fmt(d["voltage_V"][0], 0, "V")),
                 ("SOC mín/máx", f"{fmt(p.get('soc_min_pct'), 0)} / {fmt(p.get('soc_max_pct'), 0)} %"),
-                ("Carga/descarga", f"{fmt(p.get('c_charge'), 2)} / {fmt(p.get('c_discharge'), 2)} C")]
+                ("Carga/descarga", f"{fmt(d['c_charge'][0], 2)} / {fmt(d['c_discharge'][0], 2)} C")]
     if k == "pemfc":
         return [("Potência líquida máx.", fmt(C.installed_power_kW(eq), 1, "kW")), ("Sistemas", str(p.get("quantity") or "—")),
                 ("Base no EMS", C.PEMFC_POWER_BASIS.get(p.get("power_basis"), "—")), ("", "")]
@@ -76,57 +97,73 @@ def facts(eq: dict) -> list[tuple[str, str]]:
             ("CVU", fmt(p.get("cvu_rs_MWh"), 0, "R$/MWh")), ("Rampa", fmt(p.get("ramp_kW_min"), 1, "kW/min") if p.get("ramp_kW_min") else "sem limite")]
 
 
+def _sim_badge(ms: list) -> tuple[dict | None, str, str]:
+    """Estado agregado de simulação de um equipamento (FV: por arranjo)."""
+    if not ms:
+        return None, "", ""
+    st_ = {m.status for m in ms}
+    if st_ == {A.REPRESENTED}:
+        return {"tone": "ok", "text": "Compatível com a simulação"}, ms[0].reason or "", ""
+    if A.REPRESENTED in st_:
+        out = [m for m in ms if m.status != A.REPRESENTED]
+        return ({"tone": "warn", "text": f"Parcialmente simulável ({len(ms) - len(out)}/{len(ms)} arranjos)"},
+                "Fora da rodada: " + "; ".join(f"{m.name.split(' · ')[-1]}: {m.reason}" for m in out), "warn")
+    bad = [m for m in ms if m.status == A.INCOMPATIBLE]
+    if bad:
+        return {"tone": "bad", "text": "Não representável no EMS", "title": bad[0].reason}, bad[0].reason, "bad"
+    return None, "", ""
+
+
 def card_data(cfg: dict, plan) -> dict:
-    status = {m.id: m for m in (plan.mappings if plan else [])}
     items = []
     for eq in cfg.get("equipment", []):
         missing = C.missing_required(eq)
         errs = C.errors(C.equipment_issues(eq))
-        m = status.get(eq["id"])
+        ms = plan.for_equipment(eq["id"]) if plan else []
         badges = []
         if not eq.get("enabled", True):
             badges.append({"tone": "off", "text": "Desabilitado"})
+        if eq["kind"] == "battery":
+            badges.append({"tone": "ok", "text": "Registrado fisicamente"} if C.battery_physically_registered(eq) else
+                          {"tone": "warn", "text": "Sem dados de datasheet"})
+            badges.append({"tone": "ok", "text": "Parametrizado (modelo)"} if C.battery_model_parametrized(eq) else
+                          {"tone": "off", "text": "Sem parametrização do modelo"})
         badges.append({"tone": "ok", "text": "Configurado"} if not missing and not errs else
-                      {"tone": "warn", "text": f"Faltam {len(missing)} parâmetro(s)" if missing else "Dados inválidos",
+                      {"tone": "warn", "text": f"Pendente: {len(missing)} item(ns)" if missing else "Dados inválidos",
                        "title": ", ".join(missing)})
-        if m and m.status == A.REPRESENTED:
-            badges.append({"tone": "ok", "text": "Compatível com a simulação", "title": m.reason or ""})
-        elif m and m.status == A.INCOMPATIBLE:
-            badges.append({"tone": "bad", "text": "Não representável no EMS", "title": m.reason})
-        reason, tone = "", ""
-        if m and m.status == A.INCOMPATIBLE:
-            reason, tone = m.reason, "bad"
-        elif missing and eq.get("enabled", True):
+        sim, reason, tone = _sim_badge(ms)
+        if sim:
+            badges.append(sim)
+        if not reason and missing and eq.get("enabled", True):
             reason, tone = "Obrigatório para simular: " + ", ".join(missing), "warn"
-        elif m and m.status == A.REPRESENTED and m.reason:
-            reason = m.reason
+        elif not reason and any(m.status == A.INCOMPLETE for m in ms):
+            reason, tone = next(m.reason for m in ms if m.status == A.INCOMPLETE), "warn"
+        status = ms[0].status if len({m.status for m in ms}) == 1 and ms else (A.INCOMPLETE if ms else "")
         items.append({"id": eq["id"], "kind": eq["kind"], "kind_label": KIND_LABELS[eq["kind"]], "name": eq["name"],
                       "tag": eq.get("tag", ""), "enabled": bool(eq.get("enabled", True)), "reference_label": ref_label(eq),
                       "badges": badges, "facts": [f for f in facts(eq) if f[0]], "reason": reason, "reason_tone": tone,
-                      "sim_status": m.status if m else ""})
+                      "sim_status": status})
     return {"items": items, "kinds": [[k, KIND_LABELS[k]] for k in KINDS],
             "states": [[k, v] for k, v in A.STATUS_LABELS.items()]}
 
 
 # ------------------------------------------------------------------ inventário
-def open_equipment(eq_id: str | None = None, kind: str | None = None, autosave: bool = False) -> None:
-    st.session_state["mg_dialog"] = {"type": "equipment", "id": eq_id, "kind": kind, "autosave": autosave,
-                                     "token": token() + 1}
-    bump()
-
-
 def _on_inventory() -> None:
+    from . import equipment
+
     a = shell.payload("seeds_inventory")
     if not a:
         return
     autosave = bool(st.session_state.get("mg_inventory_autosave"))
     if a.get("type") == "open" and session.work() and C.find_equipment(session.work(), a.get("id", "")):
-        open_equipment(a["id"], autosave=autosave)
+        equipment.open_edit(a["id"], autosave)
     elif a.get("type") == "add":
-        open_equipment(None, autosave=autosave)
+        equipment.open_new(autosave)
 
 
 def inventory(cfg: dict, plan, *, autosave: bool, key: str = "inv") -> None:
+    from . import equipment
+
     st.session_state["mg_inventory_autosave"] = autosave
     data = card_data(cfg, plan)
     c1, c2 = st.columns([4, 1.25], vertical_alignment="bottom")
@@ -137,7 +174,7 @@ def inventory(cfg: dict, plan, *, autosave: bool, key: str = "inv") -> None:
                    "estados: registrado → tecnicamente configurado → compatível com a simulação.")
     with c2:
         if st.button("＋ Adicionar equipamento", key=f"{key}_add", type="primary", width="stretch"):
-            open_equipment(None, autosave=autosave)
+            equipment.open_new(autosave)
             st.rerun()
     shell.component("inventory")(key="seeds_inventory", data={**data, "readonly": False}, on_action_change=_on_inventory)
     if cfg.get("equipment"):
@@ -151,7 +188,7 @@ def inventory(cfg: dict, plan, *, autosave: bool, key: str = "inv") -> None:
             s1, s2 = st.columns([4, 1], vertical_alignment="bottom")
             sel = s1.selectbox("Equipamento", ids, format_func=names.get, key=f"{key}_sel_{token()}")
             if s2.button("Editar", key=f"{key}_edit", width="stretch"):
-                open_equipment(sel, autosave=autosave)
+                equipment.open_edit(sel, autosave)
                 st.rerun()
     retired = cfg.get("retired") or []
     if retired:
@@ -159,246 +196,213 @@ def inventory(cfg: dict, plan, *, autosave: bool, key: str = "inv") -> None:
             st.dataframe(pd.DataFrame([{"Equipamento": r["name"], "Tecnologia": KIND_LABELS[r["kind"]], "Identificador": r["id"],
                                         "Retirado em": shell.fmt_time(r.get("retired_at")), "Motivo": r.get("retired_reason") or "—"}
                                        for r in retired]), hide_index=True, width="stretch")
-    dlg = st.session_state.get("mg_dialog")
-    if dlg and dlg.get("type") == "equipment":
-        equipment_dialog()
+    equipment.maybe_dialog()
 
 
-def _close_dialog() -> None:
-    st.session_state.pop("mg_dialog", None)
+# ------------------------------------------------------------------ identificação e localização (2 cartões)
+GEO_TONES = {"ok": "ok", "denied": "bad", "unavailable": "warn", "timeout": "warn", "unsupported": "warn", "insecure": "warn"}
+GEO_MESSAGES = {
+    "unsupported": "Este navegador não oferece geolocalização. Informe as coordenadas manualmente.",
+    "insecure": "A geolocalização do navegador exige HTTPS ou acesso local (localhost). Informe as coordenadas manualmente.",
+    "denied": "Permissão de localização negada pelo navegador. Autorize-a nas configurações do site ou informe os dados manualmente.",
+    "unavailable": "O navegador não conseguiu determinar a posição. Informe as coordenadas manualmente.",
+    "timeout": "O navegador não respondeu a tempo. Tente novamente ou informe as coordenadas manualmente.",
+}
 
 
-def _param_widget(kind: str, spec: C.ParamSpec, value: Any, k: str):
-    unit = f" [{spec.unit}]" if spec.unit else ""
-    label = f"{spec.label}{unit}{' *' if spec.required else ''}"
-    if spec.type == "choice":
-        opts = C.choices(kind, spec.name)
-        keys = list(opts)
-        return st.selectbox(label, keys, index=keys.index(value) if value in keys else None, format_func=lambda x: opts.get(x, x),
-                            placeholder="— não declarado —", key=k, help=spec.help or None)
-    if spec.type == "bool":
-        return st.toggle(label.replace(" *", ""), value=bool(value) if value is not None else bool(spec.default), key=k, help=spec.help or None)
-    if spec.type == "int":
-        return st.number_input(label, min_value=int(spec.min) if spec.min is not None and not spec.min_exclusive else None,
-                               value=int(value) if value is not None else None, step=1, format="%d", key=k,
-                               placeholder="não declarado", help=spec.help or None)
-    v = st.number_input(label, min_value=float(spec.min) if spec.min is not None and not spec.min_exclusive else None,
-                        max_value=float(spec.max) if spec.max is not None and not spec.max_exclusive else None,
-                        value=float(value) if value is not None else None, step=None, format="%.4g", key=k,
-                        placeholder="não declarado", help=spec.help or None)
-    return v
+def geo_result(payload: Any) -> dict:
+    """Interpreta o retorno do componente de geolocalização (função pura, testável).
+
+    Devolve ``{"ok", "lat", "lon", "accuracy_m", "tz_suggested", "tone", "message"}``. Coordenadas fora do
+    domínio físico são rejeitadas. Cidade/estado/endereço NUNCA são inferidos das coordenadas."""
+    if not isinstance(payload, dict) or payload.get("type") != "geo":
+        return {"ok": False, "tone": "warn", "message": GEO_MESSAGES["unavailable"]}
+    tz = payload.get("tz") if isinstance(payload.get("tz"), str) else ""
+    if not payload.get("ok"):
+        code = payload.get("code") if payload.get("code") in GEO_MESSAGES else "unavailable"
+        return {"ok": False, "tone": GEO_TONES[code], "message": GEO_MESSAGES[code], "tz_suggested": tz[:60]}
+    lat, lon, acc = payload.get("lat"), payload.get("lon"), payload.get("accuracy")
+    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)  # noqa: E731
+    if not (num(lat) and num(lon) and -90 <= lat <= 90 and -180 <= lon <= 180):
+        return {"ok": False, "tone": "warn", "message": GEO_MESSAGES["unavailable"], "tz_suggested": tz[:60]}
+    acc = float(acc) if num(acc) and acc >= 0 else None
+    msg = "Coordenadas recebidas do navegador" + (f" (precisão estimada ±{acc:.0f} m)" if acc is not None else "") + \
+          ". Revise e confirme para salvar."
+    return {"ok": True, "lat": round(float(lat), 6), "lon": round(float(lon), 6), "accuracy_m": acc,
+            "tz_suggested": tz[:60], "tone": "ok", "message": msg}
 
 
-def _reference_panel(kind: str, ref_key: str | None) -> None:
-    if kind == "thermal" or not ref_key:
-        return
-    r = references_for(kind).get(ref_key)
-    if not r:
-        return
-    rows = "".join(f"<tr><td>{escape(str(k))}</td><td><b>{escape(str(v))}</b></td></tr>" for k, v in r.summary.items() if v is not None)
-    st.html(f'<div class="sd-callout"><div class="sd-eyebrow">Referência técnica · {escape(r.category)}</div>'
-            f'<div style="font-weight:650;margin:.15rem 0 .3rem">{escape(r.label)}</div>'
-            f'<table style="font-size:.82rem;border-collapse:collapse">{rows}</table>'
-            f'<div style="font-size:.78rem;opacity:.8;margin-top:.35rem">Procedência: {escape(r.provenance)}</div>'
-            f'{"<div style=font-size:.78rem;opacity:.8>" + escape(r.notes) + "</div>" if r.notes else ""}</div>')
+def _keys(key: str) -> dict:
+    t = token()
+    return {f: f"{key}_{f}_{t}" for f in ("name", "desc", "nature", "mode", "country", "region", "city", "address",
+                                          "lat", "lon", "tz")}
 
 
-@st.dialog("Equipamento da microrrede", width="large", on_dismiss=_close_dialog)
-def equipment_dialog() -> None:
-    dlg = st.session_state.get("mg_dialog") or {}
-    cfg = session.work()
-    eq = C.find_equipment(cfg, dlg.get("id")) if dlg.get("id") else None
-    t = dlg.get("token", 0)
-    kp = f"eqd_{t}_"
-    if eq is None:
-        kind = st.radio("Tecnologia *", list(KINDS), format_func=KIND_LABELS.get, horizontal=True, key=kp + "kind",
-                        index=list(KINDS).index(dlg["kind"]) if dlg.get("kind") in KINDS else 0)
-        st.caption("Somente o nome e a tecnologia são obrigatórios para registrar. Parâmetros marcados com * são exigidos "
-                   "apenas para a simulação; deixe vazio o que ainda não é conhecido.")
-        params0: dict = {p.name: p.default for p in C.PARAM_SPECS[kind]}
-    else:
-        kind = eq["kind"]
-        params0 = dict(eq["params"])
-        st.html(f'<div class="sd-eyebrow">{escape(KIND_LABELS[kind])}</div><div class="sd-mono" style="opacity:.75">'
-                f'Identificador estável: {escape(eq["id"])} · criado {escape(shell.fmt_time(eq.get("created_at")))} · '
-                f'alterado {escape(shell.fmt_time(eq.get("updated_at")))}</div>')
-    c1, c2 = st.columns([2, 1])
-    name = c1.text_input("Nome do equipamento *", value=eq["name"] if eq else "", key=kp + "name",
-                         placeholder="p. ex. Arranjo FV cobertura norte")
-    tag = c2.text_input("TAG / código técnico", value=eq.get("tag", "") if eq else "", key=kp + "tag")
-    c3, c4 = st.columns([2, 1])
-    serial = c3.text_input("Nº de série / identificação física", value=eq.get("serial", "") if eq else "", key=kp + "serial")
-    enabled = c4.toggle("Habilitado", value=bool(eq.get("enabled", True)) if eq else True, key=kp + "enabled",
-                        help="Desabilitado: permanece no inventário, mas não entra em simulações.")
-    st.markdown("**Parâmetros técnicos**")
-    values: dict[str, Any] = {}
-    specs = C.PARAM_SPECS[kind]
-    cols = st.columns(2)
-    for i, spec in enumerate(specs):
-        with cols[i % 2]:
-            values[spec.name] = _param_widget(kind, spec, params0.get(spec.name), kp + f"p_{kind}_{spec.name}")
-    if kind == "thermal":
-        fp = values.get("fuel_preset")
-        if fp:
-            pr = thermal_fuel_presets()[fp]
-            st.caption(f"Preset ACADÊMICO «{fp}»: CVU de referência {fmt(pr['cvu_rs_mwh'], 0, 'R$/MWh')} — {pr['note']} "
-                       "O CVU acima só é alterado se você digitá-lo.")
-        st.caption(THERMAL_PRESET_NOTE)
-    _reference_panel(kind, values.get("reference"))
-    notes = st.text_area("Observações", value=eq.get("notes", "") if eq else "", key=kp + "notes", height=68)
-    clean = {k: (int(v) if isinstance(v, float) and C.PARAM_INDEX[kind][k].type == "int" else v) for k, v in values.items()}
-    probe = C.new_equipment(kind, name or "—", params=clean)
-    issues = C.errors(C.equipment_issues(probe))
-    missing = C.missing_required(probe)
-    derived = []
-    if C.installed_power_kW(probe) is not None:
-        derived.append(f"Potência derivada: **{fmt(C.installed_power_kW(probe), 2, 'kW')}** (referência × quantidade)")
-    if C.battery_energy_kWh(probe) is not None:
-        derived.append(f"Energia nominal derivada: **{fmt(C.battery_energy_kWh(probe), 1, 'kWh')}** (V·Q da célula × Ns × Np)")
-    if derived:
-        st.markdown(" · ".join(derived))
-    for i in issues:
-        st.error(shell.md(i.message))
-    if missing and not issues:
-        st.info("Registrável, mas ainda **não tecnicamente configurado** — faltam: " + ", ".join(missing))
-    b1, b2 = st.columns(2)
-    ok = b1.button("Aplicar" if not dlg.get("autosave") else "Salvar equipamento", type="primary", width="stretch",
-                   key=kp + "apply", disabled=not str(name).strip() or bool(issues))
-    if b2.button("Cancelar", width="stretch", key=kp + "cancel"):
-        _close_dialog()
-        st.rerun()
-    if ok:
-        try:
-            if eq is None:
-                new = C.new_equipment(kind, name, tag=tag, serial=serial, enabled=enabled, notes=notes, params=clean)
-                C.add_equipment(cfg, new)
-                note = f"Equipamento adicionado: {new['name']}"
-            else:
-                C.update_equipment(cfg, eq["id"], name=name, tag=tag, serial=serial, enabled=enabled, notes=notes, params=clean)
-                note = f"Equipamento alterado: {name}"
-        except (ValueError, KeyError) as exc:
-            st.error(shell.md(exc))
-            return
-        _close_dialog()
-        after_change(bool(dlg.get("autosave")), note, "commissioning" if dlg.get("autosave") else "edit")
-    if eq is not None:
-        with st.expander("Retirar este equipamento do inventário"):
-            st.caption("O equipamento sai do inventário ativo e deixa de participar de simulações. O registro permanece em "
-                       "'Equipamentos retirados' e nas revisões anteriores (auditoria).")
-            reason = st.text_input("Motivo da retirada", key=kp + "ret_reason", placeholder="p. ex. desmontado para manutenção")
-            confirm = st.checkbox(f"Confirmo a retirada de «{shell.md(eq['name'])}»", key=kp + "ret_ok")
-            if st.button("Retirar equipamento", key=kp + "retire", disabled=not confirm):
-                C.retire_equipment(cfg, eq["id"], reason)
-                _close_dialog()
-                after_change(bool(dlg.get("autosave")), f"Equipamento retirado: {eq['name']}",
-                             "commissioning" if dlg.get("autosave") else "edit")
+def _on_geo(key: str) -> None:
+    k = _keys(key)
+    r = geo_result(shell.payload(f"seeds_geo_{key}"))
+    ss = st.session_state
+    ss[f"{key}_geo_msg"] = (r["tone"], r["message"])
+    ss[f"{key}_geo_tz"] = r.get("tz_suggested") or ""
+    if r["ok"]:
+        ss[k["lat"]], ss[k["lon"]] = r["lat"], r["lon"]
+        ss[f"{key}_geo_meta"] = {"lat": r["lat"], "lon": r["lon"], "accuracy_m": r["accuracy_m"], "captured_at": C.utc_now()}
 
 
-# ------------------------------------------------------------------ instalação
-def installation_form(cfg: dict, *, submit: str, key: str) -> bool:
+def _init(k: str, value: Any) -> None:
+    if k not in st.session_state:
+        st.session_state[k] = value
+
+
+def identification_cards(cfg: dict, *, key: str) -> None:
+    """Desenha os dois cartões (sem salvar). Os valores ficam nos widgets até ``apply_identification``."""
     inst = cfg["installation"]
-    with st.form(f"{key}_{token()}"):
-        name = st.text_input("Nome da instalação *", value=inst.get("name", ""), placeholder="p. ex. Laboratório de Microrredes — Bloco C")
-        desc = st.text_area("Descrição", value=inst.get("description", ""), height=80)
-        c1, c2 = st.columns(2)
-        nat_keys = list(C.NATURE_OPTIONS)
-        nature = c1.selectbox("Natureza da atividade", nat_keys, index=nat_keys.index(inst["nature"]) if inst.get("nature") in nat_keys else None,
-                              format_func=C.NATURE_OPTIONS.get, placeholder="— não declarado —")
-        mode_keys = list(C.OPERATION_MODE_OPTIONS)
-        mode = c2.selectbox("Modo de operação previsto", mode_keys,
-                            index=mode_keys.index(inst["operation_mode"]) if inst.get("operation_mode") in mode_keys else None,
-                            format_func=C.OPERATION_MODE_OPTIONS.get, placeholder="— não declarado —",
-                            help="Declaração da instalação. O EMS atual não otimiza importação/exportação com a rede.")
-        loc = st.text_input("Localização (opcional)", value=inst.get("location", ""), placeholder="cidade, endereço ou referência interna")
-        c3, c4, c5 = st.columns(3)
-        lat = c3.number_input("Latitude [°] (opcional)", min_value=-90.0, max_value=90.0, value=inst.get("latitude"), format="%.5f", placeholder="não declarada")
-        lon = c4.number_input("Longitude [°] (opcional)", min_value=-180.0, max_value=180.0, value=inst.get("longitude"), format="%.5f", placeholder="não declarada")
-        tz = c5.text_input("Fuso horário IANA (opcional)", value=inst.get("timezone", ""), placeholder="p. ex. America/Sao_Paulo")
-        sent = st.form_submit_button(submit, type="primary", width="stretch")
-    if not sent:
-        return False
-    if not name.strip():
-        st.error("O nome da instalação é obrigatório.")
-        return False
-    probe = {**inst, "name": name.strip(), "description": desc.strip(), "nature": nature, "operation_mode": mode,
-             "location": loc.strip(), "latitude": lat, "longitude": lon, "timezone": tz.strip()}
-    test = {**cfg, "installation": probe}
-    errs = [i for i in C.errors(C.validate(test)) if i.path.startswith("installation")]
+    loc = inst.get("location") or C.new_location()
+    k = _keys(key)
+    # Somente os campos que a geolocalização pode preencher são inicializados via session_state (o callback do
+    # componente escreve neles antes do desenho); os demais recebem o valor inicial pelo parâmetro do widget.
+    for f, v in (("lat", loc.get("latitude")), ("lon", loc.get("longitude")), ("tz", loc.get("timezone", ""))):
+        _init(k[f], v)
+    c1, c2 = st.columns(2, gap="large")
+    with c1, st.container(border=True, key=f"{key}_card_ident"):
+        st.html('<div class="sd-eyebrow">Cartão 1</div><div class="sd-section">Identificação da instalação</div>')
+        st.text_input("Nome da instalação *", value=inst.get("name", ""), key=k["name"],
+                      placeholder="p. ex. Laboratório de Microrredes — Bloco C", max_chars=300)
+        st.text_area("Descrição", value=inst.get("description", ""), key=k["desc"], height=90)
+        nk = list(C.NATURE_OPTIONS)
+        st.selectbox("Natureza da atividade *", nk, key=k["nature"], format_func=C.NATURE_OPTIONS.get, placeholder="— selecione —",
+                     index=nk.index(inst["nature"]) if inst.get("nature") in nk else None)
+        mk = list(C.OPERATION_MODE_OPTIONS)
+        st.selectbox("Modo de operação previsto *", mk, key=k["mode"], format_func=C.OPERATION_MODE_OPTIONS.get,
+                     placeholder="— selecione —", help="Declaração da instalação. O EMS atual não otimiza importação/exportação com a rede.",
+                     index=mk.index(inst["operation_mode"]) if inst.get("operation_mode") in mk else None)
+        st.caption("Campos com * são obrigatórios.")
+    with c2, st.container(border=True, key=f"{key}_card_loc"):
+        st.html('<div class="sd-eyebrow">Cartão 2</div><div class="sd-section">Localização</div>')
+        shell.component("geolocate")(key=f"seeds_geo_{key}", data={}, on_action_change=partial(_on_geo, key))
+        msg = st.session_state.get(f"{key}_geo_msg")
+        if msg:
+            {"ok": st.success, "bad": st.error, "warn": st.warning}[msg[0]](msg[1])
+        a, b, c = st.columns(3)
+        a.text_input("País", value=loc.get("country", ""), key=k["country"], max_chars=300)
+        b.text_input("Estado / região", value=loc.get("region", ""), key=k["region"], max_chars=300)
+        c.text_input("Cidade / localidade", value=loc.get("city", ""), key=k["city"], max_chars=300)
+        st.text_input("Endereço ou descrição do local", value=loc.get("address", ""), key=k["address"], max_chars=300)
+        a, b = st.columns(2)
+        a.number_input("Latitude [°]", min_value=-90.0, max_value=90.0, key=k["lat"], format="%.6f", placeholder="não declarada")
+        b.number_input("Longitude [°]", min_value=-180.0, max_value=180.0, key=k["lon"], format="%.6f", placeholder="não declarada")
+        st.text_input("Fuso horário (IANA)", key=k["tz"], placeholder="p. ex. America/Sao_Paulo", max_chars=60)
+        sug = st.session_state.get(f"{key}_geo_tz") or ""
+        if sug and sug != st.session_state.get(k["tz"]):
+            st.caption(f"Sugestão do navegador (fuso do dispositivo, não da instalação): `{shell.md(sug)}`")
+            st.button("Usar fuso sugerido", key=f"{key}_use_tz", on_click=lambda: st.session_state.__setitem__(k["tz"], sug))
+        st.caption("Todos os campos desta seção são opcionais e podem ser corrigidos manualmente. Cidade, estado e endereço "
+                   "não são deduzidos das coordenadas; nenhum serviço externo é consultado. A localização só é gravada "
+                   "quando você confirma o formulário.")
+
+
+def location_source(lat: Any, lon: Any, meta: dict | None, old: dict | None) -> dict:
+    """Procedência das coordenadas a gravar (função pura).
+
+    * iguais às recebidas do navegador nesta edição → ``navegador`` (com precisão e instante da leitura);
+    * iguais às já salvas → procedência anterior preservada;
+    * qualquer outro caso (digitadas ou corrigidas manualmente) → ``manual``, sem precisão."""
+    meta, old = meta or {}, old or {}
+    if meta and lat == meta.get("lat") and lon == meta.get("lon"):
+        return {"source": "navegador", "accuracy_m": meta.get("accuracy_m"), "captured_at": meta.get("captured_at")}
+    if lat == old.get("latitude") and lon == old.get("longitude") and old.get("source") in C.LOCATION_SOURCES:
+        return {"source": old["source"], "accuracy_m": old.get("accuracy_m"), "captured_at": old.get("captured_at")}
+    return {"source": "manual", "accuracy_m": None, "captured_at": None}
+
+
+def apply_identification(cfg: dict, *, key: str) -> list[str]:
+    """Valida e aplica os dois cartões à cópia de trabalho. Devolve erros (vazio = aplicado)."""
+    ss = st.session_state
+    k = _keys(key)
+    errs = []
+    name = (ss.get(k["name"]) or "").strip()
+    if not name:
+        errs.append("Informe o nome da instalação.")
+    if ss.get(k["nature"]) is None:
+        errs.append("Selecione a natureza da atividade.")
+    if ss.get(k["mode"]) is None:
+        errs.append("Selecione o modo de operação previsto.")
+    lat, lon = ss.get(k["lat"]), ss.get(k["lon"])
+    meta = ss.get(f"{key}_geo_meta") or {}
+    old = cfg["installation"].get("location") or C.new_location()
+    loc = {**C.new_location(), "country": (ss.get(k["country"]) or "").strip(), "region": (ss.get(k["region"]) or "").strip(),
+           "city": (ss.get(k["city"]) or "").strip(), "address": (ss.get(k["address"]) or "").strip(),
+           "latitude": lat, "longitude": lon, "timezone": (ss.get(k["tz"]) or "").strip(),
+           "timezone_suggested": ss.get(f"{key}_geo_tz") or old.get("timezone_suggested") or ""}
+    loc.update(location_source(lat, lon, meta, old))
+    errs += [i.message for i in C.errors(C.validate_location(loc))]
     if errs:
-        for e in errs:
-            st.error(e.message)
-        return False
-    cfg["installation"] = probe
-    return True
+        return errs
+    cfg["installation"].update(name=name, description=(ss.get(k["desc"]) or "").strip(), nature=ss[k["nature"]],
+                               operation_mode=ss[k["mode"]], location=loc)
+    ss.pop(f"{key}_geo_meta", None)
+    ss.pop(f"{key}_geo_msg", None)
+    return []
 
 
-# ------------------------------------------------------------------ topologia
-def topology_data(cfg: dict, plan) -> dict:
-    topo = cfg["topology"]
-    status = {m.id: m for m in (plan.mappings if plan else [])}
-    nodes = []
+def location_text(loc: dict | None) -> str:
+    loc = loc or {}
+    parts = [loc.get(k) for k in ("address", "city", "region", "country") if loc.get(k)]
+    return ", ".join(parts)
+
+
+# ------------------------------------------------------------------ modelo lógico de balanço energético
+def balance_data(cfg: dict, plan) -> dict:
+    sources, storage = [], []
     for eq in cfg.get("equipment", []):
-        m = status.get(eq["id"])
+        ms = plan.for_equipment(eq["id"]) if plan else []
+        sts = {m.status for m in ms}
+        # Usina FV com parte dos arranjos representada: "parcial" (nunca rotulada como incompleta/completa).
+        status = (A.REPRESENTED if sts == {A.REPRESENTED} else A.DISABLED if sts == {A.DISABLED} else
+                  "parcial" if A.REPRESENTED in sts else
+                  A.INCOMPATIBLE if A.INCOMPATIBLE in sts else A.INCOMPLETE if sts else "")
         f = facts(eq)
-        nodes.append({"id": eq["id"], "name": eq["name"], "kind": eq["kind"], "kind_label": KIND_LABELS[eq["kind"]],
-                      "role": "storage" if eq["kind"] == "battery" else "gen", "enabled": bool(eq.get("enabled", True)),
-                      "detail": f"{f[0][0]}: {f[0][1]}" if f else "",
-                      "coupling": C.COUPLING_OPTIONS.get(topo.get("couplings", {}).get(eq["id"], "nao_declarado")),
-                      "sim_status": m.status if m else "", "sim_label": (A.STATUS_LABELS[m.status] + (": " + m.reason if m.reason else "")) if m else ""})
+        node = {"name": eq["name"], "kind": eq["kind"], "kind_label": KIND_LABELS[eq["kind"]], "enabled": bool(eq.get("enabled", True)),
+                "detail": f"{f[0][1]}" if f and f[0][1] not in ("—", "") else "", "status": status,
+                "status_label": ("Parcialmente representado no EMS" if status == "parcial" else
+                                 A.STATUS_LABELS.get(status, "") if status else "")}
+        (storage if eq["kind"] == "battery" else sources).append(node)
     dem = cfg.get("demand") or {}
-    v = topo.get("nominal_voltage_V")
-    return {"bus": {"label": topo.get("bus_label") or "Barramento principal", "kind_label": C.BUS_KIND_OPTIONS[topo["bus_kind"]],
-                    "voltage": fmt(v, 0, "V") + " (declarada)" if v else ""},
-            "grid": {"state": topo.get("grid_connection")},
-            "nodes": nodes,
-            "load": {"label": "Demanda da instalação", "detail": C.DEMAND_SOURCES.get(dem.get("source"), "")[:30],
-                     "coupling": C.COUPLING_OPTIONS.get(topo.get("load_coupling"))}}
+    grid = (cfg.get("energy_balance") or {}).get("grid_connection")
+    return {"sources": sources, "storage": storage,
+            "core_note": "Soma de potências a cada passo de 1 min: renováveis abatem a carga; despacháveis e armazenamento "
+                         "cobrem o restante. Déficit e vertimento são contabilizados e penalizados.",
+            "demand_note": C.DEMAND_SOURCES.get(dem.get("source"), "Ainda não definida"),
+            "grid": ({"title": "Rede elétrica — conexão declarada",
+                      "note": "Não modelada pelo EMS atual: sem importação/exportação nem tarifas. Déficit ≠ compra de energia."}
+                     if grid == "conectada" else None),
+            "scope_note": "Modelo energético AGREGADO (balanço de potência e energia), não um esquema unifilar: não representa "
+                          "barramentos, tensões, conversores, proteções nem conexões físicas entre equipamentos."}
 
 
-def topology_view(cfg: dict, plan, key: str = "topo") -> None:
-    shell.component("topology")(key=f"seeds_{key}", data=topology_data(cfg, plan))
+def balance_view(cfg: dict, plan, key: str = "bal") -> None:
+    shell.component("balance")(key=f"seeds_{key}", data=balance_data(cfg, plan))
 
 
-def topology_form(cfg: dict, *, submit: str, key: str) -> bool:
-    topo = cfg["topology"]
-    with st.form(f"{key}_{token()}"):
-        c1, c2, c3 = st.columns([1.2, 1.6, 1])
-        bk = list(C.BUS_KIND_OPTIONS)
-        bus_kind = c1.radio("Tipo de barramento", bk, index=bk.index(topo["bus_kind"]), format_func=C.BUS_KIND_OPTIONS.get)
-        bus_label = c2.text_input("Nome do barramento", value=topo.get("bus_label", ""))
-        volt = c3.number_input("Tensão nominal declarada [V]", min_value=0.0, value=topo.get("nominal_voltage_V"), placeholder="não declarada",
-                               help="Informativa. O EMS faz apenas balanço de potência; não calcula tensões.")
-        gk = list(C.GRID_CONNECTION_OPTIONS)
-        grid = st.radio("Conexão com a rede elétrica", gk, index=gk.index(topo["grid_connection"]), horizontal=True,
-                        format_func=C.GRID_CONNECTION_OPTIONS.get,
-                        help="Declarar conexão NÃO habilita importação/exportação no EMS atual (não modelado).")
-        st.markdown("**Acoplamento de cada equipamento ao barramento**")
-        ck = list(C.COUPLING_OPTIONS)
-        couplings = {}
-        eqs = cfg.get("equipment", [])
-        cols = st.columns(2)
-        for i, eq in enumerate(eqs):
-            cur = topo.get("couplings", {}).get(eq["id"], "nao_declarado")
-            couplings[eq["id"]] = cols[i % 2].selectbox(f"{shell.md(eq['name'])} · {KIND_LABELS[eq['kind']]}", ck, index=ck.index(cur),
-                                                        format_func=C.COUPLING_OPTIONS.get, key=f"{key}_cp_{eq['id']}_{token()}")
-        if not eqs:
-            st.caption("Nenhum equipamento registrado ainda.")
-        load = st.selectbox("Acoplamento da demanda", ck, index=ck.index(topo.get("load_coupling", "nao_declarado")),
-                            format_func=C.COUPLING_OPTIONS.get)
-        sent = st.form_submit_button(submit, type="primary", width="stretch")
-    if not sent:
-        return False
-    cfg["topology"] = {**topo, "bus_kind": bus_kind, "bus_label": bus_label.strip() or "Barramento principal",
-                       "nominal_voltage_V": float(volt) if volt else None, "grid_connection": grid,
-                       "couplings": couplings, "load_coupling": load}
-    return True
+def grid_form(cfg: dict, *, key: str) -> bool:
+    bal = cfg["energy_balance"]
+    gk = list(C.GRID_CONNECTION_OPTIONS)
+    grid = st.radio("Conexão com a rede elétrica (declaração)", gk, index=gk.index(bal.get("grid_connection", "nao_declarada")),
+                    horizontal=True, format_func=C.GRID_CONNECTION_OPTIONS.get, key=f"{key}_grid_{token()}",
+                    help="Declarar conexão NÃO habilita importação/exportação no EMS atual (não modelado).")
+    if grid != bal.get("grid_connection"):
+        cfg["energy_balance"] = {**bal, "grid_connection": grid}
+        return True
+    return False
 
 
 def grid_notice(cfg: dict) -> None:
-    if cfg["topology"].get("grid_connection") == "conectada" or cfg["installation"].get("operation_mode") in ("conectada", "conectada_ilhamento"):
-        shell.callout("<b>Conexão com a rede declarada.</b> O EMS atual não modela importação/exportação nem tarifas: a "
-                      "simulação trata a microrrede como balanço local (déficit e vertimento penalizados). Essa capacidade "
-                      "permanece identificada como <b>não implementada</b>.", "warn")
+    if (cfg.get("energy_balance") or {}).get("grid_connection") == "conectada" or \
+            cfg["installation"].get("operation_mode") in ("conectada", "conectada_ilhamento"):
+        shell.callout("<b>Conexão com a rede declarada.</b> O EMS atual não otimiza importação/exportação nem tarifas: a "
+                      "simulação trata a microrrede como balanço local (déficit e vertimento penalizados). O déficit do EMS "
+                      "<b>não</b> equivale a uma compra física de energia da rede. Capacidade identificada como <b>não "
+                      "implementada</b>.", "warn")
 
 
 # ------------------------------------------------------------------ demanda e clima
@@ -576,17 +580,24 @@ def readiness_checks(cfg: dict, plan) -> tuple[str, dict]:
     out.append(shell.check(f"Identificação: <b>{escape(inst.get('name') or '—')}</b>", "ok" if inst.get("name") else "bad"))
     for k, lab, opts in (("nature", "Natureza da atividade", C.NATURE_OPTIONS), ("operation_mode", "Modo operativo", C.OPERATION_MODE_OPTIONS)):
         out.append(shell.check(f"{lab}: {escape(opts.get(inst.get(k), 'não declarado'))}", "ok" if inst.get(k) else "warn"))
+    loc = inst.get("location") or {}
+    out.append(shell.check(f"Localização: {escape(location_text(loc) or 'não declarada')}"
+                           + (f" · {loc['latitude']:.5f}, {loc['longitude']:.5f}" if loc.get("latitude") is not None else ""),
+                           "ok" if location_text(loc) or loc.get("latitude") is not None else "off"))
     out.append(shell.check(f"Inventário: {len(eqs)} equipamento(s) registrado(s)", "ok" if eqs else "warn"))
     conf = [e for e in eqs if C.is_configured(e)]
-    out.append(shell.check(f"Tecnicamente configurados: {len(conf)} de {len(eqs)}", "ok" if eqs and len(conf) == len(eqs) else "warn"))
-    topo = cfg["topology"]
-    declared = topo["bus_kind"] != "nao_declarado" and topo["grid_connection"] != "nao_declarada"
-    out.append(shell.check(f"Topologia: {escape(C.BUS_KIND_OPTIONS[topo['bus_kind']])} · {escape(C.GRID_CONNECTION_OPTIONS[topo['grid_connection']])}",
-                           "ok" if declared else "warn"))
+    out.append(shell.check(f"Tecnicamente configurados para simulação: {len(conf)} de {len(eqs)}",
+                           "ok" if eqs and len(conf) == len(eqs) else "warn"))
+    grid = (cfg.get("energy_balance") or {}).get("grid_connection", "nao_declarada")
+    out.append(shell.check(f"Balanço energético: {escape(C.GRID_CONNECTION_OPTIONS[grid])}", "ok" if grid != "nao_declarada" else "warn"))
     dem = cfg["demand"]
     out.append(shell.check(f"Demanda: {escape(C.DEMAND_SOURCES[dem['source']])} · procedência: {escape(C.PROVENANCE_KINDS[dem['provenance']])}",
                            "ok" if A.demand_descriptor(dem) else "warn"))
     if plan:
+        if plan.pv_installed_kWp:
+            out.append(shell.check(f"FV: {fmt(plan.pv_installed_kWp, 2, 'kWp')} registrados · {fmt(plan.pv_represented_kWp, 2, 'kWp')} "
+                                   "representáveis na simulação (potência nominal, não produção)",
+                                   "ok" if abs(plan.pv_installed_kWp - plan.pv_represented_kWp) < 1e-9 else "warn"))
         for m in plan.mappings:
             tone = {A.REPRESENTED: "ok", A.DISABLED: "off", A.INCOMPLETE: "warn", A.INCOMPATIBLE: "bad"}[m.status]
             out.append(shell.check(f"<b>{escape(m.name)}</b> ({escape(KIND_LABELS[m.kind])}) — {escape(A.STATUS_LABELS[m.status])}"
