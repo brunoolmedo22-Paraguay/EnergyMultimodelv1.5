@@ -47,7 +47,7 @@ from visualization.multimodel_plots import (
 
 
 st.set_page_config(
-    page_title="Energy MultiModel",
+    page_title="SEEDS2 · Energy MultiModel",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -324,7 +324,11 @@ APP_CSS = """
   }
 </style>
 """
-st.markdown(APP_CSS, unsafe_allow_html=True)
+
+
+def legacy_css() -> None:
+    """CSS das telas V1.6 (console e bancadas). O shell SEEDS2 usa o tema claro/escuro e não o recebe."""
+    st.markdown(APP_CSS, unsafe_allow_html=True)
 
 
 CHART_CONFIG = {
@@ -1613,12 +1617,17 @@ def render_source_landing() -> None:
 
 source = st.session_state.get("energy_source")
 
-# A aplicação agora entra diretamente no console de operação coordenada.
-# Os módulos individuais continuam intactos e são acessados por
-# “Testar Modelos” dentro do novo console.
+# SEEDS2 (Piso 1): sem bancada aberta, a aplicação entra no shell da microrrede única
+# (comissionamento → Início / Gestão / Simulação / Resultados). O console V1.6 é renderizado
+# dentro de Simulação/Resultados; as bancadas individuais continuam intactas.
 if source is None:
-    from orchestrator_app import render_orchestrator_app
-    render_orchestrator_app()
+    from seeds2.ui.main import render as render_seeds2
+    render_seeds2(legacy_css)
+elif source != "ems":
+    legacy_css()
+
+if source is None:
+    pass  # shell SEEDS2 já renderizado acima
 elif source == "wind":
     from wind_app import render_wind_app
     render_wind_app()

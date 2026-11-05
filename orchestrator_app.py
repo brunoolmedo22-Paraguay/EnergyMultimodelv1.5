@@ -466,9 +466,14 @@ def _optimizer_page() -> None:
             eta2 = q2.number_input("η bateria ↔ barramento", .5, 1.0, float(eta_saved.get("eta_dc2",.96)), .01)
             eta0 = q3.number_input("η PV", .5, 1.0, float(eta_saved.get("eta_dc",.97)), .01)
             st.caption("Com base PEMFC = Potência entregue, a potência já é líquida e o EMS força ηFC = 1 no balanço. O valor acima fica apenas para a opção legacy 'Potência do stack'.")
-        run = st.form_submit_button("▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO", type="primary", width="stretch")
+        # SEEDS2: a ponte da microrrede pode bloquear a rodada (bloqueios do adaptador ou exclusões não confirmadas).
+        gate = st.session_state.get("orq_run_gate") or {"ok": True, "message": ""}
+        if not gate.get("ok", True):
+            st.warning(gate.get("message", "Rodada bloqueada."))
+        run = st.form_submit_button("▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO", type="primary", width="stretch",
+                                    disabled=not gate.get("ok", True))
 
-    if run:
+    if run and gate.get("ok", True):
         opt = {
             "algoritmo": RT.ALGORITMOS[alg_label], "N": int(N), "seed": int(seed), "meta_penalizada": bool(meta_pen),
             "validar": bool(validate), "soc_alvo_tol": float(soc_tol),
@@ -490,7 +495,11 @@ def _optimizer_page() -> None:
             st.error(f"Falha na rodada integrada: {exc}")
             return
         st.session_state["orq_run_counter"] += 1
-        item = {"id": st.session_state["orq_run_counter"], "resultado": r, "validacao": val, "quando": datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
+        item = {"id": st.session_state["orq_run_counter"], "resultado": r, "validacao": val, "quando": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+                "origem": copy.deepcopy(st.session_state.get("orq_spec_origin"))}
+        after_run = st.session_state.get("orq_after_run")
+        if callable(after_run):
+            after_run(item)                    # SEEDS2: registra a rodada (revisão + impressões digitais)
         st.session_state["orq_result_item"] = item
         st.session_state["orq_model_outputs"] = outputs
         st.session_state["orq_last_run"] = datetime.now()
