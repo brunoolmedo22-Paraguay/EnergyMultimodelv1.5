@@ -3,7 +3,37 @@
 Ambiente da verificação: Linux, Python 3.13.18, `requirements.txt` desta branch (Streamlit 1.66.1,
 reportlab 4.4.10, pypdf 6.21.4), Chromium/Playwright para os testes em navegador. Data: 2026-11-05.
 
-## G. Gestor de microrredes (verificação atual)
+## H-01 — Exclusão concorrente de microrredes (hotfix do PR #5; verificação atual)
+
+**Defeito reproduzido no código anterior** (`ad1d736`): com uma gravação de outra sessão intercalada entre a
+verificação de gravações e o `rename` da exclusão, `save()` devolveu **revisão 2 (sucesso)** e a microrrede foi
+removida em seguida — perda silenciosa. Com o hotfix, a mesma intercalação é **recusada** com
+`MicrogridDeletedError`. Mecanismo e protocolo: `ARMAZENAMENTO.md` §H-01.
+
+**Suíte:** `python -m pytest tests/ -q` → **226 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
+pré-existentes). `tests/test_seeds2_concorrencia.py` (17) + 1 teste de interface; executados **10 vezes
+seguidas** junto com `test_seeds2_gestor.py`: 49/49 em todas.
+
+| Cenário exigido | Teste (intercalação forçada) | Resultado verificado |
+|---|---|---|
+| Escrita iniciada antes de excluir | gravador pausado DENTRO da transação (L2); exclusão iniciada e comprovadamente esperando | gravação confirmada (rev. 2) e visível no banco no instante da lápide; depois removida |
+| Escrita iniciada durante a exclusão | excluidor pausado logo após o COMMIT da lápide | `save`, `put_blob`, `record_run`, `revert_to`, `load`, `history`, abertura e `restore_into` recusados; banco inalterado |
+| Escrita depois de excluir | referência antiga após a exclusão | recusada (`MicrogridDeletedError`); nenhum arquivo recriado (árvore de diretórios idêntica) |
+| Duas exclusões simultâneas | dois catálogos; barreira após as duas lápides | exatamente uma efetiva, a outra `MicrogridNotFound`; B intacta |
+| Restauração × exclusão | as duas ordens: restauração pausada dentro da transação / excluidor pausado após a lápide | restauração inteira antes da lápide (rev. 3 no banco) **ou** recusada — determinístico |
+| Importação simultânea com o mesmo UID | barreira com as duas preparações prontas em `.staging` | uma única entrada; perdedor "Já existe"; sem resíduos em `.staging`/`.quarantine` |
+| Sessão antiga após excluir | excluir e reimportar o MESMO UID | referência antiga recusada (incarnação); interface volta ao Gestor; edição pendente não chega à nova microrrede |
+| Interrupção durante a exclusão | falha após a lápide / após a reivindicação / após o `rename` / linha `deleting` de versão anterior | microrrede já inacessível; `recover()` conclui; executado 3× (idempotente); outra sessão aberta em B segue operando |
+| Reinício repetido do servidor | 6 aberturas do catálogo + subprocesso com 4 aberturas | entradas, incarnações e conteúdo lógico idênticos; sem resíduos |
+| Escritas em microrredes diferentes | L2(A) ocupado e exclusão de A esperando | B grava (revisão, blob, rodada) e C é excluída enquanto A ainda espera |
+| Lápide não obtida | gravação longa + `lock_timeout_s` curto | `RegistryError`; nada muda; a gravação conclui e a microrrede segue utilizável |
+| Catálogo anterior ao hotfix | entrada sem incarnação | incarnação preenchida no catálogo e no banco, estável em reaberturas |
+
+**Preservação numérica** (`main` × esta branch, mesma carga walk-forward): despacho `P_kW` com o mesmo hash,
+custo **R$ 417,684638**, 120 passos, 0 kWh não atendidos — idênticos em `main`, nesta branch (configuração padrão
+V1.6) e numa microrrede selecionada do catálogo. `git diff origin/main` vazio nos diretórios científicos.
+
+## G. Gestor de microrredes (PR #5)
 
 **Suíte:** `python -m pytest tests/ -q` → **208 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
 pré-existentes). 163 testes anteriores (adaptados à navegação pelo Gestor, sem enfraquecer asserções) +

@@ -21,6 +21,7 @@ SEEDS2_DATA_DIR/                      (padrão ~/.seeds2; fora do repositório)
 │   └── <uid-C>/seeds2.db
 ├── .staging/<op>/                    preparação de criar/importar/copiar/adotar (descartada se interrompida)
 ├── .trash/<uid>-<t>/                 exclusão em andamento (esvaziada na conclusão ou na próxima abertura)
+├── .quarantine/<uid>-<t>/            diretórios sem linha no catálogo (preservados; nunca apagados sozinhos)
 └── seeds2.db                         armazenamento ANTERIOR ao Gestor (somente leitura; adotado uma vez)
 ```
 
@@ -41,11 +42,11 @@ SEEDS2_DATA_DIR/                      (padrão ~/.seeds2; fora do repositório)
 O `.gitignore` bloqueia `*.db`, `*.sqlite*`, `*.seeds2backup.zip`, `seeds2_data/` e `.seeds2/`.
 A interface mostra o caminho em uso (Gestor, comissionamento, Gestão → Instalação, Alcance).
 
-## Catálogo (`registry.db`, `PRAGMA user_version` = 1)
+## Catálogo (`registry.db`, `PRAGMA user_version` = 2)
 
 | Tabela | Conteúdo |
 |---|---|
-| `microgrids` | `uid` (PK, CHECK 32 hex), `state` (`ready` / `deleting`), `origin` (`new`, `legacy`, `import`, `copy`), `created_at`, `source_uid` e `source_fingerprint` (cópias), `note` |
+| `microgrids` | `uid` (PK, CHECK 32 hex), `state` (`ready` / `deleting`), `origin` (`new`, `legacy`, `import`, `copy`), `created_at`, `source_uid` e `source_fingerprint` (cópias), `note`, `incarnation` (v2 — hotfix H-01) |
 | `meta` | `legacy_adoption` (resultado da adoção do armazenamento anterior: `done` / `empty`, com contagens) |
 
 O catálogo não guarda dados técnicos: tarjetas do Gestor são calculadas da configuração salva de cada
@@ -56,14 +57,62 @@ microrrede (`registry.card_summary`).
 Não existe transação única entre bancos SQLite e o sistema de arquivos; por isso cada operação tem
 **preparação** e **confirmação**, e `MicrogridRegistry.recover()` conclui qualquer interrupção na abertura:
 
-| Operação | Preparação | Confirmação (sob `BEGIN IMMEDIATE` do catálogo) | Interrupção |
+| Operação | Preparação | Confirmação | Interrupção |
 |---|---|---|---|
-| Criar (etapa 01 do comissionamento) | banco montado e verificado em `.staging/<op>` | `rename(.staging → microgrids/<uid>)` + `INSERT` | antes do COMMIT: nada no catálogo; diretório órfão → `.trash` |
-| Importar (nova / cópia) | `inspect_backup_data` + `import_inspected` em `.staging` | idem | idem |
-| Restaurar na existente | — | nova revisão na própria microrrede (transação SQLite) | rollback |
-| Excluir | (aguarda gravação em andamento na microrrede) | `state = deleting` → `rename → .trash` → `DELETE` → esvaziar `.trash` | microrrede já invisível; `recover()` conclui |
+| Criar (etapa 01 do comissionamento) | banco montado, verificado e com `meta.incarnation` em `.staging/<op>` | sob L1: checagem de UID duplicado → `rename(.staging → microgrids/<uid>)` → `INSERT` (com incarnação) → COMMIT; falha no INSERT/COMMIT desfaz o rename | antes do COMMIT: nada no catálogo; diretório sem linha → `.quarantine` (preservado) |
+| Importar como nova / cópia | `inspect_backup_data` + `import_inspected` em `.staging` | idem (o UID é revalidado sob L1: duas importações simultâneas do mesmo UID → uma única entrada) | idem |
+| Restaurar na existente | — | nova revisão na própria microrrede (transação L2 com checagem de lápide/incarnação) | rollback |
+| Adotar o `seeds2.db` anterior | cópia somente leitura + migração + verificação em `.staging` | sob L1, como "criar" + `meta.legacy_adoption` | nada confirmado; original intacto; nova tentativa na próxima abertura |
+| Excluir (H-01) | — | lápide (L2) → `deleting` (L1) → `rename → .trash` + `DELETE` (L1) → esvaziar `.trash` | `recover()` conclui somente exclusões com lápide confirmada |
 
 Preparações abandonadas em `.staging` são descartadas após 1 h (nunca as de outra operação em curso).
+`recover()` é idempotente: reexecutá-la (reinícios repetidos, vários processos) não remove nada além do que
+já estava em exclusão confirmada. Sessões abertas em OUTRAS microrredes durante a recuperação não são afetadas.
+
+### H-01 — Exclusão concorrente de microrredes
+
+**Defeito original (PR #5 até `ad1d736`).** `delete()` verificava gravações em andamento com
+`BEGIN IMMEDIATE` + `ROLLBACK` no banco da microrrede e soltava o bloqueio; só depois marcava `deleting` e
+movia o diretório. Uma gravação de outra sessão nesse intervalo era **confirmada e depois perdida em silêncio**
+(reproduzido: `save()` devolveu a revisão 2 e a microrrede desapareceu). Além disso, `deleting` impedia novas
+aberturas pelo catálogo, mas instâncias `MicrogridStore` já abertas (cache das sessões) continuavam operando;
+e uma microrrede excluída e reimportada com o MESMO UID podia receber a edição pendente de uma sessão antiga.
+
+**Mecanismo corretivo — lápide transacional + incarnação.** O único ponto de serialização das gravações de
+uma microrrede é o bloqueio de escrita do SEU banco (L2). A exclusão grava a **lápide** `meta.lifecycle` sob
+esse mesmo bloqueio, e TODA transação do `MicrogridStore` (salvar, restaurar, reverter, blobs, rodadas,
+migração) verifica lápide e incarnação **depois** de `BEGIN IMMEDIATE`, na mesma transação. Leituras também
+recusam microrredes com lápide. Conexões de microrredes do catálogo usam `mode=rw` (o SQLite nunca recria um
+banco vazio). Cada entrada tem `incarnation` (catálogo + `meta` do banco); a sessão fica ligada à incarnação
+que abriu.
+
+**Protocolo e ordem de aquisição de bloqueios** (L1 = escrita do `registry.db`; L2 = escrita de uma microrrede;
+nunca aninhados — sem impasse; excluir A não toma L2 de nenhuma outra microrrede):
+
+1. checagem: a entrada existe e está `ready`;
+2. **lápide (L2)**: `BEGIN IMMEDIATE` espera as gravações em andamento (até `DELETE_LOCK_TIMEOUT_S` = 30 s)
+   → `INSERT meta.lifecycle` → COMMIT. Este é o início efetivo da exclusão. Se o bloqueio não for obtido,
+   `RegistryError` e **nada** muda;
+3. **reivindicação (L1)**: `UPDATE ... SET state = 'deleting' WHERE state = 'ready'` — exatamente um excluidor
+   vence; os demais recebem `MicrogridNotFound`;
+4. **remoção física (L1)**: `rename(microgrids/<uid> → .trash)` + `DELETE` da linha → COMMIT; `.trash` esvaziado.
+
+**Comportamento diante de falhas**: interrupção após 2 (linha `ready` com lápide), após 3 (`deleting`) ou no
+meio de 4 (diretório já em `.trash`, linha `deleting`) → a microrrede já está inacessível; `recover()` (na
+próxima abertura do catálogo, em qualquer processo) conclui. Linhas `deleting` sem lápide (versão anterior)
+recebem a lápide antes da remoção; se uma gravação longa impedir, a remoção espera a próxima abertura.
+
+**Garantias**: (a) nenhuma gravação é confirmada em silêncio numa microrrede excluída — ou termina antes da
+lápide (e a exclusão espera) ou é recusada com `MicrogridDeletedError`; (b) gravações e leituras posteriores,
+inclusive de referências antigas e de outros processos, são recusadas sem recriar arquivos; (c) duas exclusões
+simultâneas → uma efetiva; (d) restauração concorrente: inteira antes da lápide ou recusada; (e) importações
+simultâneas do mesmo UID → uma entrada; (f) referência antiga após excluir e reimportar o mesmo UID → recusada;
+(g) a interface volta ao Gestor quando a microrrede aberta é excluída ou substituída, inclusive no meio da
+execução de uma página. Provas: `tests/test_seeds2_concorrencia.py` (ver `VERIFICACAO_PISO1.md` §H-01).
+
+**Limites**: a exclusão espera no máximo 30 s por uma gravação em andamento (depois desiste sem alterar nada);
+uma sessão que estava editando recebe o erro na próxima ação e volta ao Gestor — a edição pendente não é
+gravada (comportamento pretendido: a microrrede deixou de existir).
 
 ### Adoção do armazenamento anterior ao Gestor
 

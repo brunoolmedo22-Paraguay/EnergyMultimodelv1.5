@@ -27,7 +27,7 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 - Requer Streamlit 1.66.1 (`st.components.v2`). `tests/conftest.py` aponta `SEEDS2_DATA_DIR` para um diretório temporário: a suíte **nunca** usa o armazenamento real (`~/.seeds2`).
 - `tests/test_app_smoke.py` e `EMSAppSmokeTest` usam `streamlit.testing.v1.AppTest`. `tests/apptest_utils.abrir()` cria no catálogo uma microrrede comissionada equivalente à configuração padrão V1.6 (`tests/seeds2_fixtures.py`), abre-a na sessão (`mg_active_uid`) e mostra a vista Simulação.
 - `tests/apptest_utils.py` contorna limitações do AppTest (não são defeitos da app): widgets obsoletos após `st.rerun()` e (no 1.49) `st.segmented_control` com valor string. Use `continuar(app)` para seguir a navegação após um clique que dispara `st.rerun()`.
-- `tests/test_seeds2_microgrid.py` (backend, persistência com reabertura em novo processo, backup, adaptador, rodada EMS real), `tests/test_seeds2_refinamento.py` (FV por arranjos, bateria/eólica/ModelLab, migrações a partir de dados v1 reais em `tests/fixtures/`, PDF, geolocalização) , `tests/test_seeds2_app.py` (UI SEEDS2), `tests/test_seeds2_gestor.py` (catálogo, isolamento, importação/exportação, exclusão e recuperação, adoção do armazenamento anterior, proteção da exclusão) e `tests/test_seeds2_gestor_app.py` (Gestor na interface, troca de microrrede e isolamento de sessão). Não regenerar as fixtures v1: foram produzidas pelo código anterior ao documento v2.
+- `tests/test_seeds2_microgrid.py` (backend, persistência com reabertura em novo processo, backup, adaptador, rodada EMS real), `tests/test_seeds2_refinamento.py` (FV por arranjos, bateria/eólica/ModelLab, migrações a partir de dados v1 reais em `tests/fixtures/`, PDF, geolocalização) , `tests/test_seeds2_app.py` (UI SEEDS2), `tests/test_seeds2_gestor.py` (catálogo, isolamento, importação/exportação, exclusão e recuperação, adoção do armazenamento anterior, proteção da exclusão) e `tests/test_seeds2_gestor_app.py` (Gestor na interface, troca de microrrede e isolamento de sessão) e `tests/test_seeds2_concorrencia.py` (H-01: exclusão concorrente com intercalações determinísticas por `Event`/`Barrier` — não substituir por `sleep`). Não regenerar as fixtures v1: foram produzidas pelo código anterior ao documento v2.
 - Navegador real: `tools/e2e/e2e_piso1_microrrede.js` (fases comissionar → reinício do servidor → reabrir → tablet) e `tools/e2e/e2e_gestor_microrredes.js` (multi → reinício → tablet → legado; servidor com `SEEDS2_DEV_MODE=1`); ver `docs/seeds2/VERIFICACAO_PISO1.md`.
 - Os testes de UI devem refletir a navegação real; não remova nem enfraqueça asserções para fazê-los passar.
 
@@ -43,7 +43,15 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 8. Nunca versionar bancos (`*.db`), backups (`*.seeds2backup.zip`), o catálogo (`registry.db`, `microgrids/`) ou dados da instalação.
    **Exceção documentada e restrita:** fixtures **sintéticas e auditadas**, usadas exclusivamente em testes de regressão (p. ex. `tests/fixtures/seeds2_backup_v1_piso1.zip`, que reproduz o formato de backup v1). Cada uma deve: conter apenas dados fictícios gerados para teste (nenhum dado de instalação, empresa ou medição real); ter origem, gerador e finalidade registrados em `tests/fixtures/README.md`; ser revisada no PR que a introduz. A exceção **não** autoriza versionar backups ou bancos reais/operacionais, nem cópias de `SEEDS2_DATA_DIR`.
 
+## Concorrência e exclusão (H-01)
+
+- O ponto de serialização das gravações de uma microrrede é o bloqueio de escrita do SEU banco (L2). A exclusão grava a lápide `meta.lifecycle` sob L2; todo `MicrogridStore._tx`/`_read` verifica lápide e `meta.incarnation` dentro da transação. Não grave em bancos de microrrede por fora do `MicrogridStore` e não remova essa verificação.
+- Ordem de bloqueios: L1 (`registry.db`) e L2 nunca aninhados (exceção: bancos privados em `.staging` sob L1). Protocolo, garantias e recuperação: `docs/seeds2/ARMAZENAMENTO.md` §H-01.
+- Microrredes do catálogo são abertas com `must_exist=True` (conexão `mode=rw`, nunca recria arquivos) e com a incarnação do catálogo.
+
 ## Observações conhecidas (não corrigidas)
+
+- **Dívida técnica (fase científica):** as séries temporais completas do despacho EMS não são persistidas — apenas o resumo de cada rodada em `simulation_runs`. Não implementar sem missão própria.
 
 - `render_source_landing()` em `app.py` não é mais chamado na V1.6; o módulo **MIX** (`mix_app.py`) não é acessível pela interface (só via `energy_source="mix"`).
 - `__pycache__/` está versionado no repositório (novo `.gitignore` evita novos arquivos; limpeza dos já versionados pendente).
