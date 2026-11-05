@@ -2,21 +2,83 @@
 
 ## Decisão
 
-**SQLite** local, no servidor onde o SEEDS2 está instalado (`seeds2/microgrid/store.py`).
-Motivos: arquivo único, transações ACID, sem serviço externo, adequado a uma única microrrede
-com poucas escritas e algumas sessões simultâneas. Nada é guardado só no navegador ou só no
-`st.session_state`.
+**SQLite** local, no servidor onde o SEEDS2 está instalado. Motivos: arquivos únicos, transações ACID, sem
+serviço externo, adequado a poucas escritas e algumas sessões simultâneas. Nada é guardado só no navegador ou
+só no `st.session_state`.
+
+**Gestor de microrredes (várias microrredes por instalação):** um **catálogo central** + **um banco SQLite
+independente por microrrede**. Cada banco de microrrede é o mesmo `MicrogridStore` do Piso 1 (com a garantia
+`CHECK (id = 1)`), apenas num diretório próprio — nenhum contrato SQLite foi reconstruído. Editar, restaurar,
+reverter ou excluir a microrrede A nunca toca os arquivos da microrrede B.
+
+```
+SEEDS2_DATA_DIR/                      (padrão ~/.seeds2; fora do repositório)
+├── registry.db                       catálogo: uid, estado (ready/deleting), origem, data, procedência da cópia
+├── microgrids/
+│   ├── <uid-A>/seeds2.db             configuração, inventário, arranjos FV, CSV e dispositivos PEMFC (blobs),
+│   │                                 revisões, condições da rodada, rodadas do EMS, cópias .bak-v<N>
+│   ├── <uid-B>/seeds2.db
+│   └── <uid-C>/seeds2.db
+├── .staging/<op>/                    preparação de criar/importar/copiar/adotar (descartada se interrompida)
+├── .trash/<uid>-<t>/                 exclusão em andamento (esvaziada na conclusão ou na próxima abertura)
+└── seeds2.db                         armazenamento ANTERIOR ao Gestor (somente leitura; adotado uma vez)
+```
+
+* Identidade: `installation.uid` (32 hex, imutável) é a chave do catálogo e o nome do diretório. Nomes podem
+  repetir-se (a interface mostra o ID). **Nenhum texto do usuário vira caminho**: diretórios são derivados só do
+  UID validado; nomes fora do padrão em `microgrids/` nunca são tocados.
+* `MicrogridStore(..., must_exist=True)` nunca recria uma microrrede excluída; `fixed_uid` recusa gravar o
+  documento de outra microrrede (sem "troca de identidade" dentro de um armazenamento do catálogo).
 
 ## Localização
 
 | Variável | Padrão | Observação |
 |---|---|---|
-| `SEEDS2_DATA_DIR` | `~/.seeds2` | diretório do banco `seeds2.db`, fora do código versionado |
+| `SEEDS2_DATA_DIR` | `~/.seeds2` | diretório-base do catálogo e das microrredes, fora do código versionado |
+| `SEEDS2_ADMIN_PASSWORD` | (vazio) | credencial exigida para a **exclusão definitiva** (ou `seeds2_admin_password` em Streamlit Secrets) |
+| `SEEDS2_DEV_MODE` | (vazio) | `1` = modo de desenvolvimento LOCAL: exclusão sem credencial (somente se nenhuma credencial estiver configurada) |
 
 O `.gitignore` bloqueia `*.db`, `*.sqlite*`, `*.seeds2backup.zip`, `seeds2_data/` e `.seeds2/`.
-A interface mostra o caminho em uso (comissionamento, Gestão → Instalação, Alcance).
+A interface mostra o caminho em uso (Gestor, comissionamento, Gestão → Instalação, Alcance).
 
-## Esquema do banco (`PRAGMA user_version` = 2)
+## Catálogo (`registry.db`, `PRAGMA user_version` = 1)
+
+| Tabela | Conteúdo |
+|---|---|
+| `microgrids` | `uid` (PK, CHECK 32 hex), `state` (`ready` / `deleting`), `origin` (`new`, `legacy`, `import`, `copy`), `created_at`, `source_uid` e `source_fingerprint` (cópias), `note` |
+| `meta` | `legacy_adoption` (resultado da adoção do armazenamento anterior: `done` / `empty`, com contagens) |
+
+O catálogo não guarda dados técnicos: tarjetas do Gestor são calculadas da configuração salva de cada
+microrrede (`registry.card_summary`).
+
+### Operações com vários arquivos (recuperáveis)
+
+Não existe transação única entre bancos SQLite e o sistema de arquivos; por isso cada operação tem
+**preparação** e **confirmação**, e `MicrogridRegistry.recover()` conclui qualquer interrupção na abertura:
+
+| Operação | Preparação | Confirmação (sob `BEGIN IMMEDIATE` do catálogo) | Interrupção |
+|---|---|---|---|
+| Criar (etapa 01 do comissionamento) | banco montado e verificado em `.staging/<op>` | `rename(.staging → microgrids/<uid>)` + `INSERT` | antes do COMMIT: nada no catálogo; diretório órfão → `.trash` |
+| Importar (nova / cópia) | `inspect_backup_data` + `import_inspected` em `.staging` | idem | idem |
+| Restaurar na existente | — | nova revisão na própria microrrede (transação SQLite) | rollback |
+| Excluir | (aguarda gravação em andamento na microrrede) | `state = deleting` → `rename → .trash` → `DELETE` → esvaziar `.trash` | microrrede já invisível; `recover()` conclui |
+
+Preparações abandonadas em `.staging` são descartadas após 1 h (nunca as de outra operação em curso).
+
+### Adoção do armazenamento anterior ao Gestor
+
+Na primeira abertura do catálogo, se existir `SEEDS2_DATA_DIR/seeds2.db` com uma microrrede:
+1. cópia **somente leitura** e consistente com WAL pela API de backup do SQLite (o arquivo original não é
+   alterado — nem checkpoint);
+2. abertura da CÓPIA pelo `MicrogridStore` (migrações v1→v2 do banco/documento aplicadas na cópia, com
+   `.bak-v1` dentro do diretório da microrrede);
+3. verificação: mesma identidade, revisões ≥ originais, mesmos blobs e rodadas;
+4. confirmação (rename + `INSERT origin = legacy` + `meta.legacy_adoption`) sob o bloqueio do catálogo.
+Qualquer falha → erro claro, **nenhuma microrrede criada**, original intacto e nova tentativa na próxima
+abertura. A adoção não se repete (nem depois de excluir a microrrede adotada). O `seeds2.db` original fica como
+respaldo verificável; pode ser removido manualmente depois de conferido. Banco anterior vazio → catálogo vazio.
+
+## Banco de cada microrrede (`PRAGMA user_version` = 2)
 
 | Tabela | Conteúdo |
 |---|---|
@@ -98,10 +160,17 @@ Nome do arquivo ASCII (acentos transliterados) para portabilidade.
   configuração. Recomenda-se publicar o Streamlit apenas na rede interna, atrás de proxy reverso
   com autenticação (ou VPN), e restringir permissões do diretório `SEEDS2_DATA_DIR` ao usuário do
   serviço.
-- Faça backups periódicos (Gestão → Histórico e backups) e guarde-os fora do servidor.
+- Faça backups periódicos (Gestor → ZIP em cada tarjeta, ou Gestão → Relatório, histórico e backups) e guarde-os
+  fora do servidor.
+- **Exclusão definitiva** (Gestor): diálogo com nome, ID, equipamentos, revisões e rodadas, opção de baixar o ZIP
+  antes, e confirmação digitando o nome exato. Em implantação compartilhada configure `SEEDS2_ADMIN_PASSWORD`
+  (variável de ambiente) ou `seeds2_admin_password` em `.streamlit/secrets.toml` (fora do repositório): a
+  credencial é verificada no servidor, em tempo constante, e nunca é enviada ao navegador. Sem credencial, a
+  exclusão fica **desativada**, exceto com `SEEDS2_DEV_MODE=1` (uso local explícito).
 - Não publique o banco, backups ou CSVs da empresa em repositórios.
-- Uma instância por microrrede: para outra instalação, use outro `SEEDS2_DATA_DIR` em outro
-  servidor/serviço (não há seletor de microrredes por desenho).
+- Uma instância do SEEDS2 administra várias microrredes (catálogo). Sem contas: todas as sessões veem o mesmo
+  catálogo; a microrrede **ativa** é escolhida por sessão de navegador. Uma sessão que tinha aberta uma
+  microrrede excluída por outra sessão volta ao Gestor sem recriá-la.
 
 ## Importação de dispositivos do PEMFC ModelLab
 

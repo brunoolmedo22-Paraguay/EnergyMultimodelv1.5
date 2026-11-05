@@ -3,7 +3,49 @@
 Ambiente da verificação: Linux, Python 3.13.18, `requirements.txt` desta branch (Streamlit 1.66.1,
 reportlab 4.4.10, pypdf 6.21.4), Chromium/Playwright para os testes em navegador. Data: 2026-11-05.
 
-## 0. Refinamento do Piso 1 (verificação atual)
+## G. Gestor de microrredes (verificação atual)
+
+**Suíte:** `python -m pytest tests/ -q` → **208 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
+pré-existentes). 163 testes anteriores (adaptados à navegação pelo Gestor, sem enfraquecer asserções) +
+`test_seeds2_gestor.py` (32, backend) + `test_seeds2_gestor_app.py` (13, interface).
+
+| Requisito da missão | Onde é verificado |
+|---|---|
+| 1 início sem microrredes | `CatalogoTest.test_inicio_sem_microrredes`, `GestorPaginaTest.test_inicio_sem_microrredes`, E2E `multi` |
+| 2–4 criar uma / várias; listar após reinício | `test_criar_varias_e_listar_apos_reinicio_em_novo_processo` (novo processo), `test_criar_varias_pelo_gestor...`, E2E `multi` → reinício → `reinicio` |
+| 5–7 isolamento de equipamentos, revisões, blobs, rodadas e procedência | `IsolamentoTest` (snapshot lógico completo de B inalterado), `RodadaPorMicrorredeTest`, `SimulacaoPorMicrorredeTest` |
+| 8–9 troca na mesma sessão / sessões diferentes | `IsolamentoSessaoTest` (todas as chaves `mg_*`/`orq_*`/diálogos/console V1.6 limpas; duas sessões simultâneas), E2E (A não mostra equipamentos de B) |
+| 10 especificação idêntica sem misturar resultados | cópia independente com a MESMA `spec_fingerprint`: procedência com UIDs distintos; rodada de A não aparece em B; resultado de A injetado em B é sinalizado "de OUTRA microrrede" |
+| 11 comissionamento incompleto retomado | `test_criar_varias_pelo_gestor_e_retomar_comissionamento`, `test_comissionamento_retomado_apos_reinicio`, E2E (A reabre na etapa 02) |
+| 12–13 ZIP e PDF pelo Gestor sem abrir | `test_zip_contem_somente_a_microrrede_escolhida`, `test_pdf_de_microrrede_nao_ativa_sem_abri_la`, `test_zip_e_pdf_pelo_gestor_sem_abrir...`, E2E (downloads; barra continua "Nenhuma microrrede aberta") |
+| 14–15 importação com nova identidade; duplicada com escolha explícita | `ExportacaoImportacaoTest` (nova, cópia com `copied_from`, restauração com histórico, recusa de sobrescrita), E2E (diálogo de conflito → cópia) |
+| 16–17 exclusão definitiva; A não altera B | `ExclusaoTest`, `test_restaurar_reverter_e_excluir_A_nao_alteram_B`, `test_exclusao_exige_nome_exato...`, `test_exclusao_protegida_por_credencial`, `test_exclusao_desativada_por_padrao`, E2E (nome errado não libera; diretório removido) |
+| 18 microrrede excluída por outra sessão | `test_microrrede_excluida_por_outra_sessao_volta_ao_gestor`, `test_sessao_com_armazenamento_em_cache_nao_recria...` |
+| 19–21 migração do banco anterior, interrupção, WAL | `AdocaoLegadoTest` (v2 e v1 reais, original byte a byte intacto, WAL pendente + leitor aberto, interrupção na verificação e no rename, concorrência, arquivo corrompido, banco vazio), E2E `legado` |
+| 22 backups formato 1 e 2 | `test_backups_formato_1_e_2` (fixture v1 real) |
+| 23 regressão do Piso 1 | suíte completa + E2E `e2e_piso1_microrrede.js` (66/66) |
+| 24–25 rodada EMS real numa microrrede selecionada; preservação numérica | `test_duas_microrredes_identicas...` (despacho e custo = V1.6), `test_rodada_ems_real_e_resultados_nao_vazam...`, E2E `reabrir` |
+
+**Chromium real:**
+* `tools/e2e/e2e_gestor_microrredes.js` (servidor com `SEEDS2_DEV_MODE=1`, diretório vazio): `multi` 39 +
+  `reinicio` (após reiniciar o servidor) 6 + `tablet` 2 + `legado` 5 = **52 verificações aprovadas**, sem
+  exceções nem erros de JavaScript. Percurso: Gestor vazio → Criar A → configurar A → TROCAR → Criar B →
+  configurar B → Abrir A → Exportar A (ZIP) → PDF de B → Importar A como cópia → Excluir B → Reabrir A.
+* `tools/e2e/e2e_piso1_microrrede.js` (agora a partir do Gestor): `comissionar` 41 + `reabrir` 21 + `tablet` 4
+  = **66 aprovadas** (rodada EMS real, backup/restauração, resultado obsoleto, tablet, tema escuro).
+
+Defeitos encontrados e corrigidos nesta verificação: troca simultânea de `journal_mode=WAL` em base nova
+respondia "database is locked" sem passar pelo `busy_timeout` (aberturas concorrentes) → `ensure_wal` com espera
+limitada; teste do PR #4 dependente do instante da migração (instável em suíte lenta); botão IMPORTAR truncado
+em tablet; ponto vazio do indicador de salvamento no Gestor; cor do botão de exclusão.
+
+Limitações: as capturas `fullPage` registram só a área visível (Streamlit rola num contêiner interno);
+o AppTest não executa o JavaScript dos componentes (o botão TROCAR é simulado pelo mesmo sinal do componente
+nos testes de interface e clicado de verdade no E2E) nem permite upload (importação pela interface coberta
+no E2E e no backend). Duas falhas intermitentes de sincronização do roteiro E2E (clique durante re-renderização,
+servidor recém-reiniciado) foram tratadas com esperas explícitas pelo estado esperado — sem afrouxar asserções.
+
+## 0. Refinamento do Piso 1
 
 **Suíte:** `python -m pytest tests/ -q` → **163 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
 pré-existentes).

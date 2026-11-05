@@ -1,21 +1,67 @@
-# SEEDS2 v2.0 — Piso 1: arquitetura da configuração e instalação de uma microrrede
+# SEEDS2 v2.0 — Piso 1 + Gestor de microrredes: arquitetura
 
-> Escopo: comissionamento, inventário, esquema lógico do balanço energético, demanda, persistência local,
-> exportações e integração com o console V1.6. **Não** altera modelos científicos, contrato de troca nem o
-> otimizador EMS. Atualizado no **refinamento do Piso 1** (documento v2; ver seção 10).
+> Escopo: Gestor de microrredes, comissionamento, inventário, esquema lógico do balanço energético, demanda,
+> persistência local, exportações e integração com o console V1.6. **Não** altera modelos científicos, contrato
+> de troca nem o otimizador EMS. Atualizado no **refinamento do Piso 1** (documento v2; seção 10) e na missão
+> **Gestor de microrredes** (seção 1).
 
-## 1. Princípio: uma instalação do SEEDS2 administra UMA microrrede
+## 1. Princípio: uma instalação do SEEDS2 administra VÁRIAS microrredes independentes
 
-- Não há gestor de projetos, seleção de microrredes, duplicação nem multi-inquilino.
-- O banco local aceita uma única linha em `microgrid` (`CHECK (id = 1)`); a identidade
-  (`installation.uid`, 32 hex) é criada no comissionamento e **preservada** em todas as edições.
-- Trocar de identidade só é possível por restauração de backup de outra instalação, com
-  confirmação explícita (o histórico anterior é mantido).
+**Decisão do responsável (missão "Gestor de microrredes")**, que substitui o princípio anterior ("uma
+instalação do SEEDS2 administra UMA microrrede", vigente até o PR #4).
+
+- Catálogo de microrredes reais ou experimentais — **não** projetos de simulação dentro de uma microrrede. Cada
+  microrrede tem identidade estável (`installation.uid`, 32 hex), configuração, inventário, dados importados,
+  revisões, condições e rodadas próprias, num **banco SQLite independente** (`microgrids/<uid>/seeds2.db`). O
+  banco de cada microrrede mantém `CHECK (id = 1)`. Detalhes: `ARMAZENAMENTO.md`.
+- Uma rodada do EMS usa UMA microrrede ativa: sem otimização conjunta, intercâmbio de energia, distribuição
+  ou mercado entre microrredes.
+- Uma microrrede nunca troca de identidade: backup de outra microrrede entra pelo Gestor (nova entrada ou
+  cópia independente com `installation.copied_from`), nunca sobrescrevendo a aberta.
+
+```
+                       ┌──────────────── GESTOR DE MICRORREDES (página inicial) ────────────────┐
+                       │ tarjetas: estado (Em configuração / Ativa / Atenção) ≠ compatibilidade EMS │
+                       │ ＋ NOVA · IMPORTAR (ZIP) · ABRIR · ZIP · PDF · EXCLUIR (nome + credencial)│
+                       └───────┬───────────────────────┬────────────────────────┬─────────────────┘
+                               │ ABRIR / NOVA           │ ZIP / PDF               │ IMPORTAR / EXCLUIR
+                               ▼ (por sessão)           ▼ (sem abrir)             ▼
+   sessão: mg_active_uid ─► MicrogridStore(uid) ◄── MicrogridRegistry (registry.db) ──► microgrids/<uid>/
+   Comissionamento | Início · Gestão · Simulação · Resultados · Alcance        TROCAR MICRORREDE ↺ Gestor
+```
+
+### Sessão e isolamento (Streamlit)
+
+- A microrrede ativa é **por sessão de navegador** (`st.session_state["mg_active_uid"]`; `?mg=<uid>` na URL só
+  para a recarga desta aba). Nunca uma variável global do processo: duas sessões podem ter microrredes
+  diferentes abertas ao mesmo tempo.
+- Abrir, criar ou trocar de microrrede chama `session.reset_state()`: **todo** o `session_state` é limpo
+  (exceto a rota e o aviso do Gestor) — cópia de trabalho (`mg_work`, `mg_saved`, `mg_base_rev`), plano
+  (`mg_plan`), confirmação de exclusões (`mg_ack_fp`), diálogos (`mg_dialog`, `gestor_dlg`), widgets de
+  formulários, condições da rodada, e o estado do console V1.6 (`orq_model_spec`, `orq_load`, `orq_mg_applied`,
+  `orq_manual`, `orq_result_item`, `orq_history`, `orchestrator_page`...). Nada de uma microrrede reaparece em
+  outra.
+- Os armazenamentos em cache (`st.cache_resource`) são sem estado e indexados por diretório + UID; a
+  existência no catálogo é verificada a cada execução. Uma microrrede excluída por outra sessão faz a sessão
+  voltar ao Gestor com aviso, sem recriá-la (`must_exist=True`).
+- Uma microrrede nova só existe na sessão (`mg_creating`) até salvar a etapa 01; abandonar antes disso não
+  deixa registro. Depois, ela aparece no Gestor como "Em configuração" e reabre na etapa onde parou.
+
+### Procedência por microrrede
+
+Duas microrredes podem ter a MESMA `spec_fingerprint` (p. ex. uma cópia independente). Por isso a procedência
+(`SimulationPlan.provenance()`, `orq_mg_applied`, resumo gravado em `simulation_runs`) inclui
+**`microgrid_uid`**, a configuração é reaplicada quando a identidade muda, e um resultado cuja origem é outra
+microrrede é sinalizado como **"Resultado de OUTRA microrrede"** — nunca apresentado como válido. Ao voltar a
+uma microrrede, Resultados mostra o resumo das rodadas **persistidas** dela (as séries completas do despacho
+não são armazenadas e não são reconstruídas). A detecção de configuração obsoleta e de edição manual no
+console V1.6 continua valendo.
 
 ## 2. Camadas
 
 ```
 app.py ──(energy_source=None)──► seeds2/ui/main.py (shell)
+   │                                 ├─ gestor             (catálogo: criar, abrir, ZIP, PDF, importar, excluir)
    │                                 ├─ comissionamento   (assistente 5 etapas; exportações na etapa 05)
    │                                 ├─ inicio             (identidade, resumo, áreas, bancadas)
    │                                 ├─ gestao             (inventário, balanço energético, demanda, instalação,
@@ -25,6 +71,9 @@ app.py ──(energy_source=None)──► seeds2/ui/main.py (shell)
    └──(energy_source=wind|…)──► bancadas individuais V1.6 (inalteradas)
 
 seeds2/microgrid/  (sem Streamlit)
+   registry.py    catálogo de microrredes (registry.db), operações recuperáveis, adoção do banco anterior,
+                  resumo das tarjetas do Gestor
+   admin.py       política da exclusão definitiva (credencial / modo de desenvolvimento local / desativada)
    references.py  visões somente-leitura dos catálogos (config/*, models/battery_model, h2_pemfc)
    config.py      documento da configuração (v2), especificação de parâmetros, validação, impressão digital
    migrations.py  migração versionada do DOCUMENTO (v1 → v2), sem perda de dados

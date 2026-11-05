@@ -1,12 +1,14 @@
-# CLAUDE.md — SEEDS2 v2.0 (Piso 1) sobre Energy MultiModel V1.6
+# CLAUDE.md — SEEDS2 v2.0 (Piso 1 + Gestor de microrredes) sobre Energy MultiModel V1.6
 
-Aplicação Streamlit para modelos energéticos (Solar, Eólica, Térmica, Bateria, H₂/PEMFC) integrados a um EMS de despacho ótimo. Projeto SEEDS2. **Uma instalação do SEEDS2 administra uma única microrrede** (sem projetos, seletor de microrredes ou multi-inquilino).
+Aplicação Streamlit para modelos energéticos (Solar, Eólica, Térmica, Bateria, H₂/PEMFC) integrados a um EMS de despacho ótimo. Projeto SEEDS2. **Uma instalação do SEEDS2 administra VÁRIAS microrredes independentes** (Gestor de microrredes: catálogo de instalações reais ou experimentais, cada uma com configuração, inventário, armazenamento, revisões e rodadas próprios). Não são projetos de simulação dentro de uma microrrede, não há otimização conjunta nem intercâmbio de energia entre microrredes: cada rodada do EMS usa UMA microrrede ativa.
+
+> **Decisão substituída (registro):** até o PR #4 valia a regra "uma única microrrede por instalação do SEEDS2". Ela foi **substituída por decisão explícita do responsável** (missão "Gestor de microrredes", após a integração do PR #4 em `05e29ef`). Histórico em `docs/ai/HANDOFF.md`.
 
 ## Arquitetura
 
 - `app.py` — ponto de entrada (`python -m streamlit run app.py`). Roteia por `st.session_state["energy_source"]`: `None` → shell SEEDS2 (`seeds2/ui/main.py`); `"solar"|"wind"|"thermal"|"battery"|"h2"|"mix"` → bancada individual; `"ems"` (sessão legada V1.5) → volta ao shell. `legacy_css()` (CSS V1.6) só é aplicado às telas V1.6. A UI solar está no próprio `app.py`.
-- `seeds2/` — Piso 1 (sem ciência): `microgrid/` (`references.py` leitura dos catálogos, `config.py` documento v2/validação, `migrations.py` migração versionada do documento, `derived.py` estimativas nominais FV/bateria, `modellab.py` importação validada do PEMFC ModelLab, `store.py` SQLite em `SEEDS2_DATA_DIR`, `adapter.py` inventário → `model_spec` V1.6), `report/pdf.py` (relatório técnico PDF local) e `ui/` (shell, comissionamento, Gestão, diálogo de equipamentos `equipment.py`, exportações `exports.py`, ponte `operations.py` com o console V1.6, componentes `st.components.v2` em `ui/static/`). Detalhes: `docs/seeds2/ARQUITETURA_PISO1.md`, `docs/seeds2/ARMAZENAMENTO.md`.
-- Navegação SEEDS2: Comissionamento (1º acesso) → Início · Gestão da Microrrede · Simulação · Resultados · Alcance. Simulação/Resultados renderizam o console V1.6 com a configuração **salva** transferida pelo adaptador.
+- `seeds2/` — Piso 1 + Gestor (sem ciência): `microgrid/` (`registry.py` **catálogo de microrredes** — `registry.db` + um `MicrogridStore` por microrrede em `microgrids/<uid>/`, adoção do `seeds2.db` anterior, exclusão recuperável; `admin.py` proteção da exclusão definitiva; `references.py` leitura dos catálogos, `config.py` documento v2/validação, `migrations.py` migração versionada do documento, `derived.py` estimativas nominais FV/bateria, `modellab.py` importação validada do PEMFC ModelLab, `store.py` SQLite em `SEEDS2_DATA_DIR`, `adapter.py` inventário → `model_spec` V1.6), `report/pdf.py` (relatório técnico PDF local) e `ui/` (shell, **Gestor** `gestor.py`, sessão por microrrede ativa `session.py`, comissionamento, Gestão, diálogo de equipamentos `equipment.py`, exportações `exports.py`, ponte `operations.py` com o console V1.6, componentes `st.components.v2` em `ui/static/`). Detalhes: `docs/seeds2/ARQUITETURA_PISO1.md`, `docs/seeds2/ARMAZENAMENTO.md`.
+- Navegação SEEDS2: **GESTOR DE MICRORREDES** (página inicial: criar, abrir, exportar ZIP, gerar PDF, importar, excluir) → microrrede aberta: Comissionamento (se não ativada; retomável) ou Início · Gestão da Microrrede · Simulação · Resultados · Alcance; **TROCAR MICRORREDE** volta ao Gestor. A microrrede ativa é **por sessão de navegador** (`mg_active_uid`; `?mg=<uid>` na URL); abrir/trocar limpa todo o estado da sessão (inclusive o do console V1.6). Simulação/Resultados renderizam o console V1.6 com a configuração **salva** transferida pelo adaptador; a procedência de cada rodada inclui o UID da microrrede.
 - `orchestrator_app.py` — console V1.6 (UI). Páginas: Visão Geral → Módulo de Carga → Modelos → Otimizador → Resultados do Otimizador → Resultados dos Modelos → Exportar Resultados. Bancadas individuais: página **Modelos** (expander) e Início (expander). Respeita `orq_run_gate`, grava `origem` na rodada e chama `orq_after_run` (registro de procedência).
 - `orchestrator_runtime.py` — integração sem UI: modelos físicos → pacote de troca → EMS.
 - `*_app.py` (`wind_app`, `thermal_app`, `battery_app`, `h2_app`, `mix_app`) — UIs das bancadas. `ems_app.py` é legado, não roteado.
@@ -23,10 +25,10 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 ```
 
 - Requer Streamlit 1.66.1 (`st.components.v2`). `tests/conftest.py` aponta `SEEDS2_DATA_DIR` para um diretório temporário: a suíte **nunca** usa o armazenamento real (`~/.seeds2`).
-- `tests/test_app_smoke.py` e `EMSAppSmokeTest` usam `streamlit.testing.v1.AppTest`. `tests/apptest_utils.abrir()` cria uma microrrede comissionada equivalente à configuração padrão V1.6 (`tests/seeds2_fixtures.py`) e abre a vista Simulação.
+- `tests/test_app_smoke.py` e `EMSAppSmokeTest` usam `streamlit.testing.v1.AppTest`. `tests/apptest_utils.abrir()` cria no catálogo uma microrrede comissionada equivalente à configuração padrão V1.6 (`tests/seeds2_fixtures.py`), abre-a na sessão (`mg_active_uid`) e mostra a vista Simulação.
 - `tests/apptest_utils.py` contorna limitações do AppTest (não são defeitos da app): widgets obsoletos após `st.rerun()` e (no 1.49) `st.segmented_control` com valor string. Use `continuar(app)` para seguir a navegação após um clique que dispara `st.rerun()`.
-- `tests/test_seeds2_microgrid.py` (backend, persistência com reabertura em novo processo, backup, adaptador, rodada EMS real), `tests/test_seeds2_refinamento.py` (FV por arranjos, bateria/eólica/ModelLab, migrações a partir de dados v1 reais em `tests/fixtures/`, PDF, geolocalização) e `tests/test_seeds2_app.py` (UI SEEDS2). Não regenerar as fixtures v1: foram produzidas pelo código anterior ao documento v2.
-- Navegador real: `tools/e2e/e2e_piso1_microrrede.js` (fases comissionar → reinício do servidor → reabrir → tablet); ver `docs/seeds2/VERIFICACAO_PISO1.md`.
+- `tests/test_seeds2_microgrid.py` (backend, persistência com reabertura em novo processo, backup, adaptador, rodada EMS real), `tests/test_seeds2_refinamento.py` (FV por arranjos, bateria/eólica/ModelLab, migrações a partir de dados v1 reais em `tests/fixtures/`, PDF, geolocalização) , `tests/test_seeds2_app.py` (UI SEEDS2), `tests/test_seeds2_gestor.py` (catálogo, isolamento, importação/exportação, exclusão e recuperação, adoção do armazenamento anterior, proteção da exclusão) e `tests/test_seeds2_gestor_app.py` (Gestor na interface, troca de microrrede e isolamento de sessão). Não regenerar as fixtures v1: foram produzidas pelo código anterior ao documento v2.
+- Navegador real: `tools/e2e/e2e_piso1_microrrede.js` (fases comissionar → reinício do servidor → reabrir → tablet) e `tools/e2e/e2e_gestor_microrredes.js` (multi → reinício → tablet → legado; servidor com `SEEDS2_DEV_MODE=1`); ver `docs/seeds2/VERIFICACAO_PISO1.md`.
 - Os testes de UI devem refletir a navegação real; não remova nem enfraqueça asserções para fazê-los passar.
 
 ## Regras de proteção dos modelos científicos
@@ -38,7 +40,7 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 5. Não fazer push direto para `main`; trabalhar em branch e abrir PR.
 6. `seeds2/` só **adapta** configurações: nunca reformule o EMS ou os modelos para "caber" equipamentos. Agregue apenas o que é fisicamente equivalente no modelo existente; o resto é marcado como não representável (nunca omitido em silêncio).
 7. Não inventar fichas técnicas, fabricantes, preços, procedências ou validações; valores desconhecidos ficam vazios ("não declarado"). Perfis de referência e clima sintético nunca são "medidos".
-8. Nunca versionar bancos (`*.db`), backups (`*.seeds2backup.zip`) ou dados da instalação.
+8. Nunca versionar bancos (`*.db`), backups (`*.seeds2backup.zip`), o catálogo (`registry.db`, `microgrids/`) ou dados da instalação.
    **Exceção documentada e restrita:** fixtures **sintéticas e auditadas**, usadas exclusivamente em testes de regressão (p. ex. `tests/fixtures/seeds2_backup_v1_piso1.zip`, que reproduz o formato de backup v1). Cada uma deve: conter apenas dados fictícios gerados para teste (nenhum dado de instalação, empresa ou medição real); ter origem, gerador e finalidade registrados em `tests/fixtures/README.md`; ser revisada no PR que a introduz. A exceção **não** autoriza versionar backups ou bancos reais/operacionais, nem cópias de `SEEDS2_DATA_DIR`.
 
 ## Observações conhecidas (não corrigidas)
@@ -46,7 +48,7 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 - `render_source_landing()` em `app.py` não é mais chamado na V1.6; o módulo **MIX** (`mix_app.py`) não é acessível pela interface (só via `energy_source="mix"`).
 - `__pycache__/` está versionado no repositório (novo `.gitignore` evita novos arquivos; limpeza dos já versionados pendente).
 - `README.md` ainda se intitula "V1.5" (há um aviso SEEDS2 no topo).
-- Sem autenticação/perfis de acesso (Piso 1); ver `docs/seeds2/ARMAZENAMENTO.md`.
+- Sem autenticação/perfis de acesso: as microrredes são registros da instalação, compartilhados entre sessões. Só a **exclusão definitiva** é protegida: credencial em `SEEDS2_ADMIN_PASSWORD` (ou `seeds2_admin_password` em Streamlit Secrets); sem credencial, `SEEDS2_DEV_MODE=1` habilita a exclusão apenas para uso local; sem nenhum dos dois a exclusão fica desativada. Ver `docs/seeds2/ARMAZENAMENTO.md`.
 
 ## Protocolo de colaboração e passagem de turno (ChatGPT ↔ Claude Code)
 
