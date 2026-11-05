@@ -29,6 +29,14 @@ seguidas** junto com `test_seeds2_gestor.py`: 49/49 em todas.
 | Lápide não obtida | gravação longa + `lock_timeout_s` curto | `RegistryError`; nada muda; a gravação conclui e a microrrede segue utilizável |
 | Catálogo anterior ao hotfix | entrada sem incarnação | incarnação preenchida no catálogo e no banco, estável em reaberturas |
 
+**Chromium real (após o hotfix, a partir de diretórios vazios, com reinício do servidor):**
+`e2e_gestor_microrredes.js` **52/52** (multi 39 — inclui a exclusão definitiva de B pelo novo protocolo, com o
+diretório removido e `.trash`/`.quarantine` vazios; reinício 6; tablet 2; legado 5) e `e2e_piso1_microrrede.js`
+**66/66** (comissionar 41, reabrir 21 com rodada EMS real, tablet 4), sem exceções nem erros de JavaScript. Na
+primeira execução, a fase `multi` falhou na primeira verificação porque a página ainda estava carregando no
+servidor recém-iniciado (captura em esqueleto, sem erro no servidor); o roteiro passou a esperar explicitamente o
+Gestor (como já fazia nas fases `reinicio`/`legado`) e o protocolo inteiro foi repetido do zero.
+
 **Preservação numérica** (`main` × esta branch, mesma carga walk-forward): despacho `P_kW` com o mesmo hash,
 custo **R$ 417,684638**, 120 passos, 0 kWh não atendidos — idênticos em `main`, nesta branch (configuração padrão
 V1.6) e numa microrrede selecionada do catálogo. `git diff origin/main` vazio nos diretórios científicos.

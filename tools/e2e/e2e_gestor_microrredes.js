@@ -89,6 +89,7 @@ async function multi(b) {
   const p = await ctx.newPage(); current = p;
   const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
   await p.goto(url); await ready(p);
+  await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });   // servidor recém-iniciado: carga a frio
   assert(await p.getByText("GESTOR DE MICRORREDES").first().isVisible(), "a aplicação começa no Gestor de microrredes");
   assert(await p.getByText("Nenhuma microrrede registrada").isVisible(), "estado vazio no primeiro acesso");
   assert(ENTRIES().length === 0, "nenhuma microrrede criada automaticamente");
@@ -179,6 +180,7 @@ async function tablet(b) {
   for (const [w, h, tag] of [[820, 1180, "retrato"], [1180, 820, "paisagem"]]) {
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 }); current = p;
     await p.goto(url); await ready(p);
+    await cards(p).first().waitFor({ timeout: 120000 });
     const ov = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(ov <= 1, `tablet ${tag}: Gestor sem rolagem horizontal (${ov}px)`);
     await shot(p, `g10_tablet_${tag}_gestor.png`);
