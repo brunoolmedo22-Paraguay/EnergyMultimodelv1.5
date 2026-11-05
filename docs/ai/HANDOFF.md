@@ -25,8 +25,14 @@
 
 **Cambios en archivos existentes (mínimos):** `app.py` (CSS V1.6 solo en vistas V1.6; entrada al shell), `orchestrator_app.py` (gate de ejecución, `origem`, hook post-rodada), `orchestrator_runtime.py` (`origem_configuracao` en el ZIP), `requirements.txt` (`streamlit==1.66.1`, resto igual), `tests/apptest_utils.py` y un test V1.6 (abren el console dentro de Simulação con una microrred fixture).
 
+**Correcciones de la revisión del PR #3 (2026-11-05)**
+- Importación de backups endurecida (`store.inspect_backup`): límites de entradas y de tamaño descomprimido contado en lectura por bloques, esquema y tipos de todo el manifiesto, ZIP malformado sin excepciones no controladas; `config.validate` ya no lanza excepción con estructuras inesperadas y verifica tipos de subestructuras.
+- Restauración **atómica**: blobs y configuración en la misma transacción (`_write_revision`).
+- Inserciones HTML/Markdown auditadas: nombre de equipo en `unsafe_allow_html` (comissionamento) y descripción de la carga en el console V1.6 (`orchestrator_app.py:188`) escapados; textos de usuario/archivo en captions, rótulos y errores como texto literal (`shell.md`). Sin cambio visual.
+
 **Validado (por Claude Code, en esta rama)**
-- `python -m pytest tests/ -q` → **106 passed, 0 failed, 0 skipped** (+44 subtests; 7 avisos SLSQP preexistentes), dos ejecuciones idénticas. 63 tests previos + 28 backend + 15 UI SEEDS2.
+- `python -m pytest tests/ -q` → **120 passed, 0 failed, 0 skipped** (+94 subtests; 7 avisos SLSQP preexistentes), dos ejecuciones idénticas. 63 tests previos + 40 backend + 17 UI SEEDS2.
+- Directorios científicos (`models`, `h2_pemfc`, `simulation`, `config`, `ems_integration`, `reference_models`) idénticos a `main` (`git diff origin/main` vacío).
 - Rodada EMS real con configuración leída del SQLite = mismo despacho y costo que la configuración por defecto V1.6.
 - Navegador real (Chromium): `tools/e2e/e2e_piso1_microrrede.js` con **reinicio del servidor** entre comisionamiento y reapertura; escritorio, tablet (820×1180 / 1180×820, sin scroll horizontal) y tema oscuro. Detalle: `docs/seeds2/VERIFICACAO_PISO1.md`.
 - **Sin CI**: nada de esto fue reejecutado de forma independiente.
@@ -46,6 +52,8 @@
 - MIX (`mix_app.py`) sigue inaccesible desde la navegación (decisión pendiente desde PR #1).
 - `__pycache__/` versionado (nuevo `.gitignore` evita nuevos; limpieza pendiente). README histórico V1.5 (aviso SEEDS2 añadido).
 - Autenticación/roles para despliegue corporativo; CI (GitHub Actions solo para tests) aún no configurado.
+- Comparación visual lado a lado con PEMFC ModelLab: no generada en el entorno de Claude (ejecutar código del otro repositorio no fue autorizado); hacerla localmente.
+- Captions del console V1.6 que muestran `carga.descricao` como Markdown (no HTML) quedan como estaban (fuera del alcance de la revisión).
 - Orígenes de rodada `manual` (ediciones en páginas V1.6) se registran pero no se vinculan a la microrred: evaluar si el Centro de Operação debe bloquear ese modo.
 
 ## 5. Próxima misión propuesta — Piso 2: Centro de Operação

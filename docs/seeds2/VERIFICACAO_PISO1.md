@@ -10,14 +10,14 @@ pip install -r requirements.txt pytest
 python -m pytest tests/ -q
 ```
 
-Resultado (executado duas vezes, idêntico): **106 passed, 0 failed, 0 skipped** (+44 subtests),
-7 avisos `RuntimeWarning` do SLSQP (scipy), já existentes na base.
+Resultado (revisão do PR #3, executado duas vezes, idêntico): **120 passed, 0 failed, 0 skipped**
+(+94 subtests), 7 avisos `RuntimeWarning` do SLSQP (scipy), já existentes na base.
 
 | Arquivo | Testes | Cobertura |
 |---|---|---|
 | testes V1.6 pré-existentes (9 arquivos) | 63 | modelos físicos, EMS, ponte, console V1.6 (agora dentro de Simulação) |
-| `test_seeds2_microgrid.py` | 28 | persistência com reabertura (nova instância e **novo processo**), identidade única, conflitos, imutabilidade, migração recusada, blobs, rodadas, validação física/IDs/referências, inventário, backup/restauração (inclui 8 importações inválidas), adaptador, **rodada EMS real com config persistida = despacho V1.6** |
-| `test_seeds2_app.py` | 15 | AppTest: 1º acesso, comissionamento completo + reabertura, retomada após reinício, registro sem parâmetros, edição/descartar/conflito em Gestão, incorporar/retirar, validação na UI, backup, transferência ao orquestrador + rodada registrada, exclusões com confirmação, alteração manual detectada, bloqueio sem demanda, resultados obsoletos, bancadas |
+| `test_seeds2_microgrid.py` | 40 | persistência com reabertura (nova instância e **novo processo**), identidade única, conflitos, imutabilidade, migração recusada, blobs, rodadas, validação física/IDs/referências, inventário, backup/restauração (inclui 8 importações inválidas), adaptador, **rodada EMS real com config persistida = despacho V1.6**; backups maliciosos (ZIP malformado/truncado/criptografado, bombas, tamanho declarado falso, entradas demais/duplicadas, ~20 manifestos com tipos errados, configurações estruturalmente incorretas, entradas não declaradas); **restauração atômica** (conflito + blobs novos, identidade não confirmada, falha na gravação) |
+| `test_seeds2_app.py` | 17 | AppTest: 1º acesso, comissionamento completo + reabertura, retomada após reinício, registro sem parâmetros, edição/descartar/conflito em Gestão, incorporar/retirar, validação na UI, backup, transferência ao orquestrador + rodada registrada, exclusões com confirmação, alteração manual detectada, bloqueio sem demanda, resultados obsoletos, bancadas; **inserção HTML/Markdown** (nome de equipamento e nome de CSV maliciosos exibidos como texto; testes falham com o código anterior) |
 
 Proteções: `tests/conftest.py` redireciona `SEEDS2_DATA_DIR` para um diretório temporário — a suíte
 nunca usa `~/.seeds2`.
@@ -54,6 +54,11 @@ Resultado: todas as verificações aprovadas, sem exceções Streamlit nem erros
   arquivo inválido rejeitado; conteúdo restaurado idêntico mantém o resultado válido; alteração
   posterior marca o resultado como "configuração anterior".
 - Tablet 820×1180 e 1180×820 sem rolagem horizontal; capturas em tema escuro.
+
+Revisão do PR #3: percurso repetido do zero (comissionar → reinício → reabrir → tablet), todas as
+verificações aprovadas; o painel "Configuração aplicada" é aberto e verificado na Simulação. Capturas a
+2× (deviceScaleFactor) entregues ao responsável. A captura lado a lado do PEMFC ModelLab não foi gerada
+neste ambiente (execução do código de outro repositório não autorizada); pode ser feita localmente.
 
 Defeitos encontrados e corrigidos durante a verificação em navegador: nome de backup com acentos
 era salvo como `download` pelo Chromium (passou a ser ASCII); esquema de topologia ampliado além
