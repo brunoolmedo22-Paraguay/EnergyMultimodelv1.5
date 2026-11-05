@@ -38,6 +38,8 @@ gravador original volta a gravar (sem bloqueio residual); falha injetada após a
 abertura migra uma vez; 3 aberturas concorrentes → uma única revisão `migration`, reabrir não reescreve a cópia; gravador
 concorrente é serializado e seu commit consta na cópia; espera da cópia limitada (erro em ~0,5 s, sem `.tmp`). Com o código
 anterior (`shutil.copy2`) estes testes falham.
+Após a correção, a suíte completa (163 passed) e o E2E completo em Chromium (64/64, com reinício do servidor) foram
+reexecutados.
 
 Defeitos encontrados e corrigidos nesta verificação: mensagem de geolocalização duplicada (componente JS +
 Python); usina parcialmente representada rotulada como "Configuração incompleta" no esquema lógico (novo

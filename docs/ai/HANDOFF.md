@@ -30,7 +30,7 @@
 **Validado (por Claude Code, en esta rama, 2026-11-05)**
 - `python -m pytest tests/ -q` → **163 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP preexistentes), tras la corrección del backup WAL (158 antes de ella).
 - Migraciones desde **datos v1 reales** generados con el código de `main` antes de los cambios (`tests/fixtures/`): documento, backup formato 1, banco SQLite v1 (histórico y rodadas preservados, `.bak-v1`, idempotente, documento inválido no corrompe); **rodada EMS con la configuración migrada = configuración V1.6** (mismo despacho y costo).
-- Chromium (`tools/e2e/e2e_piso1_microrrede.js`, diretório vacío, reinicio del servidor): 64 verificaciones aprobadas, sin excepciones ni errores JS; tablet sin scroll horizontal; tema oscuro. Capturas e informe PDF revisados visualmente. Detalle: `docs/seeds2/VERIFICACAO_PISO1.md` §0.
+- Chromium (`tools/e2e/e2e_piso1_microrrede.js`, diretório vacío, reinicio del servidor): 64 verificaciones aprobadas (40 + 20 + 4), sin excepciones ni errores JS — repetido completo tras la corrección del backup WAL (commit `ccf33be`) con el mismo resultado; tablet sin scroll horizontal; tema oscuro. Capturas e informe PDF revisados visualmente. Detalle: `docs/seeds2/VERIFICACAO_PISO1.md` §0.
 - **Sin CI**: nada fue reejecutado de forma independiente.
 
 ## 3. Decisiones (con origen)
