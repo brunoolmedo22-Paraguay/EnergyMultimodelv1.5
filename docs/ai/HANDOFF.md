@@ -2,12 +2,12 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-piso1-refinamento` · **PR:** _(ver enlace en la sección 2; pendiente de revisión, sin merge)_ · **estado:** refinamiento del Piso 1 implementado y verificado en la rama; **no integrado en `main`**.
+**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-piso1-refinamento` · **PR [#4](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/4)** (pendiente de revisión; sin merge) · **estado:** refinamiento del Piso 1 implementado y verificado en la rama; **no integrado en `main`**.
 
 ## 1. Estado actual
 
 - `main` (`67a7a6f`): V1.6 + PR #1 + PR #2 + **PR #3 integrado** (SEEDS2 v2.0 — Piso 1). *Corrige* el texto anterior de este cuaderno, que lo daba como pendiente.
-- Rama `claude/seeds2-piso1-refinamento`: **refinamiento del Piso 1** (esta misión; sección 2).
+- Rama `claude/seeds2-piso1-refinamento` (PR #4): **refinamiento del Piso 1** (esta misión; sección 2).
 - Arquitectura: `app.py` → shell `seeds2/ui/` (Comissionamento → Início · Gestão da Microrrede · Simulação · Resultados · Alcance); Simulação/Resultados embeben el console V1.6. Backend sin UI en `seeds2/microgrid/`; informe PDF en `seeds2/report/`. Detalles: `docs/seeds2/ARQUITETURA_PISO1.md`, `docs/seeds2/ARMAZENAMENTO.md`.
 - EMS y modelos científicos **sin cambios** (`git diff origin/main` vacío en `models`, `h2_pemfc`, `simulation`, `config`, `ems_integration`, `reference_models`).
 
