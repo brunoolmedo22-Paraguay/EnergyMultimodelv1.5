@@ -1,4 +1,4 @@
-"""Comissionamento (primeira configuração) da ÚNICA microrrede administrada por esta instalação do SEEDS2.
+"""Comissionamento (primeira configuração) de uma microrrede do catálogo — nova ou ainda em configuração.
 
 O progresso é salvo no armazenamento local a cada etapa (revisões com origem ``commissioning``):
 fechar o navegador ou reiniciar o servidor não perde o que foi registrado, e é possível voltar a
@@ -84,17 +84,22 @@ def render() -> None:
     saved = session.saved()
     cfg = session.work()
     if cfg is None:
+        if session.active_uid() is not None:            # não deveria ocorrer: a microrrede aberta sempre tem configuração
+            st.error("Configuração da microrrede indisponível nesta sessão. Volte ao Gestor e abra-a novamente.")
+            return
         cfg = session.begin_new("")
     if STEP_KEY not in st.session_state:
         st.session_state[STEP_KEY] = int(cfg["commissioning"].get("step") or 1) if saved else 1
     step = st.session_state[STEP_KEY] if saved else 1
     plan = session.plan(cfg) if saved else None
-    shell.hero("Comissionamento · primeira configuração",
-               "Configure a microrrede desta instalação",
-               "Esta instalação do SEEDS2 administra uma única microrrede. Registre-a uma vez: identificação, equipamentos, "
-               "modelo de balanço energético, parâmetros e demanda. O progresso é salvo localmente a cada etapa; depois da "
-               "ativação, a configuração é mantida em Gestão da Microrrede.",
-               [("Armazenamento", str(session.store().path))] + ([("Revisão", str(saved.revision))] if saved else []))
+    shell.hero("Comissionamento · " + ("nova microrrede" if saved is None else "configuração em andamento"),
+               cfg["installation"].get("name") or "Configure a nova microrrede",
+               "Registre a microrrede: identificação, equipamentos, modelo de balanço energético, parâmetros e demanda. "
+               "Ela entra no Gestor de microrredes ao salvar a etapa 01 (armazenamento próprio e independente) e o progresso "
+               "é salvo a cada etapa — é possível sair e retomar depois. Após a ativação, a configuração é mantida em "
+               "Gestão da Microrrede.",
+               [("Armazenamento", session.storage_label())] + ([("Revisão", str(saved.revision))] if saved else []) +
+               [("Identidade", cfg["installation"]["uid"])])
     shell.component("stepper")(key="seeds_stepper", data={"steps": _states(cfg, plan, saved is not None, step), "current": step},
                                on_action_change=_on_stepper)
     with st.container(key=f"cm_stage_{step}"):

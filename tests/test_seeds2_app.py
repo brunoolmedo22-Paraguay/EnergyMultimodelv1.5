@@ -1,8 +1,9 @@
 """Interface SEEDS2 (Piso 1 refinado) com AppTest: comissionamento, reabertura, catálogo de tecnologias,
 editores, confirmação de pendências, Gestão e ponte com o console V1.6.
 
-Cada teste usa um ``SEEDS2_DATA_DIR`` próprio. "Reiniciar a aplicação" = nova instância de ``AppTest``
-(nova sessão) lendo o mesmo armazenamento; a verificação é feita também diretamente no SQLite.
+Cada teste usa um ``SEEDS2_DATA_DIR`` próprio (catálogo + um banco por microrrede). "Reiniciar a aplicação" =
+nova instância de ``AppTest`` (nova sessão, que começa no Gestor de microrredes) lendo o mesmo armazenamento;
+a verificação é feita também diretamente no SQLite da microrrede.
 O AppTest não executa o JavaScript dos componentes: a escolha no catálogo visual é simulada pelo estado do
 diálogo (o clique real no cartão é verificado no E2E em navegador).
 """
@@ -23,6 +24,7 @@ if AppTest is not None:
     from apptest_utils import APP_PATH, botao, continuar
 
 from seeds2.microgrid import config as C
+from seeds2.microgrid.registry import MicrogridRegistry
 from seeds2.microgrid.store import MicrogridStore
 from seeds2_fixtures import battery_params, module_array, pv_plant, v16_equivalent_config
 
@@ -57,19 +59,59 @@ class _Base(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def open(self, view: str | None = None, timeout: float = 120, tab: str | None = None) -> AppTest:
+    _DEFAULT = object()
+
+    def open(self, view: str | None = None, timeout: float = 120, tab: str | None = None, uid=_DEFAULT) -> AppTest:
+        """Nova sessão. Com uma microrrede semeada (``seed``), ela é aberta na sessão (equivale a "ABRIR
+        MICRORREDE" no Gestor); ``uid=None`` abre o Gestor."""
         os.environ["SEEDS2_DATA_DIR"] = self.dir
         app = AppTest.from_file(str(APP_PATH), default_timeout=timeout)
+        uid = getattr(self, "uid", None) if uid is self._DEFAULT else uid
+        if uid:
+            app.session_state["mg_active_uid"] = uid
         if view:
             app.session_state["seeds_route"] = {"view": view, "tab": tab}
         app.run()
         _ok(self, app)
         return app
 
+    def novo(self, timeout: float = 120) -> AppTest:
+        """Gestor → "＋ NOVA MICRORREDE" (clique real) → comissionamento."""
+        app = self.open(uid=None, timeout=timeout)
+        self.assertEqual(app.session_state["seeds_route"]["view"], "gestor")
+        botao(app, "＋ NOVA MICRORREDE").click().run()
+        _ok(self, app)
+        self.assertEqual(app.session_state["seeds_route"]["view"], "comissionamento")
+        return app
+
+    def abrir_pelo_gestor(self, uid: str, timeout: float = 120) -> AppTest:
+        """Nova sessão no Gestor → "ABRIR MICRORREDE" (clique real) na tarjeta da microrrede ``uid``."""
+        app = self.open(uid=None, timeout=timeout)
+        next(b for b in app.button if b.key == f"g_open_{uid}").click().run()
+        _ok(self, app)
+        self.assertEqual(app.session_state["mg_active_uid"], uid)
+        return app
+
+    def reg(self) -> MicrogridRegistry:
+        return MicrogridRegistry(self.dir)
+
+    def store(self, uid: str | None = None) -> MicrogridStore:
+        r = self.reg()
+        if uid is None:
+            entries = r.entries()
+            self.assertEqual(len(entries), 1, entries)
+            uid = entries[0].uid
+        return r.open(uid)
+
+    def saved(self):
+        """Configuração salva da ÚNICA microrrede do catálogo deste teste (None se o catálogo está vazio)."""
+        return self.store().load() if self.reg().entries() else None
+
     def seed(self, cfg: dict | None = None) -> MicrogridStore:
-        s = MicrogridStore(self.dir)
-        s.save(cfg or v16_equivalent_config("Planta Piloto"), 0, origin="commissioning")
-        return s
+        cfg = cfg or v16_equivalent_config("Planta Piloto")
+        self.reg().create(cfg, origin="commissioning")
+        self.uid = cfg["installation"]["uid"]
+        return self.store(self.uid)
 
     # ---- diálogo de equipamento
     def pick(self, app, kind: str):
@@ -93,27 +135,30 @@ class _Base(unittest.TestCase):
 
 
 class ComissionamentoTest(_Base):
-    def test_primeiro_acesso_abre_o_assistente(self):
+    def test_primeiro_acesso_abre_o_gestor_e_nova_microrrede_o_assistente(self):
         app = self.open()
-        self.assertEqual(app.session_state["seeds_route"]["view"], "comissionamento")
+        self.assertEqual(app.session_state["seeds_route"]["view"], "gestor")
+        self.assertNotIn("Nome da instalação *", [t.label for t in app.text_input])
+        self.assertIsNone(self.saved())
+        for view in ("gestao", "simulacao", "inicio", "comissionamento"):
+            self.assertEqual(self.open(view).session_state["seeds_route"]["view"], "gestor")
+        app = self.novo()
         self.assertIn("Nome da instalação *", [t.label for t in app.text_input])
         self.assertIn("Salvar e continuar →", [b.label for b in app.button])
-        self.assertIsNone(MicrogridStore(self.dir).load())
-        for view in ("gestao", "simulacao", "inicio"):
-            self.assertEqual(self.open(view).session_state["seeds_route"]["view"], "comissionamento")
+        self.assertEqual(self.reg().entries(), [])                     # nada é criado antes da etapa 01
 
     def test_etapa01_campos_obrigatorios(self):                           # aceitação 1
-        app = self.open()
+        app = self.novo()
         botao(app, "Salvar e continuar →").click().run()
         msgs = _errors(app)
         for esperado in ("nome da instalação", "natureza da atividade", "modo de operação"):
             self.assertIn(esperado, msgs)
-        self.assertIsNone(MicrogridStore(self.dir).load())                # nada salvo
+        self.assertIsNone(self.saved())                # nada salvo
         _txt(app, "Nome da instalação").input("Usina-escola")
         app.run()
         botao(app, "Salvar e continuar →").click().run()
         self.assertIn("natureza da atividade", _errors(app))
-        self.assertIsNone(MicrogridStore(self.dir).load())
+        self.assertIsNone(self.saved())
         _sel(app, "Natureza da atividade").select("laboratorio")
         _sel(app, "Modo de operação previsto").select("conectada")
         _txt(app, "País").input("Brasil")
@@ -124,7 +169,7 @@ class ComissionamentoTest(_Base):
         app.run()
         botao(app, "Salvar e continuar →").click().run()
         _ok(self, app)
-        inst = MicrogridStore(self.dir).load().config["installation"]
+        inst = self.saved().config["installation"]
         self.assertEqual((inst["name"], inst["nature"], inst["operation_mode"]), ("Usina-escola", "laboratorio", "conectada"))
         loc = inst["location"]
         self.assertEqual((loc["country"], loc["city"], loc["latitude"], loc["longitude"], loc["timezone"], loc["source"]),
@@ -132,7 +177,7 @@ class ComissionamentoTest(_Base):
         self.assertEqual(loc["region"], "")                                # não inventado a partir das coordenadas
 
     def test_localizacao_rejeita_dados_invalidos(self):
-        app = self.open()
+        app = self.novo()
         _txt(app, "Nome da instalação").input("X")
         _sel(app, "Natureza da atividade").select("outra")
         _sel(app, "Modo de operação previsto").select("isolada")
@@ -143,7 +188,7 @@ class ComissionamentoTest(_Base):
         msgs = _errors(app)
         self.assertIn("latitude e longitude juntas", msgs)
         self.assertIn("Fuso horário IANA desconhecido", msgs)
-        self.assertIsNone(MicrogridStore(self.dir).load())
+        self.assertIsNone(self.saved())
 
     def _identificacao(self, app, name="Laboratório de Microrredes"):
         _txt(app, "Nome da instalação").input(name)
@@ -189,14 +234,14 @@ class ComissionamentoTest(_Base):
         self._salvar(app)
 
     def test_comissionamento_completo_e_reabertura(self):
-        app = self.open()
+        app = self.novo()
         self._identificacao(app)
         self.assertEqual(app.session_state["mg_cstep"], 2)
         self._inventario(app)
         botao(app, "Continuar →").click().run()
         next(r for r in app.radio if r.label.startswith("Conexão com a rede")).set_value("isolada").run()
         _ok(self, app)
-        self.assertEqual(MicrogridStore(self.dir).load().config["energy_balance"]["grid_connection"], "isolada")
+        self.assertEqual(self.saved().config["energy_balance"]["grid_connection"], "isolada")
         botao(app, "Continuar →").click().run()
         next(r for r in app.radio if r.label == "Fonte da demanda").set_value("walkforward").run()
         _sel(app, "Cenário").select("Ideal")
@@ -212,8 +257,8 @@ class ComissionamentoTest(_Base):
         botao(app, "Ativar microrrede e concluir comissionamento").click().run()
         _ok(self, app)
         self.assertEqual(app.session_state["seeds_route"]["view"], "inicio")
-        stored = MicrogridStore(self.dir).load()
-        app2 = self.open()
+        stored = self.saved()
+        app2 = self.abrir_pelo_gestor(stored.config["installation"]["uid"])     # nova sessão → Gestor → ABRIR
         self.assertEqual(app2.session_state["seeds_route"]["view"], "inicio")
         self.assertNotIn("Nome da instalação *", [t.label for t in app2.text_input])
         w = app2.session_state["mg_work"]
@@ -227,21 +272,22 @@ class ComissionamentoTest(_Base):
         self.assertEqual((bp["energy_kWh"], bp["soc_min_pct"], bp["soc_max_pct"]), (100.0, 20.0, 80.0))   # aceitação 12
         self.assertNotIn("soc0_pct", bp)                                   # aceitação 11
         self.assertNotIn("topology", w)                                    # aceitação 15
-        with sqlite3.connect(os.path.join(self.dir, "seeds2.db")) as con:
+        with sqlite3.connect(self.store().path) as con:
             self.assertEqual(con.execute("SELECT COUNT(*) FROM microgrid").fetchone()[0], 1)
+        self.assertEqual(len(self.reg().entries()), 1)
 
     def test_comissionamento_retomado_apos_reinicio(self):
-        app = self.open()
+        app = self.novo()
         self._identificacao(app)
         self._inventario(app)
-        self.assertEqual(len(MicrogridStore(self.dir).load().config["equipment"]), 3)
-        app2 = self.open()
+        self.assertEqual(len(self.saved().config["equipment"]), 3)
+        app2 = self.abrir_pelo_gestor(self.saved().config["installation"]["uid"])   # retomada pelo Gestor
         self.assertEqual(app2.session_state["seeds_route"]["view"], "comissionamento")
         self.assertEqual(app2.session_state["mg_cstep"], 2)
         botao(app2, "← Voltar").click().run()
         _ok(self, app2)
         self.assertEqual(_txt(app2, "Nome da instalação").value, "Laboratório de Microrredes")
-        self.assertEqual(len(MicrogridStore(self.dir).load().config["equipment"]), 3)
+        self.assertEqual(len(self.saved().config["equipment"]), 3)
 
 
 class DialogoEquipamentoTest(_Base):
@@ -251,7 +297,7 @@ class DialogoEquipamentoTest(_Base):
 
     def test_catalogo_de_tecnologias_e_navegacao(self):                  # aceitação 3
         app = self.open("gestao")
-        n = len(MicrogridStore(self.dir).load().config["equipment"])
+        n = len(self.saved().config["equipment"])
         botao(app, "＋ Adicionar equipamento").click().run()
         _ok(self, app)
         self.assertEqual(app.session_state["mg_dialog"]["step"], "pick")
@@ -403,14 +449,14 @@ class GestaoTest(_Base):
         app.run()
         botao(app, "Salvar equipamento").click().run()
         _ok(self, app)
-        self.assertEqual(MicrogridStore(self.dir).load().revision, 1)          # ainda pendente
+        self.assertEqual(self.saved().revision, 1)          # ainda pendente
         botao(app, "Salvar alterações").click().run()
         _ok(self, app)
-        st2 = MicrogridStore(self.dir).load()
+        st2 = self.saved()
         self.assertEqual(st2.revision, 2)
         self.assertEqual(st2.config["installation"]["uid"], uid)
         self.assertEqual(C.find_equipment(st2.config, bat["id"])["params"]["soc_min_pct"], 25.0)
-        with sqlite3.connect(os.path.join(self.dir, "seeds2.db")) as con:
+        with sqlite3.connect(self.store().path) as con:
             self.assertEqual(con.execute("SELECT COUNT(*) FROM microgrid").fetchone()[0], 1)
 
     def test_descartar_edicao_pendente(self):
@@ -425,7 +471,7 @@ class GestaoTest(_Base):
         botao(app, "Descartar").click().run()
         _ok(self, app)
         self.assertEqual(app.session_state["mg_work"]["equipment"][0]["name"], eq["name"])
-        self.assertEqual(MicrogridStore(self.dir).load().revision, 1)
+        self.assertEqual(self.saved().revision, 1)
 
     def test_incorporar_e_retirar_equipamento(self):
         self.seed()
@@ -439,7 +485,7 @@ class GestaoTest(_Base):
         botao(app, "Salvar equipamento").click().run()
         botao(app, "Salvar alterações").click().run()
         _ok(self, app)
-        cfg = MicrogridStore(self.dir).load().config
+        cfg = self.saved().config
         w = next(e for e in cfg["equipment"] if e["kind"] == "wind")
         app = self.open("gestao")
         self.edit(app, w["id"])
@@ -448,7 +494,7 @@ class GestaoTest(_Base):
         botao(app, "Retirar equipamento").click().run()
         botao(app, "Salvar alterações").click().run()
         _ok(self, app)
-        cfg = MicrogridStore(self.dir).load().config
+        cfg = self.saved().config
         self.assertNotIn(w["id"], [e["id"] for e in cfg["equipment"]])
         self.assertEqual(cfg["retired"][-1]["retired_reason"], "devolvido ao fornecedor")
 
@@ -466,7 +512,7 @@ class GestaoTest(_Base):
         botao(app, "Salvar alterações").click().run()
         _ok(self, app)
         self.assertIn("mg_conflict", app.session_state)
-        final = MicrogridStore(self.dir).load()
+        final = self.saved()
         self.assertEqual(final.revision, 2)
         self.assertEqual(final.config["installation"]["description"], "alterado pela sessão B")
 
@@ -489,7 +535,7 @@ class GestaoTest(_Base):
         botao(app, "Aplicar à edição").click().run()
         botao(app, "Salvar alterações").click().run()
         _ok(self, app)
-        st2 = MicrogridStore(self.dir).load().config
+        st2 = self.saved().config
         self.assertEqual((st2["installation"]["nature"], st2["installation"]["operation_mode"]), ("industrial", "isolada"))
         self.assertEqual(len(st2["equipment"]), n)                          # inventário preservado
 
@@ -510,7 +556,7 @@ class GestaoTest(_Base):
         _ok(self, app)
         fp, name, data = app.session_state["mg_exp_zip_data"]
         self.assertTrue(name.endswith(".seeds2backup.zip"))
-        self.assertTrue(MicrogridStore(self.dir).inspect_backup(data).ok)
+        self.assertTrue(self.store().inspect_backup(data).ok)
         botao(app, "GERAR RELATÓRIO TÉCNICO (PDF)").click().run()
         _ok(self, app)
         fp, name, pdf = app.session_state["mg_exp_pdf_data"]
@@ -538,7 +584,7 @@ class SimulacaoTest(_Base):
         self.assertEqual(item["origem"]["origin"], "microrrede")
         self.assertEqual(item["origem"]["run_conditions"]["battery_soc0_pct"],
                          {e["id"]: 60.0 for e in saved.config["equipment"] if e["kind"] == "battery"})
-        runs = MicrogridStore(self.dir).runs()
+        runs = self.store().runs()
         self.assertEqual((runs[0]["config_revision"], runs[0]["config_fingerprint"]), (1, saved.fingerprint))
         cfg = copy.deepcopy(saved.config)
         cfg["equipment"][0]["arrays"][0]["n_parallel"] = 6
@@ -582,7 +628,7 @@ class SimulacaoTest(_Base):
         self.assertTrue(app.session_state["orq_run_gate"]["ok"])
         botao(app, "▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO").click().run()
         _ok(self, app)
-        excl = MicrogridStore(self.dir).runs()[0]["excluded"]
+        excl = self.store().runs()[0]["excluded"]
         self.assertEqual(sorted(e["name"] for e in excl), ["UTE grande porte", "Usina antiga · Arranjo legado"])
 
     def test_alteracao_manual_no_console_desvincula_da_microrrede(self):
@@ -617,7 +663,7 @@ class InsercaoHtmlTest(_Base):
         self.assertIn("&lt;img src=x onerror=", body)
         self.assertNotIn("<img src=x", body)
         cfg["commissioning"].update(completed=True, step=5)
-        MicrogridStore(self.dir).save(cfg, 1)
+        self.store().save(cfg, 1)
         app = self.open("gestao")
         self.edit(app, cfg["equipment"][0]["id"])
         label = next(c.label for c in app.get("expander") if "Retirar" in c.label) if False else None
@@ -626,12 +672,12 @@ class InsercaoHtmlTest(_Base):
         self.assertIn("\\[link\\]\\(http\\:", conf)
 
     def test_nome_de_csv_malicioso_no_console_v16(self):
-        s = MicrogridStore(self.dir)
-        h = s.put_blob(b"t_min,P_kW\n" + b"".join(f"{i},{80 + i % 3}\n".encode() for i in range(40)), "x.csv")
         cfg = v16_equivalent_config()
+        s = self.seed(cfg)
+        h = s.put_blob(b"t_min,P_kW\n" + b"".join(f"{i},{80 + i % 3}\n".encode() for i in range(40)), "x.csv")
         cfg["demand"].update(source="csv", provenance="medido",
                              csv={"blob": h, "filename": "<b>carga</b><script>x</script>.csv", "start_min": 0, "duration_min": 30})
-        self.seed(cfg)
+        s.save(cfg, 1)
         app = self.open("simulacao", timeout=240)
         app.session_state["orchestrator_page"] = "Visão Geral"
         app.run()

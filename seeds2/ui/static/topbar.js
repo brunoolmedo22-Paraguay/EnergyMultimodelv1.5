@@ -1,6 +1,7 @@
-// Barra superior SEEDS2: marca + identidade da instalação, navegação principal e estado de salvamento.
-// Evento: {type:"nav", view}.
+// Barra superior SEEDS2: marca + microrrede ativa, navegação principal, TROCAR MICRORREDE e estado de salvamento.
+// Eventos: {type:"nav", view} | {type:"switch"} (volta ao Gestor de microrredes).
 function el(t, c, x) { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; }
+const SWAP = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const LOGO = `<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
 <rect x="2" y="2" width="28" height="28" rx="8" fill="currentColor" opacity=".13"/>
 <path d="M6 16h20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
@@ -22,15 +23,22 @@ export default function (component) {
     brand.addEventListener("click", () => setTriggerValue("action", { type: "nav", view: root.__ctl.home, t: Date.now() }));
     const nav = el("nav", "tb-nav"); nav.setAttribute("aria-label", "Navegação principal");
     const save = el("div", "tb-save"); save.setAttribute("role", "status"); save.setAttribute("aria-live", "polite");
-    root.append(brand, nav, save);
+    const sw = el("button", "tb-switch"); sw.type = "button";
+    sw.innerHTML = `${SWAP}<span>TROCAR MICRORREDE</span>`;
+    sw.setAttribute("aria-label", "Trocar microrrede: voltar ao Gestor de microrredes");
+    sw.title = "Voltar ao Gestor de microrredes (os dados da microrrede não são alterados)";
+    sw.addEventListener("click", () => setTriggerValue("action", { type: "switch", t: Date.now() }));
+    const right = el("div", "tb-right"); right.append(sw, save);
+    root.append(brand, nav, right);
     parentElement.appendChild(root);
-    root.__ctl = { nav, save, ver, site, brand, home: "inicio" };
+    root.__ctl = { nav, save, ver, site, brand, sw, home: "inicio" };
   }
   const c = root.__ctl;
   root.classList.toggle("sd-light", !!data.force_light);
   c.home = data.home || "inicio";
   c.ver.textContent = `v${data.version}`;
-  c.site.textContent = data.site || "Microrrede ainda não comissionada";
+  c.site.textContent = data.site || "Nenhuma microrrede aberta";
+  c.sw.hidden = !data.switch;
   c.site.title = data.site_title || "";
   c.brand.setAttribute("aria-label", `SEEDS2 — ${data.site || "início"}`);
   c.nav.innerHTML = "";
@@ -44,4 +52,5 @@ export default function (component) {
   c.save.className = `tb-save s-${s.state || "novo"}`;
   c.save.textContent = s.text || "";
   c.save.title = s.title || "";
+  c.save.hidden = !s.text;
 }

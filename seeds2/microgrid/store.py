@@ -161,6 +161,10 @@ class IdentityError(StoreError):
     pass
 
 
+class MissingStoreError(StoreError):
+    """O banco da microrrede não existe (p. ex. excluída por outra sessão)."""
+
+
 @dataclass(frozen=True)
 class Stored:
     config: dict
@@ -186,18 +190,91 @@ def resolve_data_dir(explicit: str | os.PathLike | None = None) -> Path:
     return Path(raw).expanduser().resolve()
 
 
+def ensure_wal(con: sqlite3.Connection, timeout_s: float = 15.0) -> None:
+    """Ativa o modo WAL somente se ainda não estiver ativo. A troca de modo numa base recém-criada pode
+    responder "database is locked" SEM passar pelo ``busy_timeout`` quando várias conexões abrem ao mesmo
+    tempo; repete com espera limitada (o modo é persistente: só a primeira conexão precisa trocá-lo)."""
+    deadline = time.monotonic() + timeout_s
+    while True:
+        try:
+            if str(con.execute("PRAGMA journal_mode").fetchone()[0]).lower() != "wal":
+                con.execute("PRAGMA journal_mode=WAL")
+            return
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower() or time.monotonic() > deadline:
+                raise
+            time.sleep(0.05)
+
+
+def sqlite_backup_copy(source: Path, dest: Path, timeout_s: float = BACKUP_COPY_TIMEOUT_S, *,
+                       read_only: bool = False) -> None:
+    """Cópia transacionalmente consistente do banco pela API de backup do SQLite.
+
+    Inclui o conteúdo ainda no ``-wal`` (uma cópia do arquivo ``.db`` não o inclui). Usa uma conexão PRÓPRIA,
+    sem transação aberta: em WAL ela só precisa de um instantâneo de leitura, compatível com o bloqueio de
+    escrita mantido pela migração. ``pages=-1`` copia tudo num único passo (um único instantâneo). A espera
+    por bloqueios é limitada (o laço de repetição do ``Connection.backup`` seria infinito). O resultado é
+    um arquivo autossuficiente (journal DELETE, sem ``-wal``/``-shm``), verificado e publicado atomicamente.
+    ``read_only``: a origem é aberta somente para leitura (``mode=ro``) — nenhum checkpoint é feito nela; usado
+    para adotar o armazenamento anterior ao Gestor sem alterar o arquivo original."""
+    tmp = dest.with_name(dest.name + ".tmp")
+    tmp.unlink(missing_ok=True)
+    deadline = time.monotonic() + timeout_s
+
+    def progress(_status: int, _remaining: int, _total: int) -> None:
+        if time.monotonic() > deadline:
+            raise StoreError("tempo esgotado ao copiar o banco (bloqueado por outra conexão)")
+
+    src = (sqlite3.connect(f"file:{Path(source).as_posix()}?mode=ro", uri=True, timeout=timeout_s, isolation_level=None)
+           if read_only else sqlite3.connect(source, timeout=timeout_s, isolation_level=None))
+    try:
+        dst = sqlite3.connect(tmp, isolation_level=None)
+        try:
+            src.backup(dst, pages=-1, progress=progress, sleep=0.05)
+            dst.execute("PRAGMA journal_mode=DELETE")
+            check = dst.execute("PRAGMA integrity_check").fetchone()[0]
+        finally:
+            dst.close()
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    finally:
+        src.close()
+    if check != "ok":
+        tmp.unlink(missing_ok=True)
+        raise StoreError(f"cópia de segurança não passou na verificação de integridade: {check}")
+    with open(tmp, "rb") as fh:
+        os.fsync(fh.fileno())
+    os.replace(tmp, dest)
+
+
+
 class MicrogridStore:
-    def __init__(self, data_dir: str | os.PathLike | None = None):
+    """Armazenamento SQLite de UMA microrrede (um diretório, um ``seeds2.db``).
+
+    * ``must_exist``: não cria diretório nem banco — usado pelo catálogo para abrir microrredes existentes
+      (uma microrrede excluída nunca é recriada vazia por uma sessão que ainda a referencie);
+    * ``fixed_uid``: identidade imutável do armazenamento; qualquer gravação de documento de outra
+      instalação é recusada (mesmo com ``allow_identity_change``), mantendo catálogo, diretório e documento
+      coerentes."""
+
+    def __init__(self, data_dir: str | os.PathLike | None = None, *, must_exist: bool = False,
+                 fixed_uid: str | None = None):
         self.data_dir = resolve_data_dir(data_dir)
-        self.data_dir.mkdir(parents=True, exist_ok=True)
         self.path = self.data_dir / DB_FILENAME
+        self.fixed_uid = fixed_uid
+        if must_exist:
+            if not self.path.is_file():
+                raise MissingStoreError(f"Armazenamento da microrrede não encontrado em {self.data_dir}.")
+        else:
+            self.data_dir.mkdir(parents=True, exist_ok=True)
         self._migrate()
 
     # ------------------------------------------------------------ conexão / migração
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
         con.row_factory = sqlite3.Row
-        con.execute("PRAGMA journal_mode=WAL")
+        ensure_wal(con)
         con.execute("PRAGMA busy_timeout=10000")
         con.execute("PRAGMA foreign_keys=ON")
         return con
@@ -228,41 +305,7 @@ class MicrogridStore:
             return int(con.execute("PRAGMA user_version").fetchone()[0])
 
     def _backup_copy(self, dest: Path, timeout_s: float = BACKUP_COPY_TIMEOUT_S) -> None:
-        """Cópia transacionalmente consistente do banco pela API de backup do SQLite.
-
-        Inclui o conteúdo ainda no ``-wal`` (uma cópia do arquivo ``.db`` não o inclui). Usa uma conexão PRÓPRIA,
-        sem transação aberta: em WAL ela só precisa de um instantâneo de leitura, compatível com o bloqueio de
-        escrita mantido pela migração. ``pages=-1`` copia tudo num único passo (um único instantâneo). A espera
-        por bloqueios é limitada (o laço de repetição do ``Connection.backup`` seria infinito). O resultado é
-        um arquivo autossuficiente (journal DELETE, sem ``-wal``/``-shm``), verificado e publicado atomicamente."""
-        tmp = dest.with_name(dest.name + ".tmp")
-        tmp.unlink(missing_ok=True)
-        deadline = time.monotonic() + timeout_s
-
-        def progress(_status: int, _remaining: int, _total: int) -> None:
-            if time.monotonic() > deadline:
-                raise StoreError("tempo esgotado ao copiar o banco (bloqueado por outra conexão)")
-
-        src = sqlite3.connect(self.path, timeout=timeout_s, isolation_level=None)
-        try:
-            dst = sqlite3.connect(tmp, isolation_level=None)
-            try:
-                src.backup(dst, pages=-1, progress=progress, sleep=0.05)
-                dst.execute("PRAGMA journal_mode=DELETE")
-                check = dst.execute("PRAGMA integrity_check").fetchone()[0]
-            finally:
-                dst.close()
-        except BaseException:
-            tmp.unlink(missing_ok=True)
-            raise
-        finally:
-            src.close()
-        if check != "ok":
-            tmp.unlink(missing_ok=True)
-            raise StoreError(f"cópia de segurança não passou na verificação de integridade: {check}")
-        with open(tmp, "rb") as fh:
-            os.fsync(fh.fileno())
-        os.replace(tmp, dest)
+        sqlite_backup_copy(self.path, dest, timeout_s)
 
     def _migrate(self) -> None:
         existed = self.path.exists() and self.path.stat().st_size > 0
@@ -390,9 +433,12 @@ class MicrogridStore:
         current = int(row["revision"]) if row else 0
         if int(expected_revision) != current:
             raise ConflictError(int(expected_revision), current)
+        if self.fixed_uid is not None and uid != self.fixed_uid:
+            raise IdentityError("A configuração pertence a outra microrrede do catálogo. Para trazê-la, use "
+                                "IMPORTAR MICRORREDE (ZIP) no Gestor de microrredes.")
         if row and row["installation_uid"] != uid and not allow_identity_change:
-            raise IdentityError("A configuração pertence a outra instalação; este SEEDS2 administra uma única "
-                                "microrrede. Use a restauração de backup com confirmação explícita.")
+            raise IdentityError("A configuração pertence a outra instalação. Use a restauração de backup com "
+                                "confirmação explícita.")
         for digest, (content, meta) in (new_blobs or {}).items():
             if self._insert_blob(con, content, meta.get("name", ""), meta.get("media_type", "text/csv")) != digest:
                 raise StoreError("Falha de integridade ao gravar dados de entrada.")
@@ -574,20 +620,18 @@ class MicrogridStore:
         return errs
 
     def inspect_backup(self, data: bytes) -> BackupInspection:
-        """Inspeciona um backup NÃO confiável. Nunca levanta exceção: todo problema vira ``errors``."""
-        rep = BackupInspection(ok=False)
-        try:
-            self._inspect(data, rep)
-        except _BackupRejected as exc:
-            rep.errors.append(str(exc))
-        except Exception as exc:  # noqa: BLE001 — qualquer outro defeito do arquivo é rejeição controlada
-            rep.errors.append(f"Arquivo de backup malformado ou ilegível ({type(exc).__name__}).")
-        if rep.errors:
-            rep.config, rep.blobs, rep.same_installation = None, {}, None
-        rep.ok = not rep.errors
+        """Inspeciona um backup NÃO confiável e o compara com a configuração deste armazenamento."""
+        rep = inspect_backup_data(data)
+        if rep.ok:
+            cur = self.load()
+            if cur is not None:
+                rep.same_installation = cur.config["installation"]["uid"] == rep.config["installation"]["uid"]
+                if not rep.same_installation:
+                    rep.warnings.append("O backup pertence a OUTRA microrrede (identidade diferente).")
         return rep
 
-    def _inspect(self, data: bytes, rep: BackupInspection) -> None:
+    @classmethod
+    def _inspect(cls, data: bytes, rep: BackupInspection) -> None:
         if not isinstance(data, (bytes, bytearray)):
             raise _BackupRejected("Conteúdo de backup inválido.")
         if len(data) > MAX_BACKUP_BYTES:
@@ -622,13 +666,13 @@ class MicrogridStore:
                 raise _BackupRejected("O conteúdo declarado do backup excede o limite total permitido.")
             # ---- leitura limitada (tamanho real, não o declarado)
             budget = [MAX_BACKUP_UNCOMPRESSED]
-            content = {i.filename: self._read_capped(zf, i, _entry_cap(i.filename), budget) for i in infos}
+            content = {i.filename: cls._read_capped(zf, i, _entry_cap(i.filename), budget) for i in infos}
         # ---- manifesto
         try:
             manifest = json.loads(content["manifest.json"].decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             raise _BackupRejected("manifest.json ilegível.") from None
-        merrs = self._manifest_errors(manifest)
+        merrs = cls._manifest_errors(manifest)
         if merrs:
             rep.errors.extend(merrs)
             return
@@ -679,7 +723,7 @@ class MicrogridStore:
         if cfg["installation"]["uid"] != manifest["installation_uid"]:
             rep.errors.append("A identidade da instalação no manifesto não confere com a configuração.")
         # ---- dados de entrada (blobs)
-        refs = self._referenced_blobs(cfg)
+        refs = cls._referenced_blobs(cfg)
         for name in content:
             if name.startswith("blobs/"):
                 digest = name.split("/", 1)[1]
@@ -695,12 +739,27 @@ class MicrogridStore:
         if rep.errors:
             return
         rep.config = cfg
-        cur = self.load()
-        if cur is not None:
-            rep.same_installation = cur.config["installation"]["uid"] == cfg["installation"]["uid"]
-            if not rep.same_installation:
-                rep.warnings.append("O backup pertence a OUTRA instalação. Restaurá-lo substituirá a identidade da "
-                                    "microrrede administrada por este SEEDS2 (o histórico atual é preservado).")
+
+    def import_inspected(self, rep: BackupInspection, *, new_uid: str | None = None, note: str = "",
+                         origin: str = "import") -> Stored:
+        """Grava num armazenamento VAZIO o conteúdo de um backup já inspecionado (blobs + revisão 1 numa única
+        transação). ``new_uid`` cria uma cópia independente: nova identidade, origem registrada no documento
+        (``installation.copied_from``) — a cópia não finge ser a mesma instalação física."""
+        if not rep.ok or rep.config is None:
+            raise StoreError("Backup rejeitado: " + " | ".join(rep.errors))
+        cfg = json.loads(C.canonical_json(rep.config))
+        m = rep.manifest
+        if new_uid is not None:
+            src = cfg["installation"]
+            cfg["installation"] = {**src, "uid": new_uid, "copied_from": {
+                "uid": src["uid"], "fingerprint": m.get("fingerprint"), "revision": m.get("revision"),
+                "name": src.get("name", ""), "copied_at": C.utc_now()}}
+        doc, fp = self._prepare(cfg)
+        with self._tx() as con:
+            if con.execute("SELECT 1 FROM microgrid WHERE id = 1").fetchone() is not None:
+                raise StoreError("O armazenamento de destino não está vazio.")
+            return self._write_revision(con, doc, fp, 0, note=note, origin=origin, allow_identity_change=False,
+                                        new_blobs=rep.blobs)
 
     def restore_backup(self, data: bytes, expected_revision: int, *, confirm: bool,
                        confirm_identity_change: bool = False) -> Stored:
@@ -720,19 +779,38 @@ class MicrogridStore:
                                         allow_identity_change=bool(confirm_identity_change), new_blobs=rep.blobs)
 
 
+def inspect_backup_data(data: bytes) -> BackupInspection:
+    """Inspeciona um backup NÃO confiável sem depender de um armazenamento. Nunca levanta exceção: todo
+    problema vira ``errors``."""
+    rep = BackupInspection(ok=False)
+    try:
+        MicrogridStore._inspect(data, rep)
+    except _BackupRejected as exc:
+        rep.errors.append(str(exc))
+    except Exception as exc:  # noqa: BLE001 — qualquer outro defeito do arquivo é rejeição controlada
+        rep.errors.append(f"Arquivo de backup malformado ou ilegível ({type(exc).__name__}).")
+    if rep.errors:
+        rep.config, rep.blobs, rep.same_installation = None, {}, None
+    rep.ok = not rep.errors
+    return rep
+
+
 def backup_filename(config: dict) -> str:
-    """Nome ASCII portátil (acentos transliterados), seguro em qualquer sistema de arquivos e navegador."""
+    """Nome ASCII portátil (acentos transliterados), seguro em qualquer sistema de arquivos e navegador. Inclui os
+    8 primeiros dígitos do UID: microrredes com o mesmo nome geram arquivos distinguíveis."""
     import unicodedata
     from datetime import datetime
 
     ascii_name = unicodedata.normalize("NFKD", config["installation"]["name"]).encode("ascii", "ignore").decode("ascii")
     safe = re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9]", "_", ascii_name))[:40].strip("_") or "microrrede"
-    return f"seeds2_{safe}_{datetime.now():%Y%m%d_%H%M}{BACKUP_SUFFIX}"
+    uid = re.sub(r"[^0-9a-f]", "", str(config["installation"].get("uid", "")))[:8] or "semid"
+    return f"seeds2_{safe}_{uid}_{datetime.now():%Y%m%d_%H%M}{BACKUP_SUFFIX}"
 
 
 def default_store() -> MicrogridStore:
     return MicrogridStore()
 
 
-__all__: list[Any] = ["BackupInspection", "ConflictError", "IdentityError", "MicrogridStore", "Stored", "StoreError",
-                      "ValidationError", "backup_filename", "default_store", "resolve_data_dir"]
+__all__: list[Any] = ["BackupInspection", "ConflictError", "IdentityError", "MicrogridStore", "MissingStoreError", "Stored",
+                      "StoreError", "ValidationError", "backup_filename", "default_store", "inspect_backup_data",
+                      "resolve_data_dir", "sqlite_backup_copy"]

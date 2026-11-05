@@ -224,9 +224,10 @@ class EMSAppSmokeTest(unittest.TestCase):
     def test_sessao_legada_ems_volta_ao_console(self):
         import os
 
-        from apptest_utils import APP_PATH, instalacao_v16
+        from apptest_utils import APP_PATH, instalacao_v16, uid_v16
         os.environ["SEEDS2_DATA_DIR"] = instalacao_v16()
         app = AppTest.from_file(str(APP_PATH), default_timeout=60)
+        app.session_state["mg_active_uid"] = uid_v16()   # microrrede aberta na sessão (Gestor de microrredes)
         app.session_state["energy_source"] = "ems"  # sessão antiga da V1.5
         app.session_state["seeds_route"] = {"view": "simulacao", "tab": None}
         app.run()

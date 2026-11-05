@@ -25,13 +25,13 @@ def render() -> None:
     cfg = saved.config
     inst = cfg["installation"]
     plan = A.build_plan(cfg, revision=saved.revision, fingerprint=saved.fingerprint)
-    shell.hero("Microrrede administrada por esta instalação", inst["name"],
+    shell.hero("Microrrede aberta nesta sessão", inst["name"],
                inst.get("description") or "Configuração física persistente da instalação energética.",
                [("Natureza", C.NATURE_OPTIONS.get(inst.get("nature"), "não declarada")),
                 ("Modo", C.OPERATION_MODE_OPTIONS.get(inst.get("operation_mode"), "não declarado")),
                 ("Local", forms.location_text(inst.get("location"))), ("Fuso", (inst.get("location") or {}).get("timezone") or ""),
                 ("Comissionada", shell.fmt_time(cfg["commissioning"].get("completed_at"))),
-                ("Revisão", f"{saved.revision} · {saved.fingerprint[:10]}…")])
+                ("Revisão", f"{saved.revision} · {saved.fingerprint[:10]}…"), ("Identidade", inst["uid"])])
     if session.is_dirty():
         shell.callout("Há <b>edição pendente</b> em Gestão da Microrrede ainda não salva.", "warn")
     miss = C.identification_missing(cfg)
