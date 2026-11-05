@@ -37,3 +37,13 @@ python -m pytest tests/ -q          # executar a partir da raiz do repositório
 - `render_source_landing()` em `app.py` não é mais chamado na V1.6; o módulo **MIX** (`mix_app.py`) não é acessível pela interface (só via `energy_source="mix"`).
 - `__pycache__/` está versionado no repositório.
 - `README.md` ainda se intitula "V1.5".
+
+## Protocolo de colaboração e passagem de turno (ChatGPT ↔ Claude Code)
+
+- **Direção humana:** o responsável pelo projeto define prioridades, aprova decisões técnicas/científicas e autoriza cada integração. ChatGPT prepara escopos/prompts e revisa os PRs; Claude Code implementa, testa e documenta. Não é necessário automatizar a execução das tarefas por GitHub Actions.
+- **Antes de qualquer tarefa:** ler este `CLAUDE.md` e `docs/ai/HANDOFF.md`, conferir `main` e o PR mais recente, entender decisões aprovadas, dependências e limites da missão. Se a documentação divergir do código, verificar e registrar a divergência; não presumir.
+- **Durante a tarefa:** trabalhar em branch própria, preservar as regras de proteção científica acima, manter mudanças restritas ao escopo e comunicar bloqueios ou decisões que exijam autorização. Não executar dois agentes alterando a mesma branch simultaneamente.
+- **Ao concluir:** executar e relatar testes realmente realizados (com comando, resultado e limitações); atualizar `docs/ai/HANDOFF.md` na **mesma branch e no mesmo PR**, informando o que mudou, estado verificado, pendências, decisões e próximo passo. Referenciar PRs/commits em vez de duplicar relatórios longos.
+- **Integração:** abrir PR para `main`, aguardar revisão e autorização humana. **Nunca efetuar merge automaticamente ou por iniciativa própria**. Não fazer push diretamente para `main`.
+- **Cuaderno compacto:** `HANDOFF.md` é um resumo de continuidade, não um diário de raciocínio; manter fatos verificáveis, contexto suficiente para retomar e distinguir implementado de planejado. Não sobrescrever decisões anteriores sem registrar motivo e aprovação.
+- **Segurança:** nunca registrar credenciais, tokens, dados sensíveis, chaves ou material corporativo não autorizado no repositório ou nos prompts; conferir a visibilidade do repositório antes de publicar.
