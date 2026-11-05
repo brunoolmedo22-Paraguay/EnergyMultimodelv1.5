@@ -204,31 +204,79 @@ class PontePlataformaTest(unittest.TestCase):
 
 @unittest.skipIf(AppTest is None, "Streamlit não instalado")
 class EMSAppSmokeTest(unittest.TestCase):
+    """EMS pela interface V1.6: o otimizador é uma página do console unificado
+    (não mais a app separada ``ems_app``, acessada por "OTIMIZAR DESPACHO →")."""
+
     def test_landing_tem_ems_e_pagina_de_configuracao_abre(self):
-        app = AppTest.from_file(str(RAIZ / "app.py"), default_timeout=60).run()
-        self.assertIn("OTIMIZAR DESPACHO →", [b.label for b in app.button])
-        next(b for b in app.button if b.label == "OTIMIZAR DESPACHO →").click().run()
+        from apptest_utils import abrir, botao
+        app = abrir()
         self.assertEqual(len(app.exception), 0)
-        self.assertEqual(app.session_state["energy_source"], "ems")
-        next(b for b in app.button if b.label == "Configuração").click().run()
+        self.assertIn("◎  Otimizador", [b.label for b in app.button])
+        botao(app, "◎  Otimizador").click().run()
         self.assertEqual(len(app.exception), 0)
-        self.assertIn("Metaheurística", [r.label for r in app.radio])
+        self.assertIsNone(app.session_state["energy_source"])
+        self.assertEqual(app.session_state["orchestrator_page"], "Otimizador")
+        algoritmo = next(r for r in app.radio if r.label == "Algoritmo")
+        for metodo in ("GWO", "NGO", "GA"):
+            self.assertTrue(any(o.startswith(metodo) for o in algoritmo.options), algoritmo.options)
+        self.assertIn("▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO", [b.label for b in app.button])
+
+    def test_sessao_legada_ems_volta_ao_console(self):
+        from apptest_utils import APP_PATH
+        app = AppTest.from_file(str(APP_PATH), default_timeout=60)
+        app.session_state["energy_source"] = "ems"  # sessão antiga da V1.5
+        app.run()
+        self.assertEqual(len(app.exception), 0)
+        self.assertIsNone(app.session_state["energy_source"])
+        self.assertIn("◎  Otimizador", [b.label for b in app.button])
 
     def test_execucao_completa_pela_interface(self):
-        app = AppTest.from_file(str(RAIZ / "app.py"), default_timeout=240).run()
-        next(b for b in app.button if b.label == "OTIMIZAR DESPACHO →").click().run()
-        next(b for b in app.button if b.label == "Configuração").click().run()
-        next(b for b in app.button if b.label.startswith("▶ CALCULAR MODELOS")).click().run()
+        from apptest_utils import abrir, botao, continuar
+        app = abrir(timeout=240)
+        botao(app, "◎  Otimizador").click().run()
+        botao(app, "▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO").click().run()
         self.assertEqual(len(app.exception), 0, [e.value for e in app.exception])
         self.assertEqual(len(app.error), 0, [e.value for e in app.error])
-        self.assertEqual(app.session_state["ems_page"], "Otimização")
+        self.assertEqual(app.session_state["orchestrator_page"], "Resultados do Otimizador")
+        item = app.session_state["orq_result_item"]
+        self.assertIsNotNone(item)
+        r = item["resultado"]
+        carga = app.session_state["orq_load"]
+        self.assertEqual(r["k_validos"], len(carga.P_kW))  # receding horizon cobre a missão inteira
+        self.assertTrue(np.all(np.isfinite(r["P_kW"][:r["k_validos"]])))
+
+        app = continuar(app, timeout=240)
+        self.assertEqual(len(app.exception), 0, [e.value for e in app.exception])
+        self.assertEqual(len(app.error), 0, [e.value for e in app.error])
         labels = [m.label for m in app.metric]
-        for esperado in ("H₂ consumido", "SOC final bateria", "Stacks ligados", "ΔJ mediano (meta − refino)"):
+        for esperado in ("H₂ consumido", "Custo total", "Não atendida", "SOC final", "Stacks", "ΔJ mediano"):
             self.assertIn(esperado, labels)
         self.assertGreaterEqual(len(app.get("plotly_chart")), 6)
-        for pagina in ("Comparação", "Exportação"):
-            next(b for b in app.button if b.label == pagina).click().run()
-            self.assertEqual(len(app.exception), 0)
+        resultados = app
+
+        # Cada página é aberta a partir de Resultados do Otimizador. Não se chama
+        # .run() numa árvore que contenha st.segmented_control (Resultados dos
+        # Modelos): o AppTest 1.49 itera o valor string caractere a caractere em
+        # ButtonGroup.indices e falha com KeyError — bug do streamlit.testing,
+        # verificado no navegador real, onde a página funciona.
+        for pagina, chave in (("▤  Resultados dos Modelos", "Resultados dos Modelos"),
+                              ("⇩  Exportar Resultados", "Exportar Resultados")):
+            app = continuar(resultados, timeout=240)
+            self.assertEqual(app.session_state["orchestrator_page"], "Resultados do Otimizador")
+            botao(app, pagina).click().run()
+            self.assertEqual(len(app.exception), 0, [e.value for e in app.exception])
+            self.assertEqual(app.session_state["orchestrator_page"], chave)
+            app = continuar(app, timeout=240)
+            self.assertEqual(len(app.exception), 0, [e.value for e in app.exception])
+            self.assertEqual(len(app.error), 0, [e.value for e in app.error])
+            # Com rodada disponível, as páginas não mostram o aviso de "rode o otimizador".
+            self.assertEqual(len(app.warning), 0, [w.value for w in app.warning])
+            if chave == "Resultados dos Modelos":
+                self.assertGreaterEqual(len(app.get("plotly_chart")), 1)
+            else:
+                downloads = [d.proto.label for d in app.get("download_button")]
+                for rotulo in ("⬇ CSV DESPACHO", "⬇ CSV CARGA", "⬇ ZIP DA RODADA"):
+                    self.assertIn(rotulo, downloads)
 
 
 if __name__ == "__main__":
