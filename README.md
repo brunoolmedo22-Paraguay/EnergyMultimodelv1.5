@@ -1,3 +1,19 @@
+> **SEEDS2 v2.0 — Piso 1 (configuração e instalação de uma microrrede).** Esta aplicação agora abre no
+> shell SEEDS2: no primeiro acesso, um assistente de comissionamento registra a microrrede da instalação
+> (uma única por instalação); depois, Início · Gestão da Microrrede · Simulação · Resultados. A
+> configuração é persistida localmente em SQLite:
+>
+> ```bash
+> pip install -r requirements.txt            # Streamlit 1.66.1
+> export SEEDS2_DATA_DIR=/srv/seeds2-dados   # fora do repositório (padrão: ~/.seeds2)
+> python -m streamlit run app.py
+> ```
+>
+> Documentação: [`docs/seeds2/ARQUITETURA_PISO1.md`](docs/seeds2/ARQUITETURA_PISO1.md) ·
+> [`docs/seeds2/ARMAZENAMENTO.md`](docs/seeds2/ARMAZENAMENTO.md) ·
+> [`docs/seeds2/VERIFICACAO_PISO1.md`](docs/seeds2/VERIFICACAO_PISO1.md). O conteúdo abaixo descreve os
+> modelos e o console V1.5/V1.6, que continuam disponíveis (Simulação e bancadas individuais).
+
 # Energy MultiModel V1.5 · EMS integrado
 
 Aplicação modular para análise energética de **Solar, Eólica, Térmica, Bateria e H₂ / PEMFC**, agora com o **EMS de despacho multifonte integrado**. O Orchestrator permanece como entrada principal; os modelos físicos continuam independentes e o EMS reutiliza suas séries para construir envelopes, custos e restrições de despacho.
