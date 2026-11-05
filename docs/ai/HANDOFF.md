@@ -2,12 +2,12 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-piso1-microrrede` (PR hacia `main`, pendiente de revisión) · **estado:** SEEDS2 v2.0 — Piso 1 implementado y verificado en la rama; **no integrado en `main`**.
+**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-piso1-microrrede` · **PR [#3](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/3)** (pendiente de revisión; sin merge) · **estado:** SEEDS2 v2.0 — Piso 1 implementado y verificado en la rama; **no integrado en `main`**.
 
 ## 1. Estado actual
 
 - `main` (`f70dd94`): base V1.6 + PR #1 (tests UI V1.6, `CLAUDE.md`) + PR #2 (protocolo de relevo).
-- Rama `claude/seeds2-piso1-microrrede`: **Piso 1 — configuración e instalación de una microrrede** (PR de esta misión; ver sección 2).
+- Rama `claude/seeds2-piso1-microrrede` (PR #3): **Piso 1 — configuración e instalación de una microrrede** (PR de esta misión; ver sección 2).
 - Arquitectura: `app.py` → shell `seeds2/ui/` (Comissionamento → Início · Gestão da Microrrede · Simulação · Resultados · Alcance); Simulação/Resultados embeben el console V1.6 (`orchestrator_app.py`). Backend sin UI en `seeds2/microgrid/` (referencias, documento/validación, SQLite, adaptador). Detalles: `docs/seeds2/ARQUITETURA_PISO1.md`.
 - EMS y modelos científicos **sin cambios**. No presentar la aplicación como operación en tiempo real ni validación física experimental.
 
