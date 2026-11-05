@@ -165,6 +165,15 @@ class MissingStoreError(StoreError):
     """O banco da microrrede não existe (p. ex. excluída por outra sessão)."""
 
 
+class MicrogridDeletedError(MissingStoreError):
+    """A microrrede foi excluída (lápide gravada no próprio banco) ou substituída por outra incarnação com o
+    mesmo UID. Nenhuma leitura ou gravação é aceita por referências antigas."""
+
+
+LIFECYCLE_KEY = "lifecycle"          # meta: lápide gravada pela exclusão (sob o bloqueio de escrita do banco)
+INCARNATION_KEY = "incarnation"      # meta: identifica ESTA incarnação da microrrede (gravada ao entrar no catálogo)
+
+
 @dataclass(frozen=True)
 class Stored:
     config: dict
@@ -256,13 +265,24 @@ class MicrogridStore:
       (uma microrrede excluída nunca é recriada vazia por uma sessão que ainda a referencie);
     * ``fixed_uid``: identidade imutável do armazenamento; qualquer gravação de documento de outra
       instalação é recusada (mesmo com ``allow_identity_change``), mantendo catálogo, diretório e documento
-      coerentes."""
+      coerentes;
+    * ``incarnation``: incarnação esperada (gravada em ``meta`` quando a microrrede entra no catálogo). Uma
+      referência antiga a uma microrrede excluída e reimportada com o MESMO UID é recusada.
+
+    **Exclusão concorrente (H-01).** Toda transação de escrita verifica, DEPOIS de obter o bloqueio de escrita
+    (``BEGIN IMMEDIATE``) e na mesma transação, a lápide ``meta.lifecycle`` e a incarnação. A exclusão grava a
+    lápide sob esse mesmo bloqueio; portanto cada gravação ou é confirmada ANTES da lápide (e a exclusão espera
+    por ela) ou é recusada com ``MicrogridDeletedError`` — nunca confirmada em silêncio numa microrrede excluída.
+    Leituras também recusam microrredes com lápide. Com ``must_exist`` as conexões usam ``mode=rw``: o SQLite
+    nunca recria um banco vazio no lugar de uma microrrede removida."""
 
     def __init__(self, data_dir: str | os.PathLike | None = None, *, must_exist: bool = False,
-                 fixed_uid: str | None = None):
+                 fixed_uid: str | None = None, incarnation: str | None = None):
         self.data_dir = resolve_data_dir(data_dir)
         self.path = self.data_dir / DB_FILENAME
         self.fixed_uid = fixed_uid
+        self.incarnation = incarnation
+        self._must_exist = must_exist
         if must_exist:
             if not self.path.is_file():
                 raise MissingStoreError(f"Armazenamento da microrrede não encontrado em {self.data_dir}.")
@@ -272,22 +292,47 @@ class MicrogridStore:
 
     # ------------------------------------------------------------ conexão / migração
     def _connect(self) -> sqlite3.Connection:
-        con = sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
+        if self._must_exist:
+            if not self.path.is_file():
+                raise MicrogridDeletedError("A microrrede não existe mais (excluída em outra sessão).")
+            try:            # mode=rw: se o arquivo sumir, falha — nunca cria um banco vazio
+                con = sqlite3.connect(self.path.as_uri() + "?mode=rw", uri=True, timeout=10.0, isolation_level=None)
+            except sqlite3.OperationalError:
+                raise MicrogridDeletedError("A microrrede não existe mais (excluída em outra sessão).") from None
+        else:
+            con = sqlite3.connect(self.path, timeout=10.0, isolation_level=None)
         con.row_factory = sqlite3.Row
         ensure_wal(con)
         con.execute("PRAGMA busy_timeout=10000")
         con.execute("PRAGMA foreign_keys=ON")
         return con
 
+    def _check_alive(self, con: sqlite3.Connection) -> None:
+        """Recusa operar numa microrrede com lápide ou de outra incarnação (ver docstring da classe)."""
+        try:
+            rows = {r[0]: r[1] for r in con.execute(
+                "SELECT key, value FROM meta WHERE key IN (?, ?)", (LIFECYCLE_KEY, INCARNATION_KEY)).fetchall()}
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc):            # banco ainda vazio (antes da primeira migração)
+                return
+            raise
+        if rows.get(LIFECYCLE_KEY):
+            raise MicrogridDeletedError("A microrrede foi excluída; nenhuma leitura ou gravação é aceita.")
+        if self.incarnation is not None and rows.get(INCARNATION_KEY) != self.incarnation:
+            raise MicrogridDeletedError("A microrrede aberta foi excluída e substituída por outra com o mesmo "
+                                        "identificador; reabra-a pelo Gestor.")
+
     @contextmanager
     def _tx(self) -> Iterator[sqlite3.Connection]:
         con = self._connect()
         try:
-            con.execute("BEGIN IMMEDIATE")
+            con.execute("BEGIN IMMEDIATE")              # bloqueio de escrita desta microrrede (ponto de serialização)
+            self._check_alive(con)                      # lápide/incarnação verificadas SOB o bloqueio
             yield con
             con.execute("COMMIT")
         except BaseException:
-            con.execute("ROLLBACK")
+            if con.in_transaction:
+                con.execute("ROLLBACK")
             raise
         finally:
             con.close()
@@ -296,9 +341,16 @@ class MicrogridStore:
     def _read(self) -> Iterator[sqlite3.Connection]:
         con = self._connect()
         try:
+            self._check_alive(con)
             yield con
         finally:
             con.close()
+
+    def stamp_incarnation(self, incarnation: str) -> str:
+        """Grava a incarnação (se ainda não houver) e devolve a efetivamente gravada (idempotente entre processos)."""
+        with self._tx() as con:
+            con.execute("INSERT OR IGNORE INTO meta(key, value) VALUES (?, ?)", (INCARNATION_KEY, incarnation))
+            return con.execute("SELECT value FROM meta WHERE key = ?", (INCARNATION_KEY,)).fetchone()[0]
 
     def db_version(self) -> int:
         with self._read() as con:
@@ -325,6 +377,7 @@ class MicrogridStore:
         try:
             try:
                 con.execute("BEGIN IMMEDIATE")
+                self._check_alive(con)
                 current = int(con.execute("PRAGMA user_version").fetchone()[0])
                 pending = [(v, stmts) for v, stmts in MIGRATIONS if v > current]
                 if not pending:
@@ -348,6 +401,8 @@ class MicrogridStore:
                 raise
         except sqlite3.Error as exc:
             raise StoreError(f"Migração do banco interrompida (banco mantido na versão anterior): {exc}") from None
+        except MissingStoreError:
+            raise                                       # microrrede excluída/substituída: o tipo é preservado
         except StoreError as exc:
             msg = str(exc)
             if "banco mantido na versão anterior" not in msg:
@@ -811,6 +866,7 @@ def default_store() -> MicrogridStore:
     return MicrogridStore()
 
 
-__all__: list[Any] = ["BackupInspection", "ConflictError", "IdentityError", "MicrogridStore", "MissingStoreError", "Stored",
+__all__: list[Any] = ["BackupInspection", "ConflictError", "IdentityError", "MicrogridDeletedError", "MicrogridStore",
+                      "MissingStoreError", "Stored",
                       "StoreError", "ValidationError", "backup_filename", "default_store", "inspect_backup_data",
                       "resolve_data_dir", "sqlite_backup_copy"]

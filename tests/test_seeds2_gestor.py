@@ -34,7 +34,7 @@ from seeds2.microgrid import registry as R
 from seeds2.microgrid.admin import DeletionPolicy, deletion_policy
 from seeds2.microgrid.registry import (LegacyAdoptionError, MicrogridNotFound, MicrogridRegistry, RegistryError,
                                        card_summary)
-from seeds2.microgrid.store import IdentityError, MicrogridStore, StoreError, backup_filename
+from seeds2.microgrid.store import IdentityError, MicrogridDeletedError, MicrogridStore, StoreError, backup_filename
 from seeds2_fixtures import V1_BACKUP, V1_CONFIG, battery_params, module_array, pv_plant, v16_equivalent_config
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -336,7 +336,7 @@ class ExclusaoTest(_Tmp):
         a = self.make(reg, "A")
         cached = reg.open(a)                                              # como o cache de outra sessão
         reg.delete(a)
-        with self.assertRaises(sqlite3.Error):
+        with self.assertRaises(MicrogridDeletedError):                    # erro explícito do domínio (H-01)
             cached.load()
         self.assertFalse(reg.dir_for(a).exists())
         with self.assertRaises(StoreError):
@@ -410,6 +410,7 @@ class CriacaoRecuperavelTest(_Tmp):
         foreign.mkdir()                                                    # nome fora do padrão: nunca tocado
         MicrogridRegistry(self.dir)
         self.assertFalse(orphan.exists())
+        self.assertEqual([p.name.split("-")[0] for p in reg.quarantine_dir.iterdir()], ["f" * 32])   # preservado
         self.assertFalse(stale.exists())
         self.assertTrue(fresh.exists())
         self.assertTrue(foreign.exists())

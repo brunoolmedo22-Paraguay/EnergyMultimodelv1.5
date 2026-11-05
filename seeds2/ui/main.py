@@ -10,7 +10,7 @@ from typing import Callable
 import streamlit as st
 
 from seeds2.microgrid.registry import MicrogridNotFound, valid_uid
-from seeds2.microgrid.store import StoreError
+from seeds2.microgrid.store import MissingStoreError, StoreError
 
 from . import commissioning, gestor, home, management, operations, scope, session, shell
 
@@ -29,6 +29,14 @@ def _restore_from_url() -> None:
         shell.route()["view"] = view
 
 
+def _gone() -> None:
+    """A microrrede aberta foi excluída (ou substituída) por outra sessão: volta ao Gestor sem recriar nada."""
+    session.close_microgrid(("warn", "A microrrede que estava aberta nesta sessão foi excluída (em outra sessão) "
+                                      "ou não está mais disponível. Nenhum dado foi recriado."))
+    shell.go("gestor")
+    st.rerun()
+
+
 def render(legacy_css: Callable[[], None]) -> None:
     ss = st.session_state
     try:
@@ -43,11 +51,8 @@ def render(legacy_css: Callable[[], None]) -> None:
     _restore_from_url()
     try:
         saved = session.sync()
-    except MicrogridNotFound:
-        session.close_microgrid(("warn", "A microrrede que estava aberta nesta sessão foi excluída (em outra sessão) "
-                                          "ou não está mais disponível. Nenhum dado foi recriado."))
-        shell.go("gestor")
-        st.rerun()
+    except (MicrogridNotFound, MissingStoreError):
+        _gone()
     except StoreError as exc:
         shell.global_css()
         st.error(f"Armazenamento da microrrede indisponível: {shell.md(exc)}")
@@ -88,15 +93,20 @@ def render(legacy_css: Callable[[], None]) -> None:
     shell.topbar(view=view, items=items, site=label, site_title=f"Microrrede {inst.get('uid', '')}" if is_open else "",
                  save=session.save_status() if is_open else {"state": "novo", "text": ""}, force_light=legacy,
                  home=home_view, switch=is_open)
-    if view == "gestor":
-        gestor.render()
-    elif view == "comissionamento":
-        commissioning.render()
-    elif view == "alcance":
-        scope.render()
-    elif view == "gestao":
-        management.render()
-    elif legacy:
-        operations.render(view, legacy_css)
-    else:
-        home.render()
+    try:
+        if view == "gestor":
+            gestor.render()
+        elif view == "comissionamento":
+            commissioning.render()
+        elif view == "alcance":
+            scope.render()
+        elif view == "gestao":
+            management.render()
+        elif legacy:
+            operations.render(view, legacy_css)
+        else:
+            home.render()
+    except (MicrogridNotFound, MissingStoreError):      # excluída durante a execução desta página (H-01)
+        if uid is None:
+            raise
+        _gone()

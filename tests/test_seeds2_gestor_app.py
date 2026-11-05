@@ -218,6 +218,27 @@ class IsolamentoSessaoTest(_Base):
         self.assertFalse(self.reg().dir_for(a).exists())                  # nada recriado
         self.assertEqual([e.uid for e in self.reg().entries()], [b])
 
+    def test_sessao_antiga_nao_escreve_na_microrrede_reimportada_com_o_mesmo_uid(self):   # H-01
+        a = self.make("Original")
+        reg = self.reg()
+        z = reg.open(a).export_backup()
+        app = self.session(a, "gestao")
+        self.assertEqual(app.session_state["mg_active_inc"], reg.get(a).incarnation)
+        app.session_state["mg_work"]["installation"]["description"] = "edição pendente da sessão antiga"
+        app.run()
+        _ok(self, app)
+        reg.delete(a)                                                     # outra sessão exclui...
+        reg.import_new(z)                                                 # ...e reimporta o MESMO uid
+        app.run()
+        _ok(self, app)
+        self.assertEqual(app.session_state["seeds_route"]["view"], "gestor")
+        self.assertNotIn("mg_active_uid", app.session_state)
+        self.assertTrue(any("excluída" in w.value for w in app.warning))
+        fresh = self.reg().open(a).load()
+        self.assertEqual(fresh.revision, 1)
+        self.assertNotEqual(fresh.config["installation"]["description"], "edição pendente da sessão antiga")
+
+
 class ExportacaoExclusaoTest(_Base):
     def test_zip_e_pdf_pelo_gestor_sem_abrir_a_microrrede(self):         # requisitos 12–13
         from pypdf import PdfReader

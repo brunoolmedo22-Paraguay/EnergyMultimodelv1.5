@@ -19,9 +19,16 @@ Protocolo recuperável (várias bases SQLite + sistema de arquivos — não há 
   confirmação é ``rename(staging → microgrids/<uid>)`` + ``INSERT`` no catálogo, ambos sob o bloqueio de
   escrita do catálogo. Falha antes da confirmação → nada aparece no catálogo; diretório órfão (sem linha
   no catálogo) é movido para ``.trash`` na próxima abertura.
-* **excluir**: linha marcada ``deleting`` (a microrrede some do Gestor e não pode mais ser aberta) →
-  diretório movido para ``.trash`` → linha removida → ``.trash`` esvaziado. Uma interrupção em qualquer
-  ponto é concluída por ``recover()``.
+* **excluir** (H-01): (1) **lápide** ``meta.lifecycle`` gravada no banco da microrrede sob o SEU bloqueio de
+  escrita — espera gravações em andamento terminarem; depois do COMMIT toda leitura/gravação (de qualquer
+  sessão ou processo, inclusive referências antigas) é recusada; (2) linha marcada ``deleting`` no catálogo
+  (exatamente UM excluidor vence); (3) diretório movido para ``.trash`` + linha removida; (4) ``.trash``
+  esvaziado. Interrupção em qualquer ponto → ``recover()`` conclui (só exclusões com lápide confirmada).
+* **ordem de bloqueios**: L1 = escrita do catálogo (``registry.db``), L2 = escrita de UMA microrrede. Nunca
+  se adquire L2 de uma microrrede do catálogo segurando L1, nem L1 segurando L2 (sem impasse). Bancos em
+  ``.staging`` são privados da operação e podem ser escritos sob L1. Excluir A não toma L2 de nenhuma outra.
+* **incarnação**: cada entrada recebe um token gravado no catálogo e no banco (``meta.incarnation``); uma
+  referência antiga a uma microrrede excluída e reimportada com o MESMO UID é recusada.
 * **adotar o armazenamento anterior**: cópia consistente pela API de backup do SQLite (inclui o ``-wal``),
   verificação de contagens (revisões, blobs, rodadas) e confirmação como acima. O arquivo anterior NUNCA é
   alterado; a adoção é marcada no catálogo e não se repete.
@@ -44,13 +51,15 @@ from pathlib import Path
 from typing import Any, Callable, Iterator
 
 from . import config as C
-from .store import (DB_FILENAME, BackupInspection, MicrogridStore, MissingStoreError, Stored, StoreError,
+from .store import (DB_FILENAME, LIFECYCLE_KEY, BackupInspection, MicrogridStore, MissingStoreError, Stored, StoreError,
                     ensure_wal, inspect_backup_data, resolve_data_dir, sqlite_backup_copy)
 
 REGISTRY_FILENAME = "registry.db"
 MICROGRIDS_DIR = "microgrids"
 STAGING_DIR = ".staging"
 TRASH_DIR = ".trash"
+QUARANTINE_DIR = ".quarantine"                # diretórios sem linha no catálogo: guardados, nunca apagados sozinhos
+DELETE_LOCK_TIMEOUT_S = 30.0                  # espera máxima por gravações em andamento antes da lápide
 LEGACY_FILENAME = DB_FILENAME                 # SEEDS2_DATA_DIR/seeds2.db (Piso 1 e refinamento)
 STAGING_MAX_AGE_S = 3600.0                    # preparação abandonada (outro processo nunca demora tanto)
 UID_RE = re.compile(r"[0-9a-f]{32}")
@@ -70,6 +79,9 @@ REGISTRY_MIGRATIONS: list[tuple[int, list[str]]] = [
                note TEXT NOT NULL DEFAULT '')""",
     ]),
 ]
+REGISTRY_MIGRATIONS.append(
+    # v2 (hotfix H-01): incarnação de cada entrada (preenchida para entradas existentes na abertura)
+    (2, ["""ALTER TABLE microgrids ADD COLUMN incarnation TEXT"""]))
 LATEST_REGISTRY_VERSION = REGISTRY_MIGRATIONS[-1][0]
 
 
@@ -94,6 +106,7 @@ class Entry:
     source_uid: str | None
     source_fingerprint: str | None
     note: str
+    incarnation: str | None = None
 
 
 def valid_uid(uid: Any) -> bool:
@@ -116,10 +129,12 @@ class MicrogridRegistry:
         self.microgrids_dir = self.root / MICROGRIDS_DIR
         self.staging_dir = self.root / STAGING_DIR
         self.trash_dir = self.root / TRASH_DIR
+        self.quarantine_dir = self.root / QUARANTINE_DIR
         for d in (self.microgrids_dir, self.staging_dir, self.trash_dir):
             d.mkdir(exist_ok=True)
         self._migrate()
         self.recover()
+        self._backfill_incarnations()
         if adopt_legacy:
             self.adopt_legacy()
 
@@ -170,12 +185,15 @@ class MicrogridRegistry:
     def dir_for(self, uid: str) -> Path:
         return self.microgrids_dir / _check_uid(uid)
 
-    def _move_to_trash(self, path: Path) -> None:
-        """Move um diretório DESTE catálogo para ``.trash`` (rename atômico no mesmo sistema de arquivos)."""
+    def _move_to_trash(self, path: Path, *, quarantine: bool = False) -> None:
+        """Move um diretório DESTE catálogo para ``.trash`` (ou ``.quarantine``) — rename atômico no mesmo
+        sistema de arquivos."""
         if path.parent not in (self.microgrids_dir, self.staging_dir) or path.is_symlink():
             raise RegistryError(f"Recusado: {path} não pertence ao armazenamento do SEEDS2.")
         if path.exists():
-            os.rename(path, self.trash_dir / f"{path.name}-{uuid.uuid4().hex[:8]}")
+            dest = self.quarantine_dir if quarantine else self.trash_dir
+            dest.mkdir(exist_ok=True)
+            os.rename(path, dest / f"{path.name}-{uuid.uuid4().hex[:8]}")
 
     def _purge_trash(self) -> None:
         for item in list(self.trash_dir.iterdir()):
@@ -193,16 +211,43 @@ class MicrogridRegistry:
 
     # ------------------------------------------------------------ recuperação
     def recover(self) -> None:
-        """Conclui exclusões interrompidas, descarta diretórios órfãos (sem linha no catálogo: operação que
-        não chegou à confirmação) e preparações abandonadas. Nunca toca em nomes fora do padrão de UID."""
+        """Conclui exclusões interrompidas e descarta preparações abandonadas. Idempotente: executar de novo não
+        remove nada além do que já estava em exclusão confirmada.
+
+        * fase A (sem L1): garante a lápide das linhas ``deleting`` (versões antigas/interrupções) e detecta
+          microrredes ``ready`` com lápide (exclusão interrompida antes de reivindicar a linha);
+        * fase B (sob L1): para essas — e SOMENTE essas — move o diretório para ``.trash`` e remove a linha;
+          diretórios sem linha no catálogo vão para ``.quarantine`` (preservados, nunca apagados sozinhos);
+        * preparações em ``.staging`` com mais de 1 h e o ``.trash`` são esvaziados.
+        Uma exclusão cuja lápide ainda não pôde ser gravada (gravação longa em andamento) fica para a próxima
+        abertura; enquanto isso a microrrede continua inacessível pelo catálogo (``deleting``)."""
+        with self._read() as con:
+            rows = [(r["uid"], r["state"]) for r in con.execute("SELECT uid, state FROM microgrids").fetchall()]
+        finishing: set[str] = set()
+        for uid, state in rows:
+            if not valid_uid(uid):
+                continue
+            if state == "deleting":
+                try:
+                    self._tombstone(uid, timeout_s=2.0)
+                except RegistryError:
+                    continue                            # gravação em andamento: tenta na próxima abertura
+                finishing.add(uid)
+            elif self._lifecycle(uid) == "deleted":
+                finishing.add(uid)
         with self._tx() as con:
-            for row in con.execute("SELECT uid FROM microgrids WHERE state = 'deleting'").fetchall():
-                self._move_to_trash(self.dir_for(row["uid"]))
-                con.execute("DELETE FROM microgrids WHERE uid = ?", (row["uid"],))
+            for uid in sorted(finishing):
+                row = con.execute("SELECT state FROM microgrids WHERE uid = ?", (uid,)).fetchone()
+                if row is None:
+                    continue
+                if row["state"] == "ready" and self._lifecycle(uid) != "deleted":
+                    continue
+                self._move_to_trash(self.dir_for(uid))
+                con.execute("DELETE FROM microgrids WHERE uid = ?", (uid,))
             known = {r["uid"] for r in con.execute("SELECT uid FROM microgrids").fetchall()}
             for item in self.microgrids_dir.iterdir():
                 if valid_uid(item.name) and item.name not in known and item.is_dir() and not item.is_symlink():
-                    self._move_to_trash(item)
+                    self._move_to_trash(item, quarantine=True)
         now = time.time()
         for item in list(self.staging_dir.iterdir()):
             try:
@@ -212,11 +257,70 @@ class MicrogridRegistry:
                 pass
         self._purge_trash()
 
+    def _backfill_incarnations(self) -> None:
+        """Entradas criadas antes do hotfix H-01 recebem incarnação (banco primeiro, catálogo depois; seguro
+        entre processos: ``INSERT OR IGNORE`` no banco e ``UPDATE ... WHERE incarnation IS NULL``)."""
+        with self._read() as con:
+            uids = [r["uid"] for r in con.execute(
+                "SELECT uid FROM microgrids WHERE state = 'ready' AND incarnation IS NULL").fetchall()]
+        for uid in uids:
+            try:
+                inc = MicrogridStore(self.dir_for(uid), must_exist=True, fixed_uid=uid).stamp_incarnation(uuid.uuid4().hex)
+            except StoreError:
+                continue
+            with self._tx() as con:
+                con.execute("UPDATE microgrids SET incarnation = ? WHERE uid = ? AND incarnation IS NULL", (inc, uid))
+
+    # ------------------------------------------------------------ lápide (bloqueio L2 da microrrede)
+    def _mg_db(self, uid: str) -> Path:
+        return self.dir_for(uid) / DB_FILENAME
+
+    def _lifecycle(self, uid: str) -> str | None:
+        """Estado gravado no banco da microrrede: "deleted" (lápide), "missing" (sem banco) ou None (ativa)."""
+        db = self._mg_db(uid)
+        if not db.is_file():
+            return "missing"
+        try:
+            con = sqlite3.connect(db.as_uri() + "?mode=ro", uri=True, timeout=10.0)
+        except sqlite3.OperationalError:
+            return "missing"
+        try:
+            row = con.execute("SELECT value FROM meta WHERE key = ?", (LIFECYCLE_KEY,)).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        finally:
+            con.close()
+        return "deleted" if row else None
+
+    def _tombstone(self, uid: str, timeout_s: float = DELETE_LOCK_TIMEOUT_S) -> bool:
+        """Transição crítica da exclusão, sob o bloqueio de escrita (L2) DESTA microrrede: espera as gravações
+        em andamento terminarem (``busy_timeout``) e grava a lápide. Depois do COMMIT nenhuma gravação é aceita.
+        Devolve False se o banco não existe. Falha ao obter o bloqueio → ``RegistryError`` e NADA é alterado."""
+        db = self._mg_db(uid)
+        if not db.is_file():
+            return False
+        try:
+            con = sqlite3.connect(db.as_uri() + "?mode=rw", uri=True, timeout=timeout_s, isolation_level=None)
+        except sqlite3.OperationalError:
+            return False
+        try:
+            con.execute("BEGIN IMMEDIATE")
+            con.execute("INSERT OR IGNORE INTO meta(key, value) VALUES (?, ?)",
+                        (LIFECYCLE_KEY, json.dumps({"state": "deleted", "at": C.utc_now()})))
+            con.execute("COMMIT")
+            return True
+        except sqlite3.OperationalError as exc:
+            raise RegistryError(f"A microrrede está em uso (gravação em andamento); nada foi excluído. ({exc})") from None
+        finally:
+            if con.in_transaction:
+                con.execute("ROLLBACK")
+            con.close()
+
     # ------------------------------------------------------------ consulta
     @staticmethod
     def _entry(row: sqlite3.Row) -> Entry:
         return Entry(row["uid"], row["state"], row["origin"], row["created_at"], row["source_uid"],
-                     row["source_fingerprint"], row["note"])
+                     row["source_fingerprint"], row["note"], row["incarnation"])
 
     def entries(self) -> list[Entry]:
         with self._read() as con:
@@ -234,11 +338,12 @@ class MicrogridRegistry:
         return self.get(uid) is not None
 
     def open(self, uid: str) -> MicrogridStore:
-        """Armazenamento de uma microrrede EXISTENTE. Nunca cria diretório nem banco."""
-        if self.get(uid) is None:
+        """Armazenamento de uma microrrede EXISTENTE, ligado à sua incarnação. Nunca cria diretório nem banco."""
+        entry = self.get(uid)
+        if entry is None:
             raise MicrogridNotFound("A microrrede não existe mais no catálogo (pode ter sido excluída em outra sessão).")
         try:
-            return MicrogridStore(self.dir_for(uid), must_exist=True, fixed_uid=uid)
+            return MicrogridStore(self.dir_for(uid), must_exist=True, fixed_uid=uid, incarnation=entry.incarnation)
         except MissingStoreError:
             raise MicrogridNotFound("O armazenamento da microrrede não foi encontrado (excluída em outra sessão?).") from None
 
@@ -257,9 +362,11 @@ class MicrogridRegistry:
         staging = self._new_staging()
         try:
             result = build(MicrogridStore(staging, fixed_uid=uid))
-            check = MicrogridStore(staging, must_exist=True, fixed_uid=uid).load()
+            prepared = MicrogridStore(staging, must_exist=True, fixed_uid=uid)
+            check = prepared.load()
             if check is None or check.config["installation"]["uid"] != uid:
                 raise RegistryError("Preparação da microrrede inconsistente; nada foi registrado.")
+            incarnation = prepared.stamp_incarnation(uuid.uuid4().hex)
             target = self.dir_for(uid)
             con = self._connect()
             try:
@@ -267,12 +374,12 @@ class MicrogridRegistry:
                 if con.execute("SELECT 1 FROM microgrids WHERE uid = ?", (uid,)).fetchone():
                     raise RegistryError("Já existe uma microrrede com esta identidade no catálogo.")
                 if target.exists():                       # órfão de operação interrompida (sem linha no catálogo)
-                    self._move_to_trash(target)
+                    self._move_to_trash(target, quarantine=True)
                 os.rename(staging, target)
                 try:
-                    con.execute("INSERT INTO microgrids(uid, state, origin, created_at, source_uid, source_fingerprint, note) "
-                                "VALUES (?,?,?,?,?,?,?)", (uid, "ready", origin, C.utc_now(), source_uid,
-                                                           source_fingerprint, note[:500]))
+                    con.execute("INSERT INTO microgrids(uid, state, origin, created_at, source_uid, source_fingerprint, note, "
+                                "incarnation) VALUES (?,?,?,?,?,?,?,?)", (uid, "ready", origin, C.utc_now(), source_uid,
+                                                                          source_fingerprint, note[:500], incarnation))
                     if on_commit is not None:
                         on_commit(con)
                     con.execute("COMMIT")
@@ -350,29 +457,29 @@ class MicrogridRegistry:
         return store.restore_backup(data, expected_revision, confirm=True)
 
     # ------------------------------------------------------------ excluir
-    def delete(self, uid: str) -> None:
+    def delete(self, uid: str, *, lock_timeout_s: float = DELETE_LOCK_TIMEOUT_S) -> None:
         """Exclusão DEFINITIVA dos dados desta microrrede (configuração, revisões, blobs, rodadas, cópias).
-        Somente o diretório ``microgrids/<uid>`` é removido; o restante do catálogo não é tocado."""
+        Somente o diretório ``microgrids/<uid>`` é removido; o restante do catálogo não é tocado.
+
+        Protocolo H-01 (sem bloqueios aninhados): lápide sob L2 da microrrede → reivindicação sob L1 (um único
+        vencedor) → remoção física sob L1. Gravações confirmadas antes da lápide terminam antes da remoção;
+        posteriores são recusadas. Se a lápide não puder ser gravada (gravação longa), nada muda."""
         uid = _check_uid(uid)
         if self.get(uid) is None:
             raise MicrogridNotFound("A microrrede não existe mais no catálogo.")
-        db = self.dir_for(uid) / DB_FILENAME
-        if db.is_file():                                   # aguarda gravação em andamento (sem segurar o bloqueio)
-            mcon = sqlite3.connect(db, timeout=10.0, isolation_level=None)
-            try:
-                mcon.execute("BEGIN IMMEDIATE")
-                mcon.execute("ROLLBACK")
-            except sqlite3.OperationalError as exc:
-                raise RegistryError(f"A microrrede está em uso (gravação em andamento); tente novamente. ({exc})") from None
-            finally:
-                mcon.close()
-        with self._tx() as con:
+        self._tombstone(uid, timeout_s=lock_timeout_s)          # (1) L2 — início efetivo da exclusão
+        with self._tx() as con:                                 # (2) L1 — exatamente um excluidor vence
             cur = con.execute("UPDATE microgrids SET state = 'deleting' WHERE uid = ? AND state = 'ready'", (uid,))
             if cur.rowcount != 1:
-                raise MicrogridNotFound("A microrrede não existe mais no catálogo.")
+                raise MicrogridNotFound("A microrrede já foi excluída (por outra operação).")
+        self._finish_deletion(uid)                               # (3) L1 — remoção física
+
+    def _finish_deletion(self, uid: str) -> None:
         with self._tx() as con:
-            self._move_to_trash(self.dir_for(uid))
-            con.execute("DELETE FROM microgrids WHERE uid = ? AND state = 'deleting'", (uid,))
+            row = con.execute("SELECT state FROM microgrids WHERE uid = ?", (uid,)).fetchone()
+            if row is not None and row["state"] == "deleting":
+                self._move_to_trash(self.dir_for(uid))
+                con.execute("DELETE FROM microgrids WHERE uid = ? AND state = 'deleting'", (uid,))
         self._purge_trash()
 
     # ------------------------------------------------------------ adoção do armazenamento anterior ao Gestor
@@ -404,16 +511,17 @@ class MicrogridRegistry:
                     con.execute("INSERT INTO meta(key, value) VALUES ('legacy_adoption', ?)", (marker,))
                     con.execute("COMMIT")
                     return uid
+                incarnation = MicrogridStore(staging, must_exist=True, fixed_uid=uid).stamp_incarnation(uuid.uuid4().hex)
                 target = self.dir_for(uid)
                 if target.exists():
-                    self._move_to_trash(target)
+                    self._move_to_trash(target, quarantine=True)
                 os.rename(staging, target)
                 try:
                     note = (f"Adotada do armazenamento anterior ao Gestor ({LEGACY_FILENAME}, revisão "
                             f"{info['legacy_revision']}); o arquivo original foi mantido intacto.")
-                    con.execute("INSERT INTO microgrids(uid, state, origin, created_at, source_uid, source_fingerprint, note) "
-                                "VALUES (?,?,?,?,?,?,?)", (uid, "ready", "legacy", C.utc_now(), None,
-                                                           info["legacy_fingerprint"], note))
+                    con.execute("INSERT INTO microgrids(uid, state, origin, created_at, source_uid, source_fingerprint, note, "
+                                "incarnation) VALUES (?,?,?,?,?,?,?,?)", (uid, "ready", "legacy", C.utc_now(), None,
+                                                                          info["legacy_fingerprint"], note, incarnation))
                     con.execute("INSERT INTO meta(key, value) VALUES ('legacy_adoption', ?)", (marker,))
                     con.execute("COMMIT")
                 except BaseException:

@@ -24,12 +24,14 @@ from seeds2.microgrid import config as C
 from seeds2.microgrid.adapter import build_plan
 from seeds2.microgrid.references import KIND_LABELS
 from seeds2.microgrid.registry import MicrogridNotFound, MicrogridRegistry, valid_uid
-from seeds2.microgrid.store import ConflictError, MicrogridStore, Stored, StoreError, resolve_data_dir
+from seeds2.microgrid.store import (ConflictError, MicrogridStore, MissingStoreError, Stored, StoreError,
+                                    resolve_data_dir)
 
 from .shell import fmt_time
 
 
 ACTIVE_KEY = "mg_active_uid"
+INCARNATION_KEY = "mg_active_inc"     # incarnação aberta nesta sessão (excluída + reimportada com o mesmo UID ≠ a mesma)
 CREATING_KEY = "mg_creating"
 # Chaves que sobrevivem à troca de microrrede: rota (redefinida em seguida) e o aviso a exibir no Gestor.
 _KEEP_ON_SWITCH = ("seeds_route", "mg_flash")
@@ -41,8 +43,8 @@ def _registry_for(path: str) -> MicrogridRegistry:
 
 
 @st.cache_resource(show_spinner=False)
-def _store_for(path: str, uid: str) -> MicrogridStore:
-    return MicrogridStore(path, must_exist=True, fixed_uid=uid)
+def _store_for(path: str, uid: str, incarnation: str | None) -> MicrogridStore:
+    return MicrogridStore(path, must_exist=True, fixed_uid=uid, incarnation=incarnation)
 
 
 def registry() -> MicrogridRegistry:
@@ -68,9 +70,18 @@ def store() -> MicrogridStore:
     if uid is None:
         raise MicrogridNotFound("Nenhuma microrrede aberta nesta sessão.")
     reg = registry()
-    if not reg.exists(uid):
+    entry = reg.get(uid)
+    if entry is None:
         raise MicrogridNotFound("A microrrede não existe mais no catálogo (pode ter sido excluída em outra sessão).")
-    return _store_for(str(reg.dir_for(uid)), uid)
+    ss = _ss()
+    if ss.get(INCARNATION_KEY) is None:
+        ss[INCARNATION_KEY] = entry.incarnation         # liga a sessão à incarnação aberta
+    elif ss[INCARNATION_KEY] != entry.incarnation:
+        raise MicrogridNotFound("A microrrede aberta foi excluída e substituída por outra com o mesmo identificador.")
+    try:
+        return _store_for(str(reg.dir_for(uid)), uid, entry.incarnation)
+    except MissingStoreError:
+        raise MicrogridNotFound("A microrrede não existe mais (excluída em outra sessão).") from None
 
 
 def storage_label() -> str:
@@ -92,6 +103,7 @@ def open_microgrid(uid: str) -> bool:
         raise MicrogridNotFound("A microrrede não existe mais no catálogo.")
     reset_state()
     _ss()[ACTIVE_KEY] = uid
+    _ss()[INCARNATION_KEY] = registry().get(uid).incarnation if registry().get(uid) else None
     s = store().load()
     return bool(s and s.config.get("commissioning", {}).get("completed"))
 
@@ -110,7 +122,10 @@ def sync() -> Stored | None:
     if active_uid() is None:                           # Gestor, ou microrrede NOVA (só a cópia de trabalho da sessão)
         ss["mg_saved"] = None
         return None
-    saved = store().load()
+    try:
+        saved = store().load()
+    except MissingStoreError:                          # lápide/incarnação: referência antiga invalidada
+        raise MicrogridNotFound("A microrrede não existe mais (excluída em outra sessão).") from None
     ss["mg_saved"] = saved
     base_rev = int(ss.get("mg_base_rev") or 0)
     if saved is None:
@@ -158,6 +173,7 @@ def save(note: str = "", origin: str = "edit") -> bool:
         if active_uid() is None:                       # primeiro salvamento de uma microrrede NOVA → catálogo
             res = registry().create(w, note=note or "Comissionamento: identificação e localização", origin=origin)
             ss[ACTIVE_KEY] = res.config["installation"]["uid"]
+            ss[INCARNATION_KEY] = registry().get(ss[ACTIVE_KEY]).incarnation
             ss.pop(CREATING_KEY, None)
             st.query_params["mg"] = ss[ACTIVE_KEY]
         else:
