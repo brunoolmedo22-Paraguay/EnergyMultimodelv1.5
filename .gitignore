@@ -1,0 +1,22 @@
+# --- SEEDS2: dados locais da instalação (NUNCA versionar) ---
+# Banco da microrrede, revisões e dados importados ficam em SEEDS2_DATA_DIR (padrão ~/.seeds2).
+*.db
+*.db-wal
+*.db-shm
+*.db.bak-v*
+*.sqlite
+*.sqlite3
+seeds2_data/
+.seeds2/
+*.seeds2backup.zip
+
+# --- Python / ferramentas ---
+# (arquivos __pycache__ já versionados anteriormente continuam rastreados; limpeza pendente — ver HANDOFF)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# --- Saídas de verificação E2E ---
+tools/e2e/out/
