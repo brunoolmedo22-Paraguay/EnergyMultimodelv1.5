@@ -43,9 +43,10 @@ async function noErrors(p, tag) {
 }
 
 async function comissionar(b) {
-  const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+  const p = await b.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
   const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
   await p.goto(url); await ready(p);
+  await p.getByText("Configure a microrrede desta instalação").waitFor({ timeout: 60000 }).catch(() => {});
   assert(await p.getByText("Configure a microrrede desta instalação").isVisible(), "primeiro acesso abre o comissionamento");
   await shot(p, "e2e_01_primeiro_acesso.png");
   await p.getByLabel("Nome da instalação *").fill("Laboratório de Microrredes — Bloco C");
@@ -100,9 +101,10 @@ async function comissionar(b) {
 }
 
 async function reabrir(b) {
-  const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+  const p = await b.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
   const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
   await p.goto(url); await ready(p);
+  await p.locator(".tb-link").first().waitFor({ timeout: 60000 }).catch(() => {});
   assert(await p.getByText("Laboratório de Microrredes — Bloco C").first().isVisible(), "após reiniciar o servidor, abre a mesma microrrede");
   assert(await p.getByText("Configure a microrrede desta instalação").count() === 0, "o assistente não se repete");
   await shot(p, "e2e_10_inicio_apos_reinicio.png");
@@ -122,6 +124,8 @@ async function reabrir(b) {
   // Simulação: rodada EMS real com a configuração salva
   await p.locator(".tb-link", { hasText: "Simulação" }).click(); await ready(p);
   await p.getByRole("button", { name: "◎  Otimizador" }).click(); await ready(p);
+  await p.getByText(/^Configuração aplicada · revisão/).first().click(); await ready(p);   // abre o painel de procedência
+  assert(await p.getByText("Representado no EMS").first().isVisible(), "painel mostra a configuração aplicada ao EMS");
   await shot(p, "e2e_14_simulacao.png");
   await p.getByRole("button", { name: "▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO" }).click();
   await p.getByText("RESULTADOS DO OTIMIZADOR", { exact: true }).first().waitFor({ timeout: 180000 }); await ready(p);
@@ -164,8 +168,9 @@ async function reabrir(b) {
 
 async function tablet(b) {
   for (const [w, h, tag] of [[820, 1180, "retrato"], [1180, 820, "paisagem"]]) {
-    const p = await b.newPage({ viewport: { width: w, height: h } });
+    const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
     await p.goto(url); await ready(p);
+    await p.locator(".tb-link").first().waitFor({ timeout: 60000 });
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `tablet ${tag}: sem rolagem horizontal (${overflow}px)`);
     await shot(p, `e2e_20_tablet_${tag}_inicio.png`);
@@ -173,8 +178,9 @@ async function tablet(b) {
     await shot(p, `e2e_21_tablet_${tag}_gestao.png`);
     await p.close();
   }
-  const d = await b.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: "dark" });
+  const d = await b.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: "dark", deviceScaleFactor: 2 });
   await d.goto(url); await ready(d);
+  await d.locator(".tb-link").first().waitFor({ timeout: 60000 });
   await shot(d, "e2e_22_tema_escuro_inicio.png");
   await d.locator(".tb-link", { hasText: "Gestão da Microrrede" }).click(); await ready(d);
   await shot(d, "e2e_23_tema_escuro_gestao.png");

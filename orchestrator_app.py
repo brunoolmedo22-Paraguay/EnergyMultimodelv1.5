@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import copy
+from html import escape as html_escape
 
 import numpy as np
 import pandas as pd
@@ -185,7 +186,7 @@ def _overview_page() -> None:
         unsafe_allow_html=True,
     )
     st.markdown('<div class="readiness">'
-                f'<div class="ready-card"><small>1 · CARGA</small><b>✓ {carga.descricao}</b><span>{len(carga.P_kW)} passos de 1 min</span></div>'
+                f'<div class="ready-card"><small>1 · CARGA</small><b>✓ {html_escape(carga.descricao)}</b><span>{len(carga.P_kW)} passos de 1 min</span></div>'
                 f'<div class="ready-card"><small>2 · MODELOS</small><b>{len(active)} ativos</b><span>{" · ".join(active)}</span></div>'
                 f'<div class="ready-card"><small>3 · EMS</small><b>{"✓ Rodado" if item else "Pronto para rodar"}</b><span>{item["resultado"]["algoritmo"] if item else "configuração na página Otimizador"}</span></div>'
                 f'<div class="ready-card"><small>4 · SAÍDAS</small><b>{"Disponíveis" if item else "Aguardando"}</b><span>despacho · modelos · exportação</span></div>'

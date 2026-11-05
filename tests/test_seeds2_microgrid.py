@@ -308,6 +308,257 @@ class BackupTest(_TmpStore):
         self.assertEqual(self.store.load().revision, rev)            # nada foi alterado
 
 
+class BackupMaliciosoTest(_TmpStore):
+    """Entradas maliciosas ou estruturalmente incorretas: rejeição controlada, sem exceções e sem efeitos."""
+
+    def setUp(self):
+        super().setUp()
+        self.csv = b"t_min,P_kW\n" + b"".join(f"{i},{40 + (i % 7)}\n".encode() for i in range(60))
+        h = self.store.put_blob(self.csv, "carga.csv")
+        cfg = v16_equivalent_config()
+        cfg["demand"].update(source="csv", provenance="medido",
+                             csv={"blob": h, "filename": "carga.csv", "start_min": 0, "duration_min": 50})
+        self.saved = self.store.save(cfg, 0)
+        self.good = self.store.export_backup()
+        with zipfile.ZipFile(io.BytesIO(self.good)) as zf:
+            self.files = {n: zf.read(n) for n in zf.namelist()}
+        self.manifest = json.loads(self.files["manifest.json"])
+        self.blob_name = next(n for n in self.files if n.startswith("blobs/"))
+
+    @staticmethod
+    def _zip(entries, method=zipfile.ZIP_DEFLATED) -> bytes:
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", method) as zf:
+            for name, data in entries:
+                zf.writestr(name, data)
+        return buf.getvalue()
+
+    def _with(self, **replace) -> bytes:
+        files = {**self.files, **replace}
+        return self._zip(files.items())
+
+    def _consistent(self, cfg: dict) -> bytes:
+        """Configuração adulterada com hashes e impressão digital recalculados (passa a integridade)."""
+        from hashlib import sha256
+
+        body = json.dumps(cfg).encode()
+        m = copy.deepcopy(self.manifest)
+        m["files"]["configuration.json"] = sha256(body).hexdigest()
+        m["fingerprint"] = C.fingerprint(cfg)
+        return self._with(**{"configuration.json": body, "manifest.json": json.dumps(m).encode()})
+
+    def _assert_rejected(self, data, nome: str):
+        with self.subTest(nome):
+            rep = self.store.inspect_backup(data)                     # nunca levanta exceção
+            self.assertFalse(rep.ok, nome)
+            self.assertTrue(rep.errors, nome)
+            self.assertIsNone(rep.config)
+            self.assertEqual(rep.blobs, {})
+            with self.assertRaises(StoreError):
+                self.store.restore_backup(data, self.saved.revision, confirm=True, confirm_identity_change=True)
+
+    def _db_state(self):
+        with sqlite3.connect(self.store.path) as con:
+            return (con.execute("SELECT revision, fingerprint FROM microgrid").fetchall(),
+                    con.execute("SELECT COUNT(*) FROM revisions").fetchone()[0],
+                    con.execute("SELECT COUNT(*) FROM blobs").fetchone()[0])
+
+    def test_backup_valido_de_referencia_e_aceito(self):
+        self.assertTrue(self.store.inspect_backup(self.good).ok)
+
+    def test_zip_malformado_e_bombas(self):
+        import warnings
+
+        antes = self._db_state()
+        warnings.filterwarnings("ignore", "Duplicate name", UserWarning)  # ZIP duplicado é proposital
+        casos = {
+            "bytes aleatórios com assinatura PK": b"PK\x03\x04" + os.urandom(300),
+            "ZIP truncado": self.good[: len(self.good) // 2],
+            "ZIP vazio": self._zip([]),
+            "tipo não-bytes": "texto",
+            "entradas demais": self._zip([*self.files.items()] + [(f"blobs/{i:064x}", b"x") for i in range(20)]),
+            "entrada duplicada": self._zip([*self.files.items(), ("configuration.json", self.files["configuration.json"])]),
+            "diretório": self._zip([*self.files.items(), ("blobs/", b"")]),
+            "nome de blob inválido": self._zip([*self.files.items(), ("blobs/abc", b"x")]),
+            "caminho malicioso": self._zip([*self.files.items(), ("../fora.txt", b"x")]),
+            "bomba: JSON > limite": self._with(**{"history.json": b"[" + b" " * (9 * 1024 * 1024) + b"]"}),
+            "bomba: blob > limite": self._with(**{self.blob_name: b"0" * (51 * 1024 * 1024)}),
+            "compressão não suportada": self._zip(self.files.items(), method=zipfile.ZIP_LZMA),
+        }
+        for nome, data in casos.items():
+            self._assert_rejected(data, nome)
+        self.assertEqual(self._db_state(), antes)
+
+    def test_tamanho_declarado_falso_nao_engana_a_leitura(self):
+        # Entrada cujo cabeçalho declara 10 bytes, mas cujo conteúdo real é muito maior (CRC divergente).
+        big = b"[" + b" " * 2_000_000 + b"]"
+        data = bytearray(self._with(**{"history.json": big}))
+        size = len(big).to_bytes(4, "little")
+        assert data.count(size) == 2                                  # cabeçalho local + diretório central
+        data = bytes(data).replace(size, (10).to_bytes(4, "little"))
+        self._assert_rejected(data, "tamanho declarado falso")
+
+    def test_leitura_limitada_por_blocos(self):
+        from seeds2.microgrid.store import _BackupRejected
+
+        zf = zipfile.ZipFile(io.BytesIO(self.good))
+        info = zf.getinfo("configuration.json")
+        with self.assertRaises(_BackupRejected):
+            MicrogridStore._read_capped(zf, info, 100, [10**9])            # limite por entrada
+        with self.assertRaises(_BackupRejected):
+            MicrogridStore._read_capped(zf, info, 10**9, [100])            # limite do total descomprimido
+
+    def test_entrada_criptografada_e_rejeitada(self):
+        # Marca o bit "criptografado" (bit 0 dos flags) nos cabeçalhos local e central de todas as entradas.
+        data = bytearray(self.good)
+        for sig, off in ((b"PK\x03\x04", 6), (b"PK\x01\x02", 8)):
+            i = data.find(sig)
+            while i != -1:
+                data[i + off] |= 0x1
+                i = data.find(sig, i + 4)
+        self.assertTrue(all(i.flag_bits & 0x1 for i in zipfile.ZipFile(io.BytesIO(bytes(data))).infolist()))
+        self._assert_rejected(bytes(data), "criptografado")
+
+    def test_tipos_e_estrutura_do_manifesto(self):
+        m = self.manifest
+        variantes = {
+            "manifesto não-objeto": [1, 2],
+            "files como lista": {**m, "files": list(m["files"])},
+            "files vazio": {**m, "files": {}},
+            "files com hash não-hex": {**m, "files": {**m["files"], "configuration.json": "zz"}},
+            "files com entrada proibida": {**m, "files": {**m["files"], "../x": "0" * 64}},
+            "blobs como lista": {**m, "blobs": []},
+            "blobs com metadado não-objeto": {**m, "blobs": {k: "x" for k in m["blobs"]}},
+            "blobs com tamanho textual": {**m, "blobs": {k: {**v, "size": "10"} for k, v in m["blobs"].items()}},
+            "format_version texto": {**m, "format_version": "1"},
+            "db_schema_version texto": {**m, "db_schema_version": "x"},
+            "db_schema_version futura": {**m, "db_schema_version": 99},
+            "doc_schema_version ausente": {k: v for k, v in m.items() if k != "doc_schema_version"},
+            "revision booleana": {**m, "revision": True},
+            "revision negativa": {**m, "revision": -1},
+            "uid numérico": {**m, "installation_uid": 123},
+            "fingerprint numérica": {**m, "fingerprint": 123},
+            "created_at lista": {**m, "created_at": ["x"]},
+            "nome gigante": {**m, "installation_name": "x" * 10_000},
+            "uid divergente da configuração": {**m, "installation_uid": "0" * 32},
+        }
+        for nome, man in variantes.items():
+            self._assert_rejected(self._with(**{"manifest.json": json.dumps(man).encode()}), nome)
+        self._assert_rejected(self._with(**{"manifest.json": b"\xff\xfe nao utf8"}), "manifesto não-UTF-8")
+        self._assert_rejected(self._with(**{"manifest.json": b"{nao json"}), "manifesto não-JSON")
+
+    def test_configuracao_estruturalmente_incorreta(self):
+        base = json.loads(self.files["configuration.json"])
+        def mut(fn):
+            c = copy.deepcopy(base)
+            fn(c)
+            return c
+        variantes = {
+            "equipment como objeto": mut(lambda c: c.__setitem__("equipment", {})),
+            "equipment com inteiros": mut(lambda c: c.__setitem__("equipment", [1, 2])),
+            "referência como lista": mut(lambda c: c["equipment"][0]["params"].__setitem__("reference", ["x"])),
+            "parâmetro como objeto": mut(lambda c: c["equipment"][0]["params"].__setitem__("n_series", {"a": 1})),
+            "couplings como lista": mut(lambda c: c["topology"].__setitem__("couplings", [])),
+            "installation como texto": mut(lambda c: c.__setitem__("installation", "x")),
+            "natureza como lista": mut(lambda c: c["installation"].__setitem__("nature", ["industrial"])),
+            "demanda csv como texto": mut(lambda c: c["demand"].__setitem__("csv", "x")),
+            "walkforward como lista vazia": mut(lambda c: c["demand"].__setitem__("walkforward", [])),
+            "commissioning.completed texto": mut(lambda c: c["commissioning"].__setitem__("completed", "sim")),
+            "tag numérica": mut(lambda c: c["equipment"][0].__setitem__("tag", 7)),
+        }
+        for nome, cfg in variantes.items():
+            self.assertTrue(C.errors(C.validate(cfg)), nome)               # validação não levanta exceção
+            self._assert_rejected(self._consistent(cfg), nome)
+        cfg_list = [base]
+        from hashlib import sha256
+        body = json.dumps(cfg_list).encode()
+        m = copy.deepcopy(self.manifest)
+        m["files"]["configuration.json"] = sha256(body).hexdigest()
+        self._assert_rejected(self._with(**{"configuration.json": body, "manifest.json": json.dumps(m).encode()}),
+                              "configuração não-objeto")
+
+    def test_entradas_nao_declaradas_ou_nao_referenciadas(self):
+        from hashlib import sha256
+
+        extra = b"dado estranho"
+        d = sha256(extra).hexdigest()
+        self._assert_rejected(self._with(**{f"blobs/{d}": extra}), "blob não declarado no manifesto")
+        m = copy.deepcopy(self.manifest)
+        m["files"][f"blobs/{d}"] = d
+        self._assert_rejected(self._with(**{f"blobs/{d}": extra, "manifest.json": json.dumps(m).encode()}),
+                              "blob declarado mas não referenciado")
+        self._assert_rejected(self._with(**{"history.json": b'{"x": 1}'}), "history com estrutura inválida")
+
+
+class RestauracaoAtomicaTest(_TmpStore):
+    """A restauração grava dados de entrada e configuração na MESMA transação: tudo ou nada."""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = v16_equivalent_config("Instalação alvo")
+        self.store.save(self.cfg, 0)                                   # revisão 1, sem CSV
+        self.csv = b"t_min,P_kW\n" + b"".join(f"{i},{70 + i % 5}\n".encode() for i in range(40))
+        with tempfile.TemporaryDirectory() as other:                  # backup da MESMA instalação, com blob novo
+            src = MicrogridStore(other)
+            h = src.put_blob(self.csv, "medicao.csv")
+            cfg2 = copy.deepcopy(self.cfg)
+            cfg2["demand"].update(source="csv", provenance="medido",
+                                  csv={"blob": h, "filename": "medicao.csv", "start_min": 0, "duration_min": 30})
+            src.save(cfg2, 0)
+            self.data = src.export_backup()
+        self.digest = h
+
+    def _counts(self):
+        with sqlite3.connect(self.store.path) as con:
+            return (con.execute("SELECT revision FROM microgrid").fetchone()[0],
+                    con.execute("SELECT COUNT(*) FROM revisions").fetchone()[0],
+                    con.execute("SELECT COUNT(*) FROM blobs").fetchone()[0])
+
+    def test_conflito_de_revisao_nao_persiste_blobs(self):
+        w = copy.deepcopy(self.store.load().config)
+        w["installation"]["description"] = "outra sessão salvou antes"
+        self.store.save(w, 1)                                          # revisão 2
+        antes = self._counts()
+        self.assertEqual(antes, (2, 2, 0))
+        with self.assertRaises(ConflictError):
+            self.store.restore_backup(self.data, 1, confirm=True)      # base desatualizada
+        self.assertEqual(self._counts(), antes)
+        with self.assertRaises(StoreError):
+            MicrogridStore(self.dir).get_blob(self.digest)             # nenhum blob órfão
+
+    def test_troca_de_identidade_nao_confirmada_nao_persiste_blobs(self):
+        with tempfile.TemporaryDirectory() as other:
+            src = MicrogridStore(other)
+            h = src.put_blob(self.csv, "x.csv")
+            cfg = v16_equivalent_config("Outra instalação")
+            cfg["demand"].update(source="csv", provenance="medido",
+                                 csv={"blob": h, "filename": "x.csv", "start_min": 0, "duration_min": 30})
+            src.save(cfg, 0)
+            data = src.export_backup()
+        antes = self._counts()
+        with self.assertRaises(IdentityError):
+            self.store.restore_backup(data, 1, confirm=True, confirm_identity_change=False)
+        self.assertEqual(self._counts(), antes)
+
+    def test_falha_ao_gravar_revisao_desfaz_blobs(self):
+        with sqlite3.connect(self.store.path) as con:
+            con.execute("CREATE TRIGGER falha_teste BEFORE INSERT ON revisions BEGIN SELECT RAISE(ABORT, 'falha simulada'); END")
+        antes = self._counts()
+        try:
+            with self.assertRaises(sqlite3.DatabaseError):
+                self.store.restore_backup(self.data, 1, confirm=True)
+            self.assertEqual(self._counts(), antes)
+        finally:
+            with sqlite3.connect(self.store.path) as con:
+                con.execute("DROP TRIGGER falha_teste")
+
+    def test_restauracao_bem_sucedida_grava_tudo_junto(self):
+        r = self.store.restore_backup(self.data, 1, confirm=True)
+        self.assertEqual(r.revision, 2)
+        self.assertEqual(self._counts(), (2, 2, 1))
+        self.assertEqual(MicrogridStore(self.dir).get_blob(self.digest), self.csv)
+
+
 class AdaptadorTest(unittest.TestCase):
     def test_configuracao_equivalente_reproduz_spec_v16(self):
         from orchestrator_runtime import default_model_spec

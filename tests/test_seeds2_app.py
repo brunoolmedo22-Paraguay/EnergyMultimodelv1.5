@@ -365,6 +365,55 @@ class SimulacaoTest(_Base):
         self.assertIn("Demanda", app.session_state["orq_run_gate"]["message"])
 
 
+class InsercaoHtmlTest(_Base):
+    """Valores do usuário/arquivo são exibidos como texto, nunca interpretados como HTML/Markdown."""
+
+    PAYLOAD = '<img src=x onerror="alert(1)">[link](http://exemplo.invalid)'
+
+    def _all_text(self, app) -> str:
+        parts = [h.proto.body for h in app.get("html")]
+        parts += [m.value for m in app.markdown] + [c.value for c in app.caption]
+        parts += [e.value for e in app.error] + [s.label for s in app.selectbox] + [c.label for c in app.checkbox]
+        return "\n".join(parts)
+
+    def test_nome_malicioso_no_comissionamento_e_na_gestao(self):
+        cfg = v16_equivalent_config("Planta")
+        cfg["equipment"][0]["name"] = self.PAYLOAD
+        cfg["commissioning"].update(completed=False, step=4, completed_at=None)
+        self.seed(cfg)
+        app = self.open()
+        self.assertEqual(app.session_state["mg_cstep"], 4)
+        body = "\n".join(h.proto.body for h in app.get("html"))
+        self.assertIn("&lt;img src=x onerror=", body)                 # escapado (texto)
+        self.assertNotIn("<img src=x", body)                         # nunca HTML ativo
+        # Gestão: rótulo do acoplamento e lista de pendências tratam o nome como texto literal
+        cfg["commissioning"].update(completed=True, step=5)
+        MicrogridStore(self.dir).save(cfg, 1)
+        app = self.open()
+        app.session_state["seeds_route"] = {"view": "gestao", "tab": "topologia"}
+        app.run()
+        _ok(self, app)
+        label = next(s.label for s in app.selectbox if "onerror" in s.label)
+        self.assertIn("\\<img", label)
+        self.assertIn("\\[link\\]\\(http\\:", label)
+        self.assertNotIn("](http", label.replace("\\]\\(", ""))
+
+    def test_nome_de_csv_malicioso_no_console_v16(self):
+        s = MicrogridStore(self.dir)
+        h = s.put_blob(b"t_min,P_kW\n" + b"".join(f"{i},{80 + i % 3}\n".encode() for i in range(40)), "x.csv")
+        cfg = v16_equivalent_config()
+        cfg["demand"].update(source="csv", provenance="medido",
+                             csv={"blob": h, "filename": "<b>carga</b><script>x</script>.csv", "start_min": 0, "duration_min": 30})
+        self.seed(cfg)
+        app = self.open("simulacao", timeout=240)
+        app.session_state["orchestrator_page"] = "Visão Geral"
+        app.run()
+        _ok(self, app)
+        card = next(m.value for m in app.markdown if 'class="ready-card"><small>1 · CARGA' in m.value)
+        self.assertIn("&lt;b&gt;carga&lt;/b&gt;&lt;script&gt;", card)
+        self.assertNotIn("<script>", card)
+
+
 class InicioTest(_Base):
     def test_inicio_mostra_identidade_e_bancadas_acessiveis(self):
         self.seed()

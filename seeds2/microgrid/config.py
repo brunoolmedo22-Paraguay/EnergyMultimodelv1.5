@@ -303,7 +303,9 @@ def validate_param(kind: str, name: str, value: Any) -> str | None:
         return None
     if spec.type == "choice":
         opts = _choices(kind, name)
-        return None if value in opts else f"valor {value!r} não pertence às referências disponíveis"
+        if not isinstance(value, str):
+            return "deve ser um identificador de referência (texto)"
+        return None if value in opts else f"valor {value[:80]!r} não pertence às referências disponíveis"
     if spec.type == "bool":
         return None if isinstance(value, bool) else "deve ser verdadeiro/falso"
     return _num_ok(spec, value)
@@ -319,6 +321,9 @@ def equipment_issues(eq: dict, prefix: str = "") -> list[Issue]:
         out.append(Issue("error", f"{p}.id", "Identificador inválido (formato esperado eq-xxxxxxxxxxxx)."))
     if not str(eq.get("name", "")).strip():
         out.append(Issue("error", f"{p}.name", "Nome do equipamento é obrigatório."))
+    for k in ("tag", "serial", "notes"):
+        if not isinstance(eq.get(k, ""), str):
+            out.append(Issue("error", f"{p}.{k}", "Deve ser texto."))
     if not isinstance(eq.get("enabled"), bool):
         out.append(Issue("error", f"{p}.enabled", "Estado habilitado deve ser verdadeiro/falso."))
     params = eq.get("params")
@@ -371,7 +376,17 @@ def _str_field(obj: dict, key: str, path: str, out: list[Issue], required: bool 
 
 
 def validate(config: dict) -> list[Issue]:
-    """Validação completa do documento. Erros impedem salvar; avisos são informativos."""
+    """Validação completa do documento. Erros impedem salvar; avisos são informativos.
+
+    Nunca levanta exceção: documentos com estrutura inesperada (p. ex. vindos de um backup adulterado)
+    resultam em erro de validação."""
+    try:
+        return _validate(config)
+    except (TypeError, AttributeError, ValueError, KeyError, IndexError) as exc:
+        return [Issue("error", "$", f"Estrutura do documento inválida ({type(exc).__name__}).")]
+
+
+def _validate(config: dict) -> list[Issue]:
     out: list[Issue] = []
     if not isinstance(config, dict):
         return [Issue("error", "$", "Configuração deve ser um objeto.")]
@@ -383,6 +398,27 @@ def validate(config: dict) -> list[Issue]:
             out.append(Issue("error", section, "Seção ausente ou inválida."))
     if not isinstance(config.get("equipment"), list) or not isinstance(config.get("retired", []), list):
         out.append(Issue("error", "equipment", "Inventário ausente ou inválido."))
+    if any(i.level == "error" for i in out):
+        return out
+    # tipos das subestruturas: um tipo errado "falso" (p. ex. lista vazia) não pode passar despercebido
+    typed = [("commissioning.completed", config["commissioning"].get("completed"), bool),
+             ("topology.couplings", config["topology"].get("couplings"), dict),
+             ("demand.walkforward", config["demand"].get("walkforward"), dict),
+             ("demand.copel", config["demand"].get("copel"), dict)]
+    for path, val, typ in typed:
+        if not isinstance(val, typ):
+            out.append(Issue("error", path, "Estrutura inválida."))
+    st = config["commissioning"].get("step")
+    if isinstance(st, bool) or not isinstance(st, int) or not 1 <= st <= 5:
+        out.append(Issue("error", "commissioning.step", "Etapa de comissionamento inválida."))
+    for path, val in (("demand.csv", config["demand"].get("csv")), ("climate.csv", config["climate"].get("csv"))):
+        if val is not None and not isinstance(val, dict):
+            out.append(Issue("error", path, "Estrutura inválida."))
+    for k in ("timezone", "notes"):
+        if not isinstance(config["demand"].get(k, ""), str):
+            out.append(Issue("error", f"demand.{k}", "Deve ser texto."))
+    if not isinstance(config["topology"].get("bus_label", ""), str):
+        out.append(Issue("error", "topology.bus_label", "Deve ser texto."))
     if any(i.level == "error" for i in out):
         return out
 

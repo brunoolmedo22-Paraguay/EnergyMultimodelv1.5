@@ -6,7 +6,6 @@ nova revisão imutável preservando a identidade da instalação. Nunca se cria 
 """
 from __future__ import annotations
 
-from html import escape
 
 import pandas as pd
 import streamlit as st
@@ -37,7 +36,7 @@ def _pending_bar() -> None:
     if ss.get("mg_notice"):
         st.info(ss.pop("mg_notice"))
     if ss.get("mg_conflict"):
-        st.error(ss["mg_conflict"])
+        st.error(shell.md(ss["mg_conflict"]))
         c1, c2 = st.columns([3, 1.4])
         c1.caption("Outra sessão salvou uma revisão mais nova. Para não sobrescrevê-la, recarregue-a (sua edição local será "
                    "descartada) e reaplique as alterações.")
@@ -46,14 +45,14 @@ def _pending_bar() -> None:
             forms.bump()
             st.rerun()
     if ss.get("mg_error"):
-        st.error(ss["mg_error"])
+        st.error(shell.md(ss["mg_error"]))
     if not session.is_dirty():
         return
     items = session.pending_changes()
     with st.container(border=True, key="mg_pending"):
         c1, c2, c3 = st.columns([3.2, 1, 1], vertical_alignment="center")
         c1.markdown(f"**Edição pendente — {len(items)} alteração(ões) ainda não salva(s)**  \n"
-                    + "  \n".join(f"• {escape(i)}" for i in items[:12]))
+                    + "  \n".join(f"• {shell.md(i)}" for i in items[:12]))
         note = c1.text_input("Nota da revisão (opcional)", key=f"mg_note_{forms.token()}", placeholder="p. ex. substituição do banco de baterias")
         if c2.button("Salvar alterações", key="mg_save", type="primary", width="stretch"):
             if session.save(note=note or "; ".join(items)[:300], origin="edit"):
@@ -145,7 +144,7 @@ def _history(cfg, plan) -> None:
                     try:
                         s.revert_to(int(rv), saved.revision)
                     except StoreError as exc:
-                        st.error(str(exc))
+                        st.error(shell.md(exc))
                     else:
                         session.discard()
                         forms.bump()
@@ -185,12 +184,13 @@ def _history(cfg, plan) -> None:
                 rep = s.inspect_backup(data)
                 m = rep.manifest
                 if m:
-                    st.caption(f"Instalação: **{m.get('installation_name', '?')}** · revisão {m.get('revision')} · gerado em "
-                               f"{shell.fmt_time(m.get('created_at'))} · SEEDS2 {m.get('app_version', '?')}")
-                for e in rep.errors:
-                    st.error(e)
+                    st.caption(f"Instalação: **{shell.md(m.get('installation_name', '?'))}** · revisão "
+                               f"{shell.md(m.get('revision'))} · gerado em {shell.md(shell.fmt_time(m.get('created_at')))} · "
+                               f"SEEDS2 {shell.md(m.get('app_version', '?'))}")
+                for e in rep.errors:                     # mensagens podem conter conteúdo do arquivo
+                    st.error(shell.md(e))
                 for w in rep.warnings:
-                    st.warning(w)
+                    st.warning(shell.md(w))
                 if rep.ok:
                     st.success("Backup íntegro e compatível.")
                     ok = st.checkbox("Confirmo substituir a configuração atual pelo conteúdo deste backup (uma nova revisão "
@@ -205,7 +205,7 @@ def _history(cfg, plan) -> None:
                             s.restore_backup(data, saved.revision if saved else 0, confirm=True,
                                              confirm_identity_change=rep.same_installation is False)
                         except (StoreError, IdentityError) as exc:
-                            st.error(str(exc))
+                            st.error(shell.md(exc))
                         else:
                             session.discard()
                             forms.bump()

@@ -258,7 +258,7 @@ def equipment_dialog() -> None:
     if derived:
         st.markdown(" · ".join(derived))
     for i in issues:
-        st.error(i.message)
+        st.error(shell.md(i.message))
     if missing and not issues:
         st.info("Registrável, mas ainda **não tecnicamente configurado** — faltam: " + ", ".join(missing))
     b1, b2 = st.columns(2)
@@ -277,7 +277,7 @@ def equipment_dialog() -> None:
                 C.update_equipment(cfg, eq["id"], name=name, tag=tag, serial=serial, enabled=enabled, notes=notes, params=clean)
                 note = f"Equipamento alterado: {name}"
         except (ValueError, KeyError) as exc:
-            st.error(str(exc))
+            st.error(shell.md(exc))
             return
         _close_dialog()
         after_change(bool(dlg.get("autosave")), note, "commissioning" if dlg.get("autosave") else "edit")
@@ -286,7 +286,7 @@ def equipment_dialog() -> None:
             st.caption("O equipamento sai do inventário ativo e deixa de participar de simulações. O registro permanece em "
                        "'Equipamentos retirados' e nas revisões anteriores (auditoria).")
             reason = st.text_input("Motivo da retirada", key=kp + "ret_reason", placeholder="p. ex. desmontado para manutenção")
-            confirm = st.checkbox(f"Confirmo a retirada de «{eq['name']}»", key=kp + "ret_ok")
+            confirm = st.checkbox(f"Confirmo a retirada de «{shell.md(eq['name'])}»", key=kp + "ret_ok")
             if st.button("Retirar equipamento", key=kp + "retire", disabled=not confirm):
                 C.retire_equipment(cfg, eq["id"], reason)
                 _close_dialog()
@@ -379,7 +379,7 @@ def topology_form(cfg: dict, *, submit: str, key: str) -> bool:
         cols = st.columns(2)
         for i, eq in enumerate(eqs):
             cur = topo.get("couplings", {}).get(eq["id"], "nao_declarado")
-            couplings[eq["id"]] = cols[i % 2].selectbox(f"{eq['name']} · {KIND_LABELS[eq['kind']]}", ck, index=ck.index(cur),
+            couplings[eq["id"]] = cols[i % 2].selectbox(f"{shell.md(eq['name'])} · {KIND_LABELS[eq['kind']]}", ck, index=ck.index(cur),
                                                         format_func=C.COUPLING_OPTIONS.get, key=f"{key}_cp_{eq['id']}_{token()}")
         if not eqs:
             st.caption("Nenhum equipamento registrado ainda.")
@@ -462,7 +462,8 @@ def demand_editor(cfg: dict, *, key: str, submit: str) -> bool:
                 csv_meta = _csv_meta(raw, up.name)
                 new_blob, blob_name, meta_src = (data, up.name), up.name, csv_meta
             elif cur.get("blob"):
-                st.caption(f"Arquivo armazenado: **{cur.get('filename')}** · SHA-256 `{cur['blob'][:12]}…` · {cur.get('rows', '?')} linhas")
+                st.caption(f"Arquivo armazenado: **{shell.md(cur.get('filename'))}** · SHA-256 `{cur['blob'][:12]}…` · "
+                           f"{shell.md(cur.get('rows', '?'))} linhas")
                 meta_src = cur
             if meta_src is not None:
                 tot = float(meta_src.get("duration_total_min") or 0)
@@ -478,7 +479,7 @@ def demand_editor(cfg: dict, *, key: str, submit: str) -> bool:
             prov = st.radio("Procedência declarada do CSV", pk, index=pk.index(prov) if prov in pk else 2, horizontal=True,
                             format_func=C.PROVENANCE_KINDS.get, key=kp + "prov")
     except Exception as exc:  # noqa: BLE001
-        st.error(f"Não foi possível preparar a demanda: {exc}")
+        st.error(f"Não foi possível preparar a demanda: {shell.md(exc)}")
         desc = {}
     c1, c2 = st.columns(2)
     tz = c1.text_input("Fuso horário dos carimbos de tempo (opcional)", value=dem.get("timezone", ""), key=kp + "tz",
@@ -495,7 +496,7 @@ def demand_editor(cfg: dict, *, key: str, submit: str) -> bool:
                         ("Média", fmt(float(carga.P_kW.mean()), 1, "kW"), ""), ("Passos", str(len(carga.P_kW)), "1 min")])
             st.plotly_chart(EMSP.fig_carga(carga.t_min, carga.P_kW, carga.descricao), width="stretch", key=kp + "plot")
         except Exception as exc:  # noqa: BLE001
-            st.error(f"A janela escolhida não pode ser reconstruída: {exc}")
+            st.error(f"A janela escolhida não pode ser reconstruída: {shell.md(exc)}")
             desc = {}
     elif src != "nao_definida":
         st.info("Complete os campos acima para definir a demanda.")
@@ -544,7 +545,7 @@ def climate_editor(cfg: dict, *, key: str, submit: str) -> bool:
         if up is not None:
             new_blob = (up.getvalue(), up.name)
         elif cur.get("blob"):
-            st.caption(f"Arquivo armazenado: **{cur.get('filename')}** · SHA-256 `{cur['blob'][:12]}…`")
+            st.caption(f"Arquivo armazenado: **{shell.md(cur.get('filename'))}** · SHA-256 `{cur['blob'][:12]}…`")
         pk = ["medido", "sintetico", "nao_declarado"]
         prov = st.radio("Procedência declarada", pk, index=pk.index(clim.get("provenance")) if clim.get("provenance") in pk else 2,
                         horizontal=True, format_func=C.PROVENANCE_KINDS.get, key=kp + "prov")
@@ -556,7 +557,7 @@ def climate_editor(cfg: dict, *, key: str, submit: str) -> bool:
             try:
                 A.read_csv_bytes(new_blob[0])
             except Exception as exc:  # noqa: BLE001
-                st.error(f"CSV climático ilegível: {exc}")
+                st.error(f"CSV climático ilegível: {shell.md(exc)}")
                 return False
             new["csv"] = {"blob": session.store().put_blob(new_blob[0], new_blob[1], "text/csv"), "filename": new_blob[1]}
         elif not (clim.get("csv") or {}).get("blob"):

@@ -15,7 +15,7 @@ def render(legacy_css: Callable[[], None]) -> None:
         saved = session.sync()
     except StoreError as exc:
         shell.global_css()
-        st.error(f"Armazenamento local indisponível: {exc}")
+        st.error(f"Armazenamento local indisponível: {shell.md(exc)}")
         st.stop()
     commissioned = bool(saved and saved.config.get("commissioning", {}).get("completed"))
     r = shell.route()

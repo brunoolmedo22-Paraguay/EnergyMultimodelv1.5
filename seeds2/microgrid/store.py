@@ -20,6 +20,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import shutil
 import sqlite3
 import zipfile
@@ -37,7 +38,28 @@ BACKUP_FORMAT = "seeds2-microgrid-backup"
 BACKUP_FORMAT_VERSION = 1
 BACKUP_SUFFIX = ".seeds2backup.zip"
 MAX_BLOB_BYTES = 50 * 1024 * 1024
-MAX_BACKUP_BYTES = 200 * 1024 * 1024
+# Limites da importação de backup (arquivo NÃO confiável). Uma configuração referencia no máximo 2 CSVs
+# (demanda e clima); o total descomprimido é contado lendo os dados, não pelo tamanho declarado no ZIP.
+MAX_BACKUP_ENTRIES = 16
+MAX_JSON_BYTES = 8 * 1024 * 1024
+MAX_BACKUP_UNCOMPRESSED = 2 * MAX_BLOB_BYTES + 3 * MAX_JSON_BYTES
+MAX_BACKUP_BYTES = MAX_BACKUP_UNCOMPRESSED
+_READ_CHUNK = 1024 * 1024
+_HEX32 = re.compile(r"[0-9a-f]{32}")
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+_JSON_ENTRIES = ("manifest.json", "configuration.json", "history.json")
+
+
+class _BackupRejected(Exception):
+    """Rejeição controlada de um backup (mensagem apresentável)."""
+
+
+def _allowed_entry(name: str) -> bool:
+    return name in _JSON_ENTRIES or (name.startswith("blobs/") and bool(_HEX64.fullmatch(name[6:])))
+
+
+def _entry_cap(name: str) -> int:
+    return MAX_JSON_BYTES if name in _JSON_ENTRIES else MAX_BLOB_BYTES
 
 # ------------------------------------------------------------------ migrações do banco
 MIGRATIONS: list[tuple[int, list[str]]] = [
@@ -215,47 +237,76 @@ class MicrogridStore:
         return Stored(json.loads(row["document"]), int(row["revision"]), row["fingerprint"], row["saved_at"])
 
     # ------------------------------------------------------------ escrita
-    def _referenced_blobs(self, config: dict) -> set[str]:
-        refs = set()
+    @staticmethod
+    def _referenced_blobs(config: Any) -> set[str]:
+        """Hashes de blobs referenciados (tolerante a estruturas inválidas: o que não for dict é ignorado)."""
+        refs: set[str] = set()
+        if not isinstance(config, dict):
+            return refs
         for section in ("demand", "climate"):
-            csv = (config.get(section) or {}).get("csv") or {}
-            if csv.get("blob"):
+            sec = config.get(section)
+            csv = sec.get("csv") if isinstance(sec, dict) else None
+            if isinstance(csv, dict) and isinstance(csv.get("blob"), str) and csv["blob"]:
                 refs.add(csv["blob"])
         return refs
 
-    def save(self, config: dict, expected_revision: int, *, note: str = "", origin: str = "edit",
-             allow_identity_change: bool = False) -> Stored:
-        """Grava uma nova revisão se o conteúdo mudou. ``expected_revision`` = 0 para o primeiro salvamento."""
+    @staticmethod
+    def _insert_blob(con: sqlite3.Connection, content: bytes, name: str, media_type: str) -> str:
+        if len(content) > MAX_BLOB_BYTES:
+            raise StoreError(f"Arquivo maior que {MAX_BLOB_BYTES // (1024 * 1024)} MB.")
+        h = sha256(content).hexdigest()
+        con.execute("INSERT OR IGNORE INTO blobs(sha256, name, media_type, size, content, created_at) "
+                    "VALUES (?,?,?,?,?,?)", (h, str(name), str(media_type), len(content), content, C.utc_now()))
+        return h
+
+    @staticmethod
+    def _prepare(config: dict) -> tuple[dict, str]:
         issues = C.validate(config)
         if C.errors(issues):
             raise ValidationError(C.errors(issues))
         doc = json.loads(C.canonical_json(config))           # cópia normalizada e serializável
-        fp = C.fingerprint(doc)
+        return doc, C.fingerprint(doc)
+
+    def _write_revision(self, con: sqlite3.Connection, doc: dict, fp: str, expected_revision: int, *, note: str,
+                        origin: str, allow_identity_change: bool,
+                        new_blobs: dict[str, tuple[bytes, dict]] | None = None) -> Stored:
+        """Núcleo transacional: DEVE ser chamado dentro de ``_tx``. Qualquer exceção desfaz TUDO
+        (inclusive os blobs inseridos aqui)."""
         uid = doc["installation"]["uid"]
-        with self._tx() as con:
-            row = con.execute("SELECT installation_uid, revision, fingerprint, saved_at FROM microgrid WHERE id = 1").fetchone()
-            current = int(row["revision"]) if row else 0
-            if int(expected_revision) != current:
-                raise ConflictError(int(expected_revision), current)
-            if row and row["installation_uid"] != uid and not allow_identity_change:
-                raise IdentityError("A configuração pertence a outra instalação; este SEEDS2 administra uma única "
-                                    "microrrede. Use a restauração de backup com confirmação explícita.")
-            missing = [b for b in self._referenced_blobs(doc)
-                       if con.execute("SELECT 1 FROM blobs WHERE sha256 = ?", (b,)).fetchone() is None]
-            if missing:
-                raise StoreError(f"Dados de entrada referenciados não estão armazenados: {missing}")
-            if row and row["fingerprint"] == fp:
-                return Stored(doc, current, fp, row["saved_at"])
-            now = C.utc_now()
-            rev = current + 1
-            text = json.dumps(doc, ensure_ascii=False)
-            con.execute("INSERT INTO revisions(revision, installation_uid, fingerprint, document, saved_at, note, origin) "
-                        "VALUES (?,?,?,?,?,?,?)", (rev, uid, fp, text, now, str(note), str(origin)))
-            con.execute("INSERT INTO microgrid(id, installation_uid, revision, fingerprint, document, saved_at) "
-                        "VALUES (1,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET installation_uid=excluded.installation_uid, "
-                        "revision=excluded.revision, fingerprint=excluded.fingerprint, document=excluded.document, "
-                        "saved_at=excluded.saved_at", (uid, rev, fp, text, now))
+        row = con.execute("SELECT installation_uid, revision, fingerprint, saved_at FROM microgrid WHERE id = 1").fetchone()
+        current = int(row["revision"]) if row else 0
+        if int(expected_revision) != current:
+            raise ConflictError(int(expected_revision), current)
+        if row and row["installation_uid"] != uid and not allow_identity_change:
+            raise IdentityError("A configuração pertence a outra instalação; este SEEDS2 administra uma única "
+                                "microrrede. Use a restauração de backup com confirmação explícita.")
+        for digest, (content, meta) in (new_blobs or {}).items():
+            if self._insert_blob(con, content, meta.get("name", ""), meta.get("media_type", "text/csv")) != digest:
+                raise StoreError("Falha de integridade ao gravar dados de entrada.")
+        missing = [b for b in self._referenced_blobs(doc)
+                   if con.execute("SELECT 1 FROM blobs WHERE sha256 = ?", (b,)).fetchone() is None]
+        if missing:
+            raise StoreError(f"Dados de entrada referenciados não estão armazenados: {missing}")
+        if row and row["fingerprint"] == fp:
+            return Stored(doc, current, fp, row["saved_at"])
+        now = C.utc_now()
+        rev = current + 1
+        text = json.dumps(doc, ensure_ascii=False)
+        con.execute("INSERT INTO revisions(revision, installation_uid, fingerprint, document, saved_at, note, origin) "
+                    "VALUES (?,?,?,?,?,?,?)", (rev, uid, fp, text, now, str(note), str(origin)))
+        con.execute("INSERT INTO microgrid(id, installation_uid, revision, fingerprint, document, saved_at) "
+                    "VALUES (1,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET installation_uid=excluded.installation_uid, "
+                    "revision=excluded.revision, fingerprint=excluded.fingerprint, document=excluded.document, "
+                    "saved_at=excluded.saved_at", (uid, rev, fp, text, now))
         return Stored(doc, rev, fp, now)
+
+    def save(self, config: dict, expected_revision: int, *, note: str = "", origin: str = "edit",
+             allow_identity_change: bool = False) -> Stored:
+        """Grava uma nova revisão se o conteúdo mudou. ``expected_revision`` = 0 para o primeiro salvamento."""
+        doc, fp = self._prepare(config)
+        with self._tx() as con:
+            return self._write_revision(con, doc, fp, expected_revision, note=note, origin=origin,
+                                        allow_identity_change=allow_identity_change)
 
     def revert_to(self, revision: int, expected_revision: int) -> Stored:
         old = self.get_revision(revision)
@@ -265,11 +316,8 @@ class MicrogridStore:
     def put_blob(self, content: bytes, name: str = "", media_type: str = "text/csv") -> str:
         if len(content) > MAX_BLOB_BYTES:
             raise StoreError(f"Arquivo maior que {MAX_BLOB_BYTES // (1024 * 1024)} MB.")
-        h = sha256(content).hexdigest()
         with self._tx() as con:
-            con.execute("INSERT OR IGNORE INTO blobs(sha256, name, media_type, size, content, created_at) "
-                        "VALUES (?,?,?,?,?,?)", (h, str(name), str(media_type), len(content), content, C.utc_now()))
-        return h
+            return self._insert_blob(con, content, name, media_type)
 
     def get_blob(self, digest: str) -> bytes:
         with self._read() as con:
@@ -335,103 +383,220 @@ class MicrogridStore:
                 zf.writestr(name, data)
         return buf.getvalue()
 
+    # ------------------------------------------------------------ inspeção de backup (entrada NÃO confiável)
+    @staticmethod
+    def _read_capped(zf: zipfile.ZipFile, info: zipfile.ZipInfo, cap: int, budget: list[int]) -> bytes:
+        """Lê uma entrada em blocos, sem confiar no tamanho declarado no ZIP (proteção contra zip bomb).
+        ``budget`` = [bytes restantes no total descomprimido]."""
+        out = bytearray()
+        with zf.open(info) as fh:
+            while True:
+                chunk = fh.read(_READ_CHUNK)
+                if not chunk:
+                    break
+                out += chunk
+                budget[0] -= len(chunk)
+                if len(out) > cap:
+                    raise _BackupRejected(f"Entrada {info.filename!r} excede o limite de {cap // (1024 * 1024)} MiB descomprimidos.")
+                if budget[0] < 0:
+                    raise _BackupRejected(f"O conteúdo descomprimido excede o limite total de "
+                                          f"{MAX_BACKUP_UNCOMPRESSED // (1024 * 1024)} MiB.")
+        return bytes(out)
+
+    @staticmethod
+    def _manifest_errors(m: Any) -> list[str]:
+        """Valida tipos e estrutura de TODOS os campos do manifesto antes de qualquer uso."""
+        if not isinstance(m, dict):
+            return ["manifest.json não contém um objeto."]
+        errs: list[str] = []
+
+        def is_int(v: Any) -> bool:
+            return isinstance(v, int) and not isinstance(v, bool)
+
+        def short_str(v: Any, n: int = 500) -> bool:
+            return isinstance(v, str) and len(v) <= n
+
+        if m.get("format") != BACKUP_FORMAT:
+            return ["Formato não reconhecido: não é um backup de microrrede do SEEDS2."]
+        if not is_int(m.get("format_version")) or m["format_version"] != BACKUP_FORMAT_VERSION:
+            return ["Versão de formato de backup não suportada."]
+        if not is_int(m.get("db_schema_version")) or not 1 <= m["db_schema_version"] <= LATEST_DB_VERSION:
+            errs.append("Versão de esquema do banco ausente, inválida ou mais nova que este SEEDS2.")
+        if not is_int(m.get("doc_schema_version")) or m["doc_schema_version"] != C.DOC_SCHEMA_VERSION:
+            errs.append("Versão do documento de configuração ausente ou incompatível.")
+        if not is_int(m.get("revision")) or m["revision"] < 1:
+            errs.append("Campo 'revision' ausente ou inválido.")
+        for key in ("app_version", "created_at", "installation_name"):
+            if not short_str(m.get(key)):
+                errs.append(f"Campo {key!r} ausente ou inválido.")
+        if not (isinstance(m.get("installation_uid"), str) and _HEX32.fullmatch(m["installation_uid"])):
+            errs.append("Campo 'installation_uid' ausente ou inválido.")
+        if not (isinstance(m.get("fingerprint"), str) and _HEX64.fullmatch(m["fingerprint"])):
+            errs.append("Campo 'fingerprint' ausente ou inválido.")
+        files = m.get("files")
+        if not isinstance(files, dict) or not files:
+            errs.append("Campo 'files' ausente ou inválido.")
+        else:
+            for name, h in files.items():
+                if not (isinstance(name, str) and _allowed_entry(name)):
+                    errs.append("Campo 'files' lista uma entrada não permitida.")
+                    break
+                if not (isinstance(h, str) and _HEX64.fullmatch(h)):
+                    errs.append("Campo 'files' contém hash inválido.")
+                    break
+            if "configuration.json" not in files:
+                errs.append("Campo 'files' não inclui configuration.json.")
+        blobs = m.get("blobs")
+        if not isinstance(blobs, dict):
+            errs.append("Campo 'blobs' ausente ou inválido.")
+        else:
+            for digest, meta in blobs.items():
+                if not (isinstance(digest, str) and _HEX64.fullmatch(digest)) or not isinstance(meta, dict):
+                    errs.append("Campo 'blobs' com estrutura inválida.")
+                    break
+                if any(k in meta and not short_str(meta[k], 255) for k in ("name", "media_type", "created_at")) or \
+                        ("size" in meta and not (is_int(meta["size"]) and meta["size"] >= 0)):
+                    errs.append("Metadados de dados de entrada com tipos inválidos.")
+                    break
+        return errs
+
     def inspect_backup(self, data: bytes) -> BackupInspection:
+        """Inspeciona um backup NÃO confiável. Nunca levanta exceção: todo problema vira ``errors``."""
         rep = BackupInspection(ok=False)
-        if len(data) > MAX_BACKUP_BYTES:
-            rep.errors.append("Arquivo de backup grande demais.")
-            return rep
         try:
-            zf = zipfile.ZipFile(io.BytesIO(data))
-        except zipfile.BadZipFile:
-            rep.errors.append("O arquivo não é um ZIP válido de backup do SEEDS2.")
-            return rep
-        with zf:
-            names = set(zf.namelist())
-            bad = [n for n in names if n.startswith("/") or ".." in n.split("/")
-                   or not (n in ("manifest.json", "configuration.json", "history.json") or n.startswith("blobs/"))]
-            if bad:
-                rep.errors.append(f"Entradas inesperadas no backup: {sorted(bad)[:5]}")
-                return rep
-            if "manifest.json" not in names or "configuration.json" not in names:
-                rep.errors.append("Backup incompleto: manifest.json ou configuration.json ausente.")
-                return rep
-            for info in zf.infolist():
-                if info.file_size > MAX_BLOB_BYTES * 2:
-                    rep.errors.append(f"Entrada {info.filename} grande demais.")
-                    return rep
-            try:
-                manifest = json.loads(zf.read("manifest.json"))
-            except (ValueError, UnicodeDecodeError):
-                rep.errors.append("manifest.json ilegível.")
-                return rep
-            rep.manifest = manifest if isinstance(manifest, dict) else {}
-            if rep.manifest.get("format") != BACKUP_FORMAT:
-                rep.errors.append("Formato não reconhecido: não é um backup de microrrede do SEEDS2.")
-                return rep
-            if rep.manifest.get("format_version") != BACKUP_FORMAT_VERSION:
-                rep.errors.append(f"Versão de formato de backup {rep.manifest.get('format_version')!r} não suportada.")
-                return rep
-            if int(rep.manifest.get("db_schema_version") or 0) > LATEST_DB_VERSION:
-                rep.errors.append("Backup gerado por versão mais nova do SEEDS2 (esquema desconhecido).")
-            hashes = rep.manifest.get("files") or {}
-            for name in sorted(names - {"manifest.json"}):
-                content = zf.read(name)
-                if hashes.get(name) != sha256(content).hexdigest():
-                    rep.errors.append(f"Integridade violada: hash de {name} não confere com o manifesto.")
-                if name.startswith("blobs/"):
-                    digest = name.split("/", 1)[1]
-                    if sha256(content).hexdigest() != digest:
-                        rep.errors.append(f"Dado de entrada {digest[:12]}… corrompido.")
-                    rep.blobs[digest] = (content, (rep.manifest.get("blobs") or {}).get(digest, {}))
-            missing_listed = set(hashes) - (names - {"manifest.json"})
-            if missing_listed:
-                rep.errors.append(f"Arquivos listados no manifesto ausentes: {sorted(missing_listed)}")
-            try:
-                cfg = json.loads(zf.read("configuration.json"))
-            except (ValueError, UnicodeDecodeError):
-                rep.errors.append("configuration.json ilegível.")
-                return rep
-        rep.config = cfg if isinstance(cfg, dict) else None
-        if rep.config is None:
-            rep.errors.append("configuration.json não contém um objeto de configuração.")
-            return rep
-        if C.fingerprint(rep.config) != rep.manifest.get("fingerprint"):
-            rep.errors.append("A impressão digital da configuração não confere com o manifesto.")
-        for issue in C.errors(C.validate(rep.config)):
-            rep.errors.append(f"Configuração incompatível: {issue.path}: {issue.message}")
-        missing_blobs = self._referenced_blobs(rep.config) - set(rep.blobs)
-        if missing_blobs:
-            rep.errors.append(f"Dados de entrada referenciados ausentes no backup: {sorted(missing_blobs)}")
-        cur = self.load()
-        if cur is not None:
-            rep.same_installation = cur.config["installation"]["uid"] == rep.config.get("installation", {}).get("uid")
-            if not rep.same_installation:
-                rep.warnings.append("O backup pertence a OUTRA instalação. Restaurá-lo substituirá a identidade da "
-                                    "microrrede administrada por este SEEDS2 (o histórico atual é preservado).")
+            self._inspect(data, rep)
+        except _BackupRejected as exc:
+            rep.errors.append(str(exc))
+        except Exception as exc:  # noqa: BLE001 — qualquer outro defeito do arquivo é rejeição controlada
+            rep.errors.append(f"Arquivo de backup malformado ou ilegível ({type(exc).__name__}).")
+        if rep.errors:
+            rep.config, rep.blobs, rep.same_installation = None, {}, None
         rep.ok = not rep.errors
         return rep
 
+    def _inspect(self, data: bytes, rep: BackupInspection) -> None:
+        if not isinstance(data, (bytes, bytearray)):
+            raise _BackupRejected("Conteúdo de backup inválido.")
+        if len(data) > MAX_BACKUP_BYTES:
+            raise _BackupRejected("Arquivo de backup grande demais.")
+        try:
+            zf = zipfile.ZipFile(io.BytesIO(data))
+        except zipfile.BadZipFile:
+            raise _BackupRejected("O arquivo não é um ZIP válido de backup do SEEDS2.") from None
+        with zf:
+            infos = zf.infolist()
+            # ---- estrutura do ZIP (antes de descomprimir qualquer coisa)
+            if len(infos) > MAX_BACKUP_ENTRIES:
+                raise _BackupRejected(f"Backup com entradas demais ({len(infos)} > {MAX_BACKUP_ENTRIES}).")
+            names = [i.filename for i in infos]
+            if len(set(names)) != len(names):
+                raise _BackupRejected("Backup com entradas duplicadas.")
+            bad = [n for n in names if not _allowed_entry(n)]
+            if bad:
+                raise _BackupRejected(f"Entradas inesperadas no backup: {sorted(bad)[:5]}")
+            if "manifest.json" not in names or "configuration.json" not in names:
+                raise _BackupRejected("Backup incompleto: manifest.json ou configuration.json ausente.")
+            declared = 0
+            for info in infos:
+                if info.flag_bits & 0x1:
+                    raise _BackupRejected("Backup com entradas criptografadas não é suportado.")
+                if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+                    raise _BackupRejected("Método de compressão não suportado no backup.")
+                if info.file_size > _entry_cap(info.filename):
+                    raise _BackupRejected(f"Entrada {info.filename!r} excede o tamanho permitido.")
+                declared += info.file_size
+            if declared > MAX_BACKUP_UNCOMPRESSED:
+                raise _BackupRejected("O conteúdo declarado do backup excede o limite total permitido.")
+            # ---- leitura limitada (tamanho real, não o declarado)
+            budget = [MAX_BACKUP_UNCOMPRESSED]
+            content = {i.filename: self._read_capped(zf, i, _entry_cap(i.filename), budget) for i in infos}
+        # ---- manifesto
+        try:
+            manifest = json.loads(content["manifest.json"].decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            raise _BackupRejected("manifest.json ilegível.") from None
+        merrs = self._manifest_errors(manifest)
+        if merrs:
+            rep.errors.extend(merrs)
+            return
+        rep.manifest = manifest
+        files: dict = manifest["files"]
+        for name in sorted(set(content) - {"manifest.json"}):
+            if name not in files:
+                rep.errors.append(f"Entrada {name!r} não declarada no manifesto.")
+            elif files[name] != sha256(content[name]).hexdigest():
+                rep.errors.append(f"Integridade violada: hash de {name} não confere com o manifesto.")
+        missing_listed = set(files) - set(content)
+        if missing_listed:
+            rep.errors.append(f"Arquivos listados no manifesto ausentes: {sorted(missing_listed)}")
+        if rep.errors:
+            return
+        # ---- configuração
+        try:
+            cfg = json.loads(content["configuration.json"].decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            raise _BackupRejected("configuration.json ilegível.") from None
+        if not isinstance(cfg, dict):
+            raise _BackupRejected("configuration.json não contém um objeto de configuração.")
+        if "history.json" in content:
+            try:
+                hist = json.loads(content["history.json"].decode("utf-8"))
+            except (ValueError, UnicodeDecodeError):
+                hist = None
+            if not isinstance(hist, list):
+                rep.errors.append("history.json com estrutura inválida.")
+        if C.fingerprint(cfg) != manifest["fingerprint"]:
+            rep.errors.append("A impressão digital da configuração não confere com o manifesto.")
+        for issue in C.errors(C.validate(cfg)):
+            rep.errors.append(f"Configuração incompatível: {issue.path}: {issue.message}")
+        if rep.errors:
+            return
+        if cfg["installation"]["uid"] != manifest["installation_uid"]:
+            rep.errors.append("A identidade da instalação no manifesto não confere com a configuração.")
+        # ---- dados de entrada (blobs)
+        refs = self._referenced_blobs(cfg)
+        for name in content:
+            if name.startswith("blobs/"):
+                digest = name.split("/", 1)[1]
+                if sha256(content[name]).hexdigest() != digest:
+                    rep.errors.append(f"Dado de entrada {digest[:12]}… corrompido.")
+                elif digest not in refs:
+                    rep.errors.append(f"Dado de entrada {digest[:12]}… não é referenciado pela configuração.")
+                else:
+                    rep.blobs[digest] = (content[name], manifest["blobs"].get(digest, {}))
+        missing_blobs = refs - set(rep.blobs)
+        if missing_blobs:
+            rep.errors.append(f"Dados de entrada referenciados ausentes no backup: {sorted(missing_blobs)}")
+        if rep.errors:
+            return
+        rep.config = cfg
+        cur = self.load()
+        if cur is not None:
+            rep.same_installation = cur.config["installation"]["uid"] == cfg["installation"]["uid"]
+            if not rep.same_installation:
+                rep.warnings.append("O backup pertence a OUTRA instalação. Restaurá-lo substituirá a identidade da "
+                                    "microrrede administrada por este SEEDS2 (o histórico atual é preservado).")
+
     def restore_backup(self, data: bytes, expected_revision: int, *, confirm: bool,
                        confirm_identity_change: bool = False) -> Stored:
+        """Restauração ATÔMICA: dados de entrada e configuração são gravados na MESMA transação.
+        Conflito de revisão, troca de identidade não confirmada ou qualquer falha → nada é persistido."""
         if not confirm:
             raise StoreError("A restauração exige confirmação explícita.")
         rep = self.inspect_backup(data)
         if not rep.ok:
             raise StoreError("Backup rejeitado: " + " | ".join(rep.errors))
-        if rep.same_installation is False and not confirm_identity_change:
-            raise IdentityError("O backup é de outra instalação: confirme explicitamente a troca de identidade.")
-        for digest, (content, meta) in rep.blobs.items():
-            if self.put_blob(content, meta.get("name", ""), meta.get("media_type", "text/csv")) != digest:
-                raise StoreError("Falha de integridade ao restaurar dados de entrada.")
+        doc, fp = self._prepare(rep.config)
         m = rep.manifest
-        return self.save(rep.config, expected_revision, origin="restore", allow_identity_change=True,
-                         note=f"Restaurado do backup de {m.get('created_at')} (revisão {m.get('revision')} da origem, "
-                              f"{str(m.get('fingerprint', ''))[:12]}…)")
+        note = (f"Restaurado do backup de {m['created_at'][:40]} (revisão {m['revision']} da origem, "
+                f"{m['fingerprint'][:12]}…)")
+        with self._tx() as con:
+            return self._write_revision(con, doc, fp, expected_revision, note=note, origin="restore",
+                                        allow_identity_change=bool(confirm_identity_change), new_blobs=rep.blobs)
 
 
 def backup_filename(config: dict) -> str:
     """Nome ASCII portátil (acentos transliterados), seguro em qualquer sistema de arquivos e navegador."""
-    import re
     import unicodedata
     from datetime import datetime
 

@@ -7,6 +7,8 @@ com indicação explícita do que falta para simular.
 """
 from __future__ import annotations
 
+from html import escape
+
 import streamlit as st
 
 from seeds2.microgrid import config as C
@@ -109,7 +111,7 @@ def _step1(cfg: dict, plan) -> None:
             forms.bump()
             st.rerun()
         else:
-            st.error(st.session_state.get("mg_conflict") or st.session_state.get("mg_error") or "Falha ao salvar.")
+            st.error(shell.md(st.session_state.get("mg_conflict") or st.session_state.get("mg_error") or "Falha ao salvar."))
 
 
 def _step2(cfg: dict, plan) -> None:
@@ -146,7 +148,8 @@ def _step4(cfg: dict, plan) -> None:
         with st.container(border=True, key=f"cm_op_{eq['id']}"):
             c1, c2, c3 = st.columns([3.2, 1.2, 1.2], vertical_alignment="center")
             state = "configurado" if not missing else "faltam: " + ", ".join(missing)
-            c1.markdown(f"**{eq['name']}** · {KIND_LABELS[eq['kind']]}  \n<span class='sd-muted'>{state}</span>", unsafe_allow_html=True)
+            c1.html(f"<b>{escape(eq['name'])}</b> · {escape(KIND_LABELS[eq['kind']])}<br>"
+                    f"<span class='sd-muted'>{escape(state)}</span>")
             en = c2.toggle("Habilitado", value=bool(eq.get("enabled", True)), key=f"cm_en_{eq['id']}_{forms.token()}")
             if en != bool(eq.get("enabled", True)):
                 C.update_equipment(cfg, eq["id"], enabled=en)
@@ -200,4 +203,4 @@ def _step5(cfg: dict, plan) -> None:
             forms.bump()
             st.rerun()
         else:
-            st.error(st.session_state.get("mg_conflict") or st.session_state.get("mg_error") or "Falha ao salvar.")
+            st.error(shell.md(st.session_state.get("mg_conflict") or st.session_state.get("mg_error") or "Falha ao salvar."))

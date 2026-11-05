@@ -1,6 +1,7 @@
 """Camada de apresentação comum: componentes v2 locais, CSS global, roteamento e barra superior."""
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -16,6 +17,16 @@ NAV_ACTIVE = [("inicio", "Início"), ("gestao", "Gestão da Microrrede"), ("simu
               ("resultados", "Resultados"), ("alcance", "Alcance")]
 NAV_COMMISSIONING = [("comissionamento", "Comissionamento"), ("alcance", "Alcance")]
 ROUTE_KEY = "seeds_route"
+
+
+_MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+\-.!|<>~$:&])")
+
+
+def md(text: object) -> str:
+    """Texto do usuário/arquivo como TEXTO LITERAL em contextos Markdown do Streamlit (captions, rótulos,
+    st.error...): escapa sintaxe Markdown/HTML (links, imagens, ênfase, diretivas ``:cor[...]``, LaTeX) e
+    reduz quebras de linha. Para HTML construído (st.html), use ``html.escape``."""
+    return _MD_SPECIAL.sub(r"\\\1", " ".join(str(text).split()))
 
 
 def _asset(name: str) -> str:
