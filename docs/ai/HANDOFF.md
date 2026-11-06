@@ -2,17 +2,33 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-gestor-microrredes` · **PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5)** (pendiente de revisión; sin merge) · **estado:** Gestor de microrredes + **hotfix H-01** (exclusión concurrente) implementados y verificados en la rama; **no integrado en `main`**.
+**Actualización:** 2026-11-06 · **rama:** `claude/seeds2-piso2a-centro-operacao` · **PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6)** (pendiente de revisión; sin merge) · **estado:** **Piso 2A — Centro de Operação** implementado y verificado en la rama; **no integrado** en `main`.
+
+> **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md)** (canal permanente con el auditor). Este HANDOFF es solo el resumen de continuidad.
 
 ## 1. Estado actual
 
-- `main` (`05e29ef`): V1.6 + PR #1 + PR #2 + PR #3 (Piso 1) + **PR #4 integrado** (refinamiento del Piso 1, incl. backup WAL-consistente).
-- Rama `claude/seeds2-gestor-microrredes`: **Gestor de microrredes** (esta misión; sección 2).
-- **Decisión de producto vigente (responsable, misión "Gestor de microrredes"):** una instalación del SEEDS2 administra **varias microrredes independientes**. *Sustituye expresamente* la regla anterior "una sola microrred por instalación" (vigente desde el prompt maestro del Piso 1 hasta el PR #4; ver histórico en la sección 6). No son proyectos de simulación: cada microrred es una instalación con configuración, inventario, almacenamiento, revisiones y rodadas propias; sin optimización conjunta ni intercambio entre microrredes.
-- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** → [Comissionamento] → Início · Gestão · Simulação · Resultados · Alcance; TROCAR MICRORREDE). Backend: `seeds2/microgrid/registry.py` (catálogo `registry.db` + un `MicrogridStore` por microrred en `microgrids/<uid>/`). Detalles: `docs/seeds2/ARQUITETURA_PISO1.md` §1, `docs/seeds2/ARMAZENAMENTO.md`.
+- `main` (`50ef4d6`): V1.6 + PR #1–#4 + **PR #5 integrado** (Gestor de microrredes + H-01/H-02/H-03; merge squash 2026-11-06, verificado vía GitHub). La línea anterior de este archivo ("PR #5 pendiente / no integrado") estaba desactualizada.
+- Rama `claude/seeds2-piso2a-centro-operacao`: **Piso 2A** (sección 2).
+- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** → [Comissionamento] → **Centro de Operação** · Simulação | Gestão da Microrrede | Resultados; Alcance = link de documentación; identidad de la microrred + TROCAR MICRORREDE en la barra superior). Backend: catálogo `registry.db` + `microgrids/<uid>/seeds2.db` (**esquema v3**: + `scenarios`, `scenario_versions`); dominio de operación en `seeds2/operation/`.
 - EMS y modelos científicos **sin cambios** (`git diff origin/main` vacío en `models`, `h2_pemfc`, `simulation`, `config`, `ems_integration`, `reference_models`).
 
-## 2. Última entrega — Gestor de microrredes (esta rama)
+## 2. Última entrega — Piso 2A · Centro de Operação (esta rama)
+
+- **Implementado:** Centro de Operação como inicio de la microrred comisionada (alias `?view=inicio`); escenarios operativos por microrred (crear, editar, duplicar, listar, retomar; versiones append-only; concurrencia optimista; vínculo con la revisión del inventario + deriva + `rebase` explícito); Inicialización (SOC por banco, estado/unidades/potencia PEMFC, estado/potencia térmica, disponibilidad FV/eólica) con **erro / aviso / pendente / não definido**; contratos 2B/2C/2D (`seeds2/operation/contracts.py`). Detalle, decisiones y reglas: `PARAMIJEFE.md` §4–§8.
+- **Verificado (2026-11-06):** `python -m pytest tests/ -q` → **271 passed** (237 previos + 34 nuevos); E2E Chromium desde directorios vacíos con reinicio real del servidor: Piso 2A **50/50**, Gestor **52/52**, Piso 1 **66/66**; despacho/costo EMS idénticos (prueba `EMSInalteradoTest`). Evidencia: `PARAMIJEFE.md` §9.
+- **Decisiones del responsable aplicadas:** intervalos de SOC recomendados = advertencias (no bloqueo); operación manual/experimental sin telemetría/SCADA; no tocar el EMS (incompatibilidades registradas como "pendente").
+- **Auditoría del PR #6:** favorable; corrección única **C-01** implementada (avisos de que el backup ZIP no incluye escenarios en toda exportación/restauración/exclusión; conteo de escenarios y consentimiento específico obligatorio en la exclusión). Evidencia: `PARAMIJEFE.md` §15 (276 passed; E2E Gestor 52/52).
+- **Pendiente / riesgos:** el escenario aún no alimenta rodadas (Piso 2C) — coexisten `run_conditions.battery_soc0_pct` (Piso 1, rodada V1.6) y el SOC del escenario; backup ZIP no transporta escenarios (2D; advertido y con consentimiento en la exclusión — C-01); sin exclusión/archivado de escenarios; migración v3 hace el banco ilegible para versiones anteriores del SEEDS2 (cópia `.bak-v2`).
+
+## 3. Próxima misión propuesta
+
+**Piso 2B — Previsões** (no implementada ni autorizada): perfiles manuales/CSV/sintéticos sobre `doc["forecasts"]` con `contracts.ForecastInput`, gráficos de previsualización, validación temporal y procedencia; incluir blobs de escenario en `_referenced_blobs`/backup. Después: 2C (Execução: tabla `scenario_runs`, `RunReference` inmutable, series completas), 2D (Arquivo). Ver `PARAMIJEFE.md` §14.
+
+---
+
+## Histórico — entrega anterior: Gestor de microrredes (PR #5, integrado en `50ef4d6`)
+
 
 **Implementado**
 - **Catálogo** (`MicrogridRegistry`): `registry.db` (uid PK validado, estado `ready/deleting`, origen `new/legacy/import/copy`, procedencia de copias) + `microgrids/<uid>/seeds2.db` (el mismo `MicrogridStore` del Piso 1, con `CHECK(id = 1)`). Operaciones con varios archivos recuperables: preparación en `.staging` → confirmación (rename + INSERT bajo `BEGIN IMMEDIATE` del catálogo); exclusión `deleting → .trash → DELETE`; `recover()` concluye interrupciones. Rutas derivadas solo del UID validado.
@@ -42,12 +58,12 @@
 - Rodada EMS real desde una microrred seleccionada = despacho y costo de la V1.6.
 - **Sin CI.**
 
-## 3. Decisiones (con origen)
+### Decisiones (con origen) — Gestor
 
 - **Responsable:** varias microrredes por instalación; catálogo central + base independiente por microrred; eliminación definitiva real (no ocultar), protegida en despliegues compartidos; textos en portugués; no tocar ciencia ni EMS.
 - **Claude Code (técnica, a revisar):** estado `deleting` + `.trash` en lugar de borrar en el lugar; staging + rename bajo el bloqueo del catálogo; el catálogo no guarda datos técnicos (tarjetas calculadas de la configuración guardada); `seeds2.db` anterior se conserva como respaldo (no se borra automáticamente); limpieza **total** del `session_state` al cambiar de microrred (más seguro que listas de claves); exclusión desactivada por defecto sin credencial; nombre de exportación incluye 8 dígitos del UID; la restauración dentro de Gestão solo acepta backups de la misma identidad.
 
-## 4. Pendencias / observaciones
+### Pendencias / observaciones — Gestor (vigentes salvo indicación)
 
 - Sin autenticación/roles: cualquier sesión puede crear, editar, importar y restaurar; solo la exclusión definitiva tiene protección. La credencial es única (no hay auditoría por usuario).
 - El `seeds2.db` anterior queda en `SEEDS2_DATA_DIR` tras la adopción; eliminarlo manualmente después de conferir.
@@ -56,11 +72,9 @@
 - **Deuda técnica para la fase científica:** persistir las series temporales completas del despacho EMS (hoy solo el resumen de cada rodada en `simulation_runs`).
 - Heredadas: decisiones científicas (perfil V–I del ModelLab; equipos heterogéneos; >1 térmica), red sin import/export, MIX inaccesible, `__pycache__/` versionado, README V1.5, sin CI.
 
-## 5. Próxima misión propuesta — Piso 2: Centro de Operação
+### (Propuesta de entonces) Piso 2: Centro de Operação → **iniciado en el Piso 2A** (rama `claude/seeds2-piso2a-centro-operacao`).
 
-**No implementada ni autorizada.** Partir del catálogo (`MicrogridRegistry`) + `MicrogridStore` + `adapter` + `run_conditions`: estrategias EMS y escenarios por microrred, historial de rodadas comparables por revisión. Requiere aprobación del prompt maestro y las decisiones de la sección 4.
-
-## 6. Ritual de actualización y histórico
+## 4. Ritual de actualización y histórico
 
 Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcance, tests realmente ejecutados, decisiones, pendencias y próxima misión. Nunca incluir contraseñas, tokens o datos sensibles.
 
@@ -69,6 +83,7 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR #2 — protocolo de relevo (`f70dd94`).
 - PR [#3](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/3) — SEEDS2 v2.0 Piso 1 (merge `67a7a6f`). Regla entonces vigente: **"una instalación = una microrred"** (directriz del prompt maestro del Piso 1; sustituyó la idea anterior de "cadastro/seleção").
 - PR [#4](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/4) — refinamiento del Piso 1 + backup `.bak-v<N>` consistente con WAL (merge `05e29ef`; 163 passed, E2E 64/64 reportados entonces).
-- Misión "Gestor de microrredes" (esta rama): la regla de microrred única queda **sustituida por autorización del responsable**.
+- PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5) — Gestor de microrredes + H-01/H-02/H-03 (merge squash `50ef4d6`, 2026-11-06; 237 passed, E2E Gestor 52/52 y Piso 1 66/66 reportados entonces). La regla de microrred única queda **sustituida por autorización del responsable**.
+- Piso 2A — Centro de Operação (rama `claude/seeds2-piso2a-centro-operacao`; PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6)): escenarios operativos + Inicialización; inicia el protocolo `PARAMIJEFE.md`.
 
-**Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.
+**Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

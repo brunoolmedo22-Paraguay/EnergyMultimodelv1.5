@@ -3,6 +3,22 @@
 Ambiente da verificação: Linux, Python 3.13.18, `requirements.txt` desta branch (Streamlit 1.66.1,
 reportlab 4.4.10, pypdf 6.21.4), Chromium/Playwright para os testes em navegador. Data: 2026-11-05.
 
+## Piso 2A — Centro de Operação (verificação atual)
+
+Evidência completa: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) §9. Roteiro em navegador real:
+
+```bash
+python tools/e2e/seed_piso2a.py <DIR_VAZIO>            # microrrede comissionada FICTÍCIA (fixture de teste)
+SEEDS2_DATA_DIR=<DIR_VAZIO> python -m streamlit run app.py --server.headless true --server.port 8611
+node tools/e2e/e2e_piso2a_centro_operacao.js http://localhost:8611 operar <capturas>
+# parar e reiniciar o servidor com o MESMO diretório, depois:
+node tools/e2e/e2e_piso2a_centro_operacao.js http://localhost:8611 reinicio <capturas>
+node tools/e2e/e2e_piso2a_centro_operacao.js http://localhost:8611 tablet <capturas>
+```
+
+Os roteiros `e2e_gestor_microrredes.js` e `e2e_piso1_microrrede.js` passaram a esperar o Centro de Operação
+(em vez do antigo "Início") ao abrir/ativar uma microrrede; demais asserções inalteradas.
+
 ## H-02 / H-03 — Auditoria do PR #5 (verificação atual)
 
 **Reprodução ANTES da correção** (código `b8f721c`, scripts determinísticos com `Event`):

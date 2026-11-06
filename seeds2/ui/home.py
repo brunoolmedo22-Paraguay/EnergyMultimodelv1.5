@@ -1,4 +1,9 @@
-"""Início: identidade da microrrede, resumo da instalação configurada e acesso às áreas funcionais."""
+"""Resumo da instalação física e bancadas V1.6 (conteúdo do antigo "Início", preservado no Centro de Operação).
+
+Piso 2A: o "Início" da microrrede foi substituído pelo Centro de Operação (``operation_center``). Este módulo
+mantém o resumo do inventário salvo, o esquema lógico do balanço, a prontidão do console V1.6, as últimas rodadas
+registradas e o acesso às bancadas individuais — exibidos em seções secundárias do Centro de Operação.
+"""
 from __future__ import annotations
 
 from html import escape
@@ -14,24 +19,19 @@ from . import forms, session, shell
 BENCHES = [("solar", "Solar"), ("wind", "Eólica"), ("battery", "Bateria"), ("h2", "H₂ / PEMFC"), ("thermal", "Térmica")]
 
 
-def _on_areas() -> None:
-    a = shell.payload("seeds_areas")
-    if a and a.get("type") == "open" and a.get("view") in ("gestao", "simulacao", "resultados"):
-        shell.go(a["view"])
-
-
-def render() -> None:
-    saved = session.saved()
+def installation_facts(saved) -> list[tuple[str, str]]:
     cfg = saved.config
     inst = cfg["installation"]
-    plan = A.build_plan(cfg, revision=saved.revision, fingerprint=saved.fingerprint)
-    shell.hero("Microrrede aberta nesta sessão", inst["name"],
-               inst.get("description") or "Configuração física persistente da instalação energética.",
-               [("Natureza", C.NATURE_OPTIONS.get(inst.get("nature"), "não declarada")),
-                ("Modo", C.OPERATION_MODE_OPTIONS.get(inst.get("operation_mode"), "não declarado")),
-                ("Local", forms.location_text(inst.get("location"))), ("Fuso", (inst.get("location") or {}).get("timezone") or ""),
-                ("Comissionada", shell.fmt_time(cfg["commissioning"].get("completed_at"))),
-                ("Revisão", f"{saved.revision} · {saved.fingerprint[:10]}…"), ("Identidade", inst["uid"])])
+    return [("Natureza", C.NATURE_OPTIONS.get(inst.get("nature"), "não declarada")),
+            ("Modo", C.OPERATION_MODE_OPTIONS.get(inst.get("operation_mode"), "não declarado")),
+            ("Local", forms.location_text(inst.get("location"))), ("Fuso", (inst.get("location") or {}).get("timezone") or ""),
+            ("Comissionada", shell.fmt_time(cfg["commissioning"].get("completed_at")))]
+
+
+def identification_notice() -> None:
+    """Pendências do Piso 1 que exigem ação na Gestão (edição pendente, identificação incompleta)."""
+    saved = session.saved()
+    cfg = saved.config
     if session.is_dirty():
         shell.callout("Há <b>edição pendente</b> em Gestão da Microrrede ainda não salva.", "warn")
     miss = C.identification_missing(cfg)
@@ -42,6 +42,13 @@ def render() -> None:
         if c2.button("Completar identificação", key="home_complete_ident", width="stretch"):
             shell.go("gestao", "instalacao")
             st.rerun()
+
+
+def installation_summary() -> None:
+    """Inventário salvo, balanço energético, prontidão do console V1.6 e últimas rodadas registradas."""
+    saved = session.saved()
+    cfg = saved.config
+    plan = A.build_plan(cfg, revision=saved.revision, fingerprint=saved.fingerprint)
     by = {k: [e for e in cfg["equipment"] if e["kind"] == k] for k in KINDS}
     tiles = []
     for k in ("pv", "wind", "pemfc", "thermal"):
@@ -55,27 +62,13 @@ def render() -> None:
     tiles.append(("Simulação", "pronta" if plan.runnable and not exc else ("com exclusões" if plan.runnable else "bloqueada"),
                   f"{rep} representado(s) · {exc} excluído(s)"))
     shell.kpis(tiles)
-    cards = [
-        {"kind": "manage", "view": "gestao", "available": True, "eyebrow": "Gestão da Microrrede", "title": "Configuração da instalação",
-         "description": "Inventário, topologia, parâmetros técnicos, demanda, histórico de revisões e backups.",
-         "action": "Abrir Gestão"},
-        {"kind": "sim", "view": "simulacao", "available": True, "eyebrow": "Simulação / Otimizador",
-         "title": "EMS e modelos físicos", "description": "Rodada do EMS existente (GA/GWO/NGO + SQP) com a configuração salva.",
-         "action": "Abrir Simulação", "pill": "Pronta" if plan.runnable else "Bloqueada",
-         "pill_tone": "ok" if plan.runnable and not exc else "warn"},
-        {"kind": "res", "view": "resultados", "available": True, "eyebrow": "Resultados", "title": "Despacho e respostas",
-         "description": "Resultados da rodada atual, com a revisão de configuração que os gerou.", "action": "Ver resultados"},
-        {"kind": "ops", "view": "", "available": False, "eyebrow": "Centro de Operação", "title": "Operação e estratégias",
-         "description": "Previsto para o próximo piso. Não há operação em tempo real nesta versão."},
-    ]
-    shell.component("areas")(key="seeds_areas", data={"cards": cards}, on_action_change=_on_areas)
     st.write("")
     c1, c2 = st.columns([1.55, 1], gap="large")
     with c1:
         st.markdown('<div class="sd-section">Esquema lógico do balanço energético</div>', unsafe_allow_html=True)
         forms.balance_view(cfg, plan, key="home_bal")
     with c2:
-        st.markdown('<div class="sd-section">Prontidão para simulação</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sd-section">Prontidão para o console V1.6 (Simulação)</div>', unsafe_allow_html=True)
         rows = []
         for m in plan.mappings:
             tone = {A.REPRESENTED: "ok", A.DISABLED: "off", A.INCOMPLETE: "warn", A.INCOMPATIBLE: "bad"}[m.status]
@@ -95,12 +88,15 @@ def render() -> None:
                             f"{'' if cur else ' · *configuração anterior*'} · custo R$ {forms.fmt(r['summary'].get('custo_total_rs'), 2)}")
         else:
             st.caption("Nenhuma rodada registrada.")
-    with st.expander("Bancadas individuais dos modelos (ferramentas de validação isolada)"):
-        st.caption("Executam cada física de forma independente, sem usar nem alterar a configuração da microrrede.")
-        cols = st.columns(len(BENCHES))
-        for col, (key, label) in zip(cols, BENCHES):
-            if col.button(f"ABRIR {label.upper()}", key=f"home_bench_{key}", width="stretch"):
-                st.session_state["energy_source"] = key
-                if key == "solar":
-                    st.session_state["current_page"] = "Visão geral"
-                st.rerun()
+
+
+def benches() -> None:
+    """Bancadas individuais V1.6 (ferramentas de validação isolada)."""
+    st.caption("Executam cada física de forma independente, sem usar nem alterar a configuração da microrrede.")
+    cols = st.columns(len(BENCHES))
+    for col, (key, label) in zip(cols, BENCHES):
+        if col.button(f"ABRIR {label.upper()}", key=f"home_bench_{key}", width="stretch"):
+            st.session_state["energy_source"] = key
+            if key == "solar":
+                st.session_state["current_page"] = "Visão geral"
+            st.rerun()

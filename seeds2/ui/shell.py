@@ -12,13 +12,27 @@ from seeds2 import APP_VERSION
 
 STATIC = Path(__file__).resolve().parent / "static"
 _KIT = (STATIC / "kit.css").read_text(encoding="utf-8")
-VIEWS = ("gestor", "inicio", "gestao", "simulacao", "resultados", "alcance", "comissionamento")
-NAV_ACTIVE = [("inicio", "Início"), ("gestao", "Gestão da Microrrede"), ("simulacao", "Simulação"),
-              ("resultados", "Resultados"), ("alcance", "Alcance")]
-NAV_COMMISSIONING = [("comissionamento", "Comissionamento"), ("alcance", "Alcance")]
-NAV_GESTOR = [("gestor", "Gestor de microrredes"), ("alcance", "Alcance")]
+VIEWS = ("gestor", "operacao", "gestao", "simulacao", "resultados", "alcance", "comissionamento")
+VIEW_ALIASES = {"inicio": "operacao"}      # Piso 2A: o antigo "Início" foi substituído pelo Centro de Operação
+# Navegação da microrrede ativa, agrupada: operação (cotidiano) · gestão física · resultados. A microrrede NÃO é
+# um item do menu: é o contexto (identidade + TROCAR MICRORREDE na barra superior). "Alcance" é documentação
+# (link secundário, fora da navegação principal).
+NAV_ACTIVE = [("operacao", "Centro de Operação", "operacao"), ("simulacao", "Simulação", "operacao"),
+              ("gestao", "Gestão da Microrrede", "fisica"), ("resultados", "Resultados", "resultados")]
+NAV_COMMISSIONING = [("comissionamento", "Comissionamento", "fisica")]
+NAV_GESTOR = [("gestor", "Gestor de microrredes", "gestor")]
+NAV_DOCS = [("alcance", "Alcance")]
 SWITCH_KEY = "seeds_switch_requested"
 ROUTE_KEY = "seeds_route"
+SCENARIO_KEY = "op_scenario_uid"          # cenário selecionado no Centro de Operação (sobrevive à recarga: ?sc=)
+# Alcance do backup ZIP (formato 2, inalterado no Piso 2A): exibido em TODA exportação/restauração/exclusão.
+BACKUP_SCOPE = ("O backup ZIP atual contém a configuração da microrrede e os dados compatíveis do Piso 1 (inventário, "
+                "dados de entrada importados, histórico de revisões). **Não inclui os cenários operativos do Centro de "
+                "Operação (Piso 2A)**: eles não podem ser recuperados a partir deste arquivo. A exportação de cenários "
+                "está prevista para o Piso 2D.")
+RESTORE_SCOPE = ("Restaurar um backup ZIP cria uma nova revisão da configuração; **nenhum cenário operativo é restaurado** "
+                 "(o arquivo não os contém). Os cenários já existentes nesta microrrede são mantidos e passam a indicar "
+                 "que o inventário mudou.")
 
 
 _MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+\-.!|<>~$:&])")
@@ -140,18 +154,24 @@ def route() -> dict:
     ss = st.session_state
     if ROUTE_KEY not in ss:
         qp = st.query_params
-        view = qp.get("view", "gestor")
+        view = VIEW_ALIASES.get(qp.get("view", "gestor"), qp.get("view", "gestor"))
         ss[ROUTE_KEY] = {"view": view if view in VIEWS else "gestor", "tab": qp.get("tab")}
-    return ss[ROUTE_KEY]
+    r = ss[ROUTE_KEY]
+    if r.get("view") in VIEW_ALIASES:
+        r["view"] = VIEW_ALIASES[r["view"]]
+    return r
 
 
 def go(view: str, tab: str | None = None) -> None:
     r = route()
+    view = VIEW_ALIASES.get(view, view)
     r["view"] = view if view in VIEWS else "gestor"
     r["tab"] = tab
     mg = st.session_state.get("mg_active_uid")          # a microrrede ativa DESTA aba sobrevive à recarga
+    sc = st.session_state.get(SCENARIO_KEY) if mg else None
     st.query_params.clear()
-    st.query_params.update({"view": r["view"], **({"tab": tab} if tab else {}), **({"mg": mg} if mg else {})})
+    st.query_params.update({"view": r["view"], **({"tab": tab} if tab else {}), **({"mg": mg} if mg else {}),
+                            **({"sc": sc} if sc else {})})
 
 
 def _on_topbar() -> None:
@@ -171,9 +191,11 @@ def fmt_time(iso: str | None) -> str:
         return iso
 
 
-def topbar(*, view: str, items: list[tuple[str, str]], site: str, site_title: str, save: dict, force_light: bool,
-           home: str, switch: bool = False) -> None:
+def topbar(*, view: str, items: list[tuple], site: str, site_title: str, save: dict, force_light: bool,
+           home: str, switch: bool = False, site_sub: str = "", mg_name: str = "",
+           aux: list[tuple[str, str]] | None = None) -> None:
     component("topbar")(key="seeds_topbar", on_action_change=_on_topbar,
-                        data={"version": APP_VERSION, "view": view, "items": items, "site": site,
-                              "site_title": site_title, "save": save, "force_light": force_light, "home": home,
-                              "switch": switch})
+                        data={"version": APP_VERSION, "view": view, "items": [list(i) for i in items], "site": site,
+                              "site_title": site_title, "site_sub": site_sub, "mg_name": mg_name, "save": save,
+                              "force_light": force_light, "home": home, "switch": switch,
+                              "aux": [list(a) for a in (NAV_DOCS if aux is None else aux)]})

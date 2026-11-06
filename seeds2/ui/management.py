@@ -197,6 +197,7 @@ def _history(cfg, plan) -> None:
             st.markdown("**Exportar backup**")
             st.caption("ZIP autossuficiente: configuração, dados de entrada importados (CSV), histórico de revisões e manifesto "
                        "com hashes SHA-256. Não contém credenciais. Guarde-o em local seguro da instalação.")
+            st.warning(shell.BACKUP_SCOPE)
             if st.button("Preparar backup da revisão salva", key="mg_bk_prep", width="stretch", disabled=saved is None):
                 st.session_state["mg_bk"] = (backup_filename(saved.config), s.export_backup())
             if st.session_state.get("mg_bk"):
@@ -206,6 +207,7 @@ def _history(cfg, plan) -> None:
     with c2:
         with st.container(border=True):
             st.markdown("**Restaurar backup**")
+            st.caption(shell.RESTORE_SCOPE)
             up = st.file_uploader("Backup .seeds2backup.zip", type=["zip"], key="mg_bk_up", label_visibility="collapsed")
             if up is not None:
                 data = up.getvalue()

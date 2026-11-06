@@ -143,7 +143,7 @@ class GestorPaginaTest(_Base):
         app = self.session()
         _key(app, f"g_open_{uid}").click().run()
         _ok(self, app)
-        self.assertEqual(app.session_state["seeds_route"]["view"], "inicio")
+        self.assertEqual(app.session_state["seeds_route"]["view"], "operacao")    # Piso 2A: Centro de Operação
         self.assertIn("Ativa", _html(app))
 
     def test_recarga_com_parametro_mg_reabre_a_mesma_microrrede(self):

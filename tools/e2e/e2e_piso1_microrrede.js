@@ -223,7 +223,8 @@ async function comissionar(b) {
   assert(fs.readFileSync(pdf).subarray(0, 5).toString() === "%PDF-", "PDF preliminar baixado");
   await shot(p, "e2e_11_revisao_exportacoes.png");
   await p.getByRole("button", { name: "Ativar microrrede e concluir comissionamento" }).click(); await ready(p);
-  assert(await p.getByText("Microrrede aberta nesta sessão").isVisible(), "ativação leva ao Início");
+  assert(await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).isVisible(),
+         "ativação leva ao Centro de Operação (Piso 2A)");
   assert(geoCalls === 1, "nenhuma leitura adicional de posição (sem rastreamento)");
   await noErrors(p, "comissionamento");
   assert(errs.length === 0, "sem erros de JavaScript: " + JSON.stringify(errs));

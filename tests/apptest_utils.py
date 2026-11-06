@@ -34,7 +34,10 @@ ENV = "SEEDS2_DATA_DIR"
 # rodada integrada do Orchestrator V1.6.
 _CHAVES_FIXAS = ("energy_source", "current_page", "orchestrator_page")
 # Estado de navegação do shell SEEDS2 (não são widgets).
-_CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp", "mg_active_uid", "mg_creating", "seeds_url_checked")
+_CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp", "mg_active_uid", "mg_creating", "seeds_url_checked",
+                  # Centro de Operação (Piso 2A): cenário selecionado e cópia de trabalho (estado de aplicação)
+                  "op_scenario_uid", "op_work", "op_work_uid", "op_base_version", "op_base_fp", "op_token",
+                  "op_conflict", "op_stale", "op_form", "op_flash", "op_url_checked")
 _V16_DIR: str | None = None
 _V16_UID: str | None = None
 

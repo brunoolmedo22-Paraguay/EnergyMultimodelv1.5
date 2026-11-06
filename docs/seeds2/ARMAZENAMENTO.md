@@ -165,7 +165,7 @@ mesmo estado. Leitura cujo instantâneo é anterior à lápide termina sobre ess
 leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloqueiam gravações nem a exclusão
 (WAL). `export_backup` usa um único instantâneo.
 
-## Banco de cada microrrede (`PRAGMA user_version` = 2)
+## Banco de cada microrrede (`PRAGMA user_version` = 3)
 
 | Tabela | Conteúdo |
 |---|---|
@@ -173,7 +173,25 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 | `revisions` | snapshots completos imutáveis (triggers bloqueiam UPDATE/DELETE), nota e origem (`commissioning`, `edit`, `restore`, `revert`, `migration`, `run_conditions`) |
 | `blobs` | CSVs importados e pacotes originais do PEMFC ModelLab (conteúdo + SHA-256 verificado na leitura) |
 | `simulation_runs` | procedência de cada rodada: revisão, impressões digitais, origem, exclusões, resumo |
-| `meta` | registro de migrações |
+| `scenarios` (v3) | estado atual de cada cenário operativo (Piso 2A): `scenario_uid`, `version` (concorrência otimista), `base_revision` (FK → `revisions`), `base_fingerprint`, documento, origem (`new`/`duplicate`) |
+| `scenario_versions` (v3) | histórico append-only das versões de cada cenário (triggers bloqueiam UPDATE/DELETE); base para execuções imutáveis do Piso 2C |
+| `meta` | registro de migrações, incarnação, lápide |
+
+### Cenários operativos (esquema v3, Piso 2A)
+
+- **Onde:** no banco de CADA microrrede — nunca em `registry.db` nem numa base global. Excluir a microrrede
+  exclui seus cenários; uma microrrede reimportada com o mesmo UID começa sem cenários (banco novo, nova
+  incarnação).
+- **Migração v2 → v3:** só cria tabelas/triggers (nenhuma linha existente é alterada); como toda migração, é
+  precedida pela cópia `.bak-v2` (API de backup do SQLite) e ocorre numa única transação `BEGIN IMMEDIATE`.
+- **Integridade na transação da microrrede** (`MicrogridStore._tx`, com lápide/incarnação verificadas — H-01/H-02):
+  identidade da microrrede do documento = a do banco; incarnação do documento = `meta.incarnation`; revisão-base
+  existente com a MESMA impressão digital; `save_scenario(doc, expected_version)` → `ScenarioConflictError` se
+  outra sessão gravou antes (nada é sobrescrito); conteúdo idêntico não cria versão.
+- **Leituras** (`get_scenario`, `list_scenarios`, `scenario_history`) em transação de instantâneo único (H-03).
+- **Independência:** versões do cenário ≠ revisões do inventário; salvar um cenário nunca grava `microgrid`/`revisions`.
+- **Backup ZIP (formato 2):** NÃO transporta cenários (exportação de cenários = Piso 2D). O manifesto passa a
+  declarar `db_schema_version` 3; backups v1/v2 continuam aceitos.
 
 ## Garantias
 
