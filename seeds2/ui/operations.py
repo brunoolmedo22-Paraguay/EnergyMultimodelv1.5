@@ -58,8 +58,9 @@ def _apply(plan: A.SimulationPlan) -> None:
         from ems_integration import ponte
         ss["orq_load"] = ponte.carga_walkforward("Ideal", "Normal", 12)
     ss["orq_climate_raw"] = A.build_climate_raw(plan.climate_descriptor, store.get_blob) if plan.climate_descriptor else None
-    ss["orq_mg_applied"] = {"spec_fingerprint": plan.spec_fingerprint, "state_hash": _state_hash(),
-                            "config_revision": plan.config_revision, "config_fingerprint": plan.config_fingerprint}
+    ss["orq_mg_applied"] = {"microgrid_uid": plan.microgrid_uid, "spec_fingerprint": plan.spec_fingerprint,
+                            "state_hash": _state_hash(), "config_revision": plan.config_revision,
+                            "config_fingerprint": plan.config_fingerprint}
     ss.pop("orq_manual", None)
 
 
@@ -68,7 +69,8 @@ def _after_run_hook(plan: A.SimulationPlan | None) -> Callable[[dict], None]:
         origin = item.get("origem") or {}
         r = item["resultado"]
         rel = r["rel"]
-        summary = {"algoritmo": r.get("algoritmo"), "carga": r.get("carga_descricao"), "k_validos": int(r["k_validos"]),
+        summary = {"microgrid_uid": origin.get("microgrid_uid"), "algoritmo": r.get("algoritmo"),
+                   "carga": r.get("carga_descricao"), "k_validos": int(r["k_validos"]),
                    "custo_total_rs": float(rel["custo_total_rs"]), "energia_nao_atendida_kWh": float(rel["energia_nao_atendida_kWh"]),
                    "energia_vertida_kWh": float(rel["energia_vertida_kWh"]), "fontes": list(r.get("nomes", []))}
         try:
@@ -108,7 +110,8 @@ def prepare(view: str) -> str:
     plan = A.build_plan(saved.config, revision=saved.revision, fingerprint=saved.fingerprint) if saved else None
     ss["mg_plan"] = plan
     applied = ss.get("orq_mg_applied") or {}
-    if plan is not None and plan.spec_fingerprint != applied.get("spec_fingerprint"):
+    if plan is not None and (plan.spec_fingerprint != applied.get("spec_fingerprint")
+                             or plan.microgrid_uid != applied.get("microgrid_uid")):
         try:
             _apply(plan)
         except Exception as exc:  # noqa: BLE001
@@ -141,7 +144,8 @@ def _origin_text(o: dict | None) -> str:
     if not o:
         return "origem não registrada"
     if o.get("origin") == "microrrede":
-        return f"microrrede · revisão {o.get('config_revision')} · {str(o.get('config_fingerprint') or '')[:12]}…"
+        return (f"microrrede {str(o.get('microgrid_uid') or '?')[:8]}… · revisão {o.get('config_revision')} · "
+                f"{str(o.get('config_fingerprint') or '')[:12]}…")
     return "especificação manual do console V1.6 (não vinculada à microrrede)"
 
 
@@ -150,10 +154,15 @@ def panel(view: str) -> None:
     saved = session.saved()
     plan: A.SimulationPlan | None = ss.get("mg_plan")
     item = ss.get("orq_result_item")
+    active = session.active_uid()
     if item is not None:
         o = item.get("origem") or {}
+        foreign = o.get("origin") == "microrrede" and o.get("microgrid_uid") != active
         stale = o.get("origin") != "microrrede" or (saved is not None and o.get("config_fingerprint") != saved.fingerprint)
-        if stale and o.get("origin") == "microrrede":
+        if foreign:
+            shell.callout(f"<b>Resultado de OUTRA microrrede.</b> A rodada #{item['id']} pertence à "
+                          f"{escape(_origin_text(o))} e não é válida para a microrrede aberta. Execute uma nova rodada.", "bad")
+        elif stale and o.get("origin") == "microrrede":
             shell.callout(f"<b>Resultado de configuração anterior.</b> A rodada #{item['id']} usou a {escape(_origin_text(o))}; "
                           f"a configuração salva atual é a revisão {saved.revision}. O resultado é mantido apenas para consulta e "
                           "não corresponde aos equipamentos atuais.", "bad")
@@ -162,6 +171,8 @@ def panel(view: str) -> None:
         elif view == "resultados":
             shell.callout(f"<b>Resultado da rodada #{item['id']}</b> — {escape(_origin_text(o))}"
                           f"{' · registro local nº ' + str(o['run_id']) if o.get('run_id') else ''}.", "ok")
+    elif view == "resultados" and active:
+        _persisted_runs()
     if view != "simulacao":
         return
     if ss.get("mg_apply_error"):
@@ -206,6 +217,31 @@ def panel(view: str) -> None:
             shell.go("gestao", "inventario")
             st.rerun()
         c2.caption(f"Impressão digital da especificação: `{plan.spec_fingerprint[:16]}…`")
+
+
+def _persisted_runs() -> None:
+    """Sem resultado nesta sessão: mostra as rodadas PERSISTIDAS desta microrrede (somente o que foi gravado:
+    procedência e resumo — as séries completas do despacho não são armazenadas e não são reconstruídas)."""
+    try:
+        runs = session.store().runs(limit=5)
+    except Exception:  # noqa: BLE001 — leitura opcional
+        return
+    if not runs:
+        return
+    saved = session.saved()
+    rows = []
+    for r in runs:
+        cur = saved is not None and r["config_fingerprint"] == saved.fingerprint
+        s = r["summary"]
+        rows.append(shell.check(f"Rodada registrada nº {r['run_id']} · {escape(shell.fmt_time(r['created_at']))} · "
+                                f"{'revisão ' + str(r['config_revision']) if r['spec_origin'] == 'microrrede' else 'manual'}"
+                                f" · custo R$ {escape(forms.fmt(s.get('custo_total_rs'), 2))} · não atendida "
+                                f"{escape(forms.fmt(s.get('energia_nao_atendida_kWh'), 2, 'kWh'))}"
+                                f"{'' if cur else ' · configuração anterior'}", "ok" if cur else "off"))
+    shell.callout("<b>Rodadas registradas desta microrrede.</b> Nesta sessão ainda não há resultado carregado; abaixo, o "
+                  "resumo gravado de cada rodada (as séries completas do despacho não são armazenadas — execute uma nova "
+                  "rodada para vê-las).", "")
+    st.html("".join(rows))
 
 
 def run_conditions_editor(saved, plan: A.SimulationPlan) -> None:

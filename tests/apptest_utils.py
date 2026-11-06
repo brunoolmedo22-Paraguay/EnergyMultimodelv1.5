@@ -1,9 +1,9 @@
 """Utilitários compartilhados pelos testes de interface (streamlit.testing).
 
-SEEDS2 (Piso 1): o console V1.6 passou a ser exibido na área **Simulação** de uma microrrede já
-comissionada. ``abrir`` prepara essa instalação num diretório temporário (``SEEDS2_DATA_DIR``) com o
-inventário equivalente à configuração padrão da V1.6 e abre a vista Simulação; as verificações dos
-testes V1.6 permanecem as mesmas.
+SEEDS2: o console V1.6 é exibido na área **Simulação** de uma microrrede comissionada e ABERTA na sessão
+(Gestor de microrredes). ``abrir`` prepara essa microrrede no catálogo de um diretório temporário
+(``SEEDS2_DATA_DIR``) com o inventário equivalente à configuração padrão da V1.6, abre-a na sessão (equivale a
+"ABRIR MICRORREDE" no Gestor) e mostra a vista Simulação; as verificações dos testes V1.6 permanecem as mesmas.
 
 Limitação conhecida do ``AppTest``: quando um clique dispara ``st.rerun()``, a
 árvore resultante mistura os elementos da execução final com elementos
@@ -34,21 +34,30 @@ ENV = "SEEDS2_DATA_DIR"
 # rodada integrada do Orchestrator V1.6.
 _CHAVES_FIXAS = ("energy_source", "current_page", "orchestrator_page")
 # Estado de navegação do shell SEEDS2 (não são widgets).
-_CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp")
+_CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp", "mg_active_uid", "mg_creating", "seeds_url_checked")
 _V16_DIR: str | None = None
+_V16_UID: str | None = None
 
 
 def instalacao_v16() -> str:
-    """Diretório com uma microrrede comissionada equivalente à configuração padrão da V1.6 (criado uma vez)."""
-    global _V16_DIR
+    """Diretório com um catálogo contendo UMA microrrede comissionada equivalente à configuração padrão da V1.6
+    (criado uma vez)."""
+    global _V16_DIR, _V16_UID
     if _V16_DIR is None:
-        from seeds2.microgrid.store import MicrogridStore
+        from seeds2.microgrid.registry import MicrogridRegistry
         from seeds2_fixtures import v16_equivalent_config
 
         _V16_DIR = tempfile.mkdtemp(prefix="seeds2_v16_")
         atexit.register(shutil.rmtree, _V16_DIR, True)
-        MicrogridStore(_V16_DIR).save(v16_equivalent_config("Microrrede equivalente V1.6"), 0, origin="commissioning")
+        cfg = v16_equivalent_config("Microrrede equivalente V1.6")
+        MicrogridRegistry(_V16_DIR).create(cfg, origin="commissioning")
+        _V16_UID = cfg["installation"]["uid"]
     return _V16_DIR
+
+
+def uid_v16() -> str:
+    instalacao_v16()
+    return _V16_UID
 
 
 def _todas_as_chaves(app: AppTest) -> list[str]:
@@ -66,10 +75,11 @@ def _chaves_de_aplicacao(app: AppTest) -> list[str]:
     return chaves
 
 
-def abrir(timeout: float = 60, view: str = "simulacao", data_dir: str | None = None) -> AppTest:
+def abrir(timeout: float = 60, view: str = "simulacao", data_dir: str | None = None, uid: str | None = None) -> AppTest:
     os.environ[ENV] = data_dir or instalacao_v16()
     app = AppTest.from_file(str(APP_PATH), default_timeout=timeout)
     app.session_state["seeds_route"] = {"view": view, "tab": None}
+    app.session_state["mg_active_uid"] = uid or uid_v16()          # microrrede aberta nesta sessão
     return app.run()
 
 

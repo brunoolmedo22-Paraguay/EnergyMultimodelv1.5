@@ -1,14 +1,17 @@
-"""Estado de sessão ↔ armazenamento local.
+"""Estado de sessão ↔ catálogo de microrredes ↔ armazenamento da microrrede ATIVA.
 
-Três estados distintos (requisito do Piso 1):
+* **Microrrede ativa** — escolhida POR SESSÃO de navegador (``mg_active_uid``); nunca uma variável global do
+  processo. Abrir/trocar de microrrede limpa TODO o estado da sessão (cópias de trabalho, diálogos,
+  widgets, especificação/carga/resultados do console V1.6...), de modo que nada de uma microrrede reapareça
+  em outra.
+* **Configuração salva** — última revisão no SQLite da microrrede ativa (``saved()``), compartilhada por
+  todas as sessões que a abrirem;
+* **Edição pendente** — cópia de trabalho desta sessão (``work()``), ainda não gravada;
+* **Configuração aplicada a uma simulação** — registrada pela ponte de operação (``operations``) com
+  identidade da microrrede, revisão e impressão digital.
 
-* **configuração salva** — última revisão no SQLite (``saved()``), compartilhada por todas as sessões;
-* **edição pendente** — cópia de trabalho desta sessão (``work()``), ainda não gravada;
-* **configuração aplicada a uma simulação** — registrada pela ponte de operação (``operations``) com
-  revisão e impressão digital.
-
-A configuração salva é relida a cada execução (leitura SQLite barata), de modo que alterações feitas
-por outra sessão aparecem; se houver edição pendente, o salvamento posterior detecta o conflito.
+Uma microrrede NOVA existe apenas nesta sessão (``mg_creating``) até o primeiro salvamento (etapa 01 do
+comissionamento), quando é registrada no catálogo com armazenamento próprio.
 """
 from __future__ import annotations
 
@@ -20,28 +23,109 @@ import streamlit as st
 from seeds2.microgrid import config as C
 from seeds2.microgrid.adapter import build_plan
 from seeds2.microgrid.references import KIND_LABELS
-from seeds2.microgrid.store import ConflictError, MicrogridStore, Stored, StoreError, resolve_data_dir
+from seeds2.microgrid.registry import MicrogridNotFound, MicrogridRegistry, valid_uid
+from seeds2.microgrid.store import (ConflictError, MicrogridStore, MissingStoreError, Stored, StoreError,
+                                    resolve_data_dir)
 
 from .shell import fmt_time
 
 
+ACTIVE_KEY = "mg_active_uid"
+INCARNATION_KEY = "mg_active_inc"     # incarnação aberta nesta sessão (excluída + reimportada com o mesmo UID ≠ a mesma)
+CREATING_KEY = "mg_creating"
+# Chaves que sobrevivem à troca de microrrede: rota (redefinida em seguida) e o aviso a exibir no Gestor.
+_KEEP_ON_SWITCH = ("seeds_route", "mg_flash")
+
+
 @st.cache_resource(show_spinner=False)
-def _store_for(path: str) -> MicrogridStore:
-    return MicrogridStore(path)
+def _registry_for(path: str) -> MicrogridRegistry:
+    return MicrogridRegistry(path)
 
 
-def store() -> MicrogridStore:
-    return _store_for(str(resolve_data_dir()))
+@st.cache_resource(show_spinner=False)
+def _store_for(path: str, uid: str, incarnation: str | None) -> MicrogridStore:
+    return MicrogridStore(path, must_exist=True, fixed_uid=uid, incarnation=incarnation)
+
+
+def registry() -> MicrogridRegistry:
+    return _registry_for(str(resolve_data_dir()))
 
 
 def _ss():
     return st.session_state
 
 
-def sync() -> Stored | None:
-    """Relê a configuração salva e atualiza a cópia de trabalho quando não há edição pendente."""
-    saved = store().load()
+def active_uid() -> str | None:
+    uid = _ss().get(ACTIVE_KEY)
+    return uid if valid_uid(uid) else None
+
+
+def creating() -> bool:
+    return bool(_ss().get(CREATING_KEY)) and active_uid() is None
+
+
+def store() -> MicrogridStore:
+    """Armazenamento da microrrede ATIVA desta sessão (nunca cria uma microrrede)."""
+    uid = active_uid()
+    if uid is None:
+        raise MicrogridNotFound("Nenhuma microrrede aberta nesta sessão.")
+    reg = registry()
+    entry = reg.get(uid)
+    if entry is None:
+        raise MicrogridNotFound("A microrrede não existe mais no catálogo (pode ter sido excluída em outra sessão).")
     ss = _ss()
+    if ss.get(INCARNATION_KEY) is None:
+        ss[INCARNATION_KEY] = entry.incarnation         # liga a sessão à incarnação aberta
+    elif ss[INCARNATION_KEY] != entry.incarnation:
+        raise MicrogridNotFound("A microrrede aberta foi excluída e substituída por outra com o mesmo identificador.")
+    try:
+        return _store_for(str(reg.dir_for(uid)), uid, entry.incarnation)
+    except MissingStoreError:
+        raise MicrogridNotFound("A microrrede não existe mais (excluída em outra sessão).") from None
+
+
+def storage_label() -> str:
+    uid = active_uid()
+    return str(registry().dir_for(uid)) if uid else "será criado ao salvar a etapa 01"
+
+
+def reset_state() -> None:
+    """Limpa TODO o estado da sessão ligado a uma microrrede (inclusive o do console V1.6)."""
+    ss = _ss()
+    for k in list(ss.keys()):
+        if k not in _KEEP_ON_SWITCH:
+            del ss[k]
+
+
+def open_microgrid(uid: str) -> bool:
+    """Abre a microrrede ``uid`` NESTA sessão. Devolve se ela está comissionada (ativada)."""
+    if not registry().exists(uid):
+        raise MicrogridNotFound("A microrrede não existe mais no catálogo.")
+    reset_state()
+    _ss()[ACTIVE_KEY] = uid
+    _ss()[INCARNATION_KEY] = registry().get(uid).incarnation if registry().get(uid) else None
+    s = store().load()
+    return bool(s and s.config.get("commissioning", {}).get("completed"))
+
+
+def close_microgrid(flash: tuple[str, str] | None = None) -> None:
+    """Volta ao Gestor: a sessão deixa de ter microrrede ativa (dados persistidos não são alterados)."""
+    reset_state()
+    if flash:
+        _ss()["mg_flash"] = flash
+
+
+def sync() -> Stored | None:
+    """Relê a configuração salva e atualiza a cópia de trabalho quando não há edição pendente.
+    Levanta ``MicrogridNotFound`` se a microrrede ativa foi excluída (por outra sessão)."""
+    ss = _ss()
+    if active_uid() is None:                           # Gestor, ou microrrede NOVA (só a cópia de trabalho da sessão)
+        ss["mg_saved"] = None
+        return None
+    try:
+        saved = store().load()
+    except MissingStoreError:                          # lápide/incarnação: referência antiga invalidada
+        raise MicrogridNotFound("A microrrede não existe mais (excluída em outra sessão).") from None
     ss["mg_saved"] = saved
     base_rev = int(ss.get("mg_base_rev") or 0)
     if saved is None:
@@ -86,7 +170,14 @@ def save(note: str = "", origin: str = "edit") -> bool:
     if w is None:
         return False
     try:
-        res = store().save(w, int(ss.get("mg_base_rev") or 0), note=note, origin=origin)
+        if active_uid() is None:                       # primeiro salvamento de uma microrrede NOVA → catálogo
+            res = registry().create(w, note=note or "Comissionamento: identificação e localização", origin=origin)
+            ss[ACTIVE_KEY] = res.config["installation"]["uid"]
+            ss[INCARNATION_KEY] = registry().get(ss[ACTIVE_KEY]).incarnation
+            ss.pop(CREATING_KEY, None)
+            st.query_params["mg"] = ss[ACTIVE_KEY]
+        else:
+            res = store().save(w, int(ss.get("mg_base_rev") or 0), note=note, origin=origin)
     except ConflictError as exc:
         ss["mg_conflict"] = str(exc)
         return False
@@ -105,7 +196,7 @@ def save(note: str = "", origin: str = "edit") -> bool:
 
 def discard() -> None:
     ss = _ss()
-    s = store().load()
+    s = store().load() if active_uid() else None
     ss["mg_saved"] = s
     ss["mg_work"] = copy.deepcopy(s.config) if s else None
     ss["mg_base_rev"] = s.revision if s else 0
@@ -115,7 +206,10 @@ def discard() -> None:
     ss.pop("mg_stale_base", None)
 
 
-def begin_new(name: str) -> dict:
+def begin_new(name: str = "") -> dict:
+    """Inicia o comissionamento de uma microrrede NOVA nesta sessão (nada é gravado até a etapa 01)."""
+    reset_state()
+    _ss()[CREATING_KEY] = True
     cfg = C.new_config(name)
     set_work(cfg)
     return cfg
@@ -176,9 +270,9 @@ def save_status() -> dict[str, Any]:
         return {"state": "conflito", "text": "Conflito de salvamento", "title": ss["mg_conflict"]}
     if ss.get("mg_error"):
         return {"state": "erro", "text": "Erro ao salvar", "title": ss["mg_error"]}
-    path = str(store().path)
+    path = storage_label()
     if s is None:
-        return {"state": "novo", "text": "Nenhuma configuração salva", "title": f"Armazenamento local: {path}"}
+        return {"state": "novo", "text": "Nova microrrede · ainda não salva", "title": f"Armazenamento: {path}"}
     n = max(1, len(pending_changes())) if is_dirty() else 0
     if n:
         return {"state": "pendente", "text": f"Alterações pendentes ({n})",

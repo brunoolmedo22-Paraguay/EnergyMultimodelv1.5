@@ -3,7 +3,127 @@
 Ambiente da verificação: Linux, Python 3.13.18, `requirements.txt` desta branch (Streamlit 1.66.1,
 reportlab 4.4.10, pypdf 6.21.4), Chromium/Playwright para os testes em navegador. Data: 2026-11-05.
 
-## 0. Refinamento do Piso 1 (verificação atual)
+## H-02 / H-03 — Auditoria do PR #5 (verificação atual)
+
+**Reprodução ANTES da correção** (código `b8f721c`, scripts determinísticos com `Event`):
+* **H-02**: A valida X (incarnação `ff12ccb7`) e para antes da lápide; B exclui X; C reimporta X (incarnação
+  `53be8b04`); A continua → `delete OK` e **a microrrede reimportada desapareceu** (sem linha, sem diretório).
+* **H-03**: o leitor verifica a lápide (revisão 1, sem lápide) e para; outra sessão grava a revisão 2 e a lápide
+  é confirmada; o leitor continua → **`load` devolveu a revisão 2** (consultou um estado diferente do verificado,
+  já com lápide).
+
+**Depois da correção** (mesmos scripts): H-02 → `StaleDeletionError`, microrrede reimportada intacta (linha,
+diretório, incarnação e conteúdo); H-03 → `load` devolve a **revisão 1** (instantâneo verificado).
+
+**Suíte:** `python -m pytest tests/ -q` → **237 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP).
+`test_seeds2_concorrencia.py` (27) + `test_seeds2_gestor.py` (32) executados **10 vezes**: 59/59 em todas. Cada
+teste de concorrência termina conferindo as invariantes de armazenamento (todo diretório com linha da MESMA
+incarnação e documento salvo; nenhuma linha sem diretório; `.staging`, `.trash` e `.quarantine` vazios).
+
+| Intercalação | Teste | Resultado |
+|---|---|---|
+| H-02: obsoleta antes da lápide (cenário da auditoria) | `test_obsoleta_antes_da_lapide` | `StaleDeletionError`; nova incarnação intacta, sem lápide |
+| H-02: obsoleta entre lápide e reivindicação | `test_obsoleta_entre_lapide_e_reivindicacao` | `StaleDeletionError` na reivindicação; nova intacta |
+| H-02: outro processo recupera durante a pausa + reimportação | `test_recuperacao_de_outro_processo_durante_a_pausa_apos_a_lapide` | `StaleDeletionError`; nova intacta |
+| H-02: reivindicada, recuperação conclui, reimportação, remoção tardia | `test_reivindicada_e_concluida_pela_recuperacao_antes_da_reimportacao` | A conclui (sua incarnação já removida) sem tocar na nova |
+| H-02: diálogo vinculado à incarnação vista | `test_exclusao_vinculada_a_incarnacao_vista_pelo_usuario`, `test_dialogo_de_exclusao_vinculado_a_incarnacao` (interface) | recusa; nova intacta; botão de exclusão some com aviso |
+| H-02: remoção física nunca remove outra incarnação | `test_remocao_fisica_nunca_remove_outra_incarnacao` (anomalia forçada) | `RegistryError`; `recover()` (2×) também não remove |
+| H-02: lápide registra a incarnação; lápide antiga recuperável | `test_lapide_registra_a_incarnacao_e_...` | ok |
+| Duas exclusões simultâneas do mesmo UID | `test_duas_exclusoes_simultaneas_uma_efetiva` | uma efetiva |
+| H-03: leitura antes da lápide | `test_leitura_iniciada_antes_da_lapide_termina_no_instantaneo_anterior` | revisão 1 (estado verificado); leituras novas recusadas |
+| H-03: exportação durante gravação | `test_exportacao_usa_um_unico_instantaneo` | manifesto, histórico e configuração da revisão 1 |
+| H-03: leitura aberta × exclusão | `test_leitura_nao_bloqueia_gravacao_nem_exclusao` | exclusão não espera o leitor; leitor termina no seu instantâneo |
+
+**Chromium real (após H-02/H-03, diretórios vazios, com reinício do servidor):** `e2e_gestor_microrredes.js`
+**52/52** (multi 39 com a exclusão definitiva de B; reinício 6; tablet 2; legado 5) e `e2e_piso1_microrrede.js`
+**66/66** (comissionar 41; reabrir 21 com rodada EMS real; tablet 4), sem exceções nem erros de JavaScript. Ao final,
+o armazenamento do Gestor tinha exatamente as 2 microrredes esperadas e `.trash`, `.staging` e `.quarantine` vazios.
+
+**Preservação científica:** `main` × `c4aade6` com a mesma carga walk-forward → despacho `P_kW` com o mesmo hash,
+custo R$ 417,684638, 120 passos, 0 kWh não atendidos (configuração padrão V1.6 e microrrede do catálogo);
+`git diff origin/main` vazio nos diretórios científicos.
+
+## H-01 — Exclusão concorrente de microrredes (hotfix do PR #5)
+
+**Defeito reproduzido no código anterior** (`ad1d736`): com uma gravação de outra sessão intercalada entre a
+verificação de gravações e o `rename` da exclusão, `save()` devolveu **revisão 2 (sucesso)** e a microrrede foi
+removida em seguida — perda silenciosa. Com o hotfix, a mesma intercalação é **recusada** com
+`MicrogridDeletedError`. Mecanismo e protocolo: `ARMAZENAMENTO.md` §H-01.
+
+**Suíte:** `python -m pytest tests/ -q` → **226 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
+pré-existentes). `tests/test_seeds2_concorrencia.py` (17) + 1 teste de interface; executados **10 vezes
+seguidas** junto com `test_seeds2_gestor.py`: 49/49 em todas.
+
+| Cenário exigido | Teste (intercalação forçada) | Resultado verificado |
+|---|---|---|
+| Escrita iniciada antes de excluir | gravador pausado DENTRO da transação (L2); exclusão iniciada e comprovadamente esperando | gravação confirmada (rev. 2) e visível no banco no instante da lápide; depois removida |
+| Escrita iniciada durante a exclusão | excluidor pausado logo após o COMMIT da lápide | `save`, `put_blob`, `record_run`, `revert_to`, `load`, `history`, abertura e `restore_into` recusados; banco inalterado |
+| Escrita depois de excluir | referência antiga após a exclusão | recusada (`MicrogridDeletedError`); nenhum arquivo recriado (árvore de diretórios idêntica) |
+| Duas exclusões simultâneas | dois catálogos; barreira após as duas lápides | exatamente uma efetiva, a outra `MicrogridNotFound`; B intacta |
+| Restauração × exclusão | as duas ordens: restauração pausada dentro da transação / excluidor pausado após a lápide | restauração inteira antes da lápide (rev. 3 no banco) **ou** recusada — determinístico |
+| Importação simultânea com o mesmo UID | barreira com as duas preparações prontas em `.staging` | uma única entrada; perdedor "Já existe"; sem resíduos em `.staging`/`.quarantine` |
+| Sessão antiga após excluir | excluir e reimportar o MESMO UID | referência antiga recusada (incarnação); interface volta ao Gestor; edição pendente não chega à nova microrrede |
+| Interrupção durante a exclusão | falha após a lápide / após a reivindicação / após o `rename` / linha `deleting` de versão anterior | microrrede já inacessível; `recover()` conclui; executado 3× (idempotente); outra sessão aberta em B segue operando |
+| Reinício repetido do servidor | 6 aberturas do catálogo + subprocesso com 4 aberturas | entradas, incarnações e conteúdo lógico idênticos; sem resíduos |
+| Escritas em microrredes diferentes | L2(A) ocupado e exclusão de A esperando | B grava (revisão, blob, rodada) e C é excluída enquanto A ainda espera |
+| Lápide não obtida | gravação longa + `lock_timeout_s` curto | `RegistryError`; nada muda; a gravação conclui e a microrrede segue utilizável |
+| Catálogo anterior ao hotfix | entrada sem incarnação | incarnação preenchida no catálogo e no banco, estável em reaberturas |
+
+**Chromium real (após o hotfix, a partir de diretórios vazios, com reinício do servidor):**
+`e2e_gestor_microrredes.js` **52/52** (multi 39 — inclui a exclusão definitiva de B pelo novo protocolo, com o
+diretório removido e `.trash`/`.quarantine` vazios; reinício 6; tablet 2; legado 5) e `e2e_piso1_microrrede.js`
+**66/66** (comissionar 41, reabrir 21 com rodada EMS real, tablet 4), sem exceções nem erros de JavaScript. Na
+primeira execução, a fase `multi` falhou na primeira verificação porque a página ainda estava carregando no
+servidor recém-iniciado (captura em esqueleto, sem erro no servidor); o roteiro passou a esperar explicitamente o
+Gestor (como já fazia nas fases `reinicio`/`legado`) e o protocolo inteiro foi repetido do zero.
+
+**Preservação numérica** (`main` × esta branch, mesma carga walk-forward): despacho `P_kW` com o mesmo hash,
+custo **R$ 417,684638**, 120 passos, 0 kWh não atendidos — idênticos em `main`, nesta branch (configuração padrão
+V1.6) e numa microrrede selecionada do catálogo. `git diff origin/main` vazio nos diretórios científicos.
+
+## G. Gestor de microrredes (PR #5)
+
+**Suíte:** `python -m pytest tests/ -q` → **208 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
+pré-existentes). 163 testes anteriores (adaptados à navegação pelo Gestor, sem enfraquecer asserções) +
+`test_seeds2_gestor.py` (32, backend) + `test_seeds2_gestor_app.py` (13, interface).
+
+| Requisito da missão | Onde é verificado |
+|---|---|
+| 1 início sem microrredes | `CatalogoTest.test_inicio_sem_microrredes`, `GestorPaginaTest.test_inicio_sem_microrredes`, E2E `multi` |
+| 2–4 criar uma / várias; listar após reinício | `test_criar_varias_e_listar_apos_reinicio_em_novo_processo` (novo processo), `test_criar_varias_pelo_gestor...`, E2E `multi` → reinício → `reinicio` |
+| 5–7 isolamento de equipamentos, revisões, blobs, rodadas e procedência | `IsolamentoTest` (snapshot lógico completo de B inalterado), `RodadaPorMicrorredeTest`, `SimulacaoPorMicrorredeTest` |
+| 8–9 troca na mesma sessão / sessões diferentes | `IsolamentoSessaoTest` (todas as chaves `mg_*`/`orq_*`/diálogos/console V1.6 limpas; duas sessões simultâneas), E2E (A não mostra equipamentos de B) |
+| 10 especificação idêntica sem misturar resultados | cópia independente com a MESMA `spec_fingerprint`: procedência com UIDs distintos; rodada de A não aparece em B; resultado de A injetado em B é sinalizado "de OUTRA microrrede" |
+| 11 comissionamento incompleto retomado | `test_criar_varias_pelo_gestor_e_retomar_comissionamento`, `test_comissionamento_retomado_apos_reinicio`, E2E (A reabre na etapa 02) |
+| 12–13 ZIP e PDF pelo Gestor sem abrir | `test_zip_contem_somente_a_microrrede_escolhida`, `test_pdf_de_microrrede_nao_ativa_sem_abri_la`, `test_zip_e_pdf_pelo_gestor_sem_abrir...`, E2E (downloads; barra continua "Nenhuma microrrede aberta") |
+| 14–15 importação com nova identidade; duplicada com escolha explícita | `ExportacaoImportacaoTest` (nova, cópia com `copied_from`, restauração com histórico, recusa de sobrescrita), E2E (diálogo de conflito → cópia) |
+| 16–17 exclusão definitiva; A não altera B | `ExclusaoTest`, `test_restaurar_reverter_e_excluir_A_nao_alteram_B`, `test_exclusao_exige_nome_exato...`, `test_exclusao_protegida_por_credencial`, `test_exclusao_desativada_por_padrao`, E2E (nome errado não libera; diretório removido) |
+| 18 microrrede excluída por outra sessão | `test_microrrede_excluida_por_outra_sessao_volta_ao_gestor`, `test_sessao_com_armazenamento_em_cache_nao_recria...` |
+| 19–21 migração do banco anterior, interrupção, WAL | `AdocaoLegadoTest` (v2 e v1 reais, original byte a byte intacto, WAL pendente + leitor aberto, interrupção na verificação e no rename, concorrência, arquivo corrompido, banco vazio), E2E `legado` |
+| 22 backups formato 1 e 2 | `test_backups_formato_1_e_2` (fixture v1 real) |
+| 23 regressão do Piso 1 | suíte completa + E2E `e2e_piso1_microrrede.js` (66/66) |
+| 24–25 rodada EMS real numa microrrede selecionada; preservação numérica | `test_duas_microrredes_identicas...` (despacho e custo = V1.6), `test_rodada_ems_real_e_resultados_nao_vazam...`, E2E `reabrir` |
+
+**Chromium real:**
+* `tools/e2e/e2e_gestor_microrredes.js` (servidor com `SEEDS2_DEV_MODE=1`, diretório vazio): `multi` 39 +
+  `reinicio` (após reiniciar o servidor) 6 + `tablet` 2 + `legado` 5 = **52 verificações aprovadas**, sem
+  exceções nem erros de JavaScript. Percurso: Gestor vazio → Criar A → configurar A → TROCAR → Criar B →
+  configurar B → Abrir A → Exportar A (ZIP) → PDF de B → Importar A como cópia → Excluir B → Reabrir A.
+* `tools/e2e/e2e_piso1_microrrede.js` (agora a partir do Gestor): `comissionar` 41 + `reabrir` 21 + `tablet` 4
+  = **66 aprovadas** (rodada EMS real, backup/restauração, resultado obsoleto, tablet, tema escuro).
+
+Defeitos encontrados e corrigidos nesta verificação: troca simultânea de `journal_mode=WAL` em base nova
+respondia "database is locked" sem passar pelo `busy_timeout` (aberturas concorrentes) → `ensure_wal` com espera
+limitada; teste do PR #4 dependente do instante da migração (instável em suíte lenta); botão IMPORTAR truncado
+em tablet; ponto vazio do indicador de salvamento no Gestor; cor do botão de exclusão.
+
+Limitações: as capturas `fullPage` registram só a área visível (Streamlit rola num contêiner interno);
+o AppTest não executa o JavaScript dos componentes (o botão TROCAR é simulado pelo mesmo sinal do componente
+nos testes de interface e clicado de verdade no E2E) nem permite upload (importação pela interface coberta
+no E2E e no backend). Duas falhas intermitentes de sincronização do roteiro E2E (clique durante re-renderização,
+servidor recém-reiniciado) foram tratadas com esperas explícitas pelo estado esperado — sem afrouxar asserções.
+
+## 0. Refinamento do Piso 1
 
 **Suíte:** `python -m pytest tests/ -q` → **163 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP
 pré-existentes).

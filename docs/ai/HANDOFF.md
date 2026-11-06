@@ -2,63 +2,73 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-piso1-refinamento` · **PR [#4](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/4)** (pendiente de revisión; sin merge) · **estado:** refinamiento del Piso 1 implementado y verificado en la rama; **no integrado en `main`**.
+**Actualización:** 2026-11-05 · **rama:** `claude/seeds2-gestor-microrredes` · **PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5)** (pendiente de revisión; sin merge) · **estado:** Gestor de microrredes + **hotfix H-01** (exclusión concurrente) implementados y verificados en la rama; **no integrado en `main`**.
 
 ## 1. Estado actual
 
-- `main` (`67a7a6f`): V1.6 + PR #1 + PR #2 + **PR #3 integrado** (SEEDS2 v2.0 — Piso 1). *Corrige* el texto anterior de este cuaderno, que lo daba como pendiente.
-- Rama `claude/seeds2-piso1-refinamento` (PR #4): **refinamiento del Piso 1** (esta misión; sección 2).
-- Arquitectura: `app.py` → shell `seeds2/ui/` (Comissionamento → Início · Gestão da Microrrede · Simulação · Resultados · Alcance); Simulação/Resultados embeben el console V1.6. Backend sin UI en `seeds2/microgrid/`; informe PDF en `seeds2/report/`. Detalles: `docs/seeds2/ARQUITETURA_PISO1.md`, `docs/seeds2/ARMAZENAMENTO.md`.
+- `main` (`05e29ef`): V1.6 + PR #1 + PR #2 + PR #3 (Piso 1) + **PR #4 integrado** (refinamiento del Piso 1, incl. backup WAL-consistente).
+- Rama `claude/seeds2-gestor-microrredes`: **Gestor de microrredes** (esta misión; sección 2).
+- **Decisión de producto vigente (responsable, misión "Gestor de microrredes"):** una instalación del SEEDS2 administra **varias microrredes independientes**. *Sustituye expresamente* la regla anterior "una sola microrred por instalación" (vigente desde el prompt maestro del Piso 1 hasta el PR #4; ver histórico en la sección 6). No son proyectos de simulación: cada microrred es una instalación con configuración, inventario, almacenamiento, revisiones y rodadas propias; sin optimización conjunta ni intercambio entre microrredes.
+- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** → [Comissionamento] → Início · Gestão · Simulação · Resultados · Alcance; TROCAR MICRORREDE). Backend: `seeds2/microgrid/registry.py` (catálogo `registry.db` + un `MicrogridStore` por microrred en `microgrids/<uid>/`). Detalles: `docs/seeds2/ARQUITETURA_PISO1.md` §1, `docs/seeds2/ARMAZENAMENTO.md`.
 - EMS y modelos científicos **sin cambios** (`git diff origin/main` vacío en `models`, `h2_pemfc`, `simulation`, `config`, `ems_integration`, `reference_models`).
 
-## 2. Última entrega — refinamiento del Piso 1 (esta rama)
+## 2. Última entrega — Gestor de microrredes (esta rama)
 
 **Implementado**
-- **Inventario físico × condiciones de la rodada:** documento **v2** con migración versionada v1→v2 (`seeds2/microgrid/migrations.py`); SOC inicial de baterías pasa a `run_conditions` (Simulação → "Condições da rodada", registrado en la procedencia).
-- **Etapa 01:** dos tarjetas (identificación con nombre/natureza/modo obligatorios; localización opcional) y "LOCALIZAÇÃO AUTOMÁTICA" (`navigator.geolocation`: una lectura tras clic, precisión, huso sólo como sugerencia, errores negado/indisponible/inseguro/timeout, sin geocodificación, guardado sólo al confirmar; procedencia `navegador`/`manual`). Instalaciones antiguas sin natureza/modo: aviso + "Completar identificação" en Gestão.
-- **Diálogo de equipos:** catálogo visual de 5 tecnologías → configuración → confirmación ("Voltar às tecnologias"; nada se registra antes); edición abre el editor directamente; confirmación "Equipamento com configuração pendente" (Salvar como pendente / Voltar à configuração); datos de registro faltantes y valores físicamente inválidos bloquean.
-- **FV = usina → arranjos** (módulos identificados Ns/Np o kWp declarado con procedencia); STC por arranjo homogéneo con hipótesis declaradas, sin sumar Voc/Isc entre arranjos; sujeira 0 % marcada como padrón; EMS agrega sólo arranjos homogéneos; potencia instalada ≠ simulada (mostradas ambas).
-- **Eólica:** curva Plotly desde los puntos originales (tabulados × interpolación visual; digitalizada × tabla del fabricante rotulado).
-- **Batería:** datasheet primero, estimaciones derivadas rotuladas, SOC 20/80 sugerido y editable, taxa C sólo con I+Ah, "Configuração avançada do modelo científico", registrado físicamente × parametrizado.
-- **PEMFC:** perfil equivalente del catálogo o "IMPORTAR DISPOSITIVO DO PEMFC MODELLAB" (`.pmldevice.zip`/`profile.json` validado, procedencia y estado de validación, original guardado como blob e incluido en backups, **pendiente de integración científica**: no entra en la simulación); "CRIAR DISPOSITIVO NO PEMFC MODELLAB" abre `https://pemfc-modelab.streamlit.app/?view=home` en otra pestaña.
-- **Etapa 03:** "Esquema lógico do balanço energético" sustituye la topología eléctrica; sólo queda la declaración de conexión a la red con aviso (EMS sin import/export; déficit ≠ compra de la red). Topología v1 preservada en `legacy.topology_v1`. Usina parcialmente representada se muestra como tal.
-- **Exportaciones** (etapa 05 y Gestão → "Relatório, histórico e backups"): ZIP (backup formato 2, acepta formato 1) y **informe técnico PDF** local (reportlab; "Não declarado"; PRELIMINAR antes de la activación; sin afirmaciones de certificación).
-- Base de datos v2: migración del documento como nueva revisión (`origin = migration`), copia `.bak-v1`, revisiones antiguas migradas en lectura.
-- **Corrección de la auditoría del PR #4 (review del 2026-11-05):** la copia `.bak-v<N>` previa a la migración ya no usa `shutil.copy2` (no incluía el contenido del `-wal`; reproducido: la copia quedaba sin tablas). Ahora usa la **API de backup de SQLite** en una conexión propia mientras la migración retiene `BEGIN IMMEDIATE` (copia = estado exacto migrado), espera acotada (`BACKUP_COPY_TIMEOUT_S`), archivo autosuficiente (journal DELETE) verificado con `integrity_check` y publicado con `os.replace`. Copia + todas las migraciones pendientes en **una única transacción**; versión releída bajo el bloqueo (idempotente con aperturas concurrentes); fallos → rollback y `StoreError`. `CLAUDE.md` regla 8: excepción restringida a fixtures sintéticas auditadas (`tests/fixtures/README.md`).
-- Dependencias nuevas: `reportlab==4.4.10`, `pypdf==6.21.4` (sólo tests). Archivos de UI eliminados: `ui/static/topology.*`.
+- **Catálogo** (`MicrogridRegistry`): `registry.db` (uid PK validado, estado `ready/deleting`, origen `new/legacy/import/copy`, procedencia de copias) + `microgrids/<uid>/seeds2.db` (el mismo `MicrogridStore` del Piso 1, con `CHECK(id = 1)`). Operaciones con varios archivos recuperables: preparación en `.staging` → confirmación (rename + INSERT bajo `BEGIN IMMEDIATE` del catálogo); exclusión `deleting → .trash → DELETE`; `recover()` concluye interrupciones. Rutas derivadas solo del UID validado.
+- **Adopción del `seeds2.db` anterior al Gestor**: una vez, idempotente, segura entre procesos, copia **de solo lectura** vía API de backup SQLite (original byte a byte intacto), migración de la copia, verificación de conteos; fallo → error claro y ninguna microrred creada.
+- `MicrogridStore`: `must_exist` (no recrea microrredes eliminadas), `fixed_uid` (sin cambio de identidad), `import_inspected`, `inspect_backup_data`, `sqlite_backup_copy(read_only=…)`, `ensure_wal` (corrige "database is locked" en aperturas concurrentes de bases nuevas).
+- **Interfaz**: página inicial GESTOR DE MICRORREDES (estado vacío; tarjetas con estado *Em configuração / Ativa / Atenção* separado de la compatibilidad con el EMS; FV calculada × declarada, eólica de catálogo, almacenamiento con su base); ＋ NOVA MICRORREDE (comisionamiento reutilizado íntegro; se registra al guardar la etapa 01), ABRIR, ZIP y PDF **sin abrir** la microrred, IMPORTAR (nueva / restaurar en la existente / copia independiente con `installation.copied_from`; nunca sobrescribe en silencio), EXCLUIR (resumen, ZIP previo, nombre exacto, credencial). TROCAR MICRORREDE en la barra superior; nombre de la microrred activa siempre visible.
+- **Sesión**: microrred activa por sesión de navegador (`mg_active_uid`, `?mg=` para recarga); abrir/cambiar limpia todo el `session_state` (incluido el console V1.6); microrred eliminada por otra sesión → vuelta al Gestor sin recrearla.
+- **Procedencia**: `microgrid_uid` en el plan, en `orq_mg_applied` y en el resumen de cada rodada; resultado de otra microrred señalado como tal; rodadas persistidas mostradas al volver.
+- **Protección de la exclusión**: `SEEDS2_ADMIN_PASSWORD` / Streamlit Secrets `seeds2_admin_password` (verificación en servidor, tiempo constante); sin credencial, `SEEDS2_DEV_MODE=1` habilita la exclusión solo para uso local; por defecto **desactivada**.
 
-**Validado (por Claude Code, en esta rama, 2026-11-05)**
-- `python -m pytest tests/ -q` → **163 passed, 0 failed, 0 skipped** (+105 subtests; 7 avisos SLSQP preexistentes), tras la corrección del backup WAL (158 antes de ella).
-- Migraciones desde **datos v1 reales** generados con el código de `main` antes de los cambios (`tests/fixtures/`): documento, backup formato 1, banco SQLite v1 (histórico y rodadas preservados, `.bak-v1`, idempotente, documento inválido no corrompe); **rodada EMS con la configuración migrada = configuración V1.6** (mismo despacho y costo).
-- Chromium (`tools/e2e/e2e_piso1_microrrede.js`, diretório vacío, reinicio del servidor): 64 verificaciones aprobadas (40 + 20 + 4), sin excepciones ni errores JS — repetido completo tras la corrección del backup WAL (commit `ccf33be`) con el mismo resultado; tablet sin scroll horizontal; tema oscuro. Capturas e informe PDF revisados visualmente. Detalle: `docs/seeds2/VERIFICACAO_PISO1.md` §0.
-- **Sin CI**: nada fue reejecutado de forma independiente.
+**Hotfix H-01 — exclusión concurrente (auditoría del PR #5)**
+- *Causa raíz:* `delete()` tomaba y soltaba el bloqueo de escritura de la microrred antes de marcar `deleting` y mover el directorio; una escritura de otra sesión en ese intervalo se confirmaba y luego se perdía en silencio (reproducido en `ad1d736`). Instancias `MicrogridStore` antiguas no se invalidaban; una microrred eliminada y reimportada con el mismo UID podía recibir la edición pendiente de una sesión antigua.
+- *Corrección:* lápide `meta.lifecycle` grabada bajo el bloqueo L2 de la microrred y verificada por TODA transacción/lectura del `MicrogridStore` dentro de su `BEGIN IMMEDIATE`; protocolo lápide (L2) → `deleting` (L1, un único ganador) → remoción física (L1), sin bloqueos anidados; incarnación por entrada (catálogo v2 + `meta.incarnation`, con relleno de las existentes) y sesión ligada a ella; conexiones `mode=rw`; `recover()` idempotente que solo concluye exclusiones con lápide y lleva directorios sin fila a `.quarantine`; la interfaz vuelve al Gestor si la microrred se elimina durante una página. Detalle: `docs/seeds2/ARMAZENAMENTO.md` §H-01.
+- *Pruebas:* `tests/test_seeds2_concorrencia.py` (17, deterministas con `Event`/`Barrier`, 10 ejecuciones consecutivas idénticas) + 1 de interfaz. Mapa escenario → prueba: `docs/seeds2/VERIFICACAO_PISO1.md` §H-01.
+
+**Auditoría independiente del PR #5 — H-02 y H-03 (ambos reproducidos en `b8f721c` antes de corregir)**
+- *H-02 (alta):* una exclusión obsoleta (validada sobre la incarnación I1) podía grabar la lápide, reivindicar y borrar la microrred **reimportada** con el mismo UID (I2). Corrección: exclusión vinculada a una incarnación en la lápide (L2), en `ready→deleting` (L1), en la remoción física y en `recover()`; `StaleDeletionError` sin tocar la nueva; diálogo del Gestor vinculado a la incarnación mostrada. Sin bloqueos anidados ni global.
+- *H-03 (media):* `_read()` comprobaba la lápide y consultaba en instantáneas distintas (leyó la revisión 2 de una base ya con lápide). Corrección: transacción de lectura cuyo instantáneo WAL nace en la propia comprobación (lectura anterior a la lápide → estado anterior válido; posterior → rechazada); `export_backup` en un solo instantáneo.
+- Detalle: `docs/seeds2/ARMAZENAMENTO.md` §H-02/§H-03; pruebas y reproducciones: `docs/seeds2/VERIFICACAO_PISO1.md` §H-02/H-03.
+
+**Validado (por Claude Code, 2026-11-05)**
+- `python -m pytest tests/ -q` → **237 passed, 0 failed, 0 skipped** tras H-02/H-03 (226 tras H-01; 208 antes). Nuevos: `test_seeds2_gestor.py` (32), `test_seeds2_gestor_app.py` (15), `test_seeds2_concorrencia.py` (27). Mapa requisitos 1–25 → pruebas: `docs/seeds2/VERIFICACAO_PISO1.md` §G.
+- Despacho y costo idénticos a `main` (hash de `P_kW`, R$ 417,684638) con la configuración por defecto V1.6 y con una microrred del catálogo.
+- Tras el hotfix H-01, E2E repetidos desde cero en Chromium: Gestor **52/52** y Piso 1 **66/66** (simulación EMS real), sin errores de JavaScript.
+- Tras H-02/H-03 (`c4aade6`), E2E repetidos desde cero: Gestor **52/52** y Piso 1 **66/66**, sin errores de JavaScript y sin residuos en `.trash`/`.staging`/`.quarantine`; EMS idéntico a `main`.
+- Chromium: `tools/e2e/e2e_gestor_microrredes.js` **52/52** (multi → reinicio del servidor → tablet/oscuro → legado) y `tools/e2e/e2e_piso1_microrrede.js` **66/66** (ahora desde el Gestor; rodada EMS real). Capturas revisadas.
+- Rodada EMS real desde una microrred seleccionada = despacho y costo de la V1.6.
+- **Sin CI.**
 
 ## 3. Decisiones (con origen)
 
-- **Responsable (misión "Refinamiento del Piso 1"):** separar inventario permanente de condiciones de simulación; una sola microrred; textos de la app en portugués; sin integraciones externas (geocodificación, cuentas, sincronización con ModelLab).
-- **Claude Code (técnica, a revisar):** migración explícita del documento con `legacy` para lo no reinterpretable; ids de arranjos migrados determinísticos (`arr-<id del equipo>`); límites de SOC 20/80 sólo como "sugerido"; reportlab con Helvetica (repertorio cp1252, sin fuentes externas); dispositivo ModelLab importado marcado como no representable hasta decisión científica; límites de backup ampliados (64 entradas / 256 MiB) para admitir paquetes ModelLab.
-- Decisiones anteriores (Piso 1) siguen vigentes: SQLite local, revisiones inmutables, simulación sólo con la configuración **guardada**, sin autenticación en este piso.
+- **Responsable:** varias microrredes por instalación; catálogo central + base independiente por microrred; eliminación definitiva real (no ocultar), protegida en despliegues compartidos; textos en portugués; no tocar ciencia ni EMS.
+- **Claude Code (técnica, a revisar):** estado `deleting` + `.trash` en lugar de borrar en el lugar; staging + rename bajo el bloqueo del catálogo; el catálogo no guarda datos técnicos (tarjetas calculadas de la configuración guardada); `seeds2.db` anterior se conserva como respaldo (no se borra automáticamente); limpieza **total** del `session_state` al cambiar de microrred (más seguro que listas de claves); exclusión desactivada por defecto sin credencial; nombre de exportación incluye 8 dígitos del UID; la restauración dentro de Gestão solo acepta backups de la misma identidad.
 
 ## 4. Pendencias / observaciones
 
-- Hallazgo de la corrección: `Connection.backup()` desde la **misma** conexión que retiene `BEGIN IMMEDIATE` queda en espera infinita (CPython reintenta BUSY/LOCKED sin límite); por eso la copia usa otra conexión y un `progress` con plazo. No volver a ese patrón.
-- En modo journal no-WAL un lector abierto impide el commit de cualquier escritor (comportamiento de SQLite); el store siempre abre en WAL.
-
-- **Decisión científica:** cómo (y si) usar el perfil V–I calibrado del ModelLab en la simulación; hoy sólo se registra.
-- **Decisión metodológica (Marília):** equipos heterogéneos de una misma tecnología (incl. arranjos FV distintos) y más de una unidad térmica en el EMS; hoy son excluidos con motivo.
-- Importación/exportación con la red y tarifas: no modelado.
-- Capturas `fullPage` limitadas al viewport (Streamlit rola en un contenedor interno); partes largas capturadas por elemento.
-- Comparación visual lado a lado con PEMFC ModelLab no generada (ejecutar código de otro repositorio no autorizado).
-- Heredadas: MIX inaccesible desde la navegación; `__pycache__/` versionado; README histórico V1.5; sin autenticación/roles; sin CI.
+- Sin autenticación/roles: cualquier sesión puede crear, editar, importar y restaurar; solo la exclusión definitiva tiene protección. La credencial es única (no hay auditoría por usuario).
+- El `seeds2.db` anterior queda en `SEEDS2_DATA_DIR` tras la adopción; eliminarlo manualmente después de conferir.
+- Las series completas del despacho no se persisten (solo el resumen de cada rodada); al volver a una microrred no se reconstruyen resultados.
+- ~~Escritura concurrente con una exclusión podía perderse~~ → **corregido por H-01** (escrituras confirmadas antes de la lápide o rechazadas explícitamente). Límite restante: la exclusión espera como máximo 30 s por una escritura en curso y, si no obtiene el bloqueo, desiste sin alterar nada; la edición pendiente de una sesión cuya microrred fue eliminada no se graba (comportamiento pretendido).
+- **Deuda técnica para la fase científica:** persistir las series temporales completas del despacho EMS (hoy solo el resumen de cada rodada en `simulation_runs`).
+- Heredadas: decisiones científicas (perfil V–I del ModelLab; equipos heterogéneos; >1 térmica), red sin import/export, MIX inaccesible, `__pycache__/` versionado, README V1.5, sin CI.
 
 ## 5. Próxima misión propuesta — Piso 2: Centro de Operação
 
-**No implementada ni autorizada.** Partir de `MicrogridStore` + `adapter` + `run_conditions` sin reconstruir la Gestão: estrategias EMS y escenarios sobre la configuración persistida, histórico de rodadas comparables por revisión y condiciones de rodada. Requiere aprobación del prompt maestro y las decisiones de la sección 4.
+**No implementada ni autorizada.** Partir del catálogo (`MicrogridRegistry`) + `MicrogridStore` + `adapter` + `run_conditions`: estrategias EMS y escenarios por microrred, historial de rodadas comparables por revisión. Requiere aprobación del prompt maestro y las decisiones de la sección 4.
 
-## 6. Ritual de actualización al final de cada misión
+## 6. Ritual de actualización y histórico
 
-Actualizar **este archivo en el mismo PR** con: fecha, versión/rama, PR y commit, alcance y archivos, tests realmente ejecutados y resultados, decisiones confirmadas, limitaciones/pendencias, próxima misión recomendada. Separar claramente **implementado**, **validado**, **propuesto** y **bloqueado**; sustituir el relato anterior resumidamente, preservando enlaces históricos. Nunca incluir contraseñas, tokens o datos sensibles.
+Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcance, tests realmente ejecutados, decisiones, pendencias y próxima misión. Nunca incluir contraseñas, tokens o datos sensibles.
 
-**Histórico:** PR [#1](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/1) — tests UI V1.6 + `CLAUDE.md` (merge `5ffe2ee`). PR #2 — protocolo de relevo (`f70dd94`). PR [#3](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/3) — SEEDS2 v2.0 Piso 1 (merge `67a7a6f`; 120 passed reportado entonces).
+**Histórico:**
+- PR [#1](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/1) — tests UI V1.6 + `CLAUDE.md` (merge `5ffe2ee`).
+- PR #2 — protocolo de relevo (`f70dd94`).
+- PR [#3](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/3) — SEEDS2 v2.0 Piso 1 (merge `67a7a6f`). Regla entonces vigente: **"una instalación = una microrred"** (directriz del prompt maestro del Piso 1; sustituyó la idea anterior de "cadastro/seleção").
+- PR [#4](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/4) — refinamiento del Piso 1 + backup `.bak-v<N>` consistente con WAL (merge `05e29ef`; 163 passed, E2E 64/64 reportados entonces).
+- Misión "Gestor de microrredes" (esta rama): la regla de microrred única queda **sustituida por autorización del responsable**.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

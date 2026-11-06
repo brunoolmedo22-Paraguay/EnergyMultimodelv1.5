@@ -12,10 +12,12 @@ from seeds2 import APP_VERSION
 
 STATIC = Path(__file__).resolve().parent / "static"
 _KIT = (STATIC / "kit.css").read_text(encoding="utf-8")
-VIEWS = ("inicio", "gestao", "simulacao", "resultados", "alcance", "comissionamento")
+VIEWS = ("gestor", "inicio", "gestao", "simulacao", "resultados", "alcance", "comissionamento")
 NAV_ACTIVE = [("inicio", "Início"), ("gestao", "Gestão da Microrrede"), ("simulacao", "Simulação"),
               ("resultados", "Resultados"), ("alcance", "Alcance")]
 NAV_COMMISSIONING = [("comissionamento", "Comissionamento"), ("alcance", "Alcance")]
+NAV_GESTOR = [("gestor", "Gestor de microrredes"), ("alcance", "Alcance")]
+SWITCH_KEY = "seeds_switch_requested"
 ROUTE_KEY = "seeds_route"
 
 
@@ -138,23 +140,26 @@ def route() -> dict:
     ss = st.session_state
     if ROUTE_KEY not in ss:
         qp = st.query_params
-        view = qp.get("view", "inicio")
-        ss[ROUTE_KEY] = {"view": view if view in VIEWS else "inicio", "tab": qp.get("tab")}
+        view = qp.get("view", "gestor")
+        ss[ROUTE_KEY] = {"view": view if view in VIEWS else "gestor", "tab": qp.get("tab")}
     return ss[ROUTE_KEY]
 
 
 def go(view: str, tab: str | None = None) -> None:
     r = route()
-    r["view"] = view if view in VIEWS else "inicio"
+    r["view"] = view if view in VIEWS else "gestor"
     r["tab"] = tab
+    mg = st.session_state.get("mg_active_uid")          # a microrrede ativa DESTA aba sobrevive à recarga
     st.query_params.clear()
-    st.query_params.update({"view": r["view"], **({"tab": tab} if tab else {})})
+    st.query_params.update({"view": r["view"], **({"tab": tab} if tab else {}), **({"mg": mg} if mg else {})})
 
 
 def _on_topbar() -> None:
     a = payload("seeds_topbar")
     if a and a.get("type") == "nav":
         go(a["view"])
+    elif a and a.get("type") == "switch":               # TROCAR MICRORREDE (tratado no início da próxima execução)
+        st.session_state[SWITCH_KEY] = True
 
 
 def fmt_time(iso: str | None) -> str:
@@ -167,7 +172,8 @@ def fmt_time(iso: str | None) -> str:
 
 
 def topbar(*, view: str, items: list[tuple[str, str]], site: str, site_title: str, save: dict, force_light: bool,
-           home: str) -> None:
+           home: str, switch: bool = False) -> None:
     component("topbar")(key="seeds_topbar", on_action_change=_on_topbar,
                         data={"version": APP_VERSION, "view": view, "items": items, "site": site,
-                              "site_title": site_title, "save": save, "force_light": force_light, "home": home})
+                              "site_title": site_title, "save": save, "force_light": force_light, "home": home,
+                              "switch": switch})

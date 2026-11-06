@@ -143,7 +143,8 @@ def _installation(cfg, plan) -> None:
             st.rerun()
     st.markdown('<div class="sd-section">Armazenamento e acesso</div>', unsafe_allow_html=True)
     s = session.store()
-    st.markdown(f"- Banco local: `{s.path}` (esquema v{s.db_version()}); diretório definido por `SEEDS2_DATA_DIR`.\n"
+    st.markdown(f"- Banco desta microrrede: `{s.path}` (esquema v{s.db_version()}); catálogo em "
+                f"`{session.registry().path}`; diretório-base definido por `SEEDS2_DATA_DIR`.\n"
                 "- **Sem autenticação nem perfis de acesso** neste piso: qualquer pessoa com acesso à aplicação pode alterar "
                 "a configuração. Para implantação corporativa, restrinja o acesso pela rede/servidor (ver documentação).")
 
@@ -218,19 +219,18 @@ def _history(cfg, plan) -> None:
                     st.error(shell.md(e))
                 for w in rep.warnings:
                     st.warning(shell.md(w))
-                if rep.ok:
+                if rep.ok and rep.same_installation is False:
+                    st.error("Este backup pertence a OUTRA microrrede (identidade "
+                             f"{shell.md(rep.config['installation']['uid'])}). Uma microrrede nunca troca de identidade: "
+                             "use IMPORTAR MICRORREDE (ZIP) no Gestor de microrredes para incluí-la no catálogo.")
+                elif rep.ok:
                     st.success("Backup íntegro e compatível.")
                     ok = st.checkbox("Confirmo substituir a configuração atual pelo conteúdo deste backup (uma nova revisão "
                                      "será criada; o histórico atual é preservado)", key="mg_bk_ok")
-                    ident = True
-                    if rep.same_installation is False:
-                        ident = st.checkbox("Confirmo que este SEEDS2 passará a administrar a instalação do backup "
-                                            "(troca de identidade)", key="mg_bk_ident")
-                    if st.button("Restaurar", key="mg_bk_do", type="primary", disabled=not (ok and ident) or session.is_dirty(),
+                    if st.button("Restaurar", key="mg_bk_do", type="primary", disabled=not ok or session.is_dirty(),
                                  width="stretch"):
                         try:
-                            s.restore_backup(data, saved.revision if saved else 0, confirm=True,
-                                             confirm_identity_change=rep.same_installation is False)
+                            s.restore_backup(data, saved.revision if saved else 0, confirm=True)
                         except (StoreError, IdentityError) as exc:
                             st.error(shell.md(exc))
                         else:

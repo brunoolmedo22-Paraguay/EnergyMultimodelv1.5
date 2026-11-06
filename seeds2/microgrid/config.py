@@ -616,6 +616,13 @@ def _validate(config: dict) -> list[Issue]:
     if inst.get("operation_mode") is not None and inst["operation_mode"] not in OPERATION_MODE_OPTIONS:
         out.append(Issue("error", "installation.operation_mode", "Modo operativo inválido."))
     out.extend(validate_location(inst.get("location")))
+    src = inst.get("copied_from")
+    if src is not None:                    # procedência de uma cópia independente (importação como cópia)
+        if not isinstance(src, dict) or not re.fullmatch(r"[0-9a-f]{32}", str(src.get("uid", ""))) or \
+                src.get("uid") == inst.get("uid") or \
+                not all(isinstance(src.get(k), str) for k in ("name", "copied_at")) or \
+                not (src.get("fingerprint") is None or re.fullmatch(r"[0-9a-f]{64}", str(src.get("fingerprint")))):
+            out.append(Issue("error", "installation.copied_from", "Procedência de cópia inválida."))
 
     ids: set[str] = set()
     for eq in config["equipment"]:

@@ -67,6 +67,7 @@ class SimulationPlan:
     run_conditions: dict = field(default_factory=dict)
     pv_installed_kWp: float = 0.0       # soma nominal registrada (calculada + declarada) das usinas habilitadas
     pv_represented_kWp: float = 0.0     # parte efetivamente representada na rodada (arranjos homogêneos aceitos)
+    microgrid_uid: str | None = None    # identidade da microrrede: duas microrredes podem ter a MESMA spec_fingerprint
 
     def for_equipment(self, eq_id: str) -> list[Mapping]:
         return [m for m in self.mappings if m.id == eq_id or m.parent == eq_id]
@@ -94,7 +95,7 @@ class SimulationPlan:
         return hashlib.sha256(C.canonical_json(payload).encode("utf-8")).hexdigest()
 
     def provenance(self) -> dict:
-        return {"origin": "microrrede", "config_revision": self.config_revision,
+        return {"origin": "microrrede", "microgrid_uid": self.microgrid_uid, "config_revision": self.config_revision,
                 "config_fingerprint": self.config_fingerprint, "spec_fingerprint": self.spec_fingerprint,
                 "run_conditions": self.run_conditions,
                 "represented": [m.as_dict() for m in self.represented],
@@ -304,7 +305,8 @@ def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | 
     return SimulationPlan(spec=spec, mappings=mappings, blockers=blockers, warnings=warnings,
                           load_descriptor=load_descriptor, climate_descriptor=climate_descriptor,
                           config_revision=revision, config_fingerprint=fingerprint, run_conditions=run_conditions,
-                          pv_installed_kWp=pv_installed, pv_represented_kWp=pv_repr)
+                          pv_installed_kWp=pv_installed, pv_represented_kWp=pv_repr,
+                          microgrid_uid=(config.get("installation") or {}).get("uid"))
 
 
 # ------------------------------------------------------------------ demanda e clima

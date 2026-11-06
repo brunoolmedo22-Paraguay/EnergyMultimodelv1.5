@@ -1,4 +1,5 @@
-// Verificação E2E em navegador real (Playwright/Chromium) do Piso 1 do SEEDS2 (com o refinamento).
+// Verificação E2E em navegador real (Playwright/Chromium) do Piso 1 do SEEDS2 (com o refinamento), percorrido a
+// partir do GESTOR DE MICRORREDES (o fluxo de várias microrredes é coberto por e2e_gestor_microrredes.js).
 //
 // Uso (servidor já em execução com SEEDS2_DATA_DIR apontando para um diretório VAZIO):
 //   node tools/e2e/e2e_piso1_microrrede.js <url> <fase> <pasta_capturas>
@@ -24,6 +25,12 @@ let current = null;   // página ativa (captura de diagnóstico em caso de falha
 function assert(c, msg) { if (!c) { throw new Error("FALHA: " + msg); } log("ok —", msg); }
 const GEO = { latitude: -25.4434, longitude: -54.5861, accuracy: 28 };   // coordenada emulada (não é dado de instalação)
 
+async function novaMicrorrede(p) {                // Gestor → "＋ NOVA MICRORREDE" → comissionamento
+  await p.getByRole("button", { name: "＋ NOVA MICRORREDE" }).click(); await ready(p);
+}
+async function abrirUnica(p) {                    // Gestor → "ABRIR MICRORREDE" na (única) tarjeta
+  await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+}
 async function ready(p) {
   await p.waitForLoadState("networkidle");
   await p.waitForFunction(() => !document.querySelector('[data-testid="stStatusWidget"]'), null, { timeout: 120000 }).catch(() => {});
@@ -59,7 +66,7 @@ const arrayCards = (dlg) => dlg.locator('div[data-testid="stVerticalBlock"][clas
 async function geoOutcomes(b) {
   // negada: contexto sem permissão concedida (o Chromium headless nega)
   const c1 = await b.newContext({ viewport: { width: 1440, height: 900 } });
-  const p1 = await c1.newPage(); await p1.goto(url); await ready(p1);
+  const p1 = await c1.newPage(); await p1.goto(url); await ready(p1); await novaMicrorrede(p1);
   await p1.locator(".geo-btn").click(); await ready(p1);
   assert(await p1.getByText("Permissão de localização negada", { exact: false }).first().isVisible(), "geolocalização negada é informada");
   assert(await p1.getByLabel("Latitude [°]").inputValue() === "", "negada: nenhuma coordenada é preenchida");
@@ -69,7 +76,7 @@ async function geoOutcomes(b) {
   await c2.addInitScript(() => {
     navigator.geolocation.getCurrentPosition = (ok, err) => setTimeout(() => err({ code: 2, message: "unavailable" }), 50);
   });
-  const p2 = await c2.newPage(); await p2.goto(url); await ready(p2);
+  const p2 = await c2.newPage(); await p2.goto(url); await ready(p2); await novaMicrorrede(p2);
   await p2.locator(".geo-btn").click(); await ready(p2);
   assert(await p2.getByText("não conseguiu determinar a posição", { exact: false }).first().isVisible(), "posição indisponível é informada");
   await c2.close();
@@ -89,8 +96,10 @@ async function comissionar(b) {
     navigator.geolocation.watchPosition = () => { throw new Error("watchPosition não deve ser usado"); };
   });
   await p.goto(url); await ready(p);
-  await p.getByText("Configure a microrrede desta instalação").waitFor({ timeout: 60000 }).catch(() => {});
-  assert(await p.getByText("Configure a microrrede desta instalação").isVisible(), "primeiro acesso abre o comissionamento");
+  await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 60000 }).catch(() => {});
+  assert(await p.getByText("Nenhuma microrrede registrada").isVisible(), "primeiro acesso abre o Gestor vazio");
+  await novaMicrorrede(p);
+  assert(await p.getByText("Configure a nova microrrede").isVisible(), "＋ NOVA MICRORREDE abre o comissionamento");
   assert(geoCalls === 0, "nenhuma leitura de posição sem clique do usuário");
   // Cartão 1 — identificação
   await p.getByLabel("Nome da instalação *").fill("Laboratório de Microrredes — Bloco C");
@@ -116,7 +125,9 @@ async function comissionar(b) {
   assert(await dlg.locator(".tp-card").count() === 5, "catálogo de tecnologias com 5 cartões");
   await shot(p, "e2e_02_catalogo_tecnologias.png");
   await dlg.locator('.tp-card[data-kind="wind"]').click(); await ready(p);
+  await dlg.getByLabel("Nome do equipamento *").waitFor({ timeout: 30000 });   // editor completamente desenhado
   await dlg.getByRole("button", { name: "← Voltar às tecnologias" }).click(); await ready(p);
+  await dlg.locator(".tp-card").first().waitFor({ timeout: 30000 }).catch(() => {});
   assert(await dlg.locator(".tp-card").count() === 5, "'Voltar às tecnologias' retorna ao catálogo sem registrar");
   // Usina FV com dois arranjos (módulos identificados + potência declarada)
   await dlg.locator('.tp-card[data-kind="pv"]').click(); await ready(p);
@@ -212,7 +223,7 @@ async function comissionar(b) {
   assert(fs.readFileSync(pdf).subarray(0, 5).toString() === "%PDF-", "PDF preliminar baixado");
   await shot(p, "e2e_11_revisao_exportacoes.png");
   await p.getByRole("button", { name: "Ativar microrrede e concluir comissionamento" }).click(); await ready(p);
-  assert(await p.getByText("Microrrede administrada por esta instalação").isVisible(), "ativação leva ao Início");
+  assert(await p.getByText("Microrrede aberta nesta sessão").isVisible(), "ativação leva ao Início");
   assert(geoCalls === 1, "nenhuma leitura adicional de posição (sem rastreamento)");
   await noErrors(p, "comissionamento");
   assert(errs.length === 0, "sem erros de JavaScript: " + JSON.stringify(errs));
@@ -224,9 +235,11 @@ async function reabrir(b) {
   const p = await ctx.newPage(); current = p;
   const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
   await p.goto(url); await ready(p);
+  assert(await p.getByText("GESTOR DE MICRORREDES").first().isVisible(), "após reiniciar, a sessão nova começa no Gestor");
+  await abrirUnica(p);
   await p.locator(".tb-link").first().waitFor({ timeout: 60000 }).catch(() => {});
   assert(await p.getByText("Laboratório de Microrredes — Bloco C").first().isVisible(), "após reiniciar o servidor, abre a mesma microrrede");
-  assert(await p.getByText("Configure a microrrede desta instalação").count() === 0, "o assistente não se repete");
+  assert(await p.getByText("Configure a nova microrrede").count() === 0, "o assistente não se repete");
   await shot(p, "e2e_20_inicio_apos_reinicio.png");
   await p.locator(".tb-link", { hasText: "Gestão da Microrrede" }).click(); await ready(p);
   assert(await p.locator(".inv-card:not(.inv-add)").count() === 4, "Gestão mostra os 4 equipamentos persistidos");
@@ -268,7 +281,7 @@ async function reabrir(b) {
   await shot(p, "e2e_23_simulacao.png");
   await p.getByRole("button", { name: "▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO" }).click();
   await p.getByText("RESULTADOS DO OTIMIZADOR", { exact: true }).first().waitFor({ timeout: 300000 }); await ready(p);
-  assert(await p.getByText(/Resultado da rodada #1.*microrrede · revisão/).first().isVisible(), "resultado identifica a revisão da microrrede");
+  assert(await p.getByText(/Resultado da rodada #1.*microrrede [0-9a-f]{8}… · revisão/).first().isVisible(), "resultado identifica a revisão da microrrede");
   await shot(p, "e2e_24_resultados.png");
   await noErrors(p, "simulação");
   // Relatório, histórico e backups
@@ -307,7 +320,7 @@ async function reabrir(b) {
 async function tablet(b) {
   for (const [w, h, tag] of [[820, 1180, "retrato"], [1180, 820, "paisagem"]]) {
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
-    await p.goto(url); await ready(p);
+    await p.goto(url); await ready(p); await abrirUnica(p);
     await p.locator(".tb-link").first().waitFor({ timeout: 60000 });
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `tablet ${tag}: sem rolagem horizontal (${overflow}px)`);
@@ -321,7 +334,7 @@ async function tablet(b) {
     await p.close();
   }
   const d = await b.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: "dark", deviceScaleFactor: 2 });
-  await d.goto(url); await ready(d);
+  await d.goto(url); await ready(d); await abrirUnica(d);
   await d.locator(".tb-link").first().waitFor({ timeout: 60000 });
   await shot(d, "e2e_33_tema_escuro_inicio.png");
   await d.locator(".tb-link", { hasText: "Gestão da Microrrede" }).click(); await ready(d);

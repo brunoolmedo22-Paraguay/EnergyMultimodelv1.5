@@ -541,7 +541,14 @@ class MigracaoWalTest(_Tmp):
         other.mkdir()
         shutil.copyfile(bak, other / "seeds2.db")
         again = MicrogridStore(other)
-        self.assertEqual(again.load().fingerprint, store.load().fingerprint)
+
+        def sem_instante(doc):                    # o instante da migração (migrations[].at) difere legitimamente
+            doc = copy.deepcopy(doc)
+            for m in doc.get("migrations", []):
+                m.pop("at", None)
+            return doc
+        self.assertEqual(sem_instante(again.load().config), sem_instante(store.load().config))
+        self.assertEqual(len(again.load().config["migrations"]), 1)
         self.assertEqual(again.get_blob(exp["blob_sha"]), exp["blob"])
 
     def test_falha_apos_a_copia_desfaz_tudo_e_nova_abertura_migra(self):
