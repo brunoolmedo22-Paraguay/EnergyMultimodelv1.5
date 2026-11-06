@@ -17,9 +17,9 @@
 | Data | 2026-11-06 |
 | Base | `main` em `50ef4d6` ("SEEDS2: Gestor de microrredes (PR #5)") — PR #5 **integrado** (squash, 2026-11-06 10:59 UTC) |
 | Rama | `claude/seeds2-piso2a-centro-operacao` |
-| PR | {{PR}} (sem merge; aguarda auditoria do responsável) |
+| PR | [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) (sem merge; aguarda auditoria do responsável) |
 | Estado | Implementado e verificado na rama; **não integrado** em `main` |
-| Commits de código | {{COMMITS}} |
+| Commits de código | `56c71fa` (backend, domínio e interface), `6d18ea6` (testes, E2E, correções e documentação). O commit seguinte só preenche PR/SHAs neste relatório; o SHA final da rama é informado na resposta da entrega. |
 
 ### 2. Resumo executivo
 
@@ -357,4 +357,4 @@ Gestão e ver "Inventário mudou" → atualizar referência; TROCAR MICRORREDE.
 
 | Entrega | Data | Missão | Rama / PR | Estado |
 |---|---|---|---|---|
-| 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / {{PR}} | Aguardando auditoria |
+| 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | Aguardando auditoria |
