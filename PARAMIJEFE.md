@@ -404,8 +404,8 @@ correção. A exportação real dos cenários permanece no Piso 2D.
 | Data | 2026-11-06 |
 | Base | `main` em `4709f0c` (merge do PR #6 — Piso 2A + C-01), verificado com `git fetch` (o `origin/main` local do contêiner estava desatualizado em `761f032`; corrigido antes da linha de base) |
 | Rama | `ccr-68eaae98-0rs4e4` — rama de desenvolvimento designada pelo ambiente desta sessão (a missão propunha `claude/seeds2-piso2b-previsoes`; a regra do ambiente proíbe publicar em outra rama sem autorização explícita) |
-| PR | __PR__ (sem merge; aguarda auditoria) |
-| Commits | __COMMITS__ |
+| PR | [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) (sem merge; aguarda auditoria) |
+| Commits | `04ee15b` (código, testes e E2E), `4ab54a0` (documentação + ajuste de aviso em teste). O commit seguinte só preenche PR/commits neste relatório; o SHA final da rama é informado na resposta da entrega. |
 | Estado | Implementado e verificado na rama; **não integrado** em `main` |
 
 ### 2. Resumo executivo
@@ -706,4 +706,4 @@ Defeitos visuais corrigidos na revisão: legenda sobreposta ao título do 1º pa
 | Entrega | Data | Missão | Rama / PR | Estado |
 |---|---|---|---|---|
 | 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | Auditoria favorável; correção C-01 implementada (§15); aguardando autorização de merge |
-| 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / __PR__ | Implementado e verificado; aguardando auditoria |
+| 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | Implementado e verificado; aguardando auditoria |

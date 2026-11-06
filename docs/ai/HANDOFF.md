@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-06 · **rama:** `ccr-68eaae98-0rs4e4` · **PR __PR__** (pendiente de auditoría; sin merge) · **estado:** **Piso 2B — Previsões e Dados** implementado y verificado en la rama; **no integrado** en `main`.
+**Actualización:** 2026-11-06 · **rama:** `ccr-68eaae98-0rs4e4` · **PR [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7)** (pendiente de auditoría; sin merge) · **estado:** **Piso 2B — Previsões e Dados** implementado y verificado en la rama; **no integrado** en `main`.
 
 > **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 2** (canal permanente con el auditor). Este HANDOFF es solo el resumen de continuidad.
 
@@ -88,6 +88,6 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#4](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/4) — refinamiento del Piso 1 + backup `.bak-v<N>` consistente con WAL (merge `05e29ef`; 163 passed, E2E 64/64 reportados entonces).
 - PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5) — Gestor de microrredes + H-01/H-02/H-03 (merge squash `50ef4d6`, 2026-11-06; 237 passed, E2E Gestor 52/52 y Piso 1 66/66 reportados entonces). La regla de microrred única queda **sustituida por autorización del responsable**.
 - PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) — Piso 2A, Centro de Operação + C-01 (merge `4709f0c`); inicia el protocolo `PARAMIJEFE.md`.
-- Piso 2B — Previsões e Dados (rama `ccr-68eaae98-0rs4e4`; PR __PR__): `PARAMIJEFE.md` Entrega 2.
+- Piso 2B — Previsões e Dados (rama `ccr-68eaae98-0rs4e4`; PR [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7)): `PARAMIJEFE.md` Entrega 2.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.
