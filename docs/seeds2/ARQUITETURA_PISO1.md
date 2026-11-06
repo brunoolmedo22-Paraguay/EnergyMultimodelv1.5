@@ -254,8 +254,8 @@ documento v1 real gerado pelo código do `main` anterior (`tests/fixtures/`). Ar
 
 ## 11. Preparado para os próximos pisos (não implementado)
 
-- **Centro de Operação:** nova vista no shell (`shell.NAV_ACTIVE`), consumindo `MicrogridStore` e
-  `adapter` sem reconstruir a Gestão.
+- ~~**Centro de Operação**~~ → **implementado no Piso 2A** (vista `operacao`, pacote `seeds2/operation/`,
+  esquema v3 do banco da microrrede). Relatório técnico completo: [`PARAMIJEFE.md`](../../PARAMIJEFE.md).
 - **Perfis calibrados do PEMFC ModelLab na simulação:** a importação já guarda o pacote validado; falta a
   regra no adaptador/motor, somente quando o motor puder consumir os parâmetros sem inventar dinâmica/BoP
   (decisão científica pendente).

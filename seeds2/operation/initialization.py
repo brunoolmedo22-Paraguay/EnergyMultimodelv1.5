@@ -159,6 +159,14 @@ def _battery(eq_id: str, s: dict, ref: dict) -> list[Finding]:
     return out
 
 
+# O estado declarado (inclusive "desligada") não é interpretado: o runtime V1.6 fixa o estado inicial por conta própria
+# (ems_integration/fontes.py: n_ini = N_fc para a PEMFC; n_ini = int(Pmin > 0) para a térmica; despacho.py: P_prev = 0).
+_PEMFC_PENDING = ("O EMS V1.6 não interpreta o estado inicial declarado da PEMFC: o runtime assume todas as unidades "
+                  "ligadas (n_ini = N_fc) e potência anterior nula.")
+_THERMAL_PENDING = ("O EMS V1.6 não interpreta o estado inicial declarado da térmica: deriva-o da potência mínima "
+                    "(n_ini = 1 se Pmin > 0) e começa com potência anterior nula.")
+
+
 def _pemfc(eq_id: str, s: dict, ref: dict) -> list[Finding]:
     out: list[Finding] = []
     state, units, power = s.get("state"), s.get("units_on"), _num(s.get("power_kW"))
@@ -181,6 +189,7 @@ def _pemfc(eq_id: str, s: dict, ref: dict) -> list[Finding]:
                                "no instante inicial."))
         if isinstance(units, int) and units > 0:
             out.append(Finding(ERROR, eq_id, "units_on", "PEMFC declarada desligada com unidades em operação."))
+        out.append(Finding(PENDING, eq_id, "state", _PEMFC_PENDING))
         return out
     if units is None:
         out.append(Finding(INCOMPLETE, eq_id, "units_on", "Número de unidades em operação não definido."))
@@ -201,8 +210,7 @@ def _pemfc(eq_id: str, s: dict, ref: dict) -> list[Finding]:
     if state == "em_partida":
         out.append(Finding(WARNING, eq_id, "state", "O SEEDS2 não modela a física de partida da PEMFC: 'em partida' é "
                            "registrado apenas como rótulo de estado."))
-    out.append(Finding(PENDING, eq_id, "state", "O EMS V1.6 não interpreta o estado inicial da PEMFC: o runtime assume "
-                       "todas as unidades ligadas (n_ini = N_fc) e potência anterior nula."))
+    out.append(Finding(PENDING, eq_id, "state", _PEMFC_PENDING))
     return out
 
 
@@ -221,6 +229,7 @@ def _thermal(eq_id: str, s: dict, ref: dict) -> list[Finding]:
         if power is not None and power > _EPS:
             out.append(Finding(ERROR, eq_id, "power_kW", f"Unidade térmica declarada desligada não pode entregar "
                                f"{power:g} kW no instante inicial."))
+        out.append(Finding(PENDING, eq_id, "state", _THERMAL_PENDING))
         return out
     if state == "em_operacao" and power is None:
         out.append(Finding(INCOMPLETE, eq_id, "power_kW", "Potência inicial não definida."))
@@ -233,8 +242,7 @@ def _thermal(eq_id: str, s: dict, ref: dict) -> list[Finding]:
     if state == "em_partida":
         out.append(Finding(WARNING, eq_id, "state", "O SEEDS2 não modela tempos nem a física de partida da unidade "
                            "térmica: 'em partida' é registrado apenas como rótulo de estado."))
-    out.append(Finding(PENDING, eq_id, "state", "O EMS V1.6 não interpreta o estado inicial da térmica: deriva-o da "
-                       "potência mínima (n_ini = 1 se Pmin > 0) e começa com potência anterior nula."))
+    out.append(Finding(PENDING, eq_id, "state", _THERMAL_PENDING))
     return out
 
 

@@ -204,7 +204,8 @@ async function legado(b) {
   assert(fs.existsSync(path.join(dataDir, "seeds2.db")), "arquivo anterior mantido");
   await shot(p, "g20_gestor_legado_adotado.png");
   await cards(p).first().getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
-  assert(await p.getByText("Microrrede aberta nesta sessão").isVisible(), "microrrede adotada abre no Início");
+  assert(await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).isVisible(),
+         "microrrede adotada abre no Centro de Operação (Piso 2A)");
   await shot(p, "g21_legado_inicio.png");
   await p.close();
 }

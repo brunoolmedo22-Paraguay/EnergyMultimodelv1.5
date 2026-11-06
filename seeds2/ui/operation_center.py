@@ -485,7 +485,8 @@ def _initialization(store, cur) -> None:
     refs = doc["inventory_ref"]["equipment"]
     states = doc["initialization"]["equipment"]
     token = int(ss.get("op_token") or 0)
-    enabled = [(eid, r) for eid, r in refs.items() if r.get("enabled", True)]
+    enabled = sorted(((eid, r) for eid, r in refs.items() if r.get("enabled", True)),
+                     key=lambda it: (it[1].get("position", 1 << 30), it[1].get("name", "")))
     if not enabled:
         st.info("O inventário de referência não tem equipamentos habilitados.")
     for kind in KIND_ORDER:

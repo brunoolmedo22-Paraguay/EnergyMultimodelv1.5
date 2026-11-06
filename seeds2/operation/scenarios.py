@@ -70,9 +70,10 @@ def inventory_fingerprint(config: dict) -> str:
 def inventory_reference(config: dict, revision: int, fingerprint: str) -> dict:
     """Referência à revisão salva do inventário + instantâneo das características físicas de cada equipamento."""
     equipment = {}
-    for eq in config.get("equipment", []):
+    for pos, eq in enumerate(config.get("equipment", [])):
         ref = I.equipment_reference(eq)
         ref["fingerprint"] = equipment_fingerprint(eq)
+        ref["position"] = pos               # ordem do inventário (o JSON canônico ordena as chaves por id)
         equipment[eq["id"]] = ref
     return {"config_revision": int(revision), "config_fingerprint": str(fingerprint),
             "inventory_fingerprint": inventory_fingerprint(config), "equipment": equipment}
