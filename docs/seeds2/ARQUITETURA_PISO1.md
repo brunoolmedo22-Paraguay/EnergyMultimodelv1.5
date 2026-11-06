@@ -256,6 +256,11 @@ documento v1 real gerado pelo código do `main` anterior (`tests/fixtures/`). Ar
 
 - ~~**Centro de Operação**~~ → **implementado no Piso 2A** (vista `operacao`, pacote `seeds2/operation/`,
   esquema v3 do banco da microrrede). Relatório técnico completo: [`PARAMIJEFE.md`](../../PARAMIJEFE.md).
+- ~~**Previsões (Piso 2B)**~~ → **implementado**: etapa 02 do Centro de Operação (`tab = previsoes`;
+  `seeds2/operation/forecasts.py`, `forecast_sources.py`, `seeds2/ui/forecasts_ui.py`, `forecast_charts.py`).
+  As previsões pertencem ao CENÁRIO, não ao inventário: a demanda/clima da seção 7 acima continuam sendo as
+  entradas das rodadas V1.6 até o Piso 2C. Contrato e persistência: `PARAMIJEFE.md` (Entrega 2) e
+  `ARMAZENAMENTO.md` ("Previsões dos cenários").
 - **Perfis calibrados do PEMFC ModelLab na simulação:** a importação já guarda o pacote validado; falta a
   regra no adaptador/motor, somente quando o motor puder consumir os parâmetros sem inventar dinâmica/BoP
   (decisão científica pendente).

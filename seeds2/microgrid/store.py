@@ -696,7 +696,37 @@ class MicrogridStore:
                              "microrrede com a mesma impressão digital; nada foi gravado.")
         return mg_uid, base_rev, base_fp
 
-    def create_scenario(self, doc: dict, *, origin: str = "new", note: str = "") -> StoredScenario:
+    @staticmethod
+    def _scenario_blobs(doc: Any) -> set[str]:
+        """SHA-256 referenciados pelas previsões do cenário (Piso 2B): série normalizada (``data``) e arquivo
+        original (``blob``). Tolerante a estruturas inválidas."""
+        refs: set[str] = set()
+        fc = doc.get("forecasts") if isinstance(doc, dict) else None
+        for entry in (fc.values() if isinstance(fc, dict) else []):
+            if isinstance(entry, dict):
+                for k in ("data", "blob"):
+                    v = entry.get(k)
+                    if isinstance(v, str) and _HEX64.fullmatch(v):
+                        refs.add(v)
+        return refs
+
+    def _store_scenario_blobs(self, con: sqlite3.Connection, doc: dict,
+                              new_blobs: dict[str, tuple[bytes, dict]] | None) -> None:
+        """Dentro de ``_tx``: insere os blobs novos (conteúdo conferido com o SHA-256 declarado) e exige que TODO blob
+        referenciado pelo cenário exista. Qualquer falha desfaz a transação inteira (versão + blobs): nunca um
+        documento referenciando blob inexistente, nunca um blob gravado por uma versão recusada."""
+        for digest, (content, meta) in (new_blobs or {}).items():
+            if self._insert_blob(con, bytes(content), str((meta or {}).get("name", ""))[:200],
+                                 str((meta or {}).get("media_type", "text/csv"))[:100]) != digest:
+                raise StoreError("Falha de integridade ao gravar os dados da previsão (SHA-256 divergente); nada foi gravado.")
+        missing = [b for b in sorted(self._scenario_blobs(doc))
+                   if con.execute("SELECT 1 FROM blobs WHERE sha256 = ?", (b,)).fetchone() is None]
+        if missing:
+            raise StoreError("Dados de previsão referenciados pelo cenário não estão armazenados nesta microrrede "
+                             f"({', '.join(m[:12] + '…' for m in missing)}); nada foi gravado.")
+
+    def create_scenario(self, doc: dict, *, origin: str = "new", note: str = "",
+                        new_blobs: dict[str, tuple[bytes, dict]] | None = None) -> StoredScenario:
         """Grava um cenário NOVO (versão 1). ``doc['scenario_uid']`` deve ser novo nesta microrrede."""
         uid = doc.get("scenario_uid")
         if not (isinstance(uid, str) and self._SCN_UID.fullmatch(uid)):
@@ -708,6 +738,7 @@ class MicrogridStore:
             mg_uid, base_rev, base_fp = self._check_scenario_base(con, doc)
             if con.execute("SELECT 1 FROM scenarios WHERE scenario_uid = ?", (uid,)).fetchone() is not None:
                 raise StoreError("Já existe um cenário com este identificador nesta microrrede.")
+            self._store_scenario_blobs(con, doc, new_blobs)
             con.execute("INSERT INTO scenarios(scenario_uid, microgrid_uid, name, version, base_revision, base_fingerprint, "
                         "fingerprint, document, origin, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                         (uid, mg_uid, name, 1, base_rev, base_fp, fp, text, str(origin), now, now))
@@ -717,7 +748,8 @@ class MicrogridStore:
             row = con.execute("SELECT * FROM scenarios WHERE scenario_uid = ?", (uid,)).fetchone()
             return self._scenario_row(row)
 
-    def save_scenario(self, doc: dict, expected_version: int, *, note: str = "", origin: str = "edit") -> StoredScenario:
+    def save_scenario(self, doc: dict, expected_version: int, *, note: str = "", origin: str = "edit",
+                      new_blobs: dict[str, tuple[bytes, dict]] | None = None) -> StoredScenario:
         """Grava uma NOVA versão se o conteúdo mudou. Concorrência otimista: se outra sessão salvou depois de
         ``expected_version``, levanta ``ScenarioConflictError`` (nada é sobrescrito)."""
         uid = doc.get("scenario_uid")
@@ -734,6 +766,7 @@ class MicrogridStore:
                 raise IdentityError("O cenário pertence a outra microrrede; nada foi gravado.")
             if row["fingerprint"] == fp:
                 return self._scenario_row(row)
+            self._store_scenario_blobs(con, doc, new_blobs)
             ver, now = int(row["version"]) + 1, C.utc_now()
             con.execute("INSERT INTO scenario_versions(scenario_uid, version, microgrid_uid, base_revision, base_fingerprint, "
                         "fingerprint, document, saved_at, note, origin) VALUES (?,?,?,?,?,?,?,?,?,?)",

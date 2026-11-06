@@ -27,8 +27,10 @@ from seeds2.operation import service
 from seeds2_fixtures import v16_equivalent_config
 
 NO_ADMIN = {"SEEDS2_DEV_MODE": "", "SEEDS2_ADMIN_PASSWORD": ""}
-# Rótulos que aparentariam capacidades EMS ainda inexistentes no Piso 2A (não podem existir como controles).
-FAKE = ("EXECUTAR", "RODAR", "OTIMIZAR", "PREVIS", "ESTRATÉGIA", "ESTRATEGIA", "GERAR PREVIS", "INICIAR OPERA")
+# Rótulos que aparentariam capacidades EMS ainda inexistentes (não podem existir como controles). "PREVIS" saiu da
+# lista no Piso 2B: a etapa Previsões passou a existir de fato (ABRIR PREVISÕES); "GERAR PREVIS" continua proibido
+# (nenhuma previsão meteorológica é gerada pelo software).
+FAKE = ("EXECUTAR", "RODAR", "OTIMIZAR", "ESTRATÉGIA", "ESTRATEGIA", "GERAR PREVIS", "INICIAR OPERA")
 
 
 def _ok(tc, app):
@@ -149,7 +151,8 @@ class CentroInicioTest(_Base):
         html = _html(app)
         for stage in ("Previsões", "Estratégia EMS", "Execução"):
             self.assertIn(stage, html)
-        self.assertGreaterEqual(html.count("Não implementado"), 3)
+        self.assertGreaterEqual(html.count("Não implementado"), 2)             # Estratégia EMS e Execução
+        self.assertIn("ABRIR PREVISÕES", [b.label for b in app.button])        # Piso 2B: etapa real
         self.assertIn("Não executável nesta versão", html)
         self.assertIn("ainda não é aplicado às rodadas", html)
         app = self.inicializacao(app)

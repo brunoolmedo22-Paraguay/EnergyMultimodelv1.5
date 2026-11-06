@@ -1,12 +1,14 @@
-"""Contratos preparados para os próximos pisos — SEM implementá-los (Piso 2A).
+"""Contratos entre os pisos do Centro de Operação (preparados no Piso 2A; Previsões implementadas no Piso 2B).
 
-Piso 2B — Previsões
-    Cada cenário terá entradas de previsão em ``doc["forecasts"]``, uma por *slot* (``FORECAST_SLOTS``). Uma
-    entrada é um ``ForecastInput``: tipo de origem (manual, CSV, sintético), procedência (mesmas categorias do
-    Piso 1 — nunca "medido" para perfis de referência ou sintéticos), base temporal e, para dados tabulares, o
-    SHA-256 do conteúdo armazenado na tabela ``blobs`` da PRÓPRIA microrrede (endereçamento por conteúdo, já
-    usado pelo Piso 1). No Piso 2A o bloco existe vazio e qualquer entrada é validada estruturalmente; não há
-    editores, gráficos nem novas fontes meteorológicas.
+Piso 2B — Previsões (IMPLEMENTADO — ``seeds2/operation/forecasts.py`` e ``forecast_sources.py``)
+    Cada cenário tem entradas de previsão em ``doc["forecasts"]``, uma por *slot* editável (``demand``,
+    ``climate``). Uma entrada é um ``ForecastInput`` (formato ``format_version`` 1): tipo de origem (manual, CSV,
+    sintético, referência), procedência (mesmas categorias do Piso 1 — nunca "medido" para perfis de referência
+    ou sintéticos), base temporal ORIGINAL (``t0``/``t_end``/``step_s``/``n_points``/``regular``, fuso declarado ou
+    identificado como não declarado), variáveis em unidades canônicas e o SHA-256 da série normalizada
+    (``data``) e, para CSV, do arquivo original (``blob``), ambos na tabela ``blobs`` da PRÓPRIA microrrede,
+    gravados na MESMA transação da versão do cenário. O slot ``resources`` (hidrogênio/combustível) continua
+    reservado: nenhum contrato científico o consome ainda, e ele não é editável.
 
 Piso 2C — Execução
     Entidades separadas: ``Scenario`` (editável, versionado em ``scenario_versions``) e ``Run`` (imutável depois
@@ -41,16 +43,36 @@ _HEX64 = re.compile(r"[0-9a-f]{64}")
 
 @dataclass(frozen=True)
 class ForecastInput:
-    """Entrada de previsão associada a um cenário (contrato do Piso 2B; ainda sem interface)."""
+    """Entrada de previsão associada a um cenário (contrato do Piso 2B).
+
+    Os nove primeiros campos são os do contrato preliminar do Piso 2A (inalterados); os demais foram acrescentados
+    no Piso 2B, todos opcionais na validação ESTRUTURAL (``forecast_errors``). A completude exigida para GRAVAR
+    uma entrada (série armazenada, sem erros, procedência reprodutível) é verificada por
+    ``seeds2.operation.forecasts.entry_errors`` em ``scenarios.check_for_save``."""
     slot: str
     source_type: str
     provenance: str                      # chave de ``config.PROVENANCE_KINDS``
-    t0: str | None = None                # início ISO 8601 (com fuso) do horizonte
-    step_s: int | None = None            # passo temporal
-    horizon_s: int | None = None         # duração
-    blob: str | None = None              # SHA-256 do conteúdo na tabela ``blobs`` da microrrede (CSV)
-    params: dict | None = None           # parâmetros do gerador sintético / perfil manual
+    t0: str | None = None                # primeiro instante ISO 8601 (relógio de parede do fuso ``timezone``)
+    step_s: float | None = None          # passo típico (mediana) da série original, em segundos
+    horizon_s: float | None = None       # duração coberta pela série original (t_end − t0), em segundos
+    blob: str | None = None              # SHA-256 do arquivo ORIGINAL (CSV) na tabela ``blobs`` da microrrede
+    params: dict | None = None           # origem: gerador+versão+semente / conjunto de referência / arquivo / tabela
     notes: str = ""
+    # ---- Piso 2B
+    format_version: int | None = None    # versão do formato da entrada (1)
+    label: str = ""                      # descrição legível da origem
+    variables: list | None = None        # variáveis canônicas presentes (``forecasts.VARIABLES``)
+    t_end: str | None = None             # último instante
+    n_points: int | None = None          # observações na série original normalizada
+    regular: bool | None = None          # passo constante?
+    timezone: str | None = None          # IANA, "UTC" ou "UTC±hh:mm"; None = NÃO DECLARADO (explícito)
+    timezone_source: str | None = None   # arquivo | arquivo_utc | usuario | nao_declarado
+    data: str | None = None              # SHA-256 da série NORMALIZADA canônica (``forecasts.to_csv_bytes``)
+    mapping: dict | None = None          # CSV: mapeamento aplicado (colunas, unidades, tempo, fuso, duplicatas)
+    transforms: list | None = None       # transformações aplicadas (registradas; dados originais preservados)
+    quality: dict | None = None          # contagem de constatações {erro, aviso, pendente, incompleto}
+    stats: dict | None = None            # mín./máx./média/ausentes por variável (+ energia estimada da demanda)
+    created_at: str | None = None
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -83,6 +105,14 @@ def forecast_errors(forecasts: Any) -> list[str]:
         unknown = set(entry) - set(ForecastInput.__dataclass_fields__)
         if unknown:
             errs.append(f"Previsão '{slot}' com campos desconhecidos: {sorted(unknown)}.")
+        for k in ("data", "blob"):
+            v = entry.get(k)
+            if v is not None and not _HEX64.fullmatch(str(v)):
+                errs.append(f"Previsão '{slot}' com referência '{k}' inválida (SHA-256).")
+        for k, typ in (("params", dict), ("mapping", dict), ("variables", list), ("transforms", list),
+                       ("quality", dict), ("stats", dict)):
+            if entry.get(k) is not None and not isinstance(entry[k], typ):
+                errs.append(f"Previsão '{slot}': campo '{k}' com tipo inválido.")
     return errs
 
 

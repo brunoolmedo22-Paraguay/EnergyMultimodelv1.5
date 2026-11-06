@@ -171,7 +171,7 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 |---|---|
 | `microgrid` | **uma** linha (`CHECK (id = 1)`): documento atual, revisão, impressão digital, uid |
 | `revisions` | snapshots completos imutáveis (triggers bloqueiam UPDATE/DELETE), nota e origem (`commissioning`, `edit`, `restore`, `revert`, `migration`, `run_conditions`) |
-| `blobs` | CSVs importados e pacotes originais do PEMFC ModelLab (conteúdo + SHA-256 verificado na leitura) |
+| `blobs` | CSVs importados e pacotes originais do PEMFC ModelLab; desde o Piso 2B também as séries das previsões dos cenários (normalizada canônica e CSV original) — conteúdo + SHA-256 verificado na leitura |
 | `simulation_runs` | procedência de cada rodada: revisão, impressões digitais, origem, exclusões, resumo |
 | `scenarios` (v3) | estado atual de cada cenário operativo (Piso 2A): `scenario_uid`, `version` (concorrência otimista), `base_revision` (FK → `revisions`), `base_fingerprint`, documento, origem (`new`/`duplicate`) |
 | `scenario_versions` (v3) | histórico append-only das versões de cada cenário (triggers bloqueiam UPDATE/DELETE); base para execuções imutáveis do Piso 2C |
@@ -192,6 +192,30 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 - **Independência:** versões do cenário ≠ revisões do inventário; salvar um cenário nunca grava `microgrid`/`revisions`.
 - **Backup ZIP (formato 2):** NÃO transporta cenários (exportação de cenários = Piso 2D). O manifesto passa a
   declarar `db_schema_version` 3; backups v1/v2 continuam aceitos.
+
+### Previsões dos cenários (Piso 2B — sem migração do banco)
+
+- **Sem tabela nova:** cada entrada de `doc["forecasts"][slot]` referencia por SHA-256 a série normalizada
+  canônica (`data`) e, para CSV, o arquivo original (`blob`) na tabela `blobs` do PRÓPRIO banco da microrrede
+  (endereçamento por conteúdo, deduplicado). O esquema continua v3.
+- **Atomicidade:** `save_scenario`/`create_scenario(..., new_blobs=…)` inserem os blobs novos (conteúdo
+  conferido com o SHA-256 declarado) e verificam a existência de TODOS os blobs referenciados pelo documento
+  DENTRO da mesma transação `BEGIN IMMEDIATE` que grava a versão (lápide/incarnação verificadas — H-01/H-02).
+  Qualquer falha (conflito de versão, blob ausente, hash divergente, documento inválido) desfaz tudo: nunca há
+  versão de cenário apontando para blob inexistente, e uma gravação recusada não deixa blobs. O serviço envia
+  apenas os blobs referenciados pelo documento (dados incorporados e depois substituídos antes de salvar nunca
+  chegam ao banco).
+- **Pendentes na sessão:** até SALVAR CENÁRIO, os bytes ficam só na sessão do navegador (`op_blobs`), nunca em
+  arquivos temporários; em conflito, a cópia de trabalho e os bytes pendentes são preservados.
+- **Blobs órfãos:** não são produzidos pelo fluxo normal. **Não há limpeza de blobs**: blobs nunca são
+  apagados (podem ser referenciados por versões históricas imutáveis de cenários ou por revisões do
+  inventário); eles só desaparecem com a exclusão da própria microrrede. Uma limpeza segura exigiria varrer
+  `revisions` + `scenario_versions` sob o bloqueio da microrrede — não implementada (fora do escopo).
+- **Isolamento:** um documento de cenário copiado para outra microrrede é recusado (os blobs não existem lá).
+- **Integridade na leitura:** `get_blob` recalcula o SHA-256; `forecasts.load` confere também o formato, as
+  variáveis e o número de observações; `forecast_sources.rederive` reconstrói a série a partir da origem.
+- **Backup ZIP (formato 2) inalterado:** continua SEM cenários e, portanto, sem as previsões (correção C-01;
+  textos `BACKUP_SCOPE`/`RESTORE_SCOPE` atualizados). Portabilidade completa = Piso 2D.
 
 ## Garantias
 

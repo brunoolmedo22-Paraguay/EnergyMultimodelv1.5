@@ -81,10 +81,12 @@ async function operar(b) {
   assert(await p.locator(".tb-link.on").innerText() === "Centro de Operação", "Centro de Operação marcado como atual");
   assert(await p.getByText("Nenhum cenário nesta microrrede", { exact: false }).isVisible(), "estado vazio de cenários");
   for (const s of ["Previsões", "Estratégia EMS", "Execução"]) {
-    assert(await p.getByText(s, { exact: true }).first().isVisible(), `etapa futura identificada: ${s}`);
+    assert(await p.getByText(s, { exact: true }).first().isVisible(), `etapa identificada: ${s}`);
   }
-  const fake = await p.getByRole("button", { name: /EXECUTAR|RODAR|OTIMIZAR|PREVIS|ESTRAT/i }).count();
-  assert(fake === 0, "nenhum botão fictício de previsões/estratégia/execução");
+  // Piso 2B: Previsões passou a ser uma etapa real (ABRIR PREVISÕES); Estratégia EMS e Execução seguem sem controles.
+  assert(await p.getByRole("button", { name: "ABRIR PREVISÕES" }).count() === 1, "etapa 02 Previsões com ABRIR PREVISÕES (Piso 2B)");
+  const fake = await p.getByRole("button", { name: /EXECUTAR|RODAR|OTIMIZAR|GERAR PREVIS|ESTRAT/i }).count();
+  assert(fake === 0, "nenhum botão fictício de estratégia/execução");
   await shot(p, "p2a_01_centro_vazio.png");
   // criar cenário
   await p.getByRole("button", { name: "＋ NOVO CENÁRIO" }).click(); await ready(p);

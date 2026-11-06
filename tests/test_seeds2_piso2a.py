@@ -458,8 +458,10 @@ class InicializacaoRegrasTest(_Base):
         rd = S.readiness(doc, S.findings(doc), None)
         self.assertEqual(rd["stages"]["inicializacao"][0], "ok")
         self.assertFalse(rd["executable"])
-        for k in ("previsoes", "estrategia", "execucao"):
+        for k in ("estrategia", "execucao"):
             self.assertEqual(rd["stages"][k][:2], ("off", "Não implementado"))
+        # Piso 2B: Previsões passou a ser uma etapa real; sem previsões, ela é declarada incompleta (nunca pronta)
+        self.assertEqual(rd["stages"]["previsoes"], ("warn", "Incompletas", "falta: demanda, clima"))
         self.assertEqual(S.readiness(self.doc, S.findings(self.doc), None)["stages"]["inicializacao"][1], "Incompleta")
 
 

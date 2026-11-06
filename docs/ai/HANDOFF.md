@@ -2,30 +2,33 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-06 · **rama:** `claude/seeds2-piso2a-centro-operacao` · **PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6)** (pendiente de revisión; sin merge) · **estado:** **Piso 2A — Centro de Operação** implementado y verificado en la rama; **no integrado** en `main`.
+**Actualización:** 2026-11-06 · **rama:** `ccr-68eaae98-0rs4e4` · **PR [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7)** (pendiente de auditoría; sin merge) · **estado:** **Piso 2B — Previsões e Dados** implementado y verificado en la rama; **no integrado** en `main`.
 
-> **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md)** (canal permanente con el auditor). Este HANDOFF es solo el resumen de continuidad.
+> **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 2** (canal permanente con el auditor). Este HANDOFF es solo el resumen de continuidad.
 
 ## 1. Estado actual
 
-- `main` (`50ef4d6`): V1.6 + PR #1–#4 + **PR #5 integrado** (Gestor de microrredes + H-01/H-02/H-03; merge squash 2026-11-06, verificado vía GitHub). La línea anterior de este archivo ("PR #5 pendiente / no integrado") estaba desactualizada.
-- Rama `claude/seeds2-piso2a-centro-operacao`: **Piso 2A** (sección 2).
-- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** → [Comissionamento] → **Centro de Operação** · Simulação | Gestão da Microrrede | Resultados; Alcance = link de documentación; identidad de la microrred + TROCAR MICRORREDE en la barra superior). Backend: catálogo `registry.db` + `microgrids/<uid>/seeds2.db` (**esquema v3**: + `scenarios`, `scenario_versions`); dominio de operación en `seeds2/operation/`.
-- EMS y modelos científicos **sin cambios** (`git diff origin/main` vacío en `models`, `h2_pemfc`, `simulation`, `config`, `ems_integration`, `reference_models`).
+- `main` (`4709f0c`): V1.6 + PR #1–#5 + **PR #6 integrado** (Piso 2A + corrección C-01), verificado con `git fetch` (el `origin/main` local del contenedor estaba en `761f032`, desactualizado).
+- Rama `ccr-68eaae98-0rs4e4` (designada por el entorno de la sesión; la misión proponía `claude/seeds2-piso2b-previsoes`): **Piso 2B** (sección 2).
+- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** → [Comissionamento] → **Centro de Operação**: 01 Inicialização · **02 Previsões** · 03 Estratégia EMS y 04 Execução "Não implementado"). Backend: catálogo `registry.db` + `microgrids/<uid>/seeds2.db` (**esquema v3, sin migración nueva**: las series de previsión usan la tabla `blobs`); dominio en `seeds2/operation/`.
+- EMS y modelos científicos **sin cambios** (`git diff origin/main --stat` vacío en `models`, `h2_pemfc`, `simulation`, `config`, `ems_integration`, `reference_models`).
 
-## 2. Última entrega — Piso 2A · Centro de Operação (esta rama)
+## 2. Última entrega — Piso 2B · Previsões e Dados (esta rama)
 
-- **Implementado:** Centro de Operação como inicio de la microrred comisionada (alias `?view=inicio`); escenarios operativos por microrred (crear, editar, duplicar, listar, retomar; versiones append-only; concurrencia optimista; vínculo con la revisión del inventario + deriva + `rebase` explícito); Inicialización (SOC por banco, estado/unidades/potencia PEMFC, estado/potencia térmica, disponibilidad FV/eólica) con **erro / aviso / pendente / não definido**; contratos 2B/2C/2D (`seeds2/operation/contracts.py`). Detalle, decisiones y reglas: `PARAMIJEFE.md` §4–§8.
-- **Verificado (2026-11-06):** `python -m pytest tests/ -q` → **271 passed** (237 previos + 34 nuevos); E2E Chromium desde directorios vacíos con reinicio real del servidor: Piso 2A **50/50**, Gestor **52/52**, Piso 1 **66/66**; despacho/costo EMS idénticos (prueba `EMSInalteradoTest`). Evidencia: `PARAMIJEFE.md` §9.
-- **Decisiones del responsable aplicadas:** intervalos de SOC recomendados = advertencias (no bloqueo); operación manual/experimental sin telemetría/SCADA; no tocar el EMS (incompatibilidades registradas como "pendente").
-- **Auditoría del PR #6:** favorable; corrección única **C-01** implementada (avisos de que el backup ZIP no incluye escenarios en toda exportación/restauración/exclusión; conteo de escenarios y consentimiento específico obligatorio en la exclusión). Evidencia: `PARAMIJEFE.md` §15 (276 passed; E2E Gestor 52/52).
-- **Pendiente / riesgos:** el escenario aún no alimenta rodadas (Piso 2C) — coexisten `run_conditions.battery_soc0_pct` (Piso 1, rodada V1.6) y el SOC del escenario; backup ZIP no transporta escenarios (2D; advertido y con consentimiento en la exclusión — C-01); sin exclusión/archivado de escenarios; migración v3 hace el banco ilegible para versiones anteriores del SEEDS2 (cópia `.bak-v2`).
+- **Implementado:** etapa 02 del Centro de Operação: demanda (kW) y clima (GHI, temperatura, viento, dirección, presión, humedad según el inventario habilitado) por perfil manual (tabla + valores pegados), CSV (detección + mapeo + unidades confirmadas + fuso + duplicatas explícitas; original preservado), sintético (4 generadores, semilla) y referencia V1.6 (walk-forward, COPEL, `Dados_exemplo`, clima sintético V1.6); pre-visualización Plotly separada del perfil guardado; calidad/cobertura; guardado como nueva versión del escenario con blobs en la MISMA transacción; reproducibilidad por SHA-256. Contrato `ForecastInput` extendido (compatible). Detalle: `PARAMIJEFE.md` Entrega 2 §4–§8, §16 (contratos para 2C).
+- **Verificado (2026-11-06):** `python -m pytest tests/ -q` → **308 passed** (7 avisos, iguales a la línea de base) (línea de base `main`: 276 passed; +32 nuevos); E2E Chromium desde directorios vacíos con reinicio real del servidor: Piso 2B **58/58**, Piso 2A **51/51**, Gestor **52/52**, Piso 1 **66/66**. Evidencia: `PARAMIJEFE.md` Entrega 2 §9–§10.
+- **Decisiones del responsable aplicadas:** operación manual/experimental; previsiones pertenecen al escenario, no al inventario; no ejecutar (2C); no tocar EMS; ZIP sigue sin escenarios (C-01).
+- **Pendiente / riesgos:** previsiones aún no alimentan rodadas (coexisten demanda/clima del inventario y del escenario); conversión a la grilla del EMS y alineación de fusos = Piso 2C (marcadas "pendente"); un conjunto climático por escenario; sin limpieza de blobs (intencional); backup ZIP sin escenarios/previsiones (2D).
 
 ## 3. Próxima misión propuesta
 
-**Piso 2B — Previsões** (no implementada ni autorizada): perfiles manuales/CSV/sintéticos sobre `doc["forecasts"]` con `contracts.ForecastInput`, gráficos de previsualización, validación temporal y procedencia; incluir blobs de escenario en `_referenced_blobs`/backup. Después: 2C (Execução: tabla `scenario_runs`, `RunReference` inmutable, series completas), 2D (Arquivo). Ver `PARAMIJEFE.md` §14.
+**Piso 2C — Execução** (no implementada ni autorizada): runner que lea una versión INMUTABLE del escenario (`RunReference`), seleccione la ventana experimental y convierta las previsiones a la grilla del motor (método a aprobar; `forecasts.grid_view` es candidato), tabla `scenario_runs` + series completas, sin alterar el optimizador; decidir el destino de `run_conditions`/demanda del inventario. Después: 2D (Arquivo/portabilidad con blobs de escenarios). Ver `PARAMIJEFE.md` Entrega 2 §14 y §16.
 
 ---
+
+## Histórico — entrega anterior: Piso 2A · Centro de Operação (PR #6, integrado en `4709f0c`)
+
+- Centro de Operação como inicio de la microrred comisionada; escenarios operativos versionados (append-only, concurrencia optimista, vínculo con la revisión del inventario, deriva + `rebase`); Inicialización con erro/aviso/pendente; contratos 2B/2C/2D; corrección de auditoría **C-01** (avisos de alcance del backup ZIP y consentimiento específico en la exclusión). Verificado entonces: 276 passed; E2E Piso 2A 50/50, Gestor 52/52, Piso 1 66/66. Informe: `PARAMIJEFE.md` Entrega 1.
 
 ## Histórico — entrega anterior: Gestor de microrredes (PR #5, integrado en `50ef4d6`)
 
@@ -84,6 +87,7 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#3](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/3) — SEEDS2 v2.0 Piso 1 (merge `67a7a6f`). Regla entonces vigente: **"una instalación = una microrred"** (directriz del prompt maestro del Piso 1; sustituyó la idea anterior de "cadastro/seleção").
 - PR [#4](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/4) — refinamiento del Piso 1 + backup `.bak-v<N>` consistente con WAL (merge `05e29ef`; 163 passed, E2E 64/64 reportados entonces).
 - PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5) — Gestor de microrredes + H-01/H-02/H-03 (merge squash `50ef4d6`, 2026-11-06; 237 passed, E2E Gestor 52/52 y Piso 1 66/66 reportados entonces). La regla de microrred única queda **sustituida por autorización del responsable**.
-- Piso 2A — Centro de Operação (rama `claude/seeds2-piso2a-centro-operacao`; PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6)): escenarios operativos + Inicialización; inicia el protocolo `PARAMIJEFE.md`.
+- PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) — Piso 2A, Centro de Operação + C-01 (merge `4709f0c`); inicia el protocolo `PARAMIJEFE.md`.
+- Piso 2B — Previsões e Dados (rama `ccr-68eaae98-0rs4e4`; PR [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7)): `PARAMIJEFE.md` Entrega 2.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

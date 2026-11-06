@@ -37,7 +37,12 @@ _CHAVES_FIXAS = ("energy_source", "current_page", "orchestrator_page")
 _CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp", "mg_active_uid", "mg_creating", "seeds_url_checked",
                   # Centro de Operação (Piso 2A): cenário selecionado e cópia de trabalho (estado de aplicação)
                   "op_scenario_uid", "op_work", "op_work_uid", "op_base_version", "op_base_fp", "op_token",
-                  "op_conflict", "op_stale", "op_form", "op_flash", "op_url_checked")
+                  "op_conflict", "op_stale", "op_form", "op_flash", "op_url_checked",
+                  # Previsões (Piso 2B): dados pendentes ainda não gravados (estado de aplicação)
+                  "op_blobs")
+# Previsões (Piso 2B): estado de aplicação por slot (tabela manual, CSV enviado, token do editor, verificação) e a
+# fonte escolhida e a aba ativa (chaves fixas — valores transportáveis entre execuções).
+_PREFIXOS_EXTRAS = ("op_fcs_", "opw_fc_src_", "opw_fc_tab")
 _V16_DIR: str | None = None
 _V16_UID: str | None = None
 
@@ -74,7 +79,8 @@ def _todas_as_chaves(app: AppTest) -> list[str]:
 def _chaves_de_aplicacao(app: AppTest) -> list[str]:
     chaves = [k for k in _CHAVES_FIXAS if k in app.session_state]
     chaves += [k for k in _todas_as_chaves(app)
-               if (k.startswith("orq_") and not k.startswith("orq_nav_")) or k in _CHAVES_EXTRAS]
+               if (k.startswith("orq_") and not k.startswith("orq_nav_")) or k in _CHAVES_EXTRAS
+               or k.startswith(_PREFIXOS_EXTRAS)]
     return chaves
 
 

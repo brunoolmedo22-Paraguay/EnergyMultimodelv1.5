@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from seeds2.microgrid.store import MicrogridStore, Stored, StoredScenario, StoreError
 
+from . import forecasts as FC
 from . import scenarios as S
 
 
@@ -37,11 +38,18 @@ def duplicate(store: MicrogridStore, scenario_uid: str, *, name: str, descriptio
                                  note=f"Duplicado de '{src.name}' (versão {src.version})")
 
 
-def save(store: MicrogridStore, doc: dict, expected_version: int, *, note: str = "Edição do cenário") -> StoredScenario:
+def save(store: MicrogridStore, doc: dict, expected_version: int, *, note: str = "Edição do cenário",
+         new_blobs: dict[str, tuple[bytes, dict]] | None = None) -> StoredScenario:
     """Grava nova versão. Erros estruturais/de coerência → ``ScenarioValidationError``; outra sessão gravou antes →
-    ``ScenarioConflictError``. Em ambos os casos nada é gravado."""
+    ``ScenarioConflictError``. Em ambos os casos nada é gravado.
+
+    ``new_blobs`` (Piso 2B): dados das previsões ainda não armazenados (série normalizada e arquivo original),
+    gravados na MESMA transação da nova versão — ou tudo, ou nada (nenhum documento com blob inexistente; nenhum
+    blob órfão por conflito). Somente os blobs efetivamente referenciados pelo documento são enviados."""
     S.check_for_save(doc)
-    return store.save_scenario(doc, expected_version, note=note, origin="edit")
+    refs = FC.referenced_blobs(doc)
+    blobs = {h: v for h, v in (new_blobs or {}).items() if h in refs}
+    return store.save_scenario(doc, expected_version, note=note, origin="edit", new_blobs=blobs)
 
 
 def rebase(store: MicrogridStore, scenario_uid: str, expected_version: int) -> StoredScenario:

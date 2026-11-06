@@ -7,4 +7,4 @@ instalação, persiste-a localmente e a adapta ao contrato do orquestrador V1.6
 """
 
 APP_NAME = "SEEDS2"
-APP_VERSION = "2.0.0-piso2a"
+APP_VERSION = "2.0.0-piso2b"
