@@ -165,7 +165,7 @@ mesmo estado. Leitura cujo instantâneo é anterior à lápide termina sobre ess
 leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloqueiam gravações nem a exclusão
 (WAL). `export_backup` usa um único instantâneo.
 
-## Banco de cada microrrede (`PRAGMA user_version` = 3)
+## Banco de cada microrrede (`PRAGMA user_version` = 4)
 
 | Tabela | Conteúdo |
 |---|---|
@@ -175,6 +175,8 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 | `simulation_runs` | procedência de cada rodada: revisão, impressões digitais, origem, exclusões, resumo |
 | `scenarios` (v3) | estado atual de cada cenário operativo (Piso 2A): `scenario_uid`, `version` (concorrência otimista), `base_revision` (FK → `revisions`), `base_fingerprint`, documento, origem (`new`/`duplicate`) |
 | `scenario_versions` (v3) | histórico append-only das versões de cada cenário (triggers bloqueiam UPDATE/DELETE); base para execuções imutáveis do Piso 2C |
+| `scenario_runs` (v4) | rodadas de cenário (Piso 2C): identidade/incarnação, cenário + versão (FK → `scenario_versions`), revisão do inventário, estado, dono, progresso, manifesto de procedência (imutável), resultado, resumo, erro |
+| `scenario_run_data` (v4) | séries completas de entrada/saída, dados dos modelos, relatório do EMS e pacote de troca de cada rodada (SHA-256 do conteúdo; zlib acima de 2 KiB) |
 | `meta` | registro de migrações, incarnação, lápide |
 
 ### Cenários operativos (esquema v3, Piso 2A)
@@ -216,6 +218,32 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
   variáveis e o número de observações; `forecast_sources.rederive` reconstrói a série a partir da origem.
 - **Backup ZIP (formato 2) inalterado:** continua SEM cenários e, portanto, sem as previsões (correção C-01;
   textos `BACKUP_SCOPE`/`RESTORE_SCOPE` atualizados). Portabilidade completa = Piso 2D.
+
+### Rodadas de cenário (esquema v4, Piso 2C)
+
+- **Migração v3 → v4:** só cria tabelas, índice e triggers (cópia `.bak-v3` antes, transação única como as demais).
+- **Ciclo de vida:** `start_run` grava a linha `em_execucao` com o **manifesto** (procedência completa: referência
+  à versão imutável do cenário, revisão do inventário, estratégia, janela, previsões e transformações, parâmetros
+  que chegam ao motor, relatório do preflight, versões de software e SHA-256 do código científico) →
+  `heartbeat_run` (progresso real do motor: fase e passo k/n do despacho) → `finish_run` insere TODOS os dados,
+  o resultado e o resumo e muda o estado para `concluida` **na mesma transação** (`BEGIN IMMEDIATE` da microrrede,
+  lápide/incarnação verificadas — H-01/H-02); ou `fail_run` (`falhou`/`interrompida`, sem dados).
+- **Imutabilidade (triggers):** linha finalizada não aceita UPDATE; identidade, dono e manifesto nunca mudam;
+  nenhuma linha é excluída; `scenario_run_data` só aceita INSERT enquanto a rodada está `em_execucao` e nunca
+  UPDATE/DELETE. Nenhum resultado parcial é marcado como concluído.
+- **Sem execução duplicada:** `request_id` UNIQUE (o mesmo pedido devolve a rodada existente); no máximo UMA rodada
+  `em_execucao` por microrrede (`RunBusyError`); execuções serializadas no processo (nenhuma chamada paralela aos
+  modelos/otimizador).
+- **Recuperação:** o dono é `host|pid|token-do-processo`. Rodada `em_execucao` cujo processo terminou (kill,
+  reinício do servidor) — mesmo host e PID inexistente, ou PID reutilizado com outro token, ou thread encerrada —
+  ou sem sinal há 30 min (outro host) é marcada `interrompida` por `runner.recover` (ao abrir a Execução e antes
+  de iniciar outra rodada). Idempotente.
+- **Leitura sem recalcular:** `get_run`/`list_runs`/`run_data` (SHA-256 conferido) em transação de instantâneo
+  único (H-03); abrir uma rodada nunca chama modelos nem o otimizador.
+- **Exclusão da microrrede:** remove as rodadas junto com o banco. O diálogo do Gestor mostra a contagem e exige
+  consentimento ESPECÍFICO (além do nome e da credencial), com recontagem no clique.
+- **Backup ZIP (formato 2) inalterado:** NÃO transporta rodadas nem resultados (`BACKUP_SCOPE` atualizado); o
+  manifesto passa a declarar `db_schema_version` 4. Portabilidade científica = Piso 2D.
 
 ## Garantias
 

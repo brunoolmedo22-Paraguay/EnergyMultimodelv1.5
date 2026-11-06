@@ -701,9 +701,286 @@ Defeitos visuais corrigidos na revisão: legenda sobreposta ao título do 1º pa
 
 ---
 
+## Entrega 3 — SEEDS2 Piso 2C · Execução EMS e Persistência Científica
+
+### 1. Identificação
+
+| Campo | Valor |
+|---|---|
+| Piso / missão | **Piso 2C** — Execução EMS e persistência científica (etapas 03 Estratégia EMS e 04 Execução do Centro de Operação) |
+| Data | 2026-11-06 |
+| Base | `main` em `43ee6f5` (merge do PR #7 — Piso 2B), conferido com `git fetch`; PR #6 (`4709f0c`) e PR #7 integrados |
+| Rama | `ccr-21b1e00e-u5u64z` — rama de desenvolvimento designada pelo ambiente desta sessão (a missão propunha `claude/seeds2-piso2c-execucao`; a regra do ambiente proíbe publicar em outra rama sem autorização explícita) |
+| PR | [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) (sem merge; aguarda auditoria) |
+| Estado | Implementado e verificado na rama; **não integrado** em `main` |
+
+### 2. Resumo executivo
+
+**Solicitado:** fechar o circuito experimental *cenário → validação de compatibilidade → preparação das entradas →
+modelos físicos → EMS → resultados persistentes*, sem corrigir o otimizador: preflight científico, janela temporal
+com fusos/UTC e conversão registrada, Estratégia EMS só com opções existentes, runner separado do Streamlit, entidade
+Run imutável com séries completas, resultados mínimos e reabertura sem recalcular, avisos de backup e exclusão.
+
+**Entregue:**
+- **Etapa 03 — Estratégia EMS** (`seeds2/operation/strategy.py`, `seeds2/ui/execution_ui.py`): função objetivo ÚNICA
+  identificada (custo econômico do EMS V1.6, termos listados; sem seletor multiobjetivo), algoritmo (GA/GWO/NGO/só
+  SQP = `RT.ALGORITMOS`), metaheurística penalizada, N, semente, tolerância do SOC-alvo, parâmetros econômicos e
+  conversores (mesmas faixas do console V1.6), validação dinâmica do H₂ (única validação implementada); tolerâncias
+  fixas do motor apenas informadas. Gravada em `doc["ems_strategy"]` (antes reservado `None`).
+- **Etapa 04 — Execução**: janela da missão (`doc["mission"]`, chave nova opcional) separada do horizonte dos
+  perfis, do passo do motor (60 s, fixo) e de N; **preflight** com relatório legível (representável / advertência /
+  incompatibilidade / verificação no motor / informação), equipamentos excluídos e parâmetros que chegam ao motor;
+  EXECUTAR só para a versão SALVA e compatível; progresso real; histórico; vista da rodada imutável (`?run=`).
+- **Preflight científico** (`seeds2/operation/preflight.py`): fase A estática + fase B no contrato efetivo do motor
+  (lido com a própria `montar_fontes`, antes do otimizador). Casos não representáveis BLOQUEADOS, nunca ignorados.
+- **Tempo** (`seeds2/operation/mission.py`): conversão para UTC antes de combinar, recusa de fusos indefinidos
+  ambíguos, horário de verão, cobertura sem extrapolação, interpolação linear/circular registrada, ausentes nunca
+  viram zero.
+- **Runner** (`seeds2/operation/runner.py`): thread própria independente da sessão, serialização no processo,
+  idempotência por pedido, uma rodada ativa por microrrede, falha → 'falhou' sem resultados, processo morto →
+  'interrompida' por recuperação.
+- **Persistência v4** (`scenario_runs` + `scenario_run_data`): manifesto de procedência imutável, conclusão atômica
+  (dados + resumo + estado na mesma transação), triggers de imutabilidade.
+- **Resultados**: estado, identificação, cenário/versão, custo, energia atendida/não atendida/excedente, H₂, curvas
+  Plotly de demanda + potência por fonte, SOC e H₂ — tudo lido do banco.
+- **Backup/exclusão**: `BACKUP_SCOPE`/`RESTORE_SCOPE` citam as rodadas do 2C; diálogo de exclusão mostra a contagem e
+  exige consentimento específico (com recontagem no clique), somado ao da C-01.
+- Testes: 37 novos (29 domínio + 8 interface), 7 ajustados (estado real da navegação); E2E Chromium novo do Piso 2C
+  com **servidor derrubado durante uma rodada** e reinício; E2E dos Pisos 1/Gestor/2A/2B repetidos (§10).
+
+**Fora do escopo (intencional):** reformular o EMS (SOC, `n_ini`, `P_prev`, rampas, partidas), múltiplos objetivos,
+arquivo científico PDF/Excel/ZIP e portabilidade das rodadas (Piso 2D), comparações avançadas (Piso 4), cancelamento
+de rodada em andamento.
+
+### 3. Arquitetura encontrada (`main` `43ee6f5`) e contrato real do runtime
+
+- `RT.build_exchange_package(carga, model_spec, optimizer_cfg, climate_raw=None, destino=None)` → (pasta do pacote,
+  saídas dos modelos). `carga` é `ponte.PerfilCarga(t_min, P_kW, t0 ingênuo, descrição)` com grade de 1 min
+  (`t_min` 0..D, D+1 pontos); `Ts_s` = 60 fixo no `ems_config.json`. Clima: `"Sintético diário"` ou `"CSV climático"`
+  (`climate_from_csv` → `mix_engine.detect_climate_columns` → `prepare_climate` → `align_climate_to_operation`).
+  Atenção: `align_climate_to_operation` interpola **sobre ausentes** e `np.interp` **satura nas bordas** (extrapolação
+  constante); por isso o 2C entrega o clima JÁ na grade exata da missão e só com variáveis completas (ver §6).
+- `RT.run_optimizer(pasta, optimizer_cfg, progress=None)` → `executor.executar_pacote(progresso=…)`: o callback
+  recebe `(k, n)` a cada passo do despacho — progresso REAL usado pela interface. `validar=True` chama
+  `validar_fc_dinamico`.
+- `RT.series_dataframe(r)` (ponto de partida das séries gravadas) omite saídas existentes do motor: potência
+  renovável disponível (η aplicado), custo de partida, violação do refino, combinações avaliadas, envelopes
+  `P_max_unid_kW` e o H₂ da validação dinâmica. O 2C grava `series_dataframe` **inteiro** + essas colunas.
+- Estados iniciais implícitos (código): `fontes.montar_fontes` fixa `n_ini = N_fc` (PEMFC, `dn_max = 1`),
+  `n_ini = int(P_min[0] > 0)` (térmica) e `SOC_ini` = primeiro SOC da caracterização; `despacho` começa com
+  `P_prev = 0` e, com `|P_prev| < 1e-6`, NÃO aplica a rampa do 1º passo; o SOC-alvo final é o SOC inicial ± tolerância.
+
+### 4. Decisões técnicas
+
+| # | Tema | Alternativas | Escolha e justificativa |
+|---|---|---|---|
+| C1 | Onde fica a janela | parâmetro da rodada × no cenário | **No cenário** (`mission`): a rodada é determinada por (cenário, versão) — reprodutível; a mesma versão reexecutada dá o mesmo resultado (semente). |
+| C2 | Evolução do documento | `schema_version` 2 × campos compatíveis | `ems_strategy` (já reservado) passa a aceitar o bloco validado; `mission` é chave **opcional** (ausente = `None`): versões antigas mantêm a impressão digital; `schema_version` continua 1. |
+| C3 | Indisponibilidade | ignorar × bloquear × excluir só da rodada | **Excluir só da rodada**: cópia da revisão de referência com o equipamento desabilitado → o adaptador agrega apenas o fisicamente equivalente (p. ex. N_fc 4 → 3). Listado no relatório e na rodada; inventário intacto. |
+| C4 | Equipamento disponível não representável (FV declarado, heterogêneo, ModelLab, térmica de grande porte) | confirmar e omitir (como o console V1.6) × bloquear | **Bloquear** (regra "nunca executar outro cenário"); o usuário pode declará-lo indisponível no cenário (decisão explícita e registrada). |
+| C5 | Inventário mudou depois do cenário | bloquear × usar a revisão de referência | **Revisão de referência** (imutável) com **advertência**; `rebase` continua explícito. |
+| C6 | Séries sem fuso | recusar sempre × declaração explícita | Recusar ao combinar, salvo declaração explícita "mesmo relógio" na janela (gravada na rodada). Necessária porque os conjuntos de referência do 2B não declaram fuso. Declarado × não declarado = recusa. |
+| C7 | Grade do clima | entregar a série original ao runtime × grade da missão | **Grade da missão** com nomes reconhecidos por `detect_climate_columns`: o alinhamento interno vira identidade; nada é interpolado/extrapolado pelo runtime sem registro. |
+| C8 | Variável opcional com lacuna na janela | descartar em silêncio × usar referência × bloquear | **Bloquear** (e informar). Variável opcional ausente do perfil → comportamento existente do modelo eólico (densidade de referência), informado. |
+| C9 | PEMFC/térmica com potência inicial > 0 | bloquear sempre × provar equivalência | **Provar** (fase B): com a própria `despacho._n_prev_de`, a rampa do 1º passo que o EMS aplicaria com `P_prev = P0` é inativa em toda a caixa viável das configurações candidatas ⇒ mesmo problema que `P_prev = 0`. Senão: rodada 'falhou' (incompatibilidade) SEM chamar o otimizador. |
+| C10 | Execução | síncrona no script Streamlit × thread própria | **Thread própria** (recarga/fechamento da página não interrompe; progresso lido do banco por `st.fragment(run_every=1s)`); `_ENGINE_LOCK` serializa execuções no processo. |
+| C11 | Séries | tabela `blobs` × tabela própria | **`scenario_run_data`** com triggers de imutabilidade e inserção só durante a execução (blobs não têm essas garantias). zlib > 2 KiB; SHA-256 do conteúdo descomprimido. |
+| C12 | Duplicação | confiar no botão × chave de pedido | `request_id` UNIQUE gerado por renderização e consumido no clique + no máximo 1 rodada ativa por microrrede. |
+| C13 | Recuperação | timeout fixo × dono verificável | Dono `host|pid|token`; PID inexistente / token diferente / thread encerrada ⇒ 'interrompida'; outro host: 30 min sem sinal. |
+| C14 | `readiness()["executable"]` | manter `False` × decidir no documento | `None` = "decidido pelo preflight" (a prontidão do documento não lê inventário nem séries). |
+| C15 | `APP_VERSION` | — | `2.0.0-piso2c`. |
+
+### 5. Contrato de execução
+
+```
+runner.submit(store, scenario_uid, version, request_id, background=True) -> StoredRun
+  1. P.prepare(store, store.get_scenario(uid, version))   # fase A; PreflightError se incompatível (nada iniciado)
+  2. store.start_run(run_uid, request_id, …, manifest)    # 'em_execucao'; idempotente; RunBusyError
+  3. thread: PerfilCarga(grade da missão) + clima na grade → RT.build_exchange_package(…, destino=tmp)
+  4. P.engine_check(pf, pacote)                           # fase B; incompatível → fail_run('incompatibilidade')
+  5. RT.run_optimizer(pacote, optimizer_cfg, progress=k/n → heartbeat_run)
+  6. store.finish_run(dados + resumo + resultado)         # uma transação; exceção → fail_run('falha')
+runner.recover(store)   # rodadas órfãs → 'interrompida'
+```
+
+`optimizer_cfg` = `strategy.optimizer_config(ems_strategy)` — formato idêntico ao do formulário V1.6 (o padrão é
+igual a `RT.default_optimizer_config()`, testado). `model_spec` = `adapter.build_plan(cópia efetiva,
+external_inputs=True).spec`. O EMS, os modelos e o runtime são chamados sem alteração.
+
+**Manifesto** (`scenario_runs.manifest`, imutável): `reference` (`RunReference`: microrrede/incarnação, cenário,
+versão, impressão digital, revisão/impressão do inventário), cenário (nome, descrição), `software` (SEEDS2, Python,
+numpy, pandas, scipy e SHA-256 de 64 arquivos `.py`/`.csv`/`.json` de `models/`, `h2_pemfc/`, `simulation/`, `ems_integration/`,
+`config/`, `orchestrator_runtime.py`), função objetivo, estratégia exata, parâmetros fixos do motor, janela
+(início local/UTC, fuso, duração, passos, declaração de relógio), previsões (SHA-256 da série e do original, origem,
+procedência, fuso, transformações), `engine_inputs` (spec, optimizer_cfg, estado declarado, regra do motor, grade,
+conversões), relatório completo do preflight. **Resultado** (`outcome`): verificação da fase B com o estado inicial
+efetivo do motor (n_ini, SOC_ini, P_prev, envelopes, rampas), fontes efetivas, avisos e tempo.
+
+### 6. Compatibilidade com o EMS — casos representáveis e não representáveis
+
+| Condição declarada | Motor V1.6 | Decisão |
+|---|---|---|
+| Bateria, SOC em [SOC_min, SOC_max] do inventário | `SOC_ini` = SOC; alvo final = SOC ± tol | **Representável** (fase B confere `SOC_ini` = SOC ± 1e-6) |
+| Bateria, SOC em [0, 100] fora de [SOC_min, SOC_max] | limites são restrição efetiva | Cenário **gravável** (aviso); execução **bloqueada** |
+| Bancos agregáveis com SOC diferentes | um único SOC por grupo | **Bloqueado** |
+| PEMFC em operação, todas as unidades, P0 = 0 | `n_ini = N_fc`, `P_prev = 0` | **Exatamente** o contrato |
+| PEMFC em operação, todas as unidades, P0 > 0 (base "entregue") | `P_prev = 0` | **Condicional** (fase B: rampa do 1º passo inativa) — testado: 100 kW executa; 195 kW recusado sem otimizador |
+| PEMFC desligada / em partida / parte das unidades / P0 > 0 com base "stack" | `n_ini = N_fc` | **Bloqueado** |
+| Térmica desligada com Pmín = 0 | `n_ini = 0` | **Exato** (fase B confere `n_ini`) |
+| Térmica em operação com Pmín > 0 | `n_ini = 1`, `P_prev = 0` | **Condicional** (fase B) — testado: 50 kW / rampa 40 executa; 75 kW recusado |
+| Térmica desligada com Pmín > 0; em operação com Pmín = 0; em partida | — | **Bloqueado** |
+| Equipamento indisponível | — | **Excluído só da rodada** (agregação exata) |
+| Nenhuma fonte despachável disponível | EMS exige ≥ 1 | **Bloqueado** |
+| Equipamento disponível não representável | — | **Bloqueado** (C4) |
+| Variável opcional (eólica) ausente do perfil | densidade do ar de referência | Representável (informado) |
+
+### 7. Tratamento temporal
+
+UTC comum (IANA com DST via `tz_localize(ambiguous/nonexistent="NaT")`, `UTC±hh:mm` fixo); instantes ambíguos
+de mudança de horário a menos de 2 h da janela → recusa; início ambíguo → recusa. Grade = início (UTC) + k·60 s,
+k = 0..D; ao runtime vai a grade UNIFORME a partir do início local (rótulos), e cada passo grava `timestamp_utc`,
+`timestamp_local` (relógio real do fuso) e `timestamp_runtime`. Cobertura: a grade inteira dentro de cada série
+(sem extrapolação). Conversão: amostra coincidente → identidade; senão linear entre vizinhas (direção: circular
+pelo menor arco), registrada por variável (método, nº de pontos exatos/interpolados, passo original; passo < 60 s
+→ "valores pontuais, sem média"). Ponto em lacuna (> 1,5 × passo típico) ou junto a ausente → ausente → bloqueio
+se a variável for usada. Séries originais do cenário intocadas.
+
+### 8. Armazenamento
+
+Esquema **v4** (migração só com tabelas novas; `.bak-v3`). Detalhes, garantias de imutabilidade, recuperação e
+H-01/H-02/H-03: `docs/seeds2/ARMAZENAMENTO.md` §"Rodadas de cenário". Dados por rodada concluída:
+`entradas/missao.csv` (grade com UTC/local/runtime, demanda e clima usados), `saidas/despacho_ems.csv`
+(`series_dataframe` + extras), `saidas/relatorio_ems.json` (`rel`, log, avisos, metadados das fontes, bateria,
+configuração do pacote, validação dinâmica), `modelos/*.csv` (caracterizações FC/bateria, disponibilidade térmica,
+clima, saídas solar/eólica) e `pacote_troca.zip` (o pacote auditável lido pelo EMS).
+
+### 9. Pruebas e resultados exatos
+
+Ambiente: Linux, Python 3.13.18, Streamlit 1.66.1, numpy 2.2.6, scipy 1.15.3, pandas 2.2.3; `PYTHONDONTWRITEBYTECODE=1`.
+
+| Momento | Comando | Resultado |
+|---|---|---|
+| Linha de base (`main` `43ee6f5`) | `python -m pytest tests/ -q` | **308 passed** (120 s; 105 subtests; 7 avisos) |
+| Primeira execução com o 2C | idem | 7 failed / 301 passed — todas asserções do estado anterior ("Não implementado", `executable is False`, esquema v3, textos do ZIP); atualizadas para o estado real (abaixo) |
+| Versão final da rama | `python -m pytest tests/ -q` | **345 passed, 0 failed, 0 skipped** (189 s; 105 subtests; 7 avisos, os mesmos da linha de base) — 308 anteriores + 37 novos |
+
+Ajustes em testes existentes (navegação/estado reais; nenhuma asserção enfraquecida — cada uma foi substituída por
+outra mais forte): `test_seeds2_piso2a.py` (migração v2 → **v4** com `.bak-v2`; manifesto `db_schema_version` =
+`LATEST_DB_VERSION`; prontidão: `executable is None`, Estratégia "Não definida", Execução "Janela não definida"),
+`test_seeds2_piso2b.py` (idem prontidão), `test_seeds2_piso2a_app.py`/`test_seeds2_piso2b_app.py` (FAKE não proíbe
+mais "ESTRATÉGIA" — `ABRIR ESTRATÉGIA EMS`/`ABRIR EXECUÇÃO` existem e são verificados; "EXECUTAR" continua proibido
+no painel e nas etapas 01/02; zero "Não implementado"; textos de alcance do ZIP com as rodadas), `apptest_utils.py`
+(`continuar()` transporta `op_run_uid` e `op_ex_*`). Comparação numérica: nenhuma tolerância alterada.
+
+Novos testes — mapa dos requisitos da missão (§11):
+
+| Requisito | Teste (`tests/test_seeds2_piso2c.py` / `_app.py`) |
+|---|---|
+| Preflight compatível / incompatível | `test_cenario_compativel_relata_o_que_chega_ao_motor`; `test_cenario_incompativel_nao_pode_ser_executado` (UI) |
+| SOC fora da recomendação mas gravável; incompatível com limites efetivos | `test_soc_fora_da_recomendacao_salva_mas_fora_dos_limites_efetivos_bloqueia`; `test_bancos_com_soc_diferentes_nao_sao_representaveis` |
+| PEMFC / térmica não representáveis | `test_pemfc_estados_nao_representaveis`; `test_termica_estados_e_pmin`; `test_pemfc_potencia_inicial_rampa_comprovada_ou_execucao_recusada`; `test_termica_em_operacao_executa_com_rampa_comprovada` |
+| Disponibilidade | `test_disponibilidade_exclui_somente_da_rodada`; `test_equipamento_nao_representavel_nunca_omitido_em_silencio` |
+| Fusos e conversão | `test_fusos_diferentes_convertidos_para_utc`; `test_fuso_nao_declarado_exige_declaracao_explicita`; `test_horario_de_verao_ambiguo_perto_da_janela_recusado` |
+| Ausência de cobertura | `test_sem_cobertura_nunca_extrapola` |
+| Interpolação documentada sem extrapolação | `test_interpolacao_registrada_sem_extrapolacao_e_angular`; `test_clima_de_10_min_interpolado_e_registrado_na_rodada` |
+| Execução real + comparação com o V1.6 | `test_execucao_real_igual_ao_ems_v16_e_gravacao_completa` (custo idêntico; `P_kW` ≤ 1e-9 kW; SOC ≤ 1e-12) |
+| Resultados completos | idem (colunas de `series_dataframe` ⊂ gravadas; indicadores = séries; pacote de troca) |
+| Recuperação após reinício | `test_reinicio_reabre_resultados_sem_recalcular_e_interrupcao_recuperada` (subprocesso com runtime sabotado; `os._exit` no meio do despacho → 'interrompida') |
+| Versões históricas imutáveis | `test_rodada_concluida_e_imutavel_e_versao_historica_preservada`; `test_edicao_posterior_nao_altera_rodada_e_nova_rodada_usa_nova_versao` (UI) |
+| Conflitos e isolamento | `test_isolamento_entre_microrredes`; `test_uma_rodada_ativa_por_microrrede` |
+| Falhas do solver e interrupções | `test_falha_do_solver_e_dos_modelos_nao_gravam_resultados`; `test_rodada_falha_mostra_motivo_sem_resultados` (UI) |
+| Sem execução duplicada por recarga | `test_sem_execucao_duplicada_por_reenvio_do_mesmo_pedido`; `test_executar_em_segundo_plano_reabrir_sem_recalcular_e_sem_duplicar` (UI) |
+| Progresso real | `test_execucao_em_segundo_plano_com_progresso_real` |
+| Estratégia (opções existentes, gravada na versão) | `EstrategiaTest` (3); `test_definir_padrao_salvar_como_nova_versao` (UI) |
+| Pisos 1/2A/2B preservados | suíte completa; `test_console_v16_inalterado` (R$ 417,684638); `test_migracao_v3_para_v4_preserva_cenarios_e_backup_sem_rodadas`; `test_documento_antigo_sem_bloco_mission_continua_valido` |
+| Exclusão com rodadas | `test_dialogo_informa_rodadas_e_exige_consentimento_especifico` (UI) |
+
+### 10. E2E e evidência visual
+
+Chromium real (Playwright), servidores Streamlit reais, diretórios vazios:
+
+| Roteiro | Fases | Resultado |
+|---|---|---|
+| `tools/e2e/e2e_piso2c_execucao.js` (novo; dados `tools/e2e/seed_piso2c.py`) | operar 38 · **`kill -9` do servidor durante a rodada longa** · reinício 10 · tablet 7 | **55/55** |
+
+(Repetição dos E2E dos Pisos 1, Gestor, 2A e 2B: em execução no momento deste commit — resultado no commit seguinte.)
+
+### 11. Compatibilidade
+
+- **EMS / modelos / runtime / console V1.6:** `git diff origin/main --stat -- models h2_pemfc simulation config
+  ems_integration reference_models orchestrator_runtime.py orchestrator_app.py` **vazio**. A Simulação V1.6 continua
+  independente (configuração salva, `run_conditions`, demanda/clima do inventário) — despacho e custo de referência
+  inalterados (R$ 417,684638).
+- **Piso 1 / Gestor:** fluxo inalterado; banco v3 → v4 automático; backup ZIP formato 2 inalterado (manifesto
+  declara `db_schema_version` 4; backups antigos aceitos).
+- **Pisos 2A/2B:** documentos antigos válidos sem mudança de impressão digital (`mission` opcional); Inicialização e
+  Previsões inalteradas (só textos de alcance atualizados).
+
+### 12. Arquivos modificados
+
+| Arquivo | Propósito |
+|---|---|
+| `seeds2/operation/strategy.py` (novo) | estratégia EMS e janela da missão: opções existentes, faixas, `optimizer_config` |
+| `seeds2/operation/mission.py` (novo) | fusos/UTC, cobertura, conversão para a grade, clima para o runtime |
+| `seeds2/operation/preflight.py` (novo) | fases A e B, relatório, regras de representabilidade |
+| `seeds2/operation/runner.py` (novo) | execução, procedência, séries, resumo, recuperação |
+| `seeds2/operation/scenarios.py`, `contracts.py` | blocos `ems_strategy`/`mission`; prontidão das etapas 03/04; estados de rodada |
+| `seeds2/microgrid/store.py` | esquema v4 e API de rodadas |
+| `seeds2/microgrid/adapter.py` | `build_plan(..., external_inputs=True)` (demanda/clima vindos do cenário; classificação inalterada) |
+| `seeds2/ui/execution_ui.py`, `run_charts.py` (novos) | etapas 03/04, rodada, gráficos |
+| `seeds2/ui/operation_center.py`, `forecasts_ui.py`, `shell.py`, `gestor.py` | rotas, etapas reais, `?run=`, textos de alcance, exclusão com rodadas |
+| `seeds2/__init__.py` | `APP_VERSION = "2.0.0-piso2c"` |
+| `tests/test_seeds2_piso2c.py`, `tests/test_seeds2_piso2c_app.py` (novos) + ajustes (§9) | testes |
+| `tools/e2e/e2e_piso2c_execucao.js`, `tools/e2e/seed_piso2c.py` (novos); `e2e_piso2a…`, `e2e_piso2b…` | E2E |
+| `PARAMIJEFE.md`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, `docs/seeds2/ARMAZENAMENTO.md` | documentação |
+
+### 13. Problemas detectados e corrigidos durante a missão
+
+1. `mix_engine.detect_climate_columns` não reconhece `GHI_W_m2` (só `ghi`/`irradiance`…): o clima entregue ao
+   runtime usa a coluna `GHI` (sem alterar a V1.6).
+2. Interpolação angular devolvia 360,0 para ângulos ≈ −1e-15 (arredondamento de `% 360`) → normalizado para [0, 360).
+3. `shell.go` limpava `?run=` ao recompor a URL → a rodada aberta passou a sobreviver à recarga.
+4. Plotly 6 serializa arrays como `{dtype, bdata}`: os testes de interface e o E2E decodificam/usam `_fullData`.
+5. Arquivos `__pycache__/*.pyc` versionados foram reescritos por comandos auxiliares sem `PYTHONDONTWRITEBYTECODE`
+   e restaurados com `git checkout` antes do commit (nenhum `.pyc` no PR).
+
+### 14. Limitações pendentes
+
+1. **Capacidades científicas pendentes (piso do otimizador; bloqueadas, não reformuladas):** SOC inicial fora dos
+   limites efetivos; SOC distintos entre bancos; PEMFC desligada/em partida/parcial; potência inicial cuja rampa do
+   1º passo seria ativa; térmica com estado ≠ `int(Pmín > 0)`; física de partida; excedente renovável → bateria.
+2. Variável opcional com lacuna na janela bloqueia (não há política de preenchimento aprovada).
+3. Sem cancelamento de rodada em andamento; execuções serializadas no processo (uma por vez no servidor).
+4. Um processo vivo em OUTRO host só é considerado morto após 30 min sem sinal (implantação multi-host não é alvo).
+5. A grade entregue ao runtime é uniforme a partir do início local: numa janela que cruza mudança de horário os
+   rótulos `timestamp_runtime` diferem do relógio real (ambos gravados; os modelos V1.6 não usam a hora do dia com
+   clima por CSV).
+6. Backup ZIP sem cenários/rodadas; arquivo científico completo (PDF/Excel/ZIP) e importação = Piso 2D.
+7. Herdadas: `__pycache__/` versionado, sem CI, sem autenticação.
+
+### 15. Instruções para auditoria independente
+
+1. `seeds2/operation/preflight.py` — `_classify` (regras de §6), `ramp_inactive` (prova com `despacho._n_prev_de`),
+   `_engine_sources` (cópia literal das linhas de `executor.executar_pacote` que montam `arch`/`econ`).
+2. `seeds2/operation/mission.py` — `wall_to_utc`, `build_window`, `resample` (comparar com `forecasts.grid_view`).
+3. `seeds2/operation/runner.py` — `_execute` (ordem fase B → otimizador → `finish_run`), `owner_is_dead`, `submit`.
+4. `seeds2/microgrid/store.py` — migração 4 (triggers), `start_run`/`finish_run`/`fail_run`/`_recover_con`.
+5. Reproduzir: `python tools/e2e/seed_piso2c.py <dir>` → servidor → Centro → Estratégia (padrão, salvar) → Execução
+   (definir janela, salvar, EXECUTAR) → rodada; Inicialização com SOC 15 % → Execução bloqueada; missão longa e
+   `kill -9` do servidor durante a rodada → reinício → "Interrompida".
+
+### 16. Próximo passo sugerido (não implementado)
+
+**Piso 2D — Arquivo científico:** exportação/importação de cenários + rodadas (manifesto, `scenario_run_data` com
+SHA-256) em ZIP científico, PDF/Excel; depois, piso do otimizador para as capacidades pendentes do §14.1.
+
+---
+
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
 |---|---|---|---|---|
-| 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | Auditoria favorável; correção C-01 implementada (§15); aguardando autorização de merge |
-| 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | Implementado e verificado; aguardando auditoria |
+| 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | **Integrado** em `main` (merge `4709f0c`), após auditoria favorável e correção C-01 (§15) |
+| 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
+| 3 | 2026-11-06 | Piso 2C — Execução EMS e Persistência Científica | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | Implementado e verificado na rama; aguardando auditoria (sem merge) |
