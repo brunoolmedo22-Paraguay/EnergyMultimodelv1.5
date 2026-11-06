@@ -256,10 +256,10 @@ class ComissionamentoTest(_Base):
         self.assertIn("GERAR RELATÓRIO TÉCNICO (PDF)", [b.label for b in app.button])
         botao(app, "Ativar microrrede e concluir comissionamento").click().run()
         _ok(self, app)
-        self.assertEqual(app.session_state["seeds_route"]["view"], "inicio")
+        self.assertEqual(app.session_state["seeds_route"]["view"], "operacao")    # Piso 2A: Centro de Operação
         stored = self.saved()
         app2 = self.abrir_pelo_gestor(stored.config["installation"]["uid"])     # nova sessão → Gestor → ABRIR
-        self.assertEqual(app2.session_state["seeds_route"]["view"], "inicio")
+        self.assertEqual(app2.session_state["seeds_route"]["view"], "operacao")
         self.assertNotIn("Nome da instalação *", [t.label for t in app2.text_input])
         w = app2.session_state["mg_work"]
         self.assertEqual(w, stored.config)
@@ -689,10 +689,12 @@ class InsercaoHtmlTest(_Base):
 
 class InicioTest(_Base):
     def test_inicio_mostra_identidade_e_bancadas_acessiveis(self):
+        # Piso 2A: o início da microrrede comissionada é o Centro de Operação; as bancadas V1.6 continuam acessíveis.
         self.seed()
         app = self.open()
-        self.assertEqual(app.session_state["seeds_route"]["view"], "inicio")
+        self.assertEqual(app.session_state["seeds_route"]["view"], "operacao")
         self.assertTrue(any("Planta Piloto" in h.proto.body for h in app.get("html")))
+        self.assertTrue(any("Centro de Operação" in h.proto.body for h in app.get("html")))
         botao(app, "ABRIR EÓLICA").click().run()
         _ok(self, app)
         self.assertEqual(app.session_state["energy_source"], "wind")

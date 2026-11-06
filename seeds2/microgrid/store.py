@@ -1,9 +1,11 @@
-"""Persistência local (SQLite) da ÚNICA microrrede desta instalação do SEEDS2.
+"""Persistência local (SQLite) de UMA microrrede do SEEDS2 (um banco por microrrede; catálogo em ``registry.py``).
 
 Decisões (detalhadas em docs/seeds2/ARMAZENAMENTO.md):
 
 * **Uma microrred por banco:** a tabela ``microgrid`` tem ``CHECK (id = 1)``; não existe
   noção de "projetos". A identidade (``installation_uid``) é preservada entre edições.
+* **Cenários operativos (Piso 2A, esquema v3):** ``scenarios`` + ``scenario_versions`` (append-only), no MESMO
+  banco da microrrede (nunca numa base global); versões independentes das revisões do inventário.
 * **Revisões imutáveis:** cada salvamento grava um *snapshot* completo em ``revisions``
   (append-only, protegido por *triggers*). Nada é sobrescrito sem deixar rastro.
 * **Concorrência otimista:** ``save`` exige a revisão-base; se outra sessão salvou antes,
@@ -109,6 +111,42 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
     # v2 (refinamento do Piso 1): sem mudança de tabelas; o documento atual é migrado (v1 → v2) e gravado
     # como NOVA revisão (origem "migration"). Revisões antigas permanecem intactas e são migradas na leitura.
     (2, []),
+    # v3 (Piso 2A — Centro de Operação): cenários operativos DESTA microrrede. Somente tabelas novas (nenhuma
+    # tabela, revisão ou documento existente é alterado). ``scenarios`` guarda o estado atual de cada cenário
+    # (concorrência otimista por ``version``); ``scenario_versions`` é o histórico append-only (imutável, como
+    # ``revisions``) — base para associar execuções imutáveis a (scenario_uid, version) no Piso 2C. As versões
+    # do cenário são INDEPENDENTES das revisões do inventário: ``base_revision`` apenas referencia a revisão
+    # (existente) do inventário físico sobre a qual o cenário foi definido.
+    (3, [
+        """CREATE TABLE scenarios (
+               scenario_uid TEXT PRIMARY KEY CHECK (length(scenario_uid) = 32),
+               microgrid_uid TEXT NOT NULL,
+               name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+               version INTEGER NOT NULL CHECK (version >= 1),
+               base_revision INTEGER NOT NULL REFERENCES revisions(revision),
+               base_fingerprint TEXT NOT NULL,
+               fingerprint TEXT NOT NULL,
+               document TEXT NOT NULL,
+               origin TEXT NOT NULL DEFAULT 'new',
+               created_at TEXT NOT NULL,
+               updated_at TEXT NOT NULL)""",
+        """CREATE TABLE scenario_versions (
+               scenario_uid TEXT NOT NULL REFERENCES scenarios(scenario_uid),
+               version INTEGER NOT NULL CHECK (version >= 1),
+               microgrid_uid TEXT NOT NULL,
+               base_revision INTEGER NOT NULL REFERENCES revisions(revision),
+               base_fingerprint TEXT NOT NULL,
+               fingerprint TEXT NOT NULL,
+               document TEXT NOT NULL,
+               saved_at TEXT NOT NULL,
+               note TEXT NOT NULL DEFAULT '',
+               origin TEXT NOT NULL DEFAULT 'edit',
+               PRIMARY KEY (scenario_uid, version))""",
+        """CREATE TRIGGER scenario_versions_immutable_u BEFORE UPDATE ON scenario_versions
+               BEGIN SELECT RAISE(ABORT, 'versões de cenário são imutáveis'); END""",
+        """CREATE TRIGGER scenario_versions_immutable_d BEFORE DELETE ON scenario_versions
+               BEGIN SELECT RAISE(ABORT, 'versões de cenário são imutáveis'); END""",
+    ]),
 ]
 LATEST_DB_VERSION = MIGRATIONS[-1][0]
 
@@ -161,6 +199,19 @@ class IdentityError(StoreError):
     pass
 
 
+class ScenarioConflictError(StoreError):
+    """Outra sessão salvou o cenário depois da versão-base desta edição (nada foi sobrescrito)."""
+
+    def __init__(self, scenario_uid: str, expected: int, current: int):
+        super().__init__(f"O cenário foi alterado por outra sessão (versão base {expected}, atual {current}). "
+                         "Recarregue antes de salvar; nada foi sobrescrito.")
+        self.scenario_uid, self.expected, self.current = scenario_uid, expected, current
+
+
+class ScenarioNotFound(StoreError):
+    """O cenário não existe NESTA microrrede (nunca existiu, ou pertence a outra microrrede/incarnação)."""
+
+
 class MissingStoreError(StoreError):
     """O banco da microrrede não existe (p. ex. excluída por outra sessão)."""
 
@@ -180,6 +231,23 @@ class Stored:
     revision: int
     fingerprint: str
     saved_at: str
+
+
+@dataclass(frozen=True)
+class StoredScenario:
+    """Uma versão (imutável) de um cenário operativo. ``document`` é o documento completo do cenário
+    (``seeds2.operation.scenarios``); as demais colunas são desnormalizadas para listagem e integridade."""
+    scenario_uid: str
+    microgrid_uid: str
+    name: str
+    version: int
+    base_revision: int
+    base_fingerprint: str
+    fingerprint: str
+    document: dict
+    origin: str
+    created_at: str
+    updated_at: str
 
 
 @dataclass
@@ -588,6 +656,117 @@ class MicrogridStore:
             out.append(d)
         return out
 
+    # ------------------------------------------------------------ cenários operativos (Piso 2A)
+    # O documento do cenário é validado pelo domínio (``seeds2.operation``) ANTES de chegar aqui; o armazenamento
+    # garante a integridade relacional DENTRO da transação da microrrede (lápide/incarnação verificadas por
+    # ``_tx``/``_read``): identidade da microrrede, revisão-base existente com a mesma impressão digital,
+    # concorrência otimista por versão e histórico append-only.
+    _SCN_UID = re.compile(r"[0-9a-f]{32}")
+
+    @staticmethod
+    def _scenario_row(row: sqlite3.Row, *, created_at: str | None = None) -> StoredScenario:
+        """Linha de ``scenarios`` (estado atual) ou de ``scenario_versions`` (versão imutável)."""
+        keys = row.keys()
+        doc = json.loads(row["document"])
+        return StoredScenario(row["scenario_uid"], row["microgrid_uid"],
+                              row["name"] if "name" in keys else str(doc.get("name") or ""), int(row["version"]),
+                              int(row["base_revision"]), row["base_fingerprint"], row["fingerprint"], doc, row["origin"],
+                              created_at or row["created_at"], row["updated_at"] if "updated_at" in keys else row["saved_at"])
+
+    def _check_scenario_base(self, con: sqlite3.Connection, doc: dict) -> tuple[str, int, str]:
+        """Identidade da microrrede e revisão-base, verificadas na MESMA transação da gravação."""
+        mg = con.execute("SELECT installation_uid FROM microgrid WHERE id = 1").fetchone()
+        if mg is None:
+            raise StoreError("A microrrede ainda não tem configuração salva; não é possível criar cenários.")
+        mg_uid = (doc.get("microgrid") or {}).get("uid")
+        if mg_uid != mg["installation_uid"] or (self.fixed_uid is not None and mg_uid != self.fixed_uid):
+            raise IdentityError("O cenário pertence a outra microrrede; nada foi gravado.")
+        inc = (doc.get("microgrid") or {}).get("incarnation")
+        cur_inc = con.execute("SELECT value FROM meta WHERE key = ?", (INCARNATION_KEY,)).fetchone()
+        if inc is not None and cur_inc is not None and inc != cur_inc[0]:
+            raise IdentityError("O cenário foi definido para outra incarnação desta microrrede (excluída e "
+                                "reimportada); nada foi gravado.")
+        ref = doc.get("inventory_ref") or {}
+        base_rev, base_fp = ref.get("config_revision"), ref.get("config_fingerprint")
+        if not isinstance(base_rev, int) or isinstance(base_rev, bool) or not isinstance(base_fp, str):
+            raise StoreError("Cenário sem referência válida ao inventário (revisão/impressão digital).")
+        row = con.execute("SELECT fingerprint FROM revisions WHERE revision = ?", (base_rev,)).fetchone()
+        if row is None or row["fingerprint"] != base_fp:
+            raise StoreError(f"A revisão {base_rev} do inventário referenciada pelo cenário não existe nesta "
+                             "microrrede com a mesma impressão digital; nada foi gravado.")
+        return mg_uid, base_rev, base_fp
+
+    def create_scenario(self, doc: dict, *, origin: str = "new", note: str = "") -> StoredScenario:
+        """Grava um cenário NOVO (versão 1). ``doc['scenario_uid']`` deve ser novo nesta microrrede."""
+        uid = doc.get("scenario_uid")
+        if not (isinstance(uid, str) and self._SCN_UID.fullmatch(uid)):
+            raise StoreError("Identificador de cenário inválido.")
+        text, fp = C.canonical_json(doc), C.fingerprint(doc)
+        name = str(doc.get("name") or "").strip()
+        now = C.utc_now()
+        with self._tx() as con:
+            mg_uid, base_rev, base_fp = self._check_scenario_base(con, doc)
+            if con.execute("SELECT 1 FROM scenarios WHERE scenario_uid = ?", (uid,)).fetchone() is not None:
+                raise StoreError("Já existe um cenário com este identificador nesta microrrede.")
+            con.execute("INSERT INTO scenarios(scenario_uid, microgrid_uid, name, version, base_revision, base_fingerprint, "
+                        "fingerprint, document, origin, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        (uid, mg_uid, name, 1, base_rev, base_fp, fp, text, str(origin), now, now))
+            con.execute("INSERT INTO scenario_versions(scenario_uid, version, microgrid_uid, base_revision, base_fingerprint, "
+                        "fingerprint, document, saved_at, note, origin) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                        (uid, 1, mg_uid, base_rev, base_fp, fp, text, now, str(note), str(origin)))
+            row = con.execute("SELECT * FROM scenarios WHERE scenario_uid = ?", (uid,)).fetchone()
+            return self._scenario_row(row)
+
+    def save_scenario(self, doc: dict, expected_version: int, *, note: str = "", origin: str = "edit") -> StoredScenario:
+        """Grava uma NOVA versão se o conteúdo mudou. Concorrência otimista: se outra sessão salvou depois de
+        ``expected_version``, levanta ``ScenarioConflictError`` (nada é sobrescrito)."""
+        uid = doc.get("scenario_uid")
+        text, fp = C.canonical_json(doc), C.fingerprint(doc)
+        name = str(doc.get("name") or "").strip()
+        with self._tx() as con:
+            row = con.execute("SELECT * FROM scenarios WHERE scenario_uid = ?", (uid,)).fetchone()
+            if row is None:
+                raise ScenarioNotFound("O cenário não existe nesta microrrede.")
+            if int(row["version"]) != int(expected_version):
+                raise ScenarioConflictError(uid, int(expected_version), int(row["version"]))
+            mg_uid, base_rev, base_fp = self._check_scenario_base(con, doc)
+            if mg_uid != row["microgrid_uid"]:
+                raise IdentityError("O cenário pertence a outra microrrede; nada foi gravado.")
+            if row["fingerprint"] == fp:
+                return self._scenario_row(row)
+            ver, now = int(row["version"]) + 1, C.utc_now()
+            con.execute("INSERT INTO scenario_versions(scenario_uid, version, microgrid_uid, base_revision, base_fingerprint, "
+                        "fingerprint, document, saved_at, note, origin) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                        (uid, ver, mg_uid, base_rev, base_fp, fp, text, now, str(note), str(origin)))
+            con.execute("UPDATE scenarios SET name=?, version=?, base_revision=?, base_fingerprint=?, fingerprint=?, "
+                        "document=?, updated_at=? WHERE scenario_uid=?", (name, ver, base_rev, base_fp, fp, text, now, uid))
+            return self._scenario_row(con.execute("SELECT * FROM scenarios WHERE scenario_uid = ?", (uid,)).fetchone())
+
+    def get_scenario(self, scenario_uid: str, version: int | None = None) -> StoredScenario:
+        """Versão atual (ou a ``version`` pedida, imutável) de um cenário DESTA microrrede."""
+        with self._read() as con:
+            cur = con.execute("SELECT * FROM scenarios WHERE scenario_uid = ?", (str(scenario_uid),)).fetchone()
+            if cur is None:
+                raise ScenarioNotFound("O cenário não existe nesta microrrede.")
+            if version is None:
+                return self._scenario_row(cur)
+            row = con.execute("SELECT * FROM scenario_versions WHERE scenario_uid = ? AND version = ?",
+                              (str(scenario_uid), int(version))).fetchone()
+            if row is None:
+                raise ScenarioNotFound(f"Versão {version} do cenário inexistente.")
+            return self._scenario_row(row, created_at=cur["created_at"])
+
+    def list_scenarios(self) -> list[StoredScenario]:
+        with self._read() as con:
+            rows = con.execute("SELECT * FROM scenarios ORDER BY created_at, rowid").fetchall()
+        return [self._scenario_row(r) for r in rows]
+
+    def scenario_history(self, scenario_uid: str, limit: int = 100) -> list[dict]:
+        with self._read() as con:
+            rows = con.execute("SELECT version, base_revision, fingerprint, saved_at, note, origin FROM scenario_versions "
+                               "WHERE scenario_uid = ? ORDER BY version DESC LIMIT ?", (str(scenario_uid), int(limit))).fetchall()
+        return [dict(r) for r in rows]
+
     # ------------------------------------------------------------ backup / restauração
     def export_backup(self) -> bytes:
         """Backup de UM instantâneo (H-03): configuração, blobs, histórico e versão lidos na mesma transação de
@@ -892,6 +1071,6 @@ def default_store() -> MicrogridStore:
 
 
 __all__: list[Any] = ["BackupInspection", "ConflictError", "IdentityError", "MicrogridDeletedError", "MicrogridStore",
-                      "MissingStoreError", "Stored",
+                      "MissingStoreError", "ScenarioConflictError", "ScenarioNotFound", "Stored", "StoredScenario",
                       "StoreError", "ValidationError", "backup_filename", "default_store", "inspect_backup_data",
                       "resolve_data_dir", "sqlite_backup_copy"]

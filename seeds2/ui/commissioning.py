@@ -217,7 +217,7 @@ def _step5(cfg: dict, plan) -> None:
         cfg["commissioning"].update(completed=True, step=5, completed_at=C.utc_now())
         if session.save(note="Comissionamento concluído — microrrede ativada", origin="commissioning"):
             st.session_state.pop(STEP_KEY, None)
-            shell.go("inicio")
+            shell.go("operacao")
             forms.bump()
             st.rerun()
         else:

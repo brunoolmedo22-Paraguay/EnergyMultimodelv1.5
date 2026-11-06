@@ -12,7 +12,7 @@ import streamlit as st
 from seeds2.microgrid.registry import MicrogridNotFound, valid_uid
 from seeds2.microgrid.store import MissingStoreError, StoreError
 
-from . import commissioning, gestor, home, management, operations, scope, session, shell
+from . import commissioning, gestor, management, operation_center, operations, scope, session, shell
 
 
 def _restore_from_url() -> None:
@@ -72,7 +72,7 @@ def render(legacy_css: Callable[[], None]) -> None:
     elif not commissioned and view not in ("comissionamento", "alcance"):
         view = "comissionamento"
     elif commissioned and view in ("comissionamento", "gestor"):
-        view = "inicio"
+        view = "operacao"                               # Piso 2A: Centro de Operação é o início da microrrede ativa
     if view != r["view"] or (uid and st.query_params.get("mg") != uid):
         shell.go(view, r.get("tab") if view == r["view"] else None)
     legacy = view in ("simulacao", "resultados")
@@ -86,13 +86,16 @@ def render(legacy_css: Callable[[], None]) -> None:
     if not is_open:
         items, label, home_view = shell.NAV_GESTOR, "", "gestor"
     elif commissioned:
-        items, label, home_view = shell.NAV_ACTIVE, site, "inicio"
+        items, label, home_view = shell.NAV_ACTIVE, site, "operacao"
     else:
         items, home_view = shell.NAV_COMMISSIONING, "comissionamento"
         label = f"Comissionamento · {site}" if site else "Nova microrrede · comissionamento"
+    sub = ""
+    if uid:
+        sub = f"ID {uid[:8]}" + (f" · inventário rev. {saved.revision}" if saved else "")
     shell.topbar(view=view, items=items, site=label, site_title=f"Microrrede {inst.get('uid', '')}" if is_open else "",
                  save=session.save_status() if is_open else {"state": "novo", "text": ""}, force_light=legacy,
-                 home=home_view, switch=is_open)
+                 home=home_view, switch=is_open, site_sub=sub, mg_name=site)
     try:
         if view == "gestor":
             gestor.render()
@@ -105,7 +108,7 @@ def render(legacy_css: Callable[[], None]) -> None:
         elif legacy:
             operations.render(view, legacy_css)
         else:
-            home.render()
+            operation_center.render()
     except (MicrogridNotFound, MissingStoreError):      # excluída durante a execução desta página (H-01)
         if uid is None:
             raise

@@ -190,7 +190,7 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
             except MicrogridNotFound as exc:
                 _ss()["mg_flash"] = ("warn", str(exc))
             else:
-                shell.go("inicio" if commissioned else "comissionamento")
+                shell.go("operacao" if commissioned else "comissionamento")
             st.rerun()
         c1, c2, c3 = st.columns(3)
         if c1.button("ZIP", key=f"g_zip_{uid}", icon=":material/download:", width="stretch",
