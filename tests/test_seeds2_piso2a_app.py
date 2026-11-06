@@ -30,7 +30,9 @@ NO_ADMIN = {"SEEDS2_DEV_MODE": "", "SEEDS2_ADMIN_PASSWORD": ""}
 # Rótulos que aparentariam capacidades EMS ainda inexistentes (não podem existir como controles). "PREVIS" saiu da
 # lista no Piso 2B: a etapa Previsões passou a existir de fato (ABRIR PREVISÕES); "GERAR PREVIS" continua proibido
 # (nenhuma previsão meteorológica é gerada pelo software).
-FAKE = ("EXECUTAR", "RODAR", "OTIMIZAR", "ESTRATÉGIA", "ESTRATEGIA", "GERAR PREVIS", "INICIAR OPERA")
+# Piso 2C: ABRIR ESTRATÉGIA EMS / ABRIR EXECUÇÃO são etapas reais; EXECUTAR só existe DENTRO da etapa 04 (após o
+# preflight), nunca no painel nem nas etapas 01/02.
+FAKE = ("EXECUTAR", "RODAR", "OTIMIZAR", "GERAR PREVIS", "INICIAR OPERA")
 
 
 def _ok(tc, app):
@@ -151,10 +153,11 @@ class CentroInicioTest(_Base):
         html = _html(app)
         for stage in ("Previsões", "Estratégia EMS", "Execução"):
             self.assertIn(stage, html)
-        self.assertGreaterEqual(html.count("Não implementado"), 2)             # Estratégia EMS e Execução
-        self.assertIn("ABRIR PREVISÕES", [b.label for b in app.button])        # Piso 2B: etapa real
-        self.assertIn("Não executável nesta versão", html)
-        self.assertIn("ainda não é aplicado às rodadas", html)
+        self.assertEqual(html.count("Não implementado"), 0)                    # Piso 2C: as 4 etapas são reais
+        for b in ("ABRIR PREVISÕES", "ABRIR ESTRATÉGIA EMS", "ABRIR EXECUÇÃO"):
+            self.assertIn(b, [x.label for x in app.button])
+        self.assertIn("Não executável (v1)", html)                             # preflight da versão salva (sem estratégia)
+        self.assertIn("Simulação</b> (console V1.6) continua independente", html)
         app = self.inicializacao(app)
         labels = [b.label.upper() for b in app.button]
         self.assertFalse([l for l in labels if any(f in l for f in FAKE)], labels)
@@ -396,19 +399,21 @@ class BackupEscopoTest(_Base):
         app = self.session(uid, "gestao", "historico")
         txt = self._texts(app)
         self.assertIn("Não inclui os cenários operativos do Centro de Operação (Piso 2A)", txt)
-        self.assertIn("nenhum cenário operativo é restaurado", txt)
+        self.assertIn("nem as rodadas científicas executadas e seus resultados (Piso 2C", txt)
+        self.assertIn("nenhum cenário operativo nem rodada científica é restaurado", txt)
         # Gestão → exportação ZIP da configuração (componente comum de exportações)
         self.assertIn("EXPORTAR CONFIGURAÇÃO DA MICRORREDE (ZIP)", [b.label for b in app.button])
         # Gestor: botão ZIP do cartão (ajuda + legenda do arquivo preparado) e diálogo de importação
         g = self.session()
         zb = _key(g, f"g_zip_{uid}")
-        self.assertIn("NÃO inclui os cenários operativos", zb.help)
+        self.assertIn("NÃO inclui os cenários operativos nem as rodadas científicas", zb.help)
         zb.click().run()
         _ok(self, g)
-        self.assertTrue(any("não inclui cenários operativos" in c.value for c in g.caption), [c.value for c in g.caption])
+        self.assertTrue(any("não inclui cenários nem rodadas científicas" in c.value for c in g.caption),
+                        [c.value for c in g.caption])
         botao(g, "IMPORTAR MICRORREDE (ZIP)").click().run()
         _ok(self, g)
-        self.assertIn("nenhum cenário operativo é restaurado", self._texts(g))
+        self.assertIn("nenhum cenário operativo nem rodada científica é restaurado", self._texts(g))
 
 
 if __name__ == "__main__":

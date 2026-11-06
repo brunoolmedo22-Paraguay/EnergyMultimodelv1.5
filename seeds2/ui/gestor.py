@@ -195,7 +195,7 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
         c1, c2, c3 = st.columns(3)
         if c1.button("ZIP", key=f"g_zip_{uid}", icon=":material/download:", width="stretch",
                      help="EXPORTAR ZIP — backup .seeds2backup.zip desta microrrede (somente os dados dela; NÃO inclui "
-                          "os cenários operativos do Piso 2A)"):
+                          "os cenários operativos nem as rodadas científicas do Centro de Operação)"):
             try:
                 with st.spinner("Preparando ZIP…"):
                     _prepare_zip(reg, uid)
@@ -218,7 +218,7 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
                 st.download_button(label, ready[2], file_name=ready[1], mime=mime, key=f"g_{kind}dl_{uid}",
                                    width="stretch", type="secondary")
                 st.caption(f"{shell.md(ready[1])} · revisão {s['revision']}"
-                           + (" · não inclui cenários operativos" if kind == "zip" else ""))
+                           + (" · não inclui cenários nem rodadas científicas" if kind == "zip" else ""))
 
 
 # --------------------------------------------------------------------------- diálogos
@@ -250,18 +250,21 @@ def _delete_dialog() -> None:
         cur = store.load()
         n_rev, n_runs = len(store.history(limit=100_000)), len(store.runs(limit=100_000))
         n_scn = len(store.list_scenarios())
+        n_sruns = sum(store.count_scenario_runs().values())
     except StoreError:
-        store, cur, n_rev, n_runs, n_scn = None, None, 0, 0, 0
+        store, cur, n_rev, n_runs, n_scn, n_sruns = None, None, 0, 0, 0, 0
     name = (cur.config["installation"].get("name") if cur else "") or ""
     n_eq = len(cur.config.get("equipment", [])) if cur else 0
     st.html(f'<div class="gs-del"><b>Exclusão definitiva</b><table>'
             f'<tr><td>Microrrede</td><td><b>{escape(name or "(sem nome)")}</b></td></tr>'
             f'<tr><td>Identificador</td><td class="sd-mono">{escape(uid)}</td></tr>'
             f'<tr><td>Equipamentos</td><td>{n_eq}</td></tr><tr><td>Revisões no histórico</td><td>{n_rev}</td></tr>'
-            f'<tr><td>Rodadas registradas</td><td>{n_runs}</td></tr>'
-            f'<tr><td>Cenários operativos (Piso 2A)</td><td><b>{n_scn}</b></td></tr></table></div>')
+            f'<tr><td>Rodadas registradas (console V1.6)</td><td>{n_runs}</td></tr>'
+            f'<tr><td>Cenários operativos (Piso 2A)</td><td><b>{n_scn}</b></td></tr>'
+            f'<tr><td>Rodadas científicas arquivadas (Piso 2C)</td><td><b>{n_sruns}</b></td></tr></table></div>')
     st.markdown("Serão excluídos **definitivamente** a configuração, o inventário, os dados importados (CSV e dispositivos "
-                "PEMFC), o histórico de revisões, as rodadas e simulações registradas, os cenários operativos e as cópias "
+                "PEMFC), o histórico de revisões, as rodadas e simulações registradas, os cenários operativos, as rodadas "
+                "científicas com seus resultados e séries completas e as cópias "
                 "internas desta microrrede. "
                 "As demais microrredes, os modelos científicos e as referências técnicas não são afetados. **Esta ação não "
                 "pode ser desfeita pela interface.**")
@@ -294,22 +297,35 @@ def _delete_dialog() -> None:
                  "podem ser recuperados pelo ZIP atual** (o backup não inclui cenários).")
         scn_ok = st.checkbox(f"Entendo que os {n_scn} cenário(s) operativo(s) desta microrrede serão excluídos e que o ZIP "
                              "atual não permite recuperá-los", key=f"gd_scn_{uid}_{n_scn}")
+    # Consentimento ESPECÍFICO para os resultados científicos (Piso 2C), também ausentes do ZIP.
+    runs_ok = True
+    if n_sruns:
+        st.error(f"Esta microrrede tem **{n_sruns} rodada(s) científica(s) arquivada(s)** (resultados, séries completas e "
+                 "procedência). Elas serão perdidas definitivamente e **não podem ser recuperadas pelo ZIP atual**.")
+        runs_ok = st.checkbox(f"Entendo que as {n_sruns} rodada(s) científica(s) e seus resultados serão excluídos e que o "
+                              "ZIP atual não permite recuperá-los", key=f"gd_runs_{uid}_{n_sruns}")
     c1, c2 = st.columns(2)
     if c1.button("CANCELAR", key="gd_cancel", width="stretch"):
         _close_dialog()
         st.rerun()
     if c2.button("EXCLUIR DEFINITIVAMENTE", key="gd_do", type="primary", width="stretch",
-                 disabled=not match or not scn_ok or (pol.needs_credential and not cred)):
+                 disabled=not match or not scn_ok or not runs_ok or (pol.needs_credential and not cred)):
         if not pol.check(cred):
             st.error("Credencial administrativa inválida. Nada foi excluído.")
             return
-        try:                                            # recontagem no clique: cenários criados por outra sessão
-            now_scn = len(reg.open(uid).list_scenarios())
+        try:                                            # recontagem no clique: cenários/rodadas criados por outra sessão
+            st_now = reg.open(uid)
+            now_scn = len(st_now.list_scenarios())
+            now_runs = sum(st_now.count_scenario_runs().values())
         except StoreError:
-            now_scn = n_scn
+            now_scn, now_runs = n_scn, n_sruns
         if not scn_ok or now_scn > n_scn:
             st.error(f"A microrrede tem agora {now_scn} cenário(s) operativo(s) (outra sessão criou cenários). Confirme "
                      "novamente a exclusão dos cenários. Nada foi excluído.")
+            return
+        if not runs_ok or now_runs > n_sruns:
+            st.error(f"A microrrede tem agora {now_runs} rodada(s) científica(s) (outra sessão executou cenários). Confirme "
+                     "novamente a exclusão dos resultados. Nada foi excluído.")
             return
         try:
             reg.delete(uid, expected_incarnation=bound)

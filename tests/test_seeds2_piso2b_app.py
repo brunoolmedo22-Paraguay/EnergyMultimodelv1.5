@@ -34,7 +34,9 @@ from seeds2.operation import service
 from seeds2_fixtures import v16_equivalent_config
 
 NO_ADMIN = {"SEEDS2_DEV_MODE": "", "SEEDS2_ADMIN_PASSWORD": ""}
-FAKE = ("EXECUTAR", "RODAR", "OTIMIZAR", "ESTRATÉGIA", "ESTRATEGIA", "GERAR PREVIS", "INICIAR OPERA")
+# Piso 2C: ABRIR ESTRATÉGIA EMS / ABRIR EXECUÇÃO são etapas reais; EXECUTAR só existe DENTRO da etapa 04 (após o
+# preflight), nunca no painel nem nas etapas 01/02.
+FAKE = ("EXECUTAR", "RODAR", "OTIMIZAR", "GERAR PREVIS", "INICIAR OPERA")
 
 
 def _ok(tc, app):
@@ -157,15 +159,16 @@ class PrevisoesNavegacaoTest(_Base):
         self.assertFalse([l for l in labels if any(f in l for f in FAKE)], labels)
         html = _html(app)
         self.assertIn("Previsões e Dados", html)
-        self.assertIn("ainda não é executado", "\n".join(m.value for m in app.markdown) + html)
+        self.assertIn("alimentam a <b>Execução do cenário</b>", "\n".join(m.value for m in app.markdown) + html)
         app = self.tab(app, "climate")
         html = _html(app)
         self.assertIn("Irradiância global horizontal (GHI)", html)              # variáveis da FV instalada
         self.assertNotIn("Velocidade do vento</td>", html)                     # sem eólica: não é pedida
         self.assertIn("Solar fotovoltaica: Arranjo FV 1, Arranjo FV 2", html)
-        # etapas futuras continuam sem controles no painel
+        # Piso 2C: o painel mostra as quatro etapas reais (nenhuma "Não implementado")
         app = self.session(uid, tab=None)
-        self.assertGreaterEqual(_html(app).count("Não implementado"), 2)
+        self.assertEqual(_html(app).count("Não implementado"), 0)
+        self.assertIn("ABRIR EXECUÇÃO", [b.label for b in app.button])
 
 
 class PrevisoesFluxoTest(_Base):

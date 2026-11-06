@@ -152,15 +152,19 @@ class CenarioPersistenciaTest(_Base):
         uid, st = self.make()
         before = st.load()
         db = st.path
-        with sqlite3.connect(db) as con:                 # reproduz um banco v2 (anterior ao Piso 2A)
-            for t in ("scenario_versions_immutable_u", "scenario_versions_immutable_d"):
+        with sqlite3.connect(db) as con:                 # reproduz um banco v2 (anterior ao Piso 2A e ao 2C)
+            for t in ("scenario_run_data_open_only", "scenario_run_data_immutable_u", "scenario_run_data_immutable_d",
+                      "scenario_runs_final_u", "scenario_runs_identity_u", "scenario_runs_immutable_d",
+                      "scenario_versions_immutable_u", "scenario_versions_immutable_d"):
                 con.execute(f"DROP TRIGGER {t}")
+            con.execute("DROP TABLE scenario_run_data")
+            con.execute("DROP TABLE scenario_runs")
             con.execute("DROP TABLE scenario_versions")
             con.execute("DROP TABLE scenarios")
             con.execute("PRAGMA user_version = 2")
         st2 = MicrogridRegistry(self.dir).open(uid)
-        self.assertEqual(LATEST_DB_VERSION, 3)
-        self.assertEqual(st2.db_version(), 3)
+        self.assertEqual(LATEST_DB_VERSION, 4)                         # Piso 2C: v4 (rodadas de cenário)
+        self.assertEqual(st2.db_version(), 4)                          # v2 → v3 → v4 numa única migração
         self.assertTrue(db.with_name(db.name + ".bak-v2").is_file())       # cópia antes de migrar
         after = st2.load()
         self.assertEqual((after.revision, after.fingerprint), (before.revision, before.fingerprint))
@@ -172,7 +176,7 @@ class CenarioPersistenciaTest(_Base):
         service.create(st, name="Não vai no ZIP")
         data = st.export_backup()
         m = st.inspect_backup(data).manifest
-        self.assertEqual(m["db_schema_version"], 3)
+        self.assertEqual(m["db_schema_version"], LATEST_DB_VERSION)     # formato do ZIP inalterado; esquema atual
         tgt = MicrogridRegistry(tempfile.mkdtemp(dir=self.dir))
         new_uid, stored = tgt.import_new(data)
         self.assertEqual(new_uid, uid)
@@ -453,13 +457,15 @@ class InicializacaoRegrasTest(_Base):
         self.assertEqual([f.level for f in glob], [I.PENDING])
 
     def test_prontidao_nunca_declara_execucao(self):
+        """Piso 2C: a prontidão do DOCUMENTO nunca declara o cenário executável — a decisão é do preflight científico
+        (``executable`` = None); Estratégia e Execução são etapas reais e começam não definidas."""
         doc = _complete(copy.deepcopy(self.doc))
         doc["initialization"]["equipment"][self.th].update(state="desligada")
         rd = S.readiness(doc, S.findings(doc), None)
         self.assertEqual(rd["stages"]["inicializacao"][0], "ok")
-        self.assertFalse(rd["executable"])
-        for k in ("estrategia", "execucao"):
-            self.assertEqual(rd["stages"][k][:2], ("off", "Não implementado"))
+        self.assertIsNone(rd["executable"])
+        self.assertEqual(rd["stages"]["estrategia"][:2], ("warn", "Não definida"))
+        self.assertEqual(rd["stages"]["execucao"][:2], ("warn", "Janela não definida"))
         # Piso 2B: Previsões passou a ser uma etapa real; sem previsões, ela é declarada incompleta (nunca pronta)
         self.assertEqual(rd["stages"]["previsoes"], ("warn", "Incompletas", "falta: demanda, clima"))
         self.assertEqual(S.readiness(self.doc, S.findings(self.doc), None)["stages"]["inicializacao"][1], "Incompleta")

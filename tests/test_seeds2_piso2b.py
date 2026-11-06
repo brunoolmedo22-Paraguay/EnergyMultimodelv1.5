@@ -550,9 +550,9 @@ class PersistenciaTest(_Base):
             self.assertTrue(FS.rederive(e, st.get_blob)[0])
         rd = S.readiness(again.document, S.findings(again.document), None)
         self.assertEqual(rd["stages"]["previsoes"][:2], ("ok", "Definidas"))
-        self.assertFalse(rd["executable"])                                      # nunca executável (Piso 2C)
-        self.assertEqual(rd["stages"]["estrategia"][:2], ("off", "Não implementado"))
-        self.assertEqual(rd["stages"]["execucao"][:2], ("off", "Não implementado"))
+        self.assertIsNone(rd["executable"])                                     # decidido pelo preflight (Piso 2C)
+        self.assertEqual(rd["stages"]["estrategia"][:2], ("warn", "Não definida"))
+        self.assertEqual(rd["stages"]["execucao"][:2], ("warn", "Janela não definida"))
 
     def test_recuperacao_apos_reinicio_em_novo_processo(self):
         uid, st = self.make()
