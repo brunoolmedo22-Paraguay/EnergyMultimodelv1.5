@@ -1,8 +1,10 @@
-"""Centro de Operação (Piso 2A) — espaço cotidiano da microrrede ativa.
+"""Centro de Operação (Pisos 2A/2B) — espaço cotidiano da microrrede ativa.
 
-* Painel (``tab`` vazio): cenário selecionado, inventário de referência, prontidão, etapas (Inicialização
-  disponível; Previsões, Estratégia EMS e Execução identificadas como NÃO implementadas — sem botões fictícios),
+* Painel (``tab`` vazio): cenário selecionado, inventário de referência, prontidão, etapas (Inicialização e
+  Previsões disponíveis; Estratégia EMS e Execução identificadas como NÃO implementadas — sem botões fictícios),
   resumo da instalação física e acesso às ferramentas V1.6.
+* Previsões (``tab = "previsoes"``, Piso 2B): ``forecasts_ui`` — demanda e clima (manual, CSV, sintético,
+  referência) com pré-visualização gráfica, qualidade e cobertura; gravadas com o cenário (``op_blobs``).
 * Inicialização (``tab = "inicializacao"``): estados iniciais por equipamento, construídos a partir do inventário
   de referência do cenário; validação explícita (erro de coerência / advertência / capacidade pendente).
 
@@ -26,10 +28,11 @@ from seeds2.operation import initialization as I
 from seeds2.operation import scenarios as S
 from seeds2.operation import service
 
-from . import forms, home, session, shell
+from . import forecasts_ui, forms, home, session, shell
 
 SCN = shell.SCENARIO_KEY
 TAB_INIT = "inicializacao"
+TAB_FC = forecasts_ui.TAB
 KIND_ORDER = ("battery", "pemfc", "thermal", "pv", "wind")
 KIND_SECTION = {"battery": "Armazenamento — baterias", "pemfc": "H₂ / PEMFC", "thermal": "Térmica",
                 "pv": "Solar fotovoltaica", "wind": "Eólica"}
@@ -56,6 +59,10 @@ OP_CSS = """
 .op-f b { font-weight: 650; }
 .op-ref { font-size: .8rem; opacity: .75; margin: -.1rem 0 .45rem 0; }
 .op-stage-n { font-size: .7rem; font-weight: 800; letter-spacing: .1em; opacity: .5; }
+.op-tbl { border-collapse: collapse; font-size: .82rem; margin: .25rem 0 .5rem 0; width: 100%; }
+.op-tbl td, .op-tbl th { padding: .22rem .5rem; border-bottom: 1px solid rgba(128,128,128,.18); text-align: left; vertical-align: top; }
+.op-tbl th { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; opacity: .65; }
+.op-tbl td:first-child { opacity: .75; white-space: nowrap; }
 .op-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; font-size: .8rem; opacity: .9; margin: .2rem 0 .6rem 0; }
 </style>
 """
@@ -81,8 +88,8 @@ def _adopt(stored) -> None:
     ss["op_work_uid"] = stored.scenario_uid
     ss["op_base_version"] = stored.version
     ss["op_base_fp"] = stored.fingerprint
-    for k in ("op_conflict", "op_error", "op_stale"):
-        ss.pop(k, None)
+    for k in ("op_conflict", "op_error", "op_stale", "op_blobs"):
+        ss.pop(k, None)                     # op_blobs: dados de previsão pendentes (gravados ou descartados)
     _bump()
 
 
@@ -90,6 +97,7 @@ def _clear_selection() -> None:
     ss = _ss()
     for k in (SCN, "op_work", "op_work_uid", "op_base_version", "op_base_fp", "op_conflict", "op_error", "op_stale"):
         ss.pop(k, None)
+    forecasts_ui.clear_state()
 
 
 def work() -> dict | None:
@@ -254,7 +262,7 @@ def _scenario_bar(store, items, cur) -> None:
     ss = _ss()
     if not items:
         shell.callout("<b>Nenhum cenário nesta microrrede.</b> Um cenário reúne condições experimentais editáveis "
-                      "(estados iniciais; futuramente previsões e estratégia EMS) sem alterar a configuração física.", "")
+                      "(estados iniciais e previsões; futuramente estratégia EMS) sem alterar a configuração física.", "")
         if ss.get("op_form") is None and st.button("＋ NOVO CENÁRIO", key="op_new_empty", type="primary"):
             ss["op_form"] = "new"
             st.rerun()
@@ -362,6 +370,14 @@ def _stages(cur) -> None:
                 if st.button("ABRIR INICIALIZAÇÃO", key="op_open_init", type="primary", width="stretch", disabled=cur is None):
                     shell.go("operacao", TAB_INIT)
                     st.rerun()
+            elif key == "previsoes":
+                rd = S.readiness(doc, fs, None) if doc else None
+                tone, label, _ = rd["stages"][key] if rd else ("off", "Sem cenário", "")
+                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
+                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}. Disponível nesta versão.</p>')
+                if st.button("ABRIR PREVISÕES", key="op_open_fc", type="primary", width="stretch", disabled=cur is None):
+                    shell.go("operacao", TAB_FC)
+                    st.rerun()
             else:
                 st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill("Não implementado", "off")}</div>'
                         f'<div class="op-t" style="opacity:.7">{escape(title)}</div><p class="op-d">{escape(sub)}. '
@@ -383,7 +399,8 @@ def _panel(store, items, cur) -> None:
         _cards(store, cur)
     _stages(cur)
     shell.callout("O cenário <b>ainda não é aplicado às rodadas</b>: a Simulação (console V1.6) continua usando a "
-                  "configuração salva da microrrede e suas condições da rodada. A conexão cenário → execução é o Piso 2C.",
+                  "configuração salva da microrrede e suas condições da rodada — inclusive a demanda e o clima do "
+                  "inventário, não as previsões do cenário. A conexão cenário → execução é o Piso 2C.",
                   "")
     with st.expander("Instalação física (inventário salvo) e prontidão do console V1.6"):
         home.installation_summary()
@@ -530,7 +547,7 @@ def _save_bar(store, cur, counts: dict) -> None:
     dirty = is_dirty()
     if c1.button("SALVAR CENÁRIO", key="op_save", type="primary", width="stretch", disabled=not dirty):
         try:
-            res = service.save(store, work(), int(ss["op_base_version"]))
+            res = service.save(store, work(), int(ss["op_base_version"]), new_blobs=ss.get("op_blobs"))
         except ScenarioConflictError as exc:
             ss["op_conflict"] = str(exc)
             st.rerun()
@@ -574,6 +591,8 @@ def render() -> None:
     tab = shell.route().get("tab")
     if tab == TAB_INIT:
         _initialization(store, cur)
+    elif tab == TAB_FC:
+        forecasts_ui.render(store, cur)
     else:
         _panel(store, items, cur)
 

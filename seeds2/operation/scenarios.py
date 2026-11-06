@@ -20,7 +20,7 @@ Estrutura::
      "inventory_ref": {"config_revision": int, "config_fingerprint": <sha256>, "inventory_fingerprint": <sha256>,
                        "equipment": {<eq_id>: {"kind", "name", "tag", "enabled", "fingerprint", ...referência física}}},
      "initialization": {"equipment": {<eq_id>: estado}, "orphaned": {<eq_id>: {...}}},
-     "forecasts": {},          # Piso 2B — ver contracts.FORECAST_SLOTS
+     "forecasts": {<slot>: ForecastInput},   # Piso 2B — ver contracts.ForecastInput e forecasts.py
      "ems_strategy": None,     # Piso 2C — ainda não implementado
      "lineage": {"created_at": iso, "duplicated_from": None | {"scenario_uid", "version", "name"}}}
 """
@@ -36,6 +36,7 @@ from typing import Any
 from seeds2.microgrid import config as C
 
 from . import contracts
+from . import forecasts as FC
 from . import initialization as I
 
 SCHEMA = "seeds2-scenario"
@@ -167,8 +168,12 @@ def findings(doc: dict) -> list[I.Finding]:
 
 
 def check_for_save(doc: dict) -> list[I.Finding]:
-    """Valida para gravação: erro estrutural ou de coerência → ``ScenarioValidationError`` (nada é gravado)."""
+    """Valida para gravação: erro estrutural ou de coerência → ``ScenarioValidationError`` (nada é gravado).
+    Previsões (Piso 2B): toda entrada precisa estar completa e sem erros (``forecasts.entry_errors``)."""
     errs = structural_errors(doc)
+    if not errs:
+        for slot, entry in (doc.get("forecasts") or {}).items():
+            errs += FC.entry_errors(slot, entry)
     if errs:
         raise ScenarioValidationError(errs)
     fs = findings(doc)
@@ -248,15 +253,15 @@ def rebase(doc: dict, current_config: dict, revision: int, fingerprint: str) -> 
 # ------------------------------------------------------------------ prontidão
 STAGES = (
     ("inicializacao", "Inicialização", "Estados iniciais dos equipamentos"),
-    ("previsoes", "Previsões", "Demanda, clima e recursos — Piso 2B"),
+    ("previsoes", "Previsões", "Demanda e clima: perfis manuais, CSV, sintéticos ou de referência"),
     ("estrategia", "Estratégia EMS", "Escolha e parâmetros da estratégia — piso dedicado ao otimizador"),
     ("execucao", "Execução", "Rodada EMS do cenário e arquivo de resultados — Piso 2C"),
 )
 
 
 def readiness(doc: dict, fs: list[I.Finding], d: Drift | None) -> dict:
-    """Estado de preparação do cenário. Somente a Inicialização está disponível no Piso 2A; as demais etapas são
-    declaradas como NÃO implementadas (nunca simuladas como prontas)."""
+    """Estado de preparação do cenário. Inicialização (Piso 2A) e Previsões (Piso 2B) disponíveis; Estratégia EMS e
+    Execução são declaradas como NÃO implementadas (nunca simuladas como prontas)."""
     s = I.summarize(fs)
     if s[I.ERROR]:
         init = ("bad", "Com erros de coerência", f"{s[I.ERROR]} erro(s) a corrigir")
@@ -268,13 +273,14 @@ def readiness(doc: dict, fs: list[I.Finding], d: Drift | None) -> dict:
         extra = ", ".join(x for x in (f"{s[I.WARNING]} aviso(s)" if s[I.WARNING] else "",
                                       f"{s[I.PENDING]} pendência(s) do EMS" if s[I.PENDING] else "") if x)
         init = ("ok", "Definida", extra or "sem avisos")
+    prev = FC.stage_status(doc)
     stages = {"inicializacao": init,
-              "previsoes": ("off", "Não implementado", "Piso 2B"),
+              "previsoes": prev,
               "estrategia": ("off", "Não implementado", "Piso dedicado ao otimizador"),
               "execucao": ("off", "Não implementado", "Piso 2C")}
     return {"stages": stages, "counts": s, "executable": False,
-            "summary": "Inicialização " + init[1].lower() + " · Previsões, Estratégia EMS e Execução ainda não "
-                       "implementadas (o cenário ainda não é executável)."}
+            "summary": "Inicialização " + init[1].lower() + " · Previsões " + prev[1].lower() + " · Estratégia EMS e "
+                       "Execução ainda não implementadas (o cenário ainda não é executável)."}
 
 
 __all__ = ["Drift", "SCHEMA", "SCHEMA_VERSION", "STAGES", "ScenarioValidationError", "check_for_save", "drift", "duplicate",
