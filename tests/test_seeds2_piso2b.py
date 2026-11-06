@@ -122,12 +122,13 @@ class PerfilManualTest(unittest.TestCase):
     def test_ausentes_linhas_vazias_e_instantes_invalidos(self):
         ref = _ref()
         tbl = FS.regular_table(("demand_kW",), "2026-09-01 08:00", 60, 5, {"demand_kW": [10, None, 30, 40, 50]})
-        tbl.loc[len(tbl)] = [pd.NaT, None]                                     # linha totalmente vazia: ignorada
+        tbl = pd.concat([tbl, pd.DataFrame({"timestamp": pd.to_datetime([None]),          # linha vazia: ignorada
+                                            "demand_kW": pd.array([None], dtype="Float64")})], ignore_index=True)
         c = FS.manual_candidate(tbl, "demand", timezone=None, inventory_ref=ref, provenance="nao_declarado")
         self.assertFalse(c.ok)                                                 # ausente em variável obrigatória
         self.assertIn("ausentes", _codes(c, I.ERROR))
-        tbl = FS.regular_table(("demand_kW",), "2026-09-01 08:00", 60, 3, {"demand_kW": [10, 20, 30]})
-        tbl.loc[len(tbl)] = [pd.NaT, 40.0]                                     # valor sem instante
+        tbl = pd.DataFrame({"timestamp": pd.to_datetime(["2026-09-01 08:00", "2026-09-01 08:01", "2026-09-01 08:02", None]),
+                            "demand_kW": [10.0, 20.0, 30.0, 40.0]})                    # último valor sem instante
         c = FS.manual_candidate(tbl, "demand", timezone=None, inventory_ref=ref, provenance="nao_declarado")
         self.assertIn("timestamp_invalido", _codes(c, I.ERROR))
         vals, bad = FS.parse_pasted("1;2;abc;-")
