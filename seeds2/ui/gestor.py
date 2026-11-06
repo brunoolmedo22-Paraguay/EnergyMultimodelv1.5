@@ -194,7 +194,8 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
             st.rerun()
         c1, c2, c3 = st.columns(3)
         if c1.button("ZIP", key=f"g_zip_{uid}", icon=":material/download:", width="stretch",
-                     help="EXPORTAR ZIP — backup .seeds2backup.zip desta microrrede (somente os dados dela)"):
+                     help="EXPORTAR ZIP — backup .seeds2backup.zip desta microrrede (somente os dados dela; NÃO inclui "
+                          "os cenários operativos do Piso 2A)"):
             try:
                 with st.spinner("Preparando ZIP…"):
                     _prepare_zip(reg, uid)
@@ -216,7 +217,8 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
             if ready and ready[0] == s["fingerprint"]:
                 st.download_button(label, ready[2], file_name=ready[1], mime=mime, key=f"g_{kind}dl_{uid}",
                                    width="stretch", type="secondary")
-                st.caption(f"{shell.md(ready[1])} · revisão {s['revision']}")
+                st.caption(f"{shell.md(ready[1])} · revisão {s['revision']}"
+                           + (" · não inclui cenários operativos" if kind == "zip" else ""))
 
 
 # --------------------------------------------------------------------------- diálogos
@@ -247,17 +249,20 @@ def _delete_dialog() -> None:
         store = reg.open(uid)
         cur = store.load()
         n_rev, n_runs = len(store.history(limit=100_000)), len(store.runs(limit=100_000))
+        n_scn = len(store.list_scenarios())
     except StoreError:
-        store, cur, n_rev, n_runs = None, None, 0, 0
+        store, cur, n_rev, n_runs, n_scn = None, None, 0, 0, 0
     name = (cur.config["installation"].get("name") if cur else "") or ""
     n_eq = len(cur.config.get("equipment", [])) if cur else 0
     st.html(f'<div class="gs-del"><b>Exclusão definitiva</b><table>'
             f'<tr><td>Microrrede</td><td><b>{escape(name or "(sem nome)")}</b></td></tr>'
             f'<tr><td>Identificador</td><td class="sd-mono">{escape(uid)}</td></tr>'
             f'<tr><td>Equipamentos</td><td>{n_eq}</td></tr><tr><td>Revisões no histórico</td><td>{n_rev}</td></tr>'
-            f'<tr><td>Rodadas registradas</td><td>{n_runs}</td></tr></table></div>')
+            f'<tr><td>Rodadas registradas</td><td>{n_runs}</td></tr>'
+            f'<tr><td>Cenários operativos (Piso 2A)</td><td><b>{n_scn}</b></td></tr></table></div>')
     st.markdown("Serão excluídos **definitivamente** a configuração, o inventário, os dados importados (CSV e dispositivos "
-                "PEMFC), o histórico de revisões, as rodadas e simulações registradas e as cópias internas desta microrrede. "
+                "PEMFC), o histórico de revisões, as rodadas e simulações registradas, os cenários operativos e as cópias "
+                "internas desta microrrede. "
                 "As demais microrredes, os modelos científicos e as referências técnicas não são afetados. **Esta ação não "
                 "pode ser desfeita pela interface.**")
     if store is not None and cur is not None:
@@ -267,6 +272,7 @@ def _delete_dialog() -> None:
         if ready and ready[0] == cur.fingerprint:
             st.download_button("⬇ Baixar ZIP desta microrrede", ready[2], file_name=ready[1], mime="application/zip",
                                key="gd_zipdl")
+        st.caption(shell.BACKUP_SCOPE)
     pol = policy()
     if not pol.allowed:
         st.warning(pol.describe())
@@ -281,14 +287,29 @@ def _delete_dialog() -> None:
     cred = st.text_input("Credencial administrativa", type="password", key=f"gd_cred_{uid}") if pol.needs_credential else None
     expected = name.strip() or uid
     match = typed.strip() == expected
+    # Consentimento ESPECÍFICO para os cenários (o ZIP atual não os contém): além da confirmação genérica por nome.
+    scn_ok = True
+    if n_scn:
+        st.error(f"Esta microrrede tem **{n_scn} cenário(s) operativo(s)**. Eles serão excluídos definitivamente e **não "
+                 "podem ser recuperados pelo ZIP atual** (o backup não inclui cenários).")
+        scn_ok = st.checkbox(f"Entendo que os {n_scn} cenário(s) operativo(s) desta microrrede serão excluídos e que o ZIP "
+                             "atual não permite recuperá-los", key=f"gd_scn_{uid}_{n_scn}")
     c1, c2 = st.columns(2)
     if c1.button("CANCELAR", key="gd_cancel", width="stretch"):
         _close_dialog()
         st.rerun()
     if c2.button("EXCLUIR DEFINITIVAMENTE", key="gd_do", type="primary", width="stretch",
-                 disabled=not match or (pol.needs_credential and not cred)):
+                 disabled=not match or not scn_ok or (pol.needs_credential and not cred)):
         if not pol.check(cred):
             st.error("Credencial administrativa inválida. Nada foi excluído.")
+            return
+        try:                                            # recontagem no clique: cenários criados por outra sessão
+            now_scn = len(reg.open(uid).list_scenarios())
+        except StoreError:
+            now_scn = n_scn
+        if not scn_ok or now_scn > n_scn:
+            st.error(f"A microrrede tem agora {now_scn} cenário(s) operativo(s) (outra sessão criou cenários). Confirme "
+                     "novamente a exclusão dos cenários. Nada foi excluído.")
             return
         try:
             reg.delete(uid, expected_incarnation=bound)
@@ -327,6 +348,7 @@ def _import_dialog() -> None:
     reg = session.registry()
     st.caption("Selecione um backup .seeds2backup.zip exportado pelo SEEDS2 (formatos 1 e 2). O arquivo é verificado "
                "(estrutura, hashes SHA-256, versões) antes de qualquer gravação.")
+    st.caption(shell.RESTORE_SCOPE)
     up = st.file_uploader("Backup .seeds2backup.zip", type=["zip"], key="gi_up")
     if up is None:
         if st.button("Cancelar", key="gi_cancel0"):

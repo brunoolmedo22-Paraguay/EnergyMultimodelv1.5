@@ -25,6 +25,14 @@ NAV_DOCS = [("alcance", "Alcance")]
 SWITCH_KEY = "seeds_switch_requested"
 ROUTE_KEY = "seeds_route"
 SCENARIO_KEY = "op_scenario_uid"          # cenário selecionado no Centro de Operação (sobrevive à recarga: ?sc=)
+# Alcance do backup ZIP (formato 2, inalterado no Piso 2A): exibido em TODA exportação/restauração/exclusão.
+BACKUP_SCOPE = ("O backup ZIP atual contém a configuração da microrrede e os dados compatíveis do Piso 1 (inventário, "
+                "dados de entrada importados, histórico de revisões). **Não inclui os cenários operativos do Centro de "
+                "Operação (Piso 2A)**: eles não podem ser recuperados a partir deste arquivo. A exportação de cenários "
+                "está prevista para o Piso 2D.")
+RESTORE_SCOPE = ("Restaurar um backup ZIP cria uma nova revisão da configuração; **nenhum cenário operativo é restaurado** "
+                 "(o arquivo não os contém). Os cenários já existentes nesta microrrede são mantidos e passam a indicar "
+                 "que o inventário mudou.")
 
 
 _MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+\-.!|<>~$:&])")

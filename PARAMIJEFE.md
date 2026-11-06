@@ -18,7 +18,7 @@
 | Base | `main` em `50ef4d6` ("SEEDS2: Gestor de microrredes (PR #5)") — PR #5 **integrado** (squash, 2026-11-06 10:59 UTC) |
 | Rama | `claude/seeds2-piso2a-centro-operacao` |
 | PR | [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) (sem merge; aguarda auditoria do responsável) |
-| Estado | Implementado e verificado na rama; **não integrado** em `main` |
+| Estado | Implementado e verificado na rama; auditoria independente favorável com **uma correção solicitada (C-01, seção 15), implementada**; **não integrado** em `main` |
 | Commits de código | `56c71fa` (backend, domínio e interface), `6d18ea6` (testes, E2E, correções e documentação). O commit seguinte só preenche PR/SHAs neste relatório; o SHA final da rama é informado na resposta da entrega. |
 
 ### 2. Resumo executivo
@@ -303,6 +303,7 @@ as capturas `fullPage` registram só a área visível (Streamlit rola num contê
 | `tools/e2e/e2e_piso2a_centro_operacao.js`, `tools/e2e/seed_piso2a.py` | E2E do Piso 2A (novo) |
 | `tools/e2e/e2e_piso1_microrrede.js`, `e2e_gestor_microrredes.js` | Texto esperado da tela inicial da microrrede |
 | `PARAMIJEFE.md`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, `docs/seeds2/ARMAZENAMENTO.md`, `docs/seeds2/ARQUITETURA_PISO1.md` | Documentação |
+| `seeds2/ui/shell.py` (`BACKUP_SCOPE`, `RESTORE_SCOPE`), `gestor.py`, `management.py`, `exports.py` | **C-01**: avisos de alcance do backup e consentimento específico na exclusão (seção 15) |
 
 ### 12. Riscos e dívidas técnicas
 
@@ -312,8 +313,9 @@ as capturas `fullPage` registram só a área visível (Streamlit rola num contê
 2. **Incompatibilidades do EMS V1.6 registradas, não corrigidas:** limites de SOC como restrição efetiva; um SOC
    por grupo agregado; `n_ini`/`P_prev` fixos; indisponibilidade não aplicável por cenário.
 3. **Sem exclusão/arquivamento de cenários** (não solicitado). A lista cresce; ordenação por criação.
-4. **Backup ZIP não transporta cenários**: exportar/importar uma microrrede perde seus cenários (comportamento
-   documentado; portabilidade = Piso 2D).
+4. **Backup ZIP não transporta cenários**: exportar/importar uma microrrede perde seus cenários (portabilidade =
+   Piso 2D). **Mitigado pela correção C-01** (seção 15): toda exportação/restauração/exclusão o declara e a exclusão
+   de uma microrrede com cenários exige consentimento específico.
 5. **Migração v3 obrigatória**: ao abrir com este software, bancos v2 passam a v3; uma versão anterior do SEEDS2
    recusará o banco migrado ("mais novo que este software") — mitigado pela cópia `.bak-v2`.
 6. **Concorrência**: conflitos são detectados, não mesclados; o perdedor reaplica manualmente (valores ficam
@@ -351,10 +353,49 @@ Gestão e ver "Inventário mudou" → atualizar referência; TROCAR MICRORREDE.
   dados por SHA-256); falta o empacotamento (ZIP/PDF/Excel) com as execuções.
 - **Piso do otimizador:** tratar as pendências da seção 8 (SOC como restrição, `n_ini`, `P_prev`, SOC por banco).
 
+### 15. Correção de auditoria C-01 — cenários e backup incompleto
+
+**Achado da auditoria independente (único, bloqueante para o merge):** o backup ZIP (formato 2) não inclui as tabelas
+`scenarios`/`scenario_versions`, mas o Gestor oferecia "Preparar ZIP antes de excluir" sem advertir que os cenários
+não seriam recuperáveis a partir desse arquivo → risco de perda de cenários por backup incompleto.
+
+**Correção (somente interface; formato de backup, contratos de cenário, migrações SQLite, EMS e modelos intactos):**
+1. Texto único de alcance em `seeds2/ui/shell.py`: `BACKUP_SCOPE` ("contém a configuração e os dados compatíveis do
+   Piso 1 … **não inclui os cenários operativos do Piso 2A** … não podem ser recuperados a partir deste arquivo …
+   Piso 2D") e `RESTORE_SCOPE` ("nenhum cenário operativo é restaurado; os existentes são mantidos e passam a indicar
+   que o inventário mudou").
+2. Exibido em **todas** as exportações e restaurações: componente comum `exports.export_actions` (etapa 05 do
+   comissionamento e Gestão → Relatório), Gestão → Exportar backup (aviso) e Restaurar backup, botão ZIP do cartão
+   do Gestor (ajuda + legenda "não inclui cenários operativos" do arquivo preparado), diálogo IMPORTAR MICRORREDE
+   (ZIP) e diálogo de exclusão (sob "Preparar ZIP antes de excluir").
+3. Diálogo de exclusão: linha **"Cenários operativos (Piso 2A)"** com a contagem no resumo; os cenários entram na lista
+   do que será excluído.
+4. Com ≥ 1 cenário: aviso específico e **checkbox obrigatório adicional** ("Entendo que os N cenário(s) operativo(s)
+   desta microrrede serão excluídos e que o ZIP atual não permite recuperá-los"); EXCLUIR DEFINITIVAMENTE só habilita
+   com nome exato **e** esse consentimento (e credencial, quando exigida). A chave do checkbox inclui N: se outra sessão
+   criar cenários, o consentimento é renovado; no clique o número é **recontado** e, se aumentou, nada é excluído.
+5. A exclusão definitiva continua possível para quem confirma conscientemente; sem cenários, o fluxo é o anterior.
+
+**Evidência**
+- Novos testes `tests/test_seeds2_piso2a_app.py::BackupEscopoTest` (5, AppTest): consentimento específico exigido e
+  suficiente (nome exato sozinho não habilita; com o checkbox exclui de fato — diretório removido); sem cenários não
+  há checkbox e a exclusão segue como antes; cenário criado por outra sessão com o diálogo aberto → nada excluído,
+  consentimento renovado; exclusão desativada continua mostrando a contagem; avisos presentes em Gestão (exportar e
+  restaurar), no botão/legenda ZIP do Gestor e no diálogo de importação.
+- `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` → **276 passed, 0 failed** (271 + 5).
+- E2E Chromium do Gestor repetido do zero (servidor real, reinício entre fases, `SEEDS2_DEV_MODE=1`):
+  `e2e_gestor_microrredes.js` **52/52** (multi 39 — inclui exclusão definitiva de B, sem cenários; reinício 6;
+  tablet 2; legado 5).
+- `git diff` da correção restrito a `seeds2/ui/{shell,gestor,management,exports}.py`, ao teste e à documentação.
+
+**Limite residual:** entre a recontagem e a remoção física existe uma janela mínima em que outra sessão poderia criar
+um cenário; eliminá-la exigiria alterar o protocolo de exclusão do catálogo (H-01/H-02), fora do escopo desta
+correção. A exportação real dos cenários permanece no Piso 2D.
+
 ---
 
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
 |---|---|---|---|---|
-| 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | Aguardando auditoria |
+| 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | Auditoria favorável; correção C-01 implementada (§15); aguardando autorização de merge |

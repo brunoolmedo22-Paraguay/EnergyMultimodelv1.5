@@ -308,5 +308,105 @@ class CenarioSessoesTest(_Base):
         self.assertNotIn("Antigo", _html(fresh))
 
 
+class BackupEscopoTest(_Base):
+    """Correção de auditoria do PR #6: o backup ZIP (formato 2) NÃO contém cenários do Piso 2A. Toda exportação,
+    restauração e exclusão o declara; a exclusão de uma microrrede com cenários exige consentimento específico."""
+
+    def _texts(self, app) -> str:
+        parts = [_html(app)] + [c.value for c in app.caption] + [w.value for w in app.warning] + \
+                [e.value for e in app.error] + [m.value for m in app.markdown] + [c.label for c in app.checkbox]
+        return "\n".join(parts).replace("\\", "")
+
+    def _dialogo(self, uid: str) -> AppTest:
+        app = self.session()
+        _key(app, f"g_del_{uid}").click().run()
+        _ok(self, app)
+        return app
+
+    def _nome(self, app, nome: str) -> None:
+        next(t for t in app.text_input if t.label.startswith("Digite o nome exato")).input(nome).run()
+
+    def test_exclusao_com_cenarios_exige_consentimento_especifico(self):
+        uid = self.make("Com cenários")
+        st = self.reg().open(uid)
+        service.create(st, name="C1")
+        service.create(st, name="C2")
+        with mock.patch.dict(os.environ, {"SEEDS2_DEV_MODE": "1"}):
+            app = self._dialogo(uid)
+            txt = self._texts(app)
+            self.assertIn("Cenários operativos (Piso 2A)</td><td><b>2</b>", _html(app))     # contagem no resumo
+            self.assertIn("2 cenário(s) operativo(s)", txt)
+            self.assertIn("não podem ser recuperados pelo ZIP atual", txt)
+            self.assertIn("Não inclui os cenários operativos", txt)                          # alcance do ZIP
+            self._nome(app, "Com cenários")                                                  # confirmação genérica...
+            self.assertTrue(botao(app, "EXCLUIR DEFINITIVAMENTE").disabled)                  # ...não basta
+            ck = next(c for c in app.checkbox if c.label.startswith("Entendo que os 2 cenário(s)"))
+            self.assertIn("ZIP atual não permite recuperá-los", ck.label)
+            ck.check().run()
+            self.assertFalse(botao(app, "EXCLUIR DEFINITIVAMENTE").disabled)                # consentimento consciente
+            botao(app, "EXCLUIR DEFINITIVAMENTE").click().run()
+            _ok(self, app)
+        self.assertFalse(self.reg().exists(uid))                                             # exclusão continua possível
+        self.assertFalse(self.reg().dir_for(uid).exists())
+
+    def test_exclusao_sem_cenarios_mantem_a_confirmacao_existente(self):
+        uid = self.make("Sem cenários")
+        with mock.patch.dict(os.environ, {"SEEDS2_DEV_MODE": "1"}):
+            app = self._dialogo(uid)
+            self.assertIn("Cenários operativos (Piso 2A)</td><td><b>0</b>", _html(app))
+            self.assertFalse([c for c in app.checkbox if c.label.startswith("Entendo que")])
+            self._nome(app, "Sem cenários")
+            self.assertFalse(botao(app, "EXCLUIR DEFINITIVAMENTE").disabled)
+            botao(app, "EXCLUIR DEFINITIVAMENTE").click().run()
+            _ok(self, app)
+        self.assertFalse(self.reg().exists(uid))
+
+    def test_cenario_criado_durante_o_dialogo_exige_nova_confirmacao(self):
+        uid = self.make("Corrida")
+        st = self.reg().open(uid)
+        service.create(st, name="C1")
+        with mock.patch.dict(os.environ, {"SEEDS2_DEV_MODE": "1"}):
+            app = self._dialogo(uid)
+            self._nome(app, "Corrida")
+            next(c for c in app.checkbox if c.label.startswith("Entendo que os 1 cenário(s)")).check().run()
+            self.assertFalse(botao(app, "EXCLUIR DEFINITIVAMENTE").disabled)
+            service.create(st, name="C2 (outra sessão)")                                    # outra sessão cria cenário
+            botao(app, "EXCLUIR DEFINITIVAMENTE").click().run()
+            _ok(self, app)
+            self.assertTrue(self.reg().exists(uid))                                          # nada excluído
+            self.assertEqual(len(self.reg().open(uid).list_scenarios()), 2)
+            ck = next(c for c in app.checkbox if c.label.startswith("Entendo que os 2 cenário(s)"))
+            self.assertFalse(ck.value)                                                       # consentimento renovado
+            self.assertTrue(botao(app, "EXCLUIR DEFINITIVAMENTE").disabled)
+
+    def test_exclusao_desativada_continua_informando_os_cenarios(self):
+        uid = self.make("Protegida")
+        service.create(self.reg().open(uid), name="C1")
+        app = self._dialogo(uid)                                                             # sem credencial nem DEV_MODE
+        self.assertIn("Cenários operativos (Piso 2A)</td><td><b>1</b>", _html(app))
+        self.assertNotIn("EXCLUIR DEFINITIVAMENTE", [b.label for b in app.button])
+        self.assertTrue(self.reg().exists(uid))
+
+    def test_exportacao_e_restauracao_declaram_que_o_zip_nao_inclui_cenarios(self):
+        uid = self.make("Avisos")
+        # Gestão → Relatório, histórico e backups: exportar (aviso) e restaurar (escopo)
+        app = self.session(uid, "gestao", "historico")
+        txt = self._texts(app)
+        self.assertIn("Não inclui os cenários operativos do Centro de Operação (Piso 2A)", txt)
+        self.assertIn("nenhum cenário operativo é restaurado", txt)
+        # Gestão → exportação ZIP da configuração (componente comum de exportações)
+        self.assertIn("EXPORTAR CONFIGURAÇÃO DA MICRORREDE (ZIP)", [b.label for b in app.button])
+        # Gestor: botão ZIP do cartão (ajuda + legenda do arquivo preparado) e diálogo de importação
+        g = self.session()
+        zb = _key(g, f"g_zip_{uid}")
+        self.assertIn("NÃO inclui os cenários operativos", zb.help)
+        zb.click().run()
+        _ok(self, g)
+        self.assertTrue(any("não inclui cenários operativos" in c.value for c in g.caption), [c.value for c in g.caption])
+        botao(g, "IMPORTAR MICRORREDE (ZIP)").click().run()
+        _ok(self, g)
+        self.assertIn("nenhum cenário operativo é restaurado", self._texts(g))
+
+
 if __name__ == "__main__":
     unittest.main()

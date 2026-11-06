@@ -26,6 +26,7 @@ def export_actions(*, key: str) -> None:
         st.markdown("**Configuração completa (ZIP)**")
         st.caption("Equipamentos, arranjos FV, dispositivos importados, dados de entrada, histórico e manifesto com "
                    "hashes SHA-256. Restaurável em Gestão → Histórico e backups.")
+        st.caption(shell.BACKUP_SCOPE)
         if st.button("EXPORTAR CONFIGURAÇÃO DA MICRORREDE (ZIP)", key=f"{key}_zip", width="stretch", type="primary"):
             try:
                 ss[f"{key}_zip_data"] = (saved.fingerprint, backup_filename(saved.config), session.store().export_backup())
