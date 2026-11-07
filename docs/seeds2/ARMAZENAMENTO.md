@@ -22,6 +22,8 @@ SEEDS2_DATA_DIR/                      (padrão ~/.seeds2; fora do repositório)
 ├── .staging/<op>/                    preparação de criar/importar/copiar/adotar (descartada se interrompida)
 ├── .trash/<uid>-<t>/                 exclusão em andamento (esvaziada na conclusão ou na próxima abertura)
 ├── .quarantine/<uid>-<t>/            diretórios sem linha no catálogo (preservados; nunca apagados sozinhos)
+├── scientific_archive/archive.db     Piso 2D-A: Arquivo Científico da INSTALAÇÃO (estudos importados/arquivados,
+│                                     somente leitura; banco próprio, separado do catálogo e das microrredes)
 └── seeds2.db                         armazenamento ANTERIOR ao Gestor (somente leitura; adotado uma vez)
 ```
 
@@ -192,7 +194,7 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
   outra sessão gravou antes (nada é sobrescrito); conteúdo idêntico não cria versão.
 - **Leituras** (`get_scenario`, `list_scenarios`, `scenario_history`) em transação de instantâneo único (H-03).
 - **Independência:** versões do cenário ≠ revisões do inventário; salvar um cenário nunca grava `microgrid`/`revisions`.
-- **Backup ZIP (formato 2):** NÃO transporta cenários (exportação de cenários = Piso 2D). O manifesto passa a
+- **Backup ZIP (formato 2):** NÃO transporta cenários (exportação de cenários = Arquivo Científico, Piso 2D-A). O manifesto passa a
   declarar `db_schema_version` 3; backups v1/v2 continuam aceitos.
 
 ### Previsões dos cenários (Piso 2B — sem migração do banco)
@@ -217,7 +219,7 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 - **Integridade na leitura:** `get_blob` recalcula o SHA-256; `forecasts.load` confere também o formato, as
   variáveis e o número de observações; `forecast_sources.rederive` reconstrói a série a partir da origem.
 - **Backup ZIP (formato 2) inalterado:** continua SEM cenários e, portanto, sem as previsões (correção C-01;
-  textos `BACKUP_SCOPE`/`RESTORE_SCOPE` atualizados). Portabilidade completa = Piso 2D.
+  textos `BACKUP_SCOPE`/`RESTORE_SCOPE` atualizados). Portabilidade científica = Arquivo Científico (Piso 2D-A).
 
 ### Rodadas de cenário (esquema v4, Piso 2C)
 
@@ -243,7 +245,7 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 - **Exclusão da microrrede:** remove as rodadas junto com o banco. O diálogo do Gestor mostra a contagem e exige
   consentimento ESPECÍFICO (além do nome e da credencial), com recontagem no clique.
 - **Backup ZIP (formato 2) inalterado:** NÃO transporta rodadas nem resultados (`BACKUP_SCOPE` atualizado); o
-  manifesto passa a declarar `db_schema_version` 4. Portabilidade científica = Piso 2D.
+  manifesto passa a declarar `db_schema_version` 4. Portabilidade científica = Arquivo Científico (Piso 2D-A).
 
 ## Garantias
 
@@ -270,6 +272,31 @@ leitura iniciada depois do COMMIT da lápide é **recusada**. Leituras não bloq
 - **Documento versionado:** `schema_version` do documento (atual: 2; v1 aceito e migrado por
   `seeds2/microgrid/migrations.py`); versões desconhecidas são rejeitadas. A migração nunca descarta valores
   conhecidos: o que não pode ser reinterpretado (topologia v1) vai para `legacy` e é sinalizado.
+
+## Arquivo Científico (`scientific_archive/archive.db`, `PRAGMA user_version` = 1) — Piso 2D-A
+
+Estudos científicos portáteis: pacote `.seeds2study.zip` (formato `seeds2-study` v1; estrutura, regras e limites em
+`seeds2/archive/format.py` e `PARAMIJEFE.md` Entrega 4) e o banco onde os estudos importados/arquivados ficam
+**somente leitura**.
+
+| Tabela | Conteúdo |
+|---|---|
+| `studies` | `archive_uid` (identidade LOCAL, 32 hex) + identidade de ORIGEM preservada (`origin_microgrid_uid`/nome/incarnação, `origin_scenario_uid`, nome), `content_id` (SHA-256 do conteúdo; reconhece duplicatas), `package_sha256`, contagens, datas, `acquisition` (`importado`/`arquivado`), `copy_of`, contexto local (apenas registro), relatório da verificação e o `manifest.json` EXATO do pacote |
+| `study_resources` | (`archive_uid`, caminho) → SHA-256, tamanho, tipo |
+| `archive_blobs` | conteúdo endereçado por SHA-256 (deduplicado entre estudos; zlib > 2 KiB) |
+
+* **Imutável:** triggers recusam UPDATE/DELETE nas três tabelas (não há edição nem exclusão de estudos nesta entrega).
+* **Importação atômica:** inspeção completa (sem gravar) → UMA transação `BEGIN IMMEDIATE` com o estudo e todos os
+  recursos, cada um com SHA-256/tamanho reconferidos na 2ª leitura → COMMIT. Erro SQLite, dependência corrompida,
+  pacote alterado depois da inspeção ou processo morto → ROLLBACK (nenhum estudo parcial; repetir funciona).
+* **Isolamento:** a importação nunca abre bancos de microrrede nem o catálogo; a exportação lê UM instantâneo do banco
+  da microrrede (`MicrogridStore.snapshot`, H-03) e termina antes de qualquer escrita no arquivo — os bloqueios L1
+  (catálogo), L2 (microrrede) e L3 (arquivo) nunca são aninhados; H-01/H-02/H-03 inalterados.
+* **Exclusão de microrrede:** não remove estudos já arquivados (registros históricos da instalação).
+* **Migrações:** `user_version` + lista ordenada; banco existente é copiado (`archive.db.bak-v<N>`) antes de migrar;
+  banco mais novo que o software é recusado sem alteração.
+* **Não é backup:** o arquivo científico preserva experimentos (cenário + versões + rodadas); o backup da microrrede
+  preserva a configuração; nenhum dos dois restaura a instalação inteira (copie `SEEDS2_DATA_DIR` com o servidor parado).
 
 ## Backup (`.seeds2backup.zip`) — formato 2
 

@@ -80,8 +80,16 @@ _PATTERNS: list[tuple[re.Pattern, str, str]] = [
 ]
 BLOB_MEDIA_TYPES = ("text/csv", "application/json", "application/zip", "text/plain", "application/octet-stream")
 DATA_MEDIA_TYPES = {".csv": "text/csv", ".json": "application/json", ".zip": "application/zip", ".txt": "text/plain"}
-_EXEC_MAGIC = (b"\x7fELF", b"MZ", b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe",
+_EXEC_MAGIC = (b"\x7fELF", b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe",
                b"\xca\xfe\xba\xbe", b"#!")
+
+
+def _executable(head: bytes) -> bool:
+    """Assinaturas de executáveis (ELF, Mach-O, script com #!; PE = "MZ" seguido de byte não textual, para não recusar um
+    CSV cujo cabeçalho comece por "MZ")."""
+    if any(head.startswith(m) for m in _EXEC_MAGIC):
+        return True
+    return head.startswith(b"MZ") and len(head) > 2 and not (32 <= head[2] < 127 or head[2] in (9, 10, 13))
 
 
 def classify(path: str) -> tuple[str, tuple[str, ...]] | None:
@@ -298,7 +306,7 @@ def stream_entry(zf: zipfile.ZipFile, info: zipfile.ZipInfo, budget: list[int], 
             h.update(chunk)
             if keep:
                 out += chunk
-    if any(head.startswith(m) for m in _EXEC_MAGIC):
+    if _executable(head):
         raise _Rejected(f"Entrada {info.filename[:80]!r} tem conteúdo executável (não permitido).")
     return h.hexdigest(), n, (bytes(out) if keep else None)
 

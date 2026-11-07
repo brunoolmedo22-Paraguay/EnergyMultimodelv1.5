@@ -404,6 +404,12 @@ class SegurancaTest(_Base):
             _resign(f)
         self._rejected(_rezip(self.pkg, mut), "executável")
 
+        def pe(f):
+            f[p] = b"MZ\x90\x00\x03" + b"\x00" * 64                 # cabeçalho PE (Windows)
+            _resign(f)
+        self._rejected(_rezip(self.pkg, pe), "executável")
+        self.assertFalse(FMT._executable(b"MZ_kW;demanda\n"))           # CSV cujo cabeçalho começa por "MZ": aceito
+
     def test_json_invalido_aninhado_ou_com_chave_duplicada(self):
         for payload, frag in ((b"{" * 5000, "json"), (b'{"a": 1, "a": 2}', "duplicada"),
                               (b"[" * 150 + b"]" * 150, "aninhado"), (b"\xff\xfe", "json")):
