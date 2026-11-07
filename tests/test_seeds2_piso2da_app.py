@@ -29,6 +29,7 @@ if AppTest is not None:
     from apptest_utils import APP_PATH, botao, continuar
 
 import orchestrator_runtime as RT
+from seeds2 import APP_VERSION
 from seeds2.archive import exporter
 from seeds2.archive import format as FMT
 from seeds2.archive.store import ArchiveStore
@@ -138,7 +139,7 @@ class GestorImportacaoTest(_Base):
         self.assertIn("Alta demanda", txt)
         self.assertIn("Industrial A", txt)
         self.assertIn("1 concluída", txt)                                   # rodadas por estado
-        self.assertIn("2.0.0-piso2da", txt)                                 # versão do SEEDS2 que exportou
+        self.assertIn(APP_VERSION, txt)                                     # versão do SEEDS2 que exportou
         self.assertIn("compactado", txt)                                    # tamanho
         self.assertIn("Não é uma assinatura digital", txt)
         imp = botao(app, "CONFIRMAR IMPORTAÇÃO")

@@ -30,10 +30,10 @@ from seeds2.operation import runner
 from seeds2.operation import scenarios as S
 from seeds2.operation import strategy as SG
 
-from . import forms, run_charts as RC, session, shell
+from . import forms, report_exports as RX, run_charts as RC, session, shell
 
 TAB_STRATEGY, TAB_EXEC, TAB_RUN = "estrategia", "execucao", "rodada"
-STATE_PREFIXES = ("op_ex_", "opw_sg_", "opw_ex_", "op_run_uid")
+STATE_PREFIXES = ("op_ex_", "opw_sg_", "opw_ex_", "op_run_uid", "rx_")
 STATE_TONE = {"em_execucao": "info", "concluida": "ok", "falhou": "bad", "interrompida": "warn"}
 LEVEL_TONE = {P.ERROR: "bad", P.WARNING: "warn", P.CHECK: "info", P.OK: "ok", P.INFO: "off"}
 LEVEL_GLYPH = {P.ERROR: "✕", P.WARNING: "!", P.CHECK: "◷", P.OK: "✓", P.INFO: "i"}
@@ -501,10 +501,12 @@ def run_results(source, run, *, key: str) -> None:
         chk = ((run.outcome or {}).get("engine_check") or {}).get("items") or err.get("items") or []
         if chk:
             st.html(_items_html(chk))
+        RX.render(source, run, key=key)
         _provenance(run)
         return
     s = run.summary or {}
     _kpis(s)
+    RX.render(source, run, key=key)
     try:
         out = runner.load_csv(source, run.run_uid, "saidas/despacho_ems.csv")
         inp = runner.load_csv(source, run.run_uid, "entradas/missao.csv")

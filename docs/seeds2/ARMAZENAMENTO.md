@@ -298,6 +298,17 @@ Estudos científicos portáteis: pacote `.seeds2study.zip` (formato `seeds2-stud
 * **Não é backup:** o arquivo científico preserva experimentos (cenário + versões + rodadas); o backup da microrrede
   preserva a configuração; nenhum dos dois restaura a instalação inteira (copie `SEEDS2_DATA_DIR` com o servidor parado).
 
+## Documentos derivados (PDF, Excel, figuras) — Piso 2D-B
+
+Os relatórios de uma rodada **não são armazenados** em nenhum banco: são gerados sob demanda (memória da sessão do
+navegador, só para a rodada aberta) a partir do `RunDossier` (`seeds2/report/dossier.py`), que lê a rodada pelo
+`MicrogridStore` (documentos num único instantâneo — H-03 — e dados em transações curtas) ou pelo `StudyView` do
+Arquivo Científico. Nenhuma transação fica aberta durante a geração; nenhuma tabela é escrita; manifestos nunca são
+reescritos. A leitura confere impressões digitais, identidade do manifesto e SHA-256/tamanho de todos os dados — um
+recurso corrompido impede o documento (`DossierIntegrityError`). O pacote `.seeds2study.zip` continua sendo a fonte
+portátil integral; PDF/Excel/ZIP de figuras (`seeds2-figures` v1, com `manifest.json` e SHA-256 por arquivo) são
+representações derivadas. Detalhes: `PARAMIJEFE.md` Entrega 5.
+
 ## Backup (`.seeds2backup.zip`) — formato 2
 
 ```

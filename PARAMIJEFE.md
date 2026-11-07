@@ -1417,6 +1417,359 @@ orchestrator_runtime.py orchestrator_app.py` **vazio**.
 
 ---
 
+## Entrega 5 — SEEDS2 Piso 2D-B · Relatórios Científicos e Exportações
+
+### Ponto de continuidade (atualizar ao encerrar ou interromper a sessão)
+
+| Campo | Valor |
+|---|---|
+| Rama | `claude/seeds2-piso2db-relatorios-9k1qph` (designada pelo ambiente desta sessão; a missão sugeria `claude/seeds2-piso2db-relatorios`) |
+| Base | `main` `3b73971` (merge do PR #9, Piso 2D-A + C-03) |
+| PR | [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) contra `main` (sem merge; aguarda auditoria) |
+| Último commit | `git log -1 origin/claude/seeds2-piso2db-relatorios-9k1qph` (o SHA final é informado no PR) |
+| Hitos concluídos | A (contrato de leitura unificado), B (Excel), C (figuras + PDF), D (interface + E2E); correção de auditoria C-04 (§21) |
+| Pendências | nenhuma desta missão; integração aguarda auditoria e autorização humana |
+| Testes | após C-04: `python -m pytest tests/ -q` **454 passed, 0 failed (353 s; 128 subtests; os mesmos 7 avisos) — 443 anteriores + 11 novos**; E2E 2D-B **57/57 (+157/157 nos arquivos baixados)** (antes de C-04: 443 passed; 55/55 + 145/145); regressão E2E Piso 1 e Gestor concluídos, 2A 53/53, 2B 58/58, 2C 55/55, 2D-A 62/62 |
+| Próxima ação | auditoria independente do PR; depois, piso do otimizador (§20) |
+
+### 1. Resumo executivo
+
+**Solicitado:** transformar os dados científicos persistidos (rodadas locais do Piso 2C e rodadas de estudos
+arquivados/importados do Piso 2D-A) em entregáveis: relatório técnico PDF, planilha científica `.xlsx`, figuras PNG/SVG
+e ZIP de figuras com manifesto — **sem nova simulação**, sem alterar nada do que foi persistido.
+
+**Entregue:**
+- **Contrato de leitura unificado** `seeds2/report/dossier.py` (`RunDossier`, `load_local`, `load_archived`, `load`):
+  a mesma estrutura para `MicrogridStore` e `StudyView`; integridade conferida na leitura (impressões digitais
+  recalculadas, identidade do manifesto, SHA-256 e tamanho de TODOS os dados da rodada e das previsões); indicadores
+  como fonte única (`indicators`) lidos do resumo persistido.
+- **Excel** `seeds2/report/xlsx.py`: 12+ folhas (índice, identificação, indicadores, equipamentos, condições iniciais,
+  estratégia, entradas, despacho, previsões, uma folha por modelo, procedência, dicionário), doubles SERIALIZADOS
+  exatos no arquivo (leitura bit a bit por Python; o Microsoft Excel garante 15 algarismos — ver §9 e §21), datas reais com referência temporal declarada, texto nunca fórmula, limites do formato tratados explicitamente.
+- **Figuras** `seeds2/report/figures.py`: as MESMAS figuras Plotly da interface (`run_charts`, `forecast_charts`)
+  desenhadas estaticamente (matplotlib) em PNG 300 dpi, SVG vetorial e PDF vetorial; ZIP `seeds2-figures` v1 com
+  `manifest.json` (SHA-256 por arquivo, unidade, descrição, dados de origem com SHA-256) e `LEIA-ME.txt`.
+- **PDF** `seeds2/report/run_pdf.py`: relatório técnico autônomo de 10 seções (+ capa), figuras vetoriais embutidas,
+  DejaVu Sans embarcada; rodada falha/interrompida → **relatório diagnóstico** sem resultados.
+- **Interface** `seeds2/ui/report_exports.py`: painel "Exportações científicas" (EXPORTAR RELATÓRIO PDF / DADOS
+  EXCEL / FIGURAS) dentro de `execution_ui.run_results` — logo, presente na rodada local E na rodada do estudo
+  arquivado; geração sob demanda com progresso por etapas reais (`st.status`), download, figura individual.
+- **Nada** em `models/`, `h2_pemfc/`, `simulation/`, `config/`, `ems_integration/`, `reference_models/`,
+  `orchestrator_runtime.py`, `orchestrator_app.py` foi alterado; nenhum banco mudou de esquema.
+
+### 2. Arquitetura encontrada (`main` `3b73971`)
+
+- Rodadas 2C (`scenario_runs` + `scenario_run_data`): manifesto imutável, `summary`, `outcome`, `error`; dados
+  `entradas/missao.csv`, `saidas/despacho_ems.csv`, `saidas/relatorio_ems.json`, `modelos/*.csv` (battery/fc
+  characterization, climate, solar, wind quando houver), `pacote_troca.zip` — todos com SHA-256 no índice.
+- `MicrogridStore.get_run/run_data/snapshot` (H-03) e `StudyView.get_run/run_data/version_document/revision_document/
+  get_blob` com o MESMO contrato de dados; `execution_ui.run_results(source, run)` já era comum às duas origens.
+- `runner.summarize` define os indicadores persistidos (custo = `rel.custo_total_rs` do EMS; energias integradas
+  com `Ts`; H₂ = `rel.consumo_fisico.fc`); `despacho.relatorio` define energia/participação por fonte
+  (`energia_por_fonte_kWh = Σ max(P,0)·Ts`, `pct_atendimento = 100·E/ΣE`) — gravados em `relatorio_ems.json`.
+- O PDF existente (`seeds2/report/pdf.py`) documenta a CONFIGURAÇÃO da microrrede (Piso 1) e não foi alterado.
+
+### 3. Contrato de leitura unificado (`RunDossier`)
+
+| Campo | Rodada local | Estudo arquivado |
+|---|---|---|
+| `run` (`StoredRun`) | `MicrogridStore.get_run` | `StudyView.get_run` |
+| `scenario` (documento EXATO da versão executada) | `snapshot.scenario_versions` (texto gravado) | `versions/vN/document.json` (texto da origem) |
+| `inventory` (revisão referenciada pela rodada) | `snapshot.revision_row` | `inventory/revisions/rN/document.json` |
+| `microgrid` | UID + nome na revisão + incarnação | idem (+ nome na exportação) |
+| `archive` | — | `archive_uid`, `content_id`, SHA-256 do pacote, datas |
+| dados (`raw/table/json_data`) | `store.run_data` (SHA-256) | `view.run_data` (SHA-256 contra o índice ORIGINAL) |
+| previsões (`forecast_frame`) | `forecasts.load(entry, store.get_blob)` | `forecasts.load(entry, view.get_blob)` |
+
+Conferências na leitura (falha → `DossierIntegrityError`; nenhum documento é gerado): rodada `em_execucao` recusada;
+manifesto × colunas da rodada (UID, microrrede, incarnação quando ambas declaradas, cenário, versão, revisão,
+impressões digitais); `config.fingerprint` recalculado sobre o texto da versão e da revisão = o registrado = o da
+rodada; todos os dados relidos com SHA-256 e tamanho = índice original; séries de previsão com SHA-256 e forma
+conferidos; limite de 512 MiB de dados por rodada (proteção de memória). Documentos são lidos num ÚNICO instantâneo e
+liberados; os dados são lidos em transações curtas — nenhuma transação fica aberta durante a geração.
+`dossier.py` não importa runtime/EMS; um teste em subprocesso prova que gerar os três documentos de um estudo arquivado
+não carrega `orchestrator_runtime`, `ems_integration` nem `simulation`.
+
+### 4. Bibliotecas escolhidas
+
+| Biblioteca | Uso | Justificativa / compatibilidade |
+|---|---|---|
+| reportlab 4.4.10 (já presente) | composição do PDF | sem serviços externos; já usado pelo PDF de configuração |
+| pypdf 6.21.4 (já presente) | sobreposição das figuras vetoriais nas páginas | `merge_transformed_page`; puro Python |
+| **matplotlib 3.10.7** (nova) | desenho estático das figuras Plotly (PNG/SVG/PDF) | rodas manylinux para Python 3.13, sem navegador; traz a fonte DejaVu Sans usada também pelo PDF |
+| **openpyxl 3.1.5** (nova) | `.xlsx` em modo *write-only* | maduro; permite gravar o texto decimal exato do double (ver §9) |
+
+**Kaleido descartado:** a v1.x exige Chrome no servidor de implantação (Streamlit Community Cloud não tem) e a v0.2.1
+está obsoleta para o Plotly ≥ 6.1. O matplotlib desenha o MESMO objeto Plotly (traços, cores, tracejados, quebras em
+ausentes, linhas de referência, faixas, títulos de painel e eixos) — não há um segundo conjunto de curvas.
+
+### 5. Estrutura do relatório PDF
+
+Capa (título "SEEDS2 — Relatório de Simulação de Microrrede", microrrede de origem, cenário, versão + impressão
+digital, rodada, estado, execução, software da rodada, origem dos dados, data de geração; aviso de estudo arquivado) →
+**01 Resumo executivo** (8 cartões + tabela de TODOS os indicadores com o campo persistido de origem) → **02
+Configuração** (equipamentos da revisão: características registradas, disponibilidade, situação na rodada; tecnologias
+ausentes declaradas; configuração efetiva do motor) → **03 Condições iniciais** (disponibilidade, estado, SOC,
+potência, unidades — "não aplicável" por tipo; regras do motor e verificação da fase B) → **04 Previsões e dados de
+entrada** (fonte, procedência — sintético/referência nunca "medido" —, período original, resolução, fuso, variáveis e
+unidades; janela local/UTC; conversão para a grade registrada; figuras: entradas da missão, previsões originais) →
+**05 Estratégia e metodologia** (função objetivo única e termos, algoritmo, N, semente, tolerâncias, econômicos,
+parâmetros fixos do motor; fluxo cenário → preflight → dados → modelos → EMS → armazenamento; ressalva de otimalidade)
+→ **06 Resultados energéticos** (energia/custo/participação/partidas por fonte despachável; renováveis instaladas ou
+"não instalada"; figura demanda × fontes com disponível ≠ despachado) → **07 Armazenamento e hidrogênio** (SOC
+inicial/limites/final em % com a fração; H₂ do EMS × validação dinâmica, declaradas não equivalentes; figuras) →
+**08 Discussão (fatos)** → **09 Procedência** (todos os identificadores, software, código científico, SHA-256 de cada
+dado e previsão; estudo arquivado: ID local, `content_id`, SHA-256 do pacote; "não é nova execução") → **10
+Limitações** (do experimento: advertências do preflight, deriva, exclusões, avisos do motor; do software: regras de
+estado inicial e parâmetros fixos registrados no manifesto). Cabeçalho/rodapé discretos, "Página X de Y".
+Diagnóstico (falha/interrupção): capa marcada, 01 Diagnóstico (tipo, exceção, mensagem, último progresso, verificação
+do motor, rastreamento), configuração, condições iniciais, metodologia, procedência, limitações — sem resultados.
+
+### 6. Estrutura da planilha Excel
+
+`00 Índice` (folhas, linhas, colunas, avisos da exportação) · `01 Identificação` · `02 Indicadores` (valor exato,
+unidade, chave, fonte, definição) ou `02 Diagnóstico` · `03 Equipamentos` · `04 Condições iniciais` · `05 Estratégia
+EMS` (inclui configuração efetiva do motor e janela) · `06 Entradas` (= `entradas/missao.csv`) · `07 Despacho EMS`
+(= `saidas/despacho_ems.csv`) · `08 Previsão demanda|clima` (séries originais normalizadas) · `09 <modelo>` (uma por
+`modelos/*.csv`) · `10 Procedência` (SHA-256 de todos os dados, previsões, manifesto e desfecho achatados) · `11
+Dicionário de dados` (unidade, referência temporal, descrição, tipo e nº de ausentes de CADA coluna). Cabeçalho =
+nome EXATO da coluna original (com comentário de unidade/referência), filtros, painéis congelados, larguras ajustadas.
+Sem fórmulas. Folhas de dados ausentes numa rodada falha.
+
+### 7. Figuras disponíveis e formatos
+
+| Arquivo | Fonte (mesma função da interface) | Condição |
+|---|---|---|
+| `01_demanda_potencia_por_fonte` | `run_charts.power_figure` | rodada concluída |
+| `02_estado_de_carga_bateria` | `run_charts.soc_figure` | há coluna `SOC_*` |
+| `03_hidrogenio_acumulado` | `run_charts.h2_figure` | `h2_kg` > 0 em algum passo |
+| `04_entradas_da_missao` | `run_charts.inputs_figure` | `entradas/missao.csv` |
+| `05_previsao_demanda`, `06_previsao_clima` | `forecast_charts.figure` (série original, sem transformação) | previsão declarada |
+
+PNG 300 dpi (largura 170 mm = 2007 px), SVG vetorial (texto em contornos, `svg.hashsalt` fixo → determinístico), PDF
+vetorial (no relatório). ZIP: `figuras/png/*`, `figuras/svg/*`, `manifest.json` (`seeds2-figures` v1: experimento,
+gerador, por arquivo SHA-256/tamanho/dimensões/unidade/descrição/dados de origem com SHA-256), `LEIA-ME.txt`. Figuras
+de uma rodada local e da mesma rodada arquivada são **idênticas byte a byte** (verificado no E2E).
+
+### 8. Cálculos derivados
+
+Nenhum indicador é recalculado. Únicas transformações de apresentação, todas declaradas no documento:
+SOC fração × 100 → % (o valor gravado em fração é mostrado ao lado); H₂ **acumulado** na figura = soma acumulada da
+coluna `h2_kg` (kg por passo) — feita pela função já existente `run_charts.h2_figure`; o total oficial é o do resumo
+(diferença de arredondamento de ponto flutuante: 3,4996721730425198 × 3,4996721730425207 kg na rodada de referência);
+participação por fonte lida de `relatorio_ems.json` (`pct_atendimento`, definição do EMS). Valores |x| < 10⁻³ são
+exibidos em notação científica (nunca arredondados para zero).
+
+### 9. Garantias de precisão numérica (redação revista pela correção C-04.2, §21)
+
+Três níveis, distinguidos no índice do Excel, na interface e aqui:
+
+1. **Precisão serializada no arquivo `.xlsx`.** openpyxl e xlsxwriter gravariam `%.16g` (16 algarismos: NÃO reproduz
+   todo double). O escritor grava cada número com `repr(float)` — a menor representação decimal que reproduz o double
+   EXATO (≤ 17 algarismos) — no elemento numérico `<v>` (a célula continua numérica). Os CSVs são lidos com
+   `float_precision="round_trip"`. Teste: cada célula numérica das folhas de entradas, despacho e modelos, **lida por
+   Python (openpyxl/pandas)**, tem os mesmos bits (`float.hex`) que o texto do CSV persistido (> 5 000 células); casos
+   extremos (0,1+0,2; 1/3; 5e-324; 1,797…e308; −0,0; 2⁵³).
+2. **Precisão garantida pelo Microsoft Excel.** O Excel documenta precisão de **15 algarismos significativos**: ao
+   abrir, editar ou salvar o arquivo no Excel, valores com mais algarismos podem ser exibidos ou regravados
+   arredondados. **Não se afirma preservação bit a bit dentro do Excel.** Quando a planilha contém valores com mais de
+   15 algarismos significativos, a exportação emite uma advertência explícita (índice + interface) com a contagem.
+3. **Fontes originais para reprodução exata:** os CSVs da rodada e o pacote `.seeds2study.zip`.
+
+NaN → célula vazia (contada); ±∞ → texto "inf"/"-inf"; inteiros > 2⁵³ → texto; o formato de exibição "Geral" não
+altera o valor serializado. Datas: células de data/hora do Excel (resolução de segundo verificada na volta),
+referência (UTC / relógio de parede do fuso / grade do runtime / relógio não declarado) no comentário do cabeçalho e
+no dicionário — missão sem fuso nunca é rotulada UTC. Linhas > 1 048 575 → divisão EXPLÍCITA em partes numeradas
+registradas no índice e nos avisos; > 12 M células → recusa com indicação do `.seeds2study.zip`; textos > 32 767
+caracteres → encurtados e marcados; controles ilegais em XML → U+FFFD (contados).
+
+### 10. Procedência e imutabilidade
+
+Cada documento identifica rodada, versão + impressão digital do cenário, revisão + impressão digital do inventário,
+microrrede + incarnação, software da rodada, código científico (SHA-256), SEEDS2 gerador e data/hora de geração; os
+manifestos originais são apresentados, nunca reescritos. A distinção ".seeds2study.zip = fonte integral; PDF/Excel/
+figuras = derivados" está na interface, na capa, no índice do Excel, no `LEIA-ME.txt` e no manifesto das figuras.
+Testes provam: `_dump` lógico do banco da microrrede e do Arquivo Científico idênticos antes/depois de gerar os três
+documentos de rodadas concluída/falha/interrompida nas duas origens; SHA-256 dos dados e manifesto da rodada intactos;
+`ArchiveStore.verify` aprovado; nenhuma rodada criada.
+
+### 11. Testes automatizados
+
+`tests/test_seeds2_piso2db.py` (32) e `tests/test_seeds2_piso2db_app.py` (4). Mapa requisitos (missão §10) → testes:
+
+| # | Requisito | Teste(s) |
+|---|---|---|
+| 1, 2 | PDF local / arquivado | `PdfTest.test_pdf_rodada_local_concluida`, `test_pdf_rodada_arquivada_identica_em_conteudo_cientifico` |
+| 3 | indicadores iguais | `ContratoTest.test_indicadores_iguais_e_iguais_ao_resumo_persistido`, `ExcelTest.test_indicadores_excel_iguais_entre_origens` |
+| 4, 5 | microrrede original; IDs e impressões | `ContratoTest.test_identidade_e_impressoes_digitais_iguais_nas_duas_origens`, PDF/Excel acima |
+| 6 | eixos e unidades | `PdfTest.test_graficos_com_eixos_e_unidades_no_pdf`, `FigurasTest.test_catalogo_minimo_com_eixos_e_unidades` |
+| 7 | rodada falha | `PdfTest.test_pdf_diagnostico_de_rodadas_nao_concluidas_sem_resultados`, `ExcelTest.test_diagnostico_excel_sem_series_de_resultado`, `FigurasTest.test_rodada_nao_concluida_sem_figuras`, `RodadaLocalTest.test_rodada_falha_so_diagnostico_sem_figuras` |
+| 8–10 | colunas de entradas, despacho, modelos | `ExcelTest.test_folhas_e_todas_as_colunas_de_entradas_despacho_e_modelos` |
+| 11 | precisão | `ExcelTest.test_precisao_numerica_bit_a_bit`, `test_escritor_numerico_casos_extremos`, `test_ausentes_nunca_viram_zero` |
+| 12 | timestamps/fusos | `ExcelTest.test_timestamps_e_fusos` (inclui missão sem fuso) |
+| 13–15 | SVG, PNG, ZIP | `FigurasTest.test_svg_vetorial_valido`, `test_png_valido_300_dpi_fundo_branco`, `test_zip_de_figuras_manifesto_e_hashes` |
+| 16 | ausentes/corrompidos | `IntegridadeTest` (despacho, modelo e previsão corrompidos no arquivo; dado local; manifesto divergente; dado inexistente), `EstudoArquivadoTest.test_estudo_corrompido_erro_legivel_sem_documento`; limites: `ExcelTest.test_limite_de_linhas_divide_explicitamente_e_limite_de_celulas_recusa` |
+| 17 | nomes/conteúdos maliciosos | `IntegridadeTest.test_nomes_e_conteudos_maliciosos` (markup, fórmula, `../`, controle) |
+| 18 | sem otimizador | `ImutabilidadeTest.*` com motor/modelos/`despacho.relatorio`/`runner.submit` sabotados; `test_camada_de_relatorios_nao_importa_o_motor` (subprocesso) |
+| 19 | sem alterar | `ImutabilidadeTest.test_exportacoes_sem_motor_e_sem_alterar_rodadas_cenarios_ou_estudos`, `RodadaLocalTest` |
+| 20 | instalação limpa | `ImutabilidadeTest.test_instalacao_limpa_sem_a_microrrede_original`, `EstudoArquivadoTest` |
+| 21–23 | sem bateria / sem PEMFC / sem FV | `CombinacoesTest` (inclui déficit real e H₂ "não disponível") |
+| 24 | regressões | suíte completa + E2E dos pisos anteriores (§14) |
+| 25 | EMS V1.6 idêntico | `ImutabilidadeTest.test_ems_v16_inalterado` (custo 88,3190884544543; SHA-256 científico = código atual) |
+
+**Prova científica essencial:** rodada REAL do 2C → `exporter.export_bytes` → importação numa instalação limpa →
+PDF/Excel/PNG/SVG com `run_optimizer`, `build_exchange_package`, `_simulate_solar`, `_simulate_wind`,
+`series_dataframe`, `despacho.relatorio` e `runner.submit` substituídos por exceções → indicadores do PDF/Excel = resumo
+da origem; séries do Excel = séries originais bit a bit.
+
+### 12. Evidências de qualidade visual
+
+PDFs renderizados página a página (pypdfium2) e inspecionados: capa limpa, cartões sem corte, tabelas dentro das
+margens, figuras vetoriais nítidas com legendas abaixo dos eixos (sem sobreposição), títulos de painel, eixos com
+unidade, data no título do eixo quando a janela cabe num dia, "Página X de Y". Ajustes feitos após a inspeção:
+título do 1º painel perdido em figuras multi-painel; subtítulos longos cortados (agora quebrados); títulos órfãos no
+fim de página (`keepWithNext`); cabeçalhos de tabela partidos; inteiros mostrados como "31,0000"; lista longa de
+figuras individuais substituída por seletor + um botão.
+
+### 13. E2E com Chromium
+
+`tools/e2e/e2e_piso2db_relatorios.js` (origem `tools/e2e/seed_piso2db.py`; destino com o motor sabotado por
+`tools/e2e/sabotage/sitecustomize.py`, que registra qualquer chamada) e conferência dos arquivos baixados por
+`tools/e2e/check_piso2db_downloads.py`: fases `local` (ORIGEM: rodada concluída → PDF/Excel/figuras baixados, figura SVG individual, rodada falha → diagnóstico com figuras desabilitadas, exportação do estudo) **20** · `importar` (instalação LIMPA, motor sabotado: importar → rodada → os três documentos) **13** · `kill -9` do servidor + reinício → `reinicio` (link direto, nada pré-gerado, PDF e Excel novamente) **8** · `tablet` retrato/paisagem (sem rolagem horizontal, botões na tela, PDF baixado) **14** = **55/55**, executado desde diretórios vazios com o código final. Conferência dos arquivos baixados: **145/145** — PDFs (local, arquivo, reinício) com todos os identificadores, custo e SHA-256 dos dados; páginas renderizadas e inspecionadas; folhas de dados do Excel idênticas (`check_exact`) nas três origens e indicadores = resumo da origem bit a bit; figuras do ZIP com SHA-256 conferido, PNG ≥ 1 900 px, SVG válido e **idênticas byte a byte** entre a rodada local e a arquivada; registro do motor sabotado **vazio**; destino terminou com `microgrids/` vazio.
+
+### 14. Resultados de regressão
+
+E2E desde diretórios vazios, com reinícios entre as fases (servidor derrubado com `kill -9`): Piso 1 (`comissionar`/`reabrir`/`tablet`) e Gestor (`multi`/`reinicio`/`tablet`/`legado`) — todas as fases CONCLUÍDAS (estes dois roteiros abortam na primeira asserção falha e não imprimem contagem); 2A **53/53** (43+5+5); 2B **58/58** (43+8+7); 2C **55/55** (38 com `kill -9` durante a rodada longa + 10 + 7); 2D-A **62/62** (13+34+8+7; motor sabotado no destino: 0 chamadas). Suíte: `python -m pytest tests/ -q` → **443 passed**, 0 failed (356 s; 128 subtests; os mesmos 7 avisos da linha de base) — 407 da linha de base medidos nesta sessão + 36 novos. `git diff origin/main --stat -- models h2_pemfc simulation config ems_integration reference_models orchestrator_runtime.py orchestrator_app.py` **vazio**.
+
+### 15. Problemas detectados e corrigidos durante a missão
+
+- O escritor padrão do openpyxl perderia o 17º algarismo de alguns doubles → escrita com `repr` (leitura bit a bit por
+  Python testada; o Excel garante 15 algarismos — §9/§21).
+- `pd.read_csv` padrão não garante o double exato → `float_precision="round_trip"`.
+- Texto do cenário entrava no título Plotly como marcação (o matplotlib descartaria `<b>…</b>`) → escapado antes;
+  caracteres de controle → U+FFFD (sem avisos de glifo); `$` escapado (sem mathtext).
+- Teste de dano no disco: as tabelas do Arquivo são imutáveis por gatilho (como no 2D-A, o teste remove o gatilho
+  para simular corrupção).
+- Asserções que fixavam a versão "2.0.0-piso2da" (teste AppTest e E2E 2D-A) passaram a usar a versão corrente
+  (`APP_VERSION` = `2.0.0-piso2db`), sem enfraquecer a verificação (versão do exportador exibida).
+
+### 16. Riscos residuais
+
+- **Integração de energia do runner (registrado, não alterado — regra 4):** `energia_demanda_kWh = Σ_{k<passos}
+  P_k·Ts` com `passos = duração + 1` (o instante terminal entra como um passo de 60 s): numa missão de 30 min são 31
+  min integrados. Os relatórios mostram o valor persistido com a fórmula declarada; a decisão metodológica é do piso
+  do otimizador (`EMS_TO_TALK_ABOUT.md`).
+- O desenho estático usa matplotlib (não o motor Plotly): as curvas são as mesmas, mas a tipografia difere da tela.
+- Excel não tem fuso: a referência temporal está no comentário/dicionário; datas com sub-segundos não ocorrem hoje.
+- Geração síncrona no servidor Streamlit (PDF ≈ 2–3 s, figuras ≈ 4 s para 30 min; cresce com a missão); limite de
+  12 M células no Excel; os documentos ficam na sessão só para a rodada aberta.
+- Sem assinatura digital: SHA-256 prova integridade, não autoria.
+
+### 17. Arquivos modificados
+
+| Arquivo | Mudança |
+|---|---|
+| `seeds2/report/dossier.py`, `columns.py`, `xlsx.py`, `figures.py`, `run_pdf.py` (novos) | Hitos A–C |
+| `seeds2/ui/report_exports.py` (novo) | painel de exportação (Hito D) |
+| `seeds2/ui/execution_ui.py` | `run_results` chama o painel (rodada local e estudo arquivado); prefixo `rx_` limpo com o estado |
+| `seeds2/__init__.py` | `APP_VERSION = "2.0.0-piso2db"` |
+| `requirements.txt` | `matplotlib==3.10.7`, `openpyxl==3.1.5` |
+| `tests/test_seeds2_piso2db.py`, `tests/test_seeds2_piso2db_app.py` (novos) | 36 testes |
+| `tests/test_seeds2_piso2da_app.py`, `tools/e2e/e2e_piso2da_arquivo.js` | versão do exportador = versão corrente |
+| `tools/e2e/e2e_piso2db_relatorios.js`, `seed_piso2db.py`, `check_piso2db_downloads.py`, `sabotage/sitecustomize.py` (novos) | E2E |
+| `PARAMIJEFE.md`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, `docs/seeds2/ARMAZENAMENTO.md` | documentação |
+
+### 18. Instruções para auditoria independente
+
+1. `pip install -r requirements.txt pytest` → `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q`.
+2. `python -m pytest tests/test_seeds2_piso2db.py -q` (prova científica: `ImutabilidadeTest`, `ExcelTest.test_precisao_numerica_bit_a_bit`).
+3. `git diff origin/main --stat -- models h2_pemfc simulation config ems_integration reference_models orchestrator_runtime.py orchestrator_app.py` → vazio.
+4. E2E: `python tools/e2e/seed_piso2db.py <origem>` → servidor na origem → fase `local` → servidor na instalação
+   VAZIA com `PYTHONPATH=tools/e2e/sabotage SEEDS2_E2E_ROOT=<raiz> SEEDS2_E2E_ENGINE_LOG=<log>` → `importar` →
+   `kill -9` + reinício → `reinicio` → `tablet` → `python tools/e2e/check_piso2db_downloads.py <saida> <origem>/e2e_origem.json <log>`;
+   inspecionar `<saida>/paginas/*.png`.
+5. Abrir o `.xlsx` baixado no Excel/LibreOffice: folhas, filtros, comentários de cabeçalho, valores com 17 algarismos.
+
+### 19. Estado final do Piso 2
+
+| Sub-piso | Estado |
+|---|---|
+| 2A Centro de Operação | integrado (PR #6) |
+| 2B Previsões e Dados | integrado (PR #7) |
+| 2C Execução EMS | integrado (PR #8) |
+| 2D-A Arquivo Científico | integrado (PR #9, `3b73971`) |
+| 2D-B Relatórios e exportações | implementado e verificado nesta rama; aguarda auditoria |
+
+Com o 2D-B o Piso 2 cobre o ciclo completo: cenário → previsões → execução → arquivo portátil → documentação
+verificável, sem recomputação. Dívida remanescente: rodadas do console V1.6 (Simulação) só têm resumo.
+
+### 20. Próximas interfaces necessárias para o piso do otimizador
+
+- Representar no motor o que hoje o preflight BLOQUEIA (SOC por banco, `n_ini`/`P_prev` declarados, estados de
+  partida) — capacidades pendentes da Entrega 3 §14.1.
+- Decidir a convenção de integração temporal (instante terminal) antes de novas métricas; os relatórios já leem só o
+  resumo persistido, então uma nova versão do resumo exigirá apenas novas entradas em `dossier.indicators` e
+  `columns` (com versão de formato).
+- Funções objetivo adicionais: `manifest.objective` já identifica a função; o PDF lê o rótulo e os termos do manifesto.
+- Comparação de múltiplas rodadas/estudos: o `RunDossier` é a unidade de leitura reutilizável.
+
+### 21. Correção de auditoria C-04 — completude do dossiê e precisão documentada do Excel
+
+Auditoria independente do PR #10: **favorável**, com duas observações focalizadas, corrigidas nesta rama/PR.
+
+**C-04.1 — rodada concluída com recursos essenciais ausentes.** *Causa:* `dossier._check_run` exigia o resumo, mas não
+os dados essenciais; `xlsx.build_workbook` usava `if d.has(name)` e omitiria em silêncio uma tabela obrigatória (o PDF
+e as figuras também toleravam a ausência). *Correção:* `dossier.REQUIRED_CONCLUDED = (entradas/missao.csv,
+saidas/despacho_ems.csv, saidas/relatorio_ems.json)`; `_check_run` (antes de qualquer leitura) e `require_complete`
+(barreira chamada por `run_pdf.build_report`, `xlsx.build_workbook` e `figures.run_figures`, mesmo para um dossiê
+montado por fora de `load`) recusam com `DossierIntegrityError` que NOMEIA o recurso ausente do índice original;
+verificações de SHA-256 e tamanho preservadas; o `if d.has` do Excel foi removido (tabelas obrigatórias). Rodadas
+falha/interrompida continuam gerando diagnóstico (nada exigido); modelos físicos (`modelos/*.csv`) não são impostos
+(dependem das tecnologias da rodada — p. ex. rodada sem FV não tem `solar.csv` e é aceita).
+
+**C-04.2 — precisão do XLSX frente ao Excel.** A escrita `repr` foi mantida (as células continuam numéricas; nenhuma
+virou texto); a documentação foi corrigida para distinguir precisão serializada × precisão garantida pelo Microsoft
+Excel (15 algarismos) × fontes originais (§9): `xlsx.PRECISION_NOTE` no índice da planilha; advertência condicional
+quando há números com > 15 algarismos significativos (`sig_digits`; contagem no índice e na interface); legenda junto
+ao download do Excel (`report_exports.EXCEL_PRECISION_CAPTION`) e ajuda do botão sem "precisão integral"; CLAUDE.md e
+HANDOFF ajustados. Nenhuma afirmação de preservação bit a bit DENTRO do Excel permanece.
+
+**Risco metodológico (dívida científica prioritária, não corrigida):** PDF e Excel identificam agora, explicitamente,
+a duração declarada (30 min), os passos usados (31), Ts (60 s), a duração efetivamente integrada (31 min) e a
+convenção do runner (`E = Σ_{k=0}^{passos−1} P_k · Ts`), por `dossier.integration_convention` (somente descrição):
+nota no Resumo executivo e nas Limitações do PDF; linhas em `02 Indicadores` e nota no índice do Excel. Fórmula do
+runner, optimizador e valores persistidos inalterados (teste confirma `energia_demanda_kWh` idêntico).
+
+**Testes (11 novos + 1 asserção de interface):**
+
+| Exigência | Teste | Resultado |
+|---|---|---|
+| 1 concluída sem entradas → recusada (local e arquivada; PDF/Excel/figuras) | `C04CompletudeTest.test_1_sem_entradas_recusada` | recusada, recurso nomeado |
+| 2 sem despacho | `test_2_sem_despacho_recusada` | recusada |
+| 3 sem relatório do EMS | `test_3_sem_relatorio_ems_recusada` | recusada |
+| 4 completa aceita; modelos não impostos (rodada sem FV) | `test_4_rodada_completa_aceita_e_modelos_nao_sao_impostos` | aceita |
+| 5 falha/interrompida sem resultados → diagnóstico | `test_5_rodada_falha_sem_resultados_permite_diagnostico` | PDF/Excel diagnóstico |
+| 6 geradores não produzem documento de dossiê incompleto (inclusive montado por fora) | `test_6_geradores_recusam_dossie_incompleto_mesmo_montado_por_fora` + 1–3 | recusado |
+| precisão: algarismos significativos; nota no índice; aviso só quando > 15 | `C04PrecisaoTest` (4) | ok |
+| leitura exata por Python preservada | `C04PrecisaoTest.test_leitura_exata_por_python_preservada` + `ExcelTest.test_precisao_numerica_bit_a_bit` | bits iguais |
+| texto na interface | `test_interface_explica_a_precisao`; `RodadaLocalTest` (legenda + aviso na página) | ok |
+| duração × passos × convenção no PDF e Excel | `C04IntegracaoTemporalTest` | 30 min · 31 passos · 31 min |
+
+**Resultados medidos:** `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` → **454 passed, 0 failed (353 s; 128 subtests; os mesmos 7 avisos) — 443 anteriores + 11 novos**. E2E 2D-B repetido
+desde diretórios vazios com o código corrigido (origem → instalação LIMPA com o motor sabotado → `kill -9` → reinício
+→ tablet): **57/57** (local 21 · importar 14 · reinício 8 · tablet 14; +2 asserções da legenda de precisão) e
+conferência dos downloads **157/157** (+12: nota de precisão nos 3 Excel; duração/passos/integração nos 3 PDF);
+motor nunca chamado; nenhuma microrrede criada no destino. PDF e Excel legítimos inspecionados (nota de integração no
+Resumo executivo). Diff científico, esquemas SQLite e formato `.seeds2study.zip`: inalterados.
+
+**Arquivos:** `seeds2/report/dossier.py` (`REQUIRED_CONCLUDED`, `missing_required`, `require_complete`,
+`integration_convention`), `xlsx.py` (`PRECISION_NOTE`, `sig_digits`, aviso, linhas de integração, tabelas
+obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_exports.py` (legenda/ajuda),
+`tests/test_seeds2_piso2db.py`, `tests/test_seeds2_piso2db_app.py`, `tools/e2e/e2e_piso2db_relatorios.js`,
+`tools/e2e/check_piso2db_downloads.py`, `PARAMIJEFE.md`, `CLAUDE.md`, `docs/ai/HANDOFF.md`.
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
@@ -1424,4 +1777,5 @@ orchestrator_runtime.py orchestrator_app.py` **vazio**.
 | 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | **Integrado** em `main` (merge `4709f0c`), após auditoria favorável e correção C-01 (§15) |
 | 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
 | 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
-| 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | Implementado e verificado na rama; aguardando auditoria |
+| 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
+| 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | Implementado e verificado na rama; aguardando auditoria |

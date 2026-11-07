@@ -6,3 +6,5 @@ plotly==6.3.0
 python-dateutil==2.9.0.post0
 reportlab==4.4.10
 pypdf==6.21.4
+matplotlib==3.10.7
+openpyxl==3.1.5

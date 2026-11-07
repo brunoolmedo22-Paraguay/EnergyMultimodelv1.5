@@ -125,7 +125,7 @@ async function importar(b) {
   await p.locator('input[type="file"]').first().setInputFiles(pkgFile); await ready(p);
   await p.getByText("Verificação concluída", { exact: false }).first().waitFor({ timeout: 60000 });
   assert(true, "relatório de verificação exibido");
-  for (const t of ["Alta demanda E2E", "Industrial A — E2E 2D-A", "2 (1 concluída, 1 falhou)", "2.0.0-piso2da", "compactado",
+  for (const t of ["Alta demanda E2E", "Industrial A — E2E 2D-A", "2 (1 concluída, 1 falhou)", "2.0.0-piso2db", "compactado",
     "Não é uma assinatura digital"]) {
     assert(await visible(p, t), `relatório: ${t}`);
   }
