@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-07 · **rama:** `ccr-dea994b8-wl7tp3` · **PR:** ver sección 2 (pendiente de auditoría; sin merge) · **estado:** **Piso 2D-A — Arquivo Científico Portátil** implementado y verificado en la rama; **no integrado** en `main` (espera autorización).
+**Actualización:** 2026-11-07 · **rama:** `ccr-dea994b8-wl7tp3` · **PR:** [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) (pendiente de auditoría; sin merge) · **estado:** **Piso 2D-A — Arquivo Científico Portátil** implementado y verificado en la rama; **no integrado** en `main` (espera autorización).
 
 > **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 4** (incluye el punto de continuidad). Este HANDOFF es solo el resumen de continuidad.
 
@@ -98,6 +98,6 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) — Piso 2A, Centro de Operação + C-01 (merge `4709f0c`); inicia el protocolo `PARAMIJEFE.md`.
 - PR [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) — Piso 2B, Previsões e Dados (merge `43ee6f5`): `PARAMIJEFE.md` Entrega 2.
 - PR [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) — Piso 2C, Execução EMS e Persistência Científica + C-02 (merge `34a8b52`): `PARAMIJEFE.md` Entrega 3.
-- Piso 2D-A — Arquivo Científico Portátil (rama `ccr-dea994b8-wl7tp3`; PR pendiente de auditoría): `PARAMIJEFE.md` Entrega 4.
+- Piso 2D-A — Arquivo Científico Portátil (rama `ccr-dea994b8-wl7tp3`; PR [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9), pendiente de auditoría): `PARAMIJEFE.md` Entrega 4.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

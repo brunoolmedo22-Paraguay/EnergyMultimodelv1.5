@@ -1058,6 +1058,7 @@ equipamentos indisponíveis (p. ex. SOC fora do recomendado) continuam aparecend
 | Campo | Valor |
 |---|---|
 | Rama vigente | `ccr-dea994b8-wl7tp3` (designada pelo ambiente desta sessão; a missão propunha `claude/seeds2-piso2da-arquivo-cientifico` — a regra do ambiente proíbe publicar noutra rama sem autorização explícita) |
+| PR | [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) (sem merge; aguarda auditoria) |
 | Último commit publicado | ver `git log -1 origin/ccr-dea994b8-wl7tp3` (o SHA final é informado no PR) |
 | Hitos concluídos | A (contrato + verificação), B (exportador), C (importador + persistência), D (interface + E2E) |
 | Hito pendente | nenhum desta missão; integração aguarda auditoria |
@@ -1370,4 +1371,4 @@ gerados igualmente para rodadas locais (`MicrogridStore`) e arquivadas (`StudyVi
 | 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | **Integrado** em `main` (merge `4709f0c`), após auditoria favorável e correção C-01 (§15) |
 | 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
 | 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
-| 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil | `ccr-dea994b8-wl7tp3` / PR (ver Entrega 4) | Implementado e verificado na rama; aguardando auditoria |
+| 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | Implementado e verificado na rama; aguardando auditoria |
