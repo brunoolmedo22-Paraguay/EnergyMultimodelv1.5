@@ -1060,9 +1060,9 @@ equipamentos indisponíveis (p. ex. SOC fora do recomendado) continuam aparecend
 | Rama vigente | `ccr-dea994b8-wl7tp3` (designada pelo ambiente desta sessão; a missão propunha `claude/seeds2-piso2da-arquivo-cientifico` — a regra do ambiente proíbe publicar noutra rama sem autorização explícita) |
 | PR | [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) (sem merge; aguarda auditoria) |
 | Último commit publicado | ver `git log -1 origin/ccr-dea994b8-wl7tp3` (o SHA final é informado no PR) |
-| Hitos concluídos | A (contrato + verificação), B (exportador), C (importador + persistência), D (interface + E2E) |
+| Hitos concluídos | A (contrato + verificação), B (exportador), C (importador + persistência), D (interface + E2E); correção de auditoria C-03 (§20) |
 | Hito pendente | nenhum desta missão; integração aguarda auditoria |
-| Pruebas aprovadas | `python -m pytest tests/ -q` 398 passed; E2E 2D-A 62/62; regressão E2E Piso 1 66/66, Gestor 52/52, 2A 53/53, 2B 58/58, 2C 55/55 |
+| Pruebas aprovadas | `python -m pytest tests/ -q` 407 passed (após C-03); E2E 2D-A 62/62; regressão E2E Piso 1 66/66, Gestor 52/52, 2A 53/53, 2B 58/58, 2C 55/55 |
 | Próxima ação concreta | auditoria independente do PR; depois, Piso 2D-B (relatórios PDF/Excel/figuras a partir de `StudyView`) |
 
 ### 1. Resumo executivo
@@ -1361,6 +1361,59 @@ e a ordem clima→demanda corrigida na interface (§15); o protocolo inteiro foi
 (`F.load(entry, view.get_blob)`), rodadas (`StoredRun`) e séries (`view.run_csv`). PDF/Excel/figuras poderão ser
 gerados igualmente para rodadas locais (`MicrogridStore`) e arquivadas (`StudyView`), pois ambas oferecem
 `run_data`/`get_run`. Os relatórios deverão identificar a procedência (origem × local) como a interface faz.
+
+### 20. Correção de auditoria C-03 — consistência de procedência do Arquivo Científico
+
+A auditoria independente do PR #9 foi **favorável** (formato v1, exportação por instantâneo, importação atômica,
+separação de identidades, estudos imutáveis, recuperação sem recalcular, testes e E2E aprovados) e pediu uma correção
+focalizada do verificador de pacotes não confiáveis. Escopo: somente `seeds2/archive/format.py` (`_relations`) e testes;
+formato ZIP v1, exportador, importação, `archive.db`, bancos das microrredes (v4), EMS e modelos **inalterados**.
+
+**Causa.** `_relations()` conferia SHA-256/tamanho, impressões digitais e várias referências, mas (a) da rodada só
+contrastava `run_uid`, `scenario_uid`, versão e impressão digital do cenário — não a microrrede, a incarnação, nem a
+revisão/impressão do inventário do manifesto de procedência (`reference`) contra o registro (`run.json`), nem a revisão
+do registro contra a revisão referenciada pela versão executada; (b) o índice `manifest.dependencies` não era
+verificado. Um pacote com recursos íntegros e manifesto recalculado podia, portanto, atribuir uma rodada a outra
+microrrede, declarar outra incarnação/revisão no manifesto da rodada ou trazer um grafo de dependências falso — e ser
+aceito. Reproduzido: os 7 testes negativos abaixo **falham** com o `format.py` anterior (pacotes aceitos) e passam com a
+correção.
+
+**Solução** (`format._relations`; `_clash(a, b)` = dois valores DECLARADOS e diferentes):
+- **Versões:** `microgrid_uid` dos metadados = origem; incarnação do documento × origem (só quando ambas declaradas).
+- **Rodadas:** `run.json.microgrid_uid` = origem; incarnação do registro × origem (ambas declaradas); revisão e
+  impressão do inventário do registro = as da versão executada; `manifest.json.reference`: `microgrid_uid` = registro,
+  incarnação × registro e × origem (declaradas), e `scenario_uid`, `scenario_version`, `scenario_fingerprint`,
+  `config_revision`, `config_fingerprint` IGUAIS ao registro (que já era conferido contra versão e revisão incluídas).
+- **Dependências:** o grafo é RECONSTRUÍDO dos recursos verificados com as mesmas funções de referência usadas pelo
+  exportador (`MicrogridStore._scenario_blobs`, `_referenced_blobs`, caminhos `version_path`/`revision_path`, arquivos
+  da rodada) e deve ser **exatamente igual** a `manifest.dependencies` (seções `versions`, `inventory_revisions`,
+  `runs`; chave ausente, adicional, inexistente ou alterada → rejeição). A comparação só ocorre quando o restante do
+  pacote é consistente (diagnóstico sem cascata).
+- `None` continua significando "não registrado" (dados legítimos anteriores ou armazenamento sem incarnação): não é
+  conflito. Os pacotes autênticos exportados pelo 2D-A continuam aceitos (todos os testes anteriores inalterados).
+- O SHA-256 continua sem constituir assinatura: as novas verificações garantem consistência interna, não autoria.
+
+**Evidência** (`tests/test_seeds2_piso2da.py::RelacoesC03Test`, pacotes com recursos íntegros e hashes recalculados):
+
+| Caso | Teste | Resultado |
+|---|---|---|
+| Pacote autêntico (e reempacotado) aceito; grafo reconstruído = declarado | `test_pacote_autentico_continua_aceito_e_dependencias_reconstruidas` | aceito |
+| 1 rodada com `microgrid_uid` de outra microrrede | `test_1_rodada_atribuida_a_outra_microrrede` | rejeitado |
+| 2 incarnação contraditória (registro; manifesto da rodada) | `test_2_incarnacao_contraditoria_quando_ambas_declaradas` | rejeitado |
+| Incarnação `None` (registros/manifestos herdados; origem sem incarnação) | `test_incarnacao_nao_registrada_em_dados_herdados_nao_e_conflito` | aceito |
+| 3 `config_revision`/`config_fingerprint` do manifesto ≠ registro; registro ≠ versão executada | `test_3_revisao_ou_impressao_do_manifesto_da_rodada_diferente_do_registro` | rejeitado |
+| 4 referência de cenário contraditória (microrrede, cenário, versão) | `test_4_referencia_de_cenario_contraditoria` | rejeitado |
+| 5 dependência de versão apontando para OUTRA revisão real (estudo com revisões 1 e 2, versão rebaseada) | `test_5_dependencia_de_versao_aponta_para_outra_revisao` | rejeitado |
+| 6 dependência apontando para blob diferente (previsão; inventário) | `test_6_dependencia_aponta_para_blob_diferente` | rejeitado |
+| 7 dependência de rodada omitindo/acrescentando arquivo; versão errada; rodada inexistente; versão ausente; índice ausente | `test_7_dependencia_de_rodada_omite_ou_acrescenta_arquivo` | rejeitado |
+
+Execuções: `python -m pytest tests/ -q` → **407 passed, 0 failed** (264 s; 128 subtests; os mesmos 7 avisos) — 398
+anteriores + 9 novos; nenhum teste existente alterado. Reprodução da insuficiência: os 9 testes executados contra o
+`format.py` anterior (HEAD `89026b1`) → **7 failed** (todos os casos negativos aceitos) / 2 passed (casos positivos).
+E2E `tools/e2e/e2e_piso2da_arquivo.js` repetido desde diretórios vazios (exportação legítima na origem → importação
+numa instalação LIMPA com o motor sabotado → `kill -9` → reinício → tablet/escuro): **62/62**, motor nunca chamado no
+destino. `git diff origin/main --stat -- models h2_pemfc simulation config ems_integration reference_models
+orchestrator_runtime.py orchestrator_app.py` **vazio**.
 
 ---
 
