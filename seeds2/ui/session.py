@@ -51,6 +51,18 @@ def registry() -> MicrogridRegistry:
     return _registry_for(str(resolve_data_dir()))
 
 
+@st.cache_resource(show_spinner=False)
+def _archive_for(path: str):
+    from seeds2.archive.store import ArchiveStore
+
+    return ArchiveStore(path)
+
+
+def archive():
+    """Arquivo Científico da INSTALAÇÃO (Piso 2D-A): banco próprio, independente da microrrede ativa."""
+    return _archive_for(str(resolve_data_dir()))
+
+
 def _ss():
     return st.session_state
 

@@ -304,6 +304,12 @@ def _delete_dialog() -> None:
                  "procedência). Elas serão perdidas definitivamente e **não podem ser recuperadas pelo ZIP atual**.")
         runs_ok = st.checkbox(f"Entendo que as {n_sruns} rodada(s) científica(s) e seus resultados serão excluídos e que o "
                               "ZIP atual não permite recuperá-los", key=f"gd_runs_{uid}_{n_sruns}")
+    if n_scn:
+        # Piso 2D-A: caminho para preservar os experimentos ANTES de excluir (não altera os consentimentos acima).
+        st.info("Para preservar experimentos antes de excluir, abra a microrrede e use **Centro de Operação → Arquivo "
+                "Científico → EXPORTAR CENÁRIO COMPLETO** (ou ARQUIVAR NESTA INSTALAÇÃO) para cada cenário. Estudos já "
+                "guardados no Arquivo Científico desta instalação **não** são excluídos com a microrrede. O arquivo "
+                "científico preserva cenários e rodadas, mas não substitui o backup completo da instalação.")
     c1, c2 = st.columns(2)
     if c1.button("CANCELAR", key="gd_cancel", width="stretch"):
         _close_dialog()
@@ -457,6 +463,10 @@ def render() -> None:
             st.rerun()
         if st.button("IMPORTAR MICRORREDE (ZIP)", key="g_import", icon=":material/upload:", width="content"):
             _ss()[DLG] = {"type": "import"}
+            st.rerun()
+        if st.button("ARQUIVO CIENTÍFICO", key="g_archive", icon=":material/inventory_2:", width="content",
+                     help="Importar e consultar estudos científicos (.seeds2study.zip) sem abrir nenhuma microrrede."):
+            shell.go("arquivo")
             st.rerun()
     st.write("")
     if not items:

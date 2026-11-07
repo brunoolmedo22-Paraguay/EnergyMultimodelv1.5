@@ -1069,6 +1069,14 @@ class MicrogridStore:
             raise StoreError(f"Dado '{name}' da rodada corrompido (hash divergente).")
         return raw
 
+    # ------------------------------------------------------------ instantâneo de leitura (Piso 2D-A)
+    @contextmanager
+    def snapshot(self) -> Iterator["StoreSnapshot"]:
+        """Leitura SOMENTE LEITURA de um único instantâneo (H-03) para o Arquivo Científico: tudo o que for lido dentro
+        do bloco vê o mesmo estado do banco (lápide/incarnação verificadas no início, como em toda leitura). Nunca grava."""
+        with self._read() as con:
+            yield StoreSnapshot(con)
+
     # ------------------------------------------------------------ backup / restauração
     def export_backup(self) -> bytes:
         """Backup de UM instantâneo (H-03): configuração, blobs, histórico e versão lidos na mesma transação de
@@ -1340,6 +1348,71 @@ class MicrogridStore:
                                         allow_identity_change=bool(confirm_identity_change), new_blobs=rep.blobs)
 
 
+class StoreSnapshot:
+    """Visão de leitura de UM instantâneo do banco de uma microrrede (criada só por ``MicrogridStore.snapshot``).
+
+    Devolve as linhas EXATAMENTE como gravadas (texto JSON original dos documentos e manifestos, conteúdo dos dados
+    descomprimido e conferido pelo SHA-256 gravado). Usada pelo exportador do Arquivo Científico (Piso 2D-A); não há
+    nenhuma operação de escrita aqui."""
+
+    def __init__(self, con: sqlite3.Connection):
+        self._con = con
+
+    def db_version(self) -> int:
+        return int(self._con.execute("PRAGMA user_version").fetchone()[0])
+
+    def meta(self, key: str) -> str | None:
+        row = self._con.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    def current(self) -> Stored | None:
+        return MicrogridStore._load_con(self._con)
+
+    def scenario_row(self, scenario_uid: str) -> dict:
+        row = self._con.execute("SELECT * FROM scenarios WHERE scenario_uid = ?", (str(scenario_uid),)).fetchone()
+        if row is None:
+            raise ScenarioNotFound("O cenário não existe nesta microrrede.")
+        return dict(row)
+
+    def scenario_versions(self, scenario_uid: str) -> list[dict]:
+        return [dict(r) for r in self._con.execute("SELECT * FROM scenario_versions WHERE scenario_uid = ? ORDER BY version",
+                                                   (str(scenario_uid),)).fetchall()]
+
+    def revision_row(self, revision: int) -> dict:
+        row = self._con.execute("SELECT * FROM revisions WHERE revision = ?", (int(revision),)).fetchone()
+        if row is None:
+            raise StoreError(f"Revisão {revision} do inventário inexistente.")
+        return dict(row)
+
+    def blob(self, digest: str) -> tuple[bytes, dict]:
+        """Conteúdo (SHA-256 conferido) e metadados de um dado de entrada."""
+        return MicrogridStore._get_blob_con(self._con, digest), dict(self._con.execute(
+            "SELECT name, media_type, size, created_at FROM blobs WHERE sha256 = ?", (digest,)).fetchone())
+
+    def run_rows(self, scenario_uid: str) -> list[dict]:
+        return [dict(r) for r in self._con.execute("SELECT * FROM scenario_runs WHERE scenario_uid = ? "
+                                                   "ORDER BY created_at, rowid", (str(scenario_uid),)).fetchall()]
+
+    def run_data_index(self, run_uid: str) -> list[dict]:
+        return [dict(r) for r in self._con.execute("SELECT name, sha256, media_type, encoding, size FROM scenario_run_data "
+                                                   "WHERE run_uid = ? ORDER BY name", (str(run_uid),)).fetchall()]
+
+    def run_data(self, run_uid: str, name: str) -> bytes:
+        import zlib
+
+        row = self._con.execute("SELECT sha256, encoding, content FROM scenario_run_data WHERE run_uid = ? AND name = ?",
+                                (str(run_uid), str(name))).fetchone()
+        if row is None:
+            raise RunNotFound(f"Dado '{name}' não encontrado na rodada.")
+        try:
+            raw = zlib.decompress(bytes(row["content"])) if row["encoding"] == "zlib" else bytes(row["content"])
+        except zlib.error:
+            raise StoreError(f"Dado '{name}' da rodada corrompido (descompressão).") from None
+        if sha256(raw).hexdigest() != row["sha256"]:
+            raise StoreError(f"Dado '{name}' da rodada corrompido (hash divergente).")
+        return raw
+
+
 def inspect_backup_data(data: bytes) -> BackupInspection:
     """Inspeciona um backup NÃO confiável sem depender de um armazenamento. Nunca levanta exceção: todo
     problema vira ``errors``."""
@@ -1374,5 +1447,5 @@ def default_store() -> MicrogridStore:
 
 __all__: list[Any] = ["BackupInspection", "ConflictError", "IdentityError", "MicrogridDeletedError", "MicrogridStore",
                       "MissingStoreError", "ScenarioConflictError", "ScenarioNotFound", "Stored", "StoredScenario",
-                      "StoreError", "ValidationError", "backup_filename", "default_store", "inspect_backup_data",
+                      "StoreError", "StoreSnapshot", "ValidationError", "backup_filename", "default_store", "inspect_backup_data",
                       "resolve_data_dir", "sqlite_backup_copy"]

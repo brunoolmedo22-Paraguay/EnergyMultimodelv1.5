@@ -1051,10 +1051,377 @@ equipamentos indisponíveis (p. ex. SOC fora do recomendado) continuam aparecend
 ---
 
 
+## Entrega 4 — SEEDS2 Piso 2D-A · Arquivo Científico Portátil
+
+### Ponto de continuidade (atualizar ao encerrar ou interromper a sessão)
+
+| Campo | Valor |
+|---|---|
+| Rama vigente | `ccr-dea994b8-wl7tp3` (designada pelo ambiente desta sessão; a missão propunha `claude/seeds2-piso2da-arquivo-cientifico` — a regra do ambiente proíbe publicar noutra rama sem autorização explícita) |
+| PR | [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) (sem merge; aguarda auditoria) |
+| Último commit publicado | ver `git log -1 origin/ccr-dea994b8-wl7tp3` (o SHA final é informado no PR) |
+| Hitos concluídos | A (contrato + verificação), B (exportador), C (importador + persistência), D (interface + E2E); correção de auditoria C-03 (§20) |
+| Hito pendente | nenhum desta missão; integração aguarda auditoria |
+| Pruebas aprovadas | `python -m pytest tests/ -q` 407 passed (após C-03); E2E 2D-A 62/62; regressão E2E Piso 1 66/66, Gestor 52/52, 2A 53/53, 2B 58/58, 2C 55/55 |
+| Próxima ação concreta | auditoria independente do PR; depois, Piso 2D-B (relatórios PDF/Excel/figuras a partir de `StudyView`) |
+
+### 1. Resumo executivo
+
+**Solicitado:** exportar um cenário científico completo, guardá-lo fora do SEEDS2 e importá-lo noutra instalação,
+recuperando configurações, dados, gráficos, resultados e procedência **sem executar o EMS de novo**; verificação de
+integridade antes de importar; importação atômica e somente leitura; segurança contra pacotes maliciosos; interface
+"ARQUIVO CIENTÍFICO" no Centro de Operação; separação nítida entre o arquivo científico e o backup do Gestor.
+
+**Entregue:**
+- **Contrato `seeds2-study` v1** (`.seeds2study.zip`; `seeds2/archive/format.py`): manifesto com identidade de origem,
+  contagens, índice de recursos (SHA-256, tamanho, tipo, papel) e grafo de dependências; documentos e manifestos com o
+  **texto exato** gravado na origem; blobs endereçados pelo SHA-256; rodadas finalizadas com os estados originais.
+- **Exportador** (`exporter.py`) a partir de UM instantâneo de leitura (`MicrogridStore.snapshot`, H-03), escrevendo
+  recurso a recurso; rodada em execução impede a exportação.
+- **Inspeção** de pacote não confiável (formato, versão, estrutura, SHA-256 e tamanho de TODOS os recursos, impressões
+  digitais dos documentos, relações cenário↔versões↔inventário↔previsões↔rodadas, ausência de arquivos inesperados,
+  duplicados, links, caminhos perigosos, executáveis, bombas ZIP, JSON aninhado/duplicado) com diagnóstico legível.
+- **Arquivo Científico da instalação** (`store.py`): banco próprio `scientific_archive/archive.db`, tabelas imutáveis,
+  importação atômica (uma transação), identidade LOCAL (`archive_uid`) separada da identidade de ORIGEM, duplicatas
+  reconhecidas por `content_id` ou cópia identificável (`copy_of`).
+- **Consulta histórica** (`view.py` + `ui/archive_ui.py`): procedência, configuração (inventário de referência, estados
+  iniciais, estratégia, janela), previsões (gráficos 2B), rodadas e resultados (KPIs e gráficos 2C reutilizados por
+  `execution_ui.run_results`), integridade — sem nenhuma rota até `run_optimizer`/`build_exchange_package`.
+- **Interface:** cartão + aba "Arquivo Científico" no Centro de Operação (exportar / arquivar nesta instalação /
+  importar / consultar) e botão **ARQUIVO CIENTÍFICO** no Gestor (instalação vazia: importar e consultar sem microrrede).
+- **Gestor:** textos de alcance atualizados (o backup não contém cenários; o arquivo científico não substitui o backup);
+  diálogo de exclusão aponta EXPORTAR CENÁRIO COMPLETO; consentimentos C-01/C-02 e H-01/H-02/H-03 intactos.
+
+**Fora do escopo (intencional):** PDF, Excel, ZIP de figuras (Piso 2D-B); "CRIAR VARIANTE OPERATIVA" (só contrato
+documentado em `seeds2/archive/service.py`); reexecução de estudos antigos; exclusão/edição de estudos arquivados;
+qualquer mudança no EMS, modelos, SOC, PEMFC, térmica ou horizonte móvel.
+
+### 2. Arquitetura encontrada em `main` (`34a8b52`, merge do PR #8)
+
+- Verificado com `git fetch`: `HEAD = origin/main = 34a8b5279eb6b1123e2d4dd67df3615218f741f2`. Linha de base:
+  `python -m pytest tests/ -q` → **355 passed** (223 s; 7 avisos).
+- Um cenário vive no banco da microrrede (esquema v4): `scenarios` (estado atual), `scenario_versions` (append-only,
+  documento JSON canônico + `fingerprint`, `base_revision`/`base_fingerprint`), `revisions` (inventário, append-only),
+  `blobs` (previsões: série normalizada `data` e original `blob`; CSV/ModelLab do inventário), `scenario_runs`
+  (manifesto/outcome/summary/error, imutável depois de finalizada) e `scenario_run_data` (séries, SHA-256 do conteúdo
+  descomprimido). Dependências de uma rodada: versão do cenário (FK), revisão do inventário, previsões da versão.
+- **Backup do Gestor** (`.seeds2backup.zip`, formato 2): somente configuração + revisões + blobs do inventário; nenhum
+  cenário/rodada. **Produto distinto** do arquivo científico; nenhum dos dois formatos é aceito pelo importador do outro
+  (testado: o backup é recusado pela inspeção científica com explicação).
+- Divergência documentação × código registrada: nenhuma relevante; `contracts.py` dizia que o 2D não estava
+  implementado (atualizado).
+
+### 3. Decisões de design
+
+| # | Tema | Alternativas | Escolha e justificativa |
+|---|---|---|---|
+| D1 | Onde guardar estudos importados | tabelas novas no banco da microrrede ativa (v5) × banco da instalação | **Banco próprio da instalação** (`scientific_archive/archive.db`): o estudo abre numa instalação SEM a microrrede de origem e sem exigir criar/comissionar uma microrrede; importar não toca nenhum banco de microrrede nem o catálogo (isolamento por construção); excluir uma microrrede não apaga registros históricos; os bloqueios L1/L2 (H-01/H-02/H-03) não são tocados. Esquema da microrrede **inalterado (v4)**: nenhuma migração de `scenario_runs`/`scenario_versions`. |
+| D2 | Estrutura do ZIP | exemplo da missão × variante | Mantida a estrutura sugerida com três ajustes: (a) documento de cada versão/revisão em arquivo próprio (`*.document.json`) com o **texto exato** da origem — os metadados ficam ao lado; reserializar mudaria bytes e arriscaria a impressão digital; (b) blobs endereçados por SHA-256 em `inventory/blobs/` e `forecasts/blobs/` (o nome É o hash: verificável sem índice); (c) `runs/<uid>/data/<nome>` reproduz os nomes de `scenario_run_data`. |
+| D3 | Precisão numérica | reexportar CSV/JSON × bytes originais | **Bytes originais** (CSV das séries, documentos e manifestos): nenhuma conversão ⇒ nenhuma perda; teste compara `DataFrame` com `check_exact=True` e SHA-256 iguais. |
+| D4 | Validação na importação | validar documentos com as regras ATUAIS de edição × estrutura mínima | **Estrutura mínima + impressões digitais** (compatibilidade de LEITURA): validar com regras de edição atuais acoplaria a leitura de estudos antigos a mudanças futuras do domínio. |
+| D5 | Duplicatas | sempre nova cópia × reconhecer | `content_id` = SHA-256 do (formato, origem, recursos→SHA-256): independe da data de exportação; padrão **reconhecer** (nada inserido); opção explícita "outra cópia" (`copy_of`). Mesmo cenário de origem com conteúdo diferente = estudos distintos, ambos preservados. |
+| D6 | Atomicidade | gravar em etapas com estado `importando` × uma transação | **Uma transação** `BEGIN IMMEDIATE` (estudo + recursos); 2ª leitura do ZIP reconfere SHA-256/tamanho de cada recurso (o arquivo pode mudar após a inspeção); `expected_content_id` liga a importação ao que o usuário confirmou. |
+| D7 | Rodadas em execução | exportar como estão × omitir × recusar | **Recusar** a exportação (mensagem) — um arquivo só contém rodadas finalizadas com o estado original. |
+| D8 | Memória | montar o ZIP em memória × arquivo temporário | Exportação escrita recurso a recurso num arquivo temporário (fora do `SEEDS2_DATA_DIR`), entregue por `download_button(data=callable)`; a sessão guarda só metadados (caminho, SHA-256, tamanho). A inspeção guarda só o relatório (não o conteúdo). |
+| D9 | Arquivar sem navegador | — | `ARQUIVAR NESTA INSTALAÇÃO` = exportar + importar pelo mesmo caminho verificado (`acquisition = arquivado`). |
+| D10 | `APP_VERSION` | — | `2.0.0-piso2da`. |
+
+### 4. Contrato e versão do ZIP científico
+
+- `manifest.format = "seeds2-study"`, `format_version = 1`; extensão `.seeds2study.zip`.
+- `manifest.study.origin`: `microgrid_uid`, `microgrid_name`, `microgrid_incarnation`, `scenario_uid`, `scenario_name`,
+  `scenario_origin`, `scenario_created_at`, `scenario_updated_at`, `current_version`.
+- `manifest.study`: `versions` (contínuas 1..N), `inventory_revisions`, `runs`, `counts` (incl. `runs_by_state`).
+- `manifest.exporter`: `app`, `app_version`, `db_schema_version`, `software` (Python, numpy, pandas, scipy e SHA-256 do
+  código científico — `runner.software_versions`).
+- `manifest.resources[path] = {sha256, size, media_type, role, [original_name, original_media_type, stored_at]}`.
+- `manifest.dependencies`: versão → documento/revisão/previsões; revisão → blobs; rodada → versão/revisão/arquivos.
+- `manifest.integrity.note`: "o SHA-256 detecta corrupção acidental e inconsistências… **não é assinatura digital**".
+- **Política de versões:** o leitor aceita `SUPPORTED_FORMAT_VERSIONS = (1,)`; versão mais nova → recusa com "atualize
+  esta instalação"; versão desconhecida/inválida → recusa. Uma nova versão do formato será criada quando QUALQUER
+  esquema embutido deixar de ser legível pelo leitor anterior; o leitor novo continuará lendo v1 (compatibilidade de
+  leitura); compatibilidade de execução (reexecutar estudos antigos) **não** é prometida.
+
+### 5. Estrutura exata de arquivos
+
+```
+manifest.json
+scenario/scenario.json                         linha atual do cenário (sem documento)
+scenario/versions/v000001.json                 metadados da versão (scenario_uid, version, base_revision, fingerprint, saved_at, note, origin)
+scenario/versions/v000001.document.json        texto exato do documento da versão
+inventory/revisions/r000001.json               metadados da revisão (revision, installation_uid, fingerprint, saved_at, note, origin)
+inventory/revisions/r000001.document.json      texto exato do documento da revisão
+inventory/blobs/<sha256>                       CSV/pacotes ModelLab referenciados pelas revisões incluídas
+inventory/catalog_references.json              instantâneo somente leitura das referências de catálogo citadas
+forecasts/blobs/<sha256>                       séries normalizadas e arquivos originais de TODAS as versões
+runs/<run_uid>/run.json                        linha da rodada (identidade, estado, datas, progresso, índice de dados, has_*)
+runs/<run_uid>/manifest.json                   texto exato do manifesto de procedência
+runs/<run_uid>/outcome.json|summary.json|error.json   texto exato (quando existem)
+runs/<run_uid>/data/entradas/missao.csv, saidas/despacho_ems.csv, saidas/relatorio_ems.json, modelos/*.csv, pacote_troca.zip
+```
+
+Nomes permitidos por expressões regulares fechadas (`format._PATTERNS`); tipos por papel (JSON/CSV/ZIP/TXT; blobs numa
+lista permitida). Entradas com data fixa (1980-01-01) e modo de arquivo regular.
+
+### 6. Dependências e hashes
+
+Inspeção (`format.inspect`) — uma única dependência obrigatória ausente ou corrompida reprova o estudo:
+SHA-256 e tamanho reais (lidos em blocos, sem confiar no cabeçalho) = declarados, para TODOS os recursos; nome do blob =
+SHA-256; `config.fingerprint(documento) = fingerprint` declarado (versões e revisões — detecta alteração mesmo com o
+manifesto recalculado); versões contínuas e a atual = última; documento ↔ cenário/microrrede de origem; referência ao
+inventário coerente e revisão incluída com a mesma impressão digital; blobs de previsão e do inventário presentes;
+rodadas: estado final, versão/revisão existentes com as mesmas impressões digitais, manifesto ↔ rodada, `has_*` ↔
+arquivos, concluída ⇒ resumo + resultado + dados, não concluída ⇒ sem dados, índice de dados = recursos; nenhum
+recurso órfão; contagens = conteúdo.
+
+### 7. Exportação
+
+`exporter.write_package(store, scenario_uid, fh)` dentro de `store.snapshot()`: cenário + TODAS as versões (texto
+exato) → revisões citadas por versões e rodadas (texto exato) + blobs do inventário + referências de catálogo →
+previsões de todas as versões → todas as rodadas (dados descomprimidos e conferidos pelo SHA-256 de origem; nomes
+validados) → manifesto. `export_to_file` publica atomicamente (`.part` + `fsync` + `rename`). Testado: cenário sem
+rodadas; 4 versões; 3 rodadas (concluída real, falha, interrompida); exportar não altera nenhuma linha das tabelas de
+cenários/rodadas/revisões/blobs; rodada em execução impede.
+
+### 8. Importação e modelo de identidade
+
+- Identidade de ORIGEM (microrrede, incarnação, cenário, rodadas, versões, impressões digitais, manifestos) preservada
+  byte a byte; identidade LOCAL = `archive_uid` (novo, 32 hex) + `imported_at` + `acquisition` + contexto opcional
+  (microrrede local em cujo Centro o estudo foi importado — apenas registro).
+- Resultados atribuídos à origem: a interface declara "consulta histórica da microrrede «X»", as rodadas mostram a
+  microrrede de origem, nada é gravado em `scenario_runs` de nenhuma microrrede.
+- Fluxo em instalação nova: Gestor → **ARQUIVO CIENTÍFICO** → selecionar ZIP → relatório (cenário, microrrede de origem,
+  versões, rodadas por estado, revisões, datas do experimento, data de exportação, versão do SEEDS2 que exportou,
+  formato, tamanhos, SHA-256 do pacote, identidade do conteúdo) → confirmar → estudo na lista → ABRIR ESTUDO. Nenhuma
+  microrrede precisa existir.
+- Colisões: mesmo `content_id` → reconhecido (ou "outra cópia" explícita, `copy_of`); mesma origem com conteúdo
+  diferente → estudos distintos, nenhum sobrescrito, ambos identificados pela data de exportação e ID local.
+
+### 9. Persistência e migrações
+
+- Novo banco `scientific_archive/archive.db` (esquema v1: `studies`, `study_resources`, `archive_blobs`, `meta`;
+  triggers de imutabilidade). Migração versionada com cópia `archive.db.bak-v<N>` antes de migrar um banco existente;
+  banco mais novo recusado sem alteração (testado).
+- Bancos de microrrede: **sem migração** (v4); só uma API de leitura (`MicrogridStore.snapshot` → `StoreSnapshot`).
+- Limites: pacote ≤ 512 MiB; conteúdo descomprimido ≤ 1 GiB; recurso ≤ 256 MiB; JSON ≤ 32 MiB e ≤ 100 níveis;
+  ≤ 20 000 entradas; razão de compressão > 1000:1 em entradas > 1 MiB recusada. O Streamlit limita o upload a 200 MB
+  por padrão (`server.maxUploadSize`) e mantém o arquivo enviado em memória do servidor durante a sessão; a importação
+  lê o ZIP em blocos, mas a transação única mantém o estudo inteiro no WAL até o COMMIT.
+
+### 10. Integridade e segurança
+
+Defesas (todas testadas em `SegurancaTest`): Zip Slip / `..` / caminhos absolutos / `C:\` / diretórios / nomes ocultos
+(lista fechada de padrões); links simbólicos e entradas não regulares (`external_attr`); entradas duplicadas e que
+diferem só em maiúsculas; criptografia e métodos de compressão desconhecidos; bomba ZIP (razão + leitura limitada
+pelo tamanho REAL, orçamento total); tamanho do pacote/recurso/total/entradas; JSON inválido, aninhado demais
+(inclusive `RecursionError`) ou com chave duplicada; conteúdo executável (ELF, PE, Mach-O, `#!`); versão/formato
+desconhecidos; backup do Gestor oferecido por engano. Nada é extraído em disco; nenhum `pickle`/`eval`/`exec`; o
+`pacote_troca.zip` interno é guardado como dado e nunca aberto. Diagnóstico sempre em texto (nunca traceback).
+
+### 11. Interface e recuperação histórica
+
+- Centro de Operação: cartão "Arquivo Científico" (sem alterar as etapas 01–04) → aba `arquivo`: exportar cenário
+  desta microrrede (versões/rodadas incluídas, aviso de rodada em execução, PREPARAR → ⬇ EXPORTAR CENÁRIO COMPLETO,
+  ARQUIVAR NESTA INSTALAÇÃO), importar, lista de estudos (aquisição, verificação, origem, versões/rodadas, data do
+  experimento, versão do SEEDS2, ID local; "Origem: esta microrrede").
+- Estudo (`tab = estudo`, `?study=`, `?srun=` sobrevivem à recarga): Procedência · Configuração · Previsões ·
+  Rodadas e resultados · Integridade (verificação sob demanda, tabela de recursos com SHA-256, dependências).
+- Reutilização: `forecast_charts.figure` (previsões) e `execution_ui.run_results` (KPIs, potência, SOC, H₂, entradas,
+  contrato do motor, procedência) — extraído de `render_run` sem mudar o comportamento do 2C (testes 2C inalterados).
+
+### 12. Pruebas e resultados
+
+Ambiente: Linux, Python 3.13.18, Streamlit 1.66.1, numpy 2.2.6, scipy 1.15.3, pandas 2.2.3; `PYTHONDONTWRITEBYTECODE=1`.
+
+| Momento | Comando | Resultado |
+|---|---|---|
+| Linha de base (`main` `34a8b52`) | `python -m pytest tests/ -q` | **355 passed** (223 s; 7 avisos) |
+| Versão final da rama | `python -m pytest tests/ -q` | **398 passed, 0 failed, 0 skipped** (259 s; 128 subtests; os mesmos 7 avisos da linha de base) — 355 anteriores + 43 novos (35 domínio + 8 interface) |
+
+Novos: `tests/test_seeds2_piso2da.py` (35) e `tests/test_seeds2_piso2da_app.py` (8). Ajustes em testes existentes
+(estado real, nenhuma asserção enfraquecida): `test_seeds2_gestor_app.test_inicio_sem_microrredes` (lista EXATA de
+botões agora inclui ARQUIVO CIENTÍFICO); `apptest_utils.continuar` transporta as chaves de aplicação `ar_*`.
+
+| Requisito da missão (§13) | Teste |
+|---|---|
+| 1 sem rodadas | `ExportacaoTest.test_cenario_sem_rodadas` |
+| 2–4 várias versões/rodadas; concluídas, falhas, interrompidas | `test_varias_versoes_e_varias_rodadas_com_estados_originais` |
+| 5 manifestos originais | `test_manifestos_e_documentos_com_texto_exato_da_origem`; `ImportacaoTest.test_identidade_de_origem_e_identidade_local_distintas` |
+| 6 inventário de referência | `test_inventario_de_referencia_preservado` |
+| 7 previsões originais e normalizadas | `test_previsoes_normalizadas_e_originais_preservadas` (CSV importado com nome original) |
+| 8 séries completas | `test_series_completas_do_ems_preservadas` |
+| 9 SHA-256 de todos os recursos | `IntegridadeTest.test_todos_os_recursos_tem_sha256_e_tamanho_conferidos` |
+| 10 recurso corrompido | `test_recurso_corrompido_detectado`; `test_corrupcao_coerente_com_manifesto_recalculado_ainda_detectada`; `test_corrupcao_no_arquivo_local_detectada_na_leitura` |
+| 11 obrigatório faltante | `test_arquivo_obrigatorio_faltante_detectado`; `test_relacoes_inconsistentes_detectadas` |
+| 12 ZIP malicioso | `SegurancaTest` (Zip Slip, absolutos, links, duplicatas, executável, JSON) |
+| 13 ZIP grande demais | `test_bomba_zip_e_limites` |
+| 14 formato/versão incompatível | `test_formatos_e_versoes_incompativeis`; `test_banco_do_arquivo_mais_novo_e_recusado_sem_alteracao` |
+| 15 instalação vazia | `test_instalacao_limpa_reabre_em_novo_processo_sem_executar_o_ems`; UI `test_instalacao_vazia_importa_verifica_e_abre_sem_executar` |
+| 16 revisitar sem EMS | `ProvaCientificaTest` (otimizador e modelos sabotados); subprocesso com motor sabotado; UI inteira com o motor sabotado |
+| 17 previsões e gráficos após importar | UI `test_secoes_do_estudo_configuracao_previsoes_rodadas_integridade`; E2E |
+| 18 metadados e procedência | `test_identidade_de_origem_e_identidade_local_distintas` |
+| 19 identificadores de origem coincidentes | `test_dois_estudos_com_identificadores_de_origem_coincidentes` |
+| 20 reimportar | `test_reimportar_o_mesmo_arquivo`; UI `test_duplicata_reconhecida_e_copia_identificavel` |
+| 21 erro/interrupção → rollback | `AtomicidadeTest` (erro SQLite no 7º recurso; arquivo alterado; `os._exit` no 12º recurso em subprocesso) |
+| 22 isolamento entre microrredes | `IsolamentoTest` (banco e catálogo byte a byte); UI `test_cartao_no_painel_e_importacao_no_contexto_nao_altera_a_microrrede` |
+| 23–24 cenários intactos; rodadas imutáveis | `test_exportacao_nao_altera_cenarios_nem_rodadas_e_rodadas_continuam_imutaveis`; `test_estudo_arquivado_e_somente_leitura` |
+| 25 EMS V1.6 inalterado | `ProvaCientificaTest.test_ems_v16_inalterado` + `test_console_v16_inalterado` (2C, R$ 417,684638) |
+| 26 pisos anteriores | suíte completa + E2E de regressão |
+| **Prova científica** | `ProvaCientificaTest.test_rodada_real_exportada_importada_e_reaberta_sem_recomputacao`: rodada REAL do 2C → exportada → importada noutra instalação → reaberta (nova instância) com `run_optimizer`/`build_exchange_package` substituídos por exceções; custo (R$ 88,3190884544543 = rodada 2C de referência), energias, SOC, H₂, custos por fonte, potências por fonte, timestamps UTC (`check_exact`), identificadores e SHA-256 de todos os dados **idênticos** |
+
+### 13. E2E real e evidência
+
+Chromium real (Playwright), servidores Streamlit reais, diretórios vazios, reinício real do servidor entre fases.
+
+| Roteiro | Fases | Resultado |
+|---|---|---|
+| `tools/e2e/e2e_piso2da_arquivo.js` (novo; origem `tools/e2e/seed_piso2da.py`: rodada REAL concluída + rodada falha) | exportar 13 (ORIGEM) · importar 34 (DESTINO **vazio**, motor sabotado) · `kill -9` do servidor · reinício 8 · tablet 7 | **62/62** |
+| `tools/e2e/e2e_piso2c_execucao.js` | operar 38 · **`kill -9` durante a rodada longa** · reinício 10 · tablet 7 | **55/55** |
+| `tools/e2e/e2e_piso2b_previsoes.js` | operar 43 · reinício 8 · tablet 7 | **58/58** |
+| `tools/e2e/e2e_piso2a_centro_operacao.js` | operar 43 · reinício 5 · tablet 5 | **53/53** |
+| `tools/e2e/e2e_gestor_microrredes.js` (`SEEDS2_DEV_MODE=1`; `legado` com `seeds2.db` anterior ao Gestor) | multi 39 · reinício 6 · tablet 2 · legado 5 | **52/52** |
+| `tools/e2e/e2e_piso1_microrrede.js` (rodada EMS real do console V1.6) | comissionar 41 · reabrir 21 · tablet 4 | **66/66** |
+
+**Servidor de destino com o motor sabotado:** o servidor da instalação limpa foi iniciado com um `sitecustomize` que
+substitui `orchestrator_runtime.run_optimizer` e `build_exchange_package` por funções que registram a chamada num
+arquivo e falham. Ao fim de importar → consultar (configuração, previsões, rodadas, integridade, recarga) → `kill -9` →
+reinício → reabrir → tablet → tema escuro: **nenhuma chamada registrada**. O diretório de destino terminou com
+`registry.db`, `microgrids/` VAZIO e `scientific_archive/` — nenhuma microrrede criada ou restaurada.
+
+Verificado no navegador: download real do `.seeds2study.zip` (nome ASCII com 8 dígitos do UID do cenário; começa por
+`PK`); relatório de verificação com cenário, microrrede de origem, versões (3), rodadas (1 concluída, 1 falhou),
+versão do SEEDS2 exportador, tamanho e a ressalva de que o SHA-256 não é assinatura; CONFIRMAR desabilitado sem
+confirmação; estudo "Importado / Verificado na importação / Somente leitura"; Configuração (inventário de referência,
+estados iniciais, estratégia GWO, janela); Previsões (demanda e clima desenhados com os dados do estudo); rodada falha
+com o motivo original e sem curvas; rodada concluída com o **mesmo custo da origem** e 31 passos; integridade
+reconferida; recarga e link direto após reinício reabrem o mesmo estudo e a mesma rodada; reimportação reconhecida
+como duplicata; tablet retrato/paisagem sem rolagem horizontal e gráfico dentro da tela; tema escuro.
+Primeira execução: 2 falhas do PRÓPRIO roteiro (procurava gráficos abaixo da dobra antes de o Streamlit desenhá-los)
+e a ordem clima→demanda corrigida na interface (§15); o protocolo inteiro foi repetido do zero.
+
+### 14. Regressões e compatibilidade
+
+- `git diff origin/main --stat -- models h2_pemfc simulation config ems_integration reference_models
+  orchestrator_runtime.py orchestrator_app.py` → **vazio**.
+- Banco da microrrede inalterado (v4); backup ZIP formato 2 inalterado (apenas o texto de alcance mudou);
+  `execution_ui.render_run` delega a `run_results` (mesma saída; testes 2C sem alteração).
+- Estudos v1 serão legíveis pelas próximas versões (política §4).
+
+### 15. Problemas detectados e corrigidos durante a missão
+
+1. Previsões apareciam clima → demanda (ordem canônica das chaves JSON): ordenadas demanda → clima, como no 2B.
+2. Recarga com `?srun=` voltava à seção Procedência: a seção inicial passa a ser "Rodadas e resultados".
+3. Primeiro E2E: o roteiro procurava gráficos abaixo da dobra; o Streamlit só desenha o Plotly ao entrar na área
+   visível — o roteiro passou a rolar até cada gráfico; o protocolo inteiro foi repetido do zero.
+4. Teste auxiliar `_resign` usava tipo JSON para CSV (a inspeção recusava por tipo antes da relação testada);
+   corrigido no teste para que cada caso exercite a regra pretendida.
+
+### 16. Riscos residuais
+
+1. SHA-256 interno ≠ assinatura: um pacote forjado de forma coerente (documentos com impressões digitais recalculadas)
+   é aceito como consistente; autenticidade exigiria assinatura (fora do escopo).
+2. Estudos arquivados não podem ser excluídos pela interface (imutáveis); limpeza exige intervenção manual no banco.
+3. Upload limitado pelo Streamlit (200 MB padrão) e mantido em memória do servidor; pacotes grandes exigem ajuste de
+   `server.maxUploadSize`. A transação única da importação cresce o WAL até o COMMIT.
+4. `owner` das rodadas (host|pid|token) e caminhos não aparecem no pacote, mas o nome do host de origem sim (parte da
+   linha imutável da rodada).
+5. A exportação usa a pasta temporária do sistema; arquivos preparados com mais de 1 h são removidos na próxima
+   preparação.
+6. "CRIAR VARIANTE OPERATIVA" apenas documentada (contrato em `seeds2/archive/service.py`).
+
+### 17. Arquivos modificados
+
+| Arquivo | Propósito |
+|---|---|
+| `seeds2/archive/__init__.py`, `format.py`, `exporter.py`, `store.py`, `view.py`, `service.py` (novos) | contrato, inspeção, exportação, Arquivo Científico, consulta, arquivar |
+| `seeds2/ui/archive_ui.py` (novo) | interface do Arquivo Científico |
+| `seeds2/microgrid/store.py` | `snapshot()` + `StoreSnapshot` (somente leitura) |
+| `seeds2/ui/execution_ui.py` | `run_results` extraído de `render_run` (reutilizado pelo estudo) |
+| `seeds2/ui/operation_center.py`, `main.py`, `shell.py`, `session.py`, `gestor.py` | rotas `arquivo`/`estudo`, cartão, `?study=`/`?srun=`, `session.archive()`, botão no Gestor, textos de alcance e de exclusão |
+| `seeds2/__init__.py`, `seeds2/operation/contracts.py` | `APP_VERSION = 2.0.0-piso2da`; contrato 2D-A |
+| `tests/test_seeds2_piso2da.py`, `tests/test_seeds2_piso2da_app.py` (novos); `tests/apptest_utils.py`, `tests/test_seeds2_gestor_app.py` | testes |
+| `tools/e2e/e2e_piso2da_arquivo.js`, `tools/e2e/seed_piso2da.py` (novos) | E2E |
+| `PARAMIJEFE.md`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, `docs/seeds2/ARMAZENAMENTO.md` | documentação |
+
+### 18. Instruções de auditoria independente
+
+1. `seeds2/archive/format.py` — `_structure` (estrutura antes de descomprimir), `stream_entry` (leitura limitada),
+   `_manifest_errors`, `_relations` (regras do §6), `iter_resources` (2ª leitura reconferida).
+2. `seeds2/archive/store.py` — `import_package` (inspeção sempre refeita, transação única, `expected_content_id`,
+   duplicatas) e os triggers do esquema v1.
+3. `seeds2/archive/exporter.py` — leitura num único `snapshot`; texto exato; recusa de rodada em execução.
+4. `seeds2/ui/archive_ui.py` — nenhuma importação de `orchestrator_runtime`/EMS; `run_results(view, …)`.
+5. Reproduzir: `python tools/e2e/seed_piso2da.py <origem>` → servidor na origem → Centro → Arquivo Científico →
+   PREPARAR → baixar; servidor NOVO com `SEEDS2_DATA_DIR` vazio → Gestor → ARQUIVO CIENTÍFICO → enviar → confirmar →
+   ABRIR ESTUDO → Rodadas → custo igual ao da origem; reiniciar o servidor e reabrir pelo link.
+
+### 19. Preparação para o Piso 2D-B
+
+`StudyView` é a fonte única para relatórios: documentos de versão, revisões (migradas para exibição), previsões
+(`F.load(entry, view.get_blob)`), rodadas (`StoredRun`) e séries (`view.run_csv`). PDF/Excel/figuras poderão ser
+gerados igualmente para rodadas locais (`MicrogridStore`) e arquivadas (`StudyView`), pois ambas oferecem
+`run_data`/`get_run`. Os relatórios deverão identificar a procedência (origem × local) como a interface faz.
+
+### 20. Correção de auditoria C-03 — consistência de procedência do Arquivo Científico
+
+A auditoria independente do PR #9 foi **favorável** (formato v1, exportação por instantâneo, importação atômica,
+separação de identidades, estudos imutáveis, recuperação sem recalcular, testes e E2E aprovados) e pediu uma correção
+focalizada do verificador de pacotes não confiáveis. Escopo: somente `seeds2/archive/format.py` (`_relations`) e testes;
+formato ZIP v1, exportador, importação, `archive.db`, bancos das microrredes (v4), EMS e modelos **inalterados**.
+
+**Causa.** `_relations()` conferia SHA-256/tamanho, impressões digitais e várias referências, mas (a) da rodada só
+contrastava `run_uid`, `scenario_uid`, versão e impressão digital do cenário — não a microrrede, a incarnação, nem a
+revisão/impressão do inventário do manifesto de procedência (`reference`) contra o registro (`run.json`), nem a revisão
+do registro contra a revisão referenciada pela versão executada; (b) o índice `manifest.dependencies` não era
+verificado. Um pacote com recursos íntegros e manifesto recalculado podia, portanto, atribuir uma rodada a outra
+microrrede, declarar outra incarnação/revisão no manifesto da rodada ou trazer um grafo de dependências falso — e ser
+aceito. Reproduzido: os 7 testes negativos abaixo **falham** com o `format.py` anterior (pacotes aceitos) e passam com a
+correção.
+
+**Solução** (`format._relations`; `_clash(a, b)` = dois valores DECLARADOS e diferentes):
+- **Versões:** `microgrid_uid` dos metadados = origem; incarnação do documento × origem (só quando ambas declaradas).
+- **Rodadas:** `run.json.microgrid_uid` = origem; incarnação do registro × origem (ambas declaradas); revisão e
+  impressão do inventário do registro = as da versão executada; `manifest.json.reference`: `microgrid_uid` = registro,
+  incarnação × registro e × origem (declaradas), e `scenario_uid`, `scenario_version`, `scenario_fingerprint`,
+  `config_revision`, `config_fingerprint` IGUAIS ao registro (que já era conferido contra versão e revisão incluídas).
+- **Dependências:** o grafo é RECONSTRUÍDO dos recursos verificados com as mesmas funções de referência usadas pelo
+  exportador (`MicrogridStore._scenario_blobs`, `_referenced_blobs`, caminhos `version_path`/`revision_path`, arquivos
+  da rodada) e deve ser **exatamente igual** a `manifest.dependencies` (seções `versions`, `inventory_revisions`,
+  `runs`; chave ausente, adicional, inexistente ou alterada → rejeição). A comparação só ocorre quando o restante do
+  pacote é consistente (diagnóstico sem cascata).
+- `None` continua significando "não registrado" (dados legítimos anteriores ou armazenamento sem incarnação): não é
+  conflito. Os pacotes autênticos exportados pelo 2D-A continuam aceitos (todos os testes anteriores inalterados).
+- O SHA-256 continua sem constituir assinatura: as novas verificações garantem consistência interna, não autoria.
+
+**Evidência** (`tests/test_seeds2_piso2da.py::RelacoesC03Test`, pacotes com recursos íntegros e hashes recalculados):
+
+| Caso | Teste | Resultado |
+|---|---|---|
+| Pacote autêntico (e reempacotado) aceito; grafo reconstruído = declarado | `test_pacote_autentico_continua_aceito_e_dependencias_reconstruidas` | aceito |
+| 1 rodada com `microgrid_uid` de outra microrrede | `test_1_rodada_atribuida_a_outra_microrrede` | rejeitado |
+| 2 incarnação contraditória (registro; manifesto da rodada) | `test_2_incarnacao_contraditoria_quando_ambas_declaradas` | rejeitado |
+| Incarnação `None` (registros/manifestos herdados; origem sem incarnação) | `test_incarnacao_nao_registrada_em_dados_herdados_nao_e_conflito` | aceito |
+| 3 `config_revision`/`config_fingerprint` do manifesto ≠ registro; registro ≠ versão executada | `test_3_revisao_ou_impressao_do_manifesto_da_rodada_diferente_do_registro` | rejeitado |
+| 4 referência de cenário contraditória (microrrede, cenário, versão) | `test_4_referencia_de_cenario_contraditoria` | rejeitado |
+| 5 dependência de versão apontando para OUTRA revisão real (estudo com revisões 1 e 2, versão rebaseada) | `test_5_dependencia_de_versao_aponta_para_outra_revisao` | rejeitado |
+| 6 dependência apontando para blob diferente (previsão; inventário) | `test_6_dependencia_aponta_para_blob_diferente` | rejeitado |
+| 7 dependência de rodada omitindo/acrescentando arquivo; versão errada; rodada inexistente; versão ausente; índice ausente | `test_7_dependencia_de_rodada_omite_ou_acrescenta_arquivo` | rejeitado |
+
+Execuções: `python -m pytest tests/ -q` → **407 passed, 0 failed** (264 s; 128 subtests; os mesmos 7 avisos) — 398
+anteriores + 9 novos; nenhum teste existente alterado. Reprodução da insuficiência: os 9 testes executados contra o
+`format.py` anterior (HEAD `89026b1`) → **7 failed** (todos os casos negativos aceitos) / 2 passed (casos positivos).
+E2E `tools/e2e/e2e_piso2da_arquivo.js` repetido desde diretórios vazios (exportação legítima na origem → importação
+numa instalação LIMPA com o motor sabotado → `kill -9` → reinício → tablet/escuro): **62/62**, motor nunca chamado no
+destino. `git diff origin/main --stat -- models h2_pemfc simulation config ems_integration reference_models
+orchestrator_runtime.py orchestrator_app.py` **vazio**.
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
 |---|---|---|---|---|
 | 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | **Integrado** em `main` (merge `4709f0c`), após auditoria favorável e correção C-01 (§15) |
 | 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
-| 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | Auditoria favorável; correção C-02 implementada e verificada (§17); aguardando autorização de merge |
+| 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
+| 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | Implementado e verificado na rama; aguardando auditoria |

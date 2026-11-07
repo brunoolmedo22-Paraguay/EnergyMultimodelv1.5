@@ -2,31 +2,34 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-06 · **rama:** `ccr-21b1e00e-u5u64z` · **PR:** [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) (pendiente de auditoría; sin merge) · **estado:** **Piso 2C — Execução EMS e Persistência Científica** implementado; auditoría favorable y corrección C-02 aplicada; **no integrado** en `main` (espera autorización).
+**Actualización:** 2026-11-07 · **rama:** `ccr-dea994b8-wl7tp3` · **PR:** [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) (pendiente de auditoría; sin merge) · **estado:** **Piso 2D-A — Arquivo Científico Portátil** implementado y verificado en la rama; auditoría favorable y corrección C-03 aplicada; **no integrado** en `main` (espera autorización).
 
-> **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 3** (canal permanente con el auditor). Este HANDOFF es solo el resumen de continuidad.
+> **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 4** (incluye el punto de continuidad). Este HANDOFF es solo el resumen de continuidad.
 
 ## 1. Estado actual
 
-- `main` (`43ee6f5`): V1.6 + PR #1–#5 + **PR #6** (Piso 2A + C-01, `4709f0c`) + **PR #7** (Piso 2B, `43ee6f5`), verificado con `git fetch`.
-- Rama `ccr-21b1e00e-u5u64z` (designada por el entorno de la sesión; la misión proponía `claude/seeds2-piso2c-execucao`): **Piso 2C** (sección 2).
-- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** → [Comissionamento] → **Centro de Operação**: 01 Inicialização · 02 Previsões · **03 Estratégia EMS** · **04 Execução** · vista de **rodada** `?run=`). Backend: `registry.db` + `microgrids/<uid>/seeds2.db` (**esquema v4**: `scenario_runs` + `scenario_run_data`); dominio en `seeds2/operation/` (`strategy`, `mission`, `preflight`, `runner` nuevos).
-- EMS, modelos, runtime y console V1.6 **sin cambios** (`git diff origin/main --stat -- models h2_pemfc simulation config ems_integration reference_models orchestrator_runtime.py orchestrator_app.py` vacío).
+- `main` (`34a8b52`): V1.6 + PR #1–#7 + **PR #8** (Piso 2C + C-02), verificado con `git fetch` (`HEAD = origin/main`). Línea de base: 355 passed.
+- Rama `ccr-dea994b8-wl7tp3` (designada por el entorno de la sesión; la misión proponía `claude/seeds2-piso2da-arquivo-cientifico`): **Piso 2D-A** (sección 2).
+- Arquitectura: `app.py` → shell `seeds2/ui/` (**Gestor** [+ **ARQUIVO CIENTÍFICO** sin microrred] → [Comissionamento] → **Centro de Operação**: 01–04 + cartón/aba **Arquivo Científico** `tab=arquivo`, estudio `tab=estudo&study=&srun=`). Backend: `registry.db` + `microgrids/<uid>/seeds2.db` (esquema v4, **sin cambios**) + **`scientific_archive/archive.db`** (nuevo, v1, estudios de solo lectura). Dominio nuevo: `seeds2/archive/` (`format`, `exporter`, `store`, `view`, `service`).
+- EMS, modelos, runtime y console V1.6 **sin cambios** (diff científico vacío).
 
-## 2. Última entrega — Piso 2C · Execução EMS e Persistência Científica (esta rama)
+## 2. Última entrega — Piso 2D-A · Arquivo Científico Portátil (esta rama)
 
-- **Implementado:** Estratégia EMS con opciones existentes del V1.6 (función objetivo única identificada; algoritmo, N, semilla, tolerancia, económicos, validación H₂) gravada en el escenario; ventana de la misión (`mission`) separada de horizonte de perfiles, paso (60 s fijo) y N; **preflight** (fase A estática + fase B sobre el contrato efectivo del motor vía `montar_fontes`) que BLOQUEA lo no representable; fusos → UTC, cobertura sin extrapolación, interpolación registrada (circular para dirección); runner en thread propio (progreso real k/n en el banco), idempotente, una rodada activa por microrred, `falhou`/`interrompida` sin resultados parciales; persistencia v4 con manifiesto inmutable y series completas; resultados (KPIs + curvas Plotly) reabiertos sin recalcular; avisos de backup y consentimiento específico de exclusión con rodadas. Detalle: `PARAMIJEFE.md` Entrega 3.
-- **Verificado (2026-11-06):** `python -m pytest tests/ -q` → **345 passed** (7 avisos, iguales a la línea de base) (línea de base `main`: 308 passed; +37 nuevos; 7 tests existentes actualizados al estado real); E2E Chromium desde directorios vacíos: Piso 2C **55/55** (con `kill -9` del servidor durante una rodada → `Interrompida` tras reiniciar); Piso 2B **58/58**, Piso 2A **53/53**, Gestor **52/52**, Piso 1 **66/66**. Costo idéntico al EMS V1.6 para entradas equivalentes (R$ 88,3190884544543 en 30 min; despacho ≤ 1e-9 kW).
-- **Decisiones del responsable aplicadas:** no corregir el optimizador; bloquear (no reinterpretar) lo no representable; ZIP sin cambio de formato; textos en portugués.
-- **Decisiones técnicas a revisar (Claude Code):** ventana en el escenario (no en la rodada); indisponible = excluido solo de la rodada; equipo disponible no representable = bloqueo; deriva del inventario = advertencia (usa la revisión de referencia); declaración explícita de "mismo reloj" para series sin fuso; prueba de rampa del 1º paso con `despacho._n_prev_de`; ver `PARAMIJEFE.md` Entrega 3 §4.
-- **Auditoría del PR #8 (2026-11-07): favorable** + corrección **C-02** (commit `4c8f14e`): C-02.1 equipo indisponible y excluido no exige estado inicial (`incompleto` → información; errores de coherencia y equipos disponibles incompletos siguen bloqueando); C-02.2 potencia inicial > 0 verificada contra `n_ini × [P_min_unid, P_max_unid]` del 1º paso ANTES de la rampa (rampa ilimitada no dispensa límites físicos), rechazo sin llamar al optimizador. Verificado: 355 passed; E2E 2C 55/55; diff científico vacío. Detalle: `PARAMIJEFE.md` Entrega 3 §17.
-- **Pendiente / riesgos:** capacidades científicas bloqueadas (SOC fuera de límites efectivos, SOC distintos, PEMFC apagada/parcial, térmica ≠ `int(Pmín>0)`, rampa activa); sin cancelación de rodada; ejecuciones serializadas por proceso; ZIP sin escenarios/rodadas (2D); rodadas del console V1.6 siguen solo con resumen.
+- **Implementado:** paquete versionado `seeds2-study` v1 (`.seeds2study.zip`) con UN escenario completo (todas las versiones, revisiones del inventario referenciadas + blobs + referencias de catálogo, previsiones normalizadas y originales, rodadas finalizadas con manifiesto/resultado/series; texto EXACTO de la origen); inspección de paquetes no confiables (SHA-256/tamaño de todos los recursos, huellas digitales, relaciones, Zip Slip, links, duplicados, bombas ZIP, JSON, ejecutables, versiones futuras); Arquivo Científico de la instalación (banco propio, tablas inmutables, importación atómica, identidad local ≠ identidad de origen, duplicados reconocidos o copia identificable); consulta histórica (procedencia, configuración, previsiones, rodadas/resultados con los gráficos 2C, integridad) sin ruta hasta el motor; Gestor con botón ARQUIVO CIENTÍFICO y textos de alcance/exclusión actualizados (C-01/C-02, H-01/H-02/H-03 intactos). Detalle: `PARAMIJEFE.md` Entrega 4.
+- **Verificado (2026-11-07):** `python -m pytest tests/ -q` → **398 passed** (línea de base `main`: 355; +43 nuevos; 7 avisos iguales); E2E Chromium desde directorios vacíos: **2D-A 62/62** (exportar en la origen → importar en instalación LIMPA con el motor saboteado → `kill -9` → reinicio → tablet; motor NUNCA llamado), regresión Piso 1 **66/66**, Gestor **52/52**, 2A **53/53**, 2B **58/58**, 2C **55/55**. Diff científico vacío. Detalle: `PARAMIJEFE.md` Entrega 4 §12–§13.
+- **Auditoría del PR #9 (2026-11-07): favorable** + corrección **C-03** (verificador de paquetes): identidad de cada rodada (microrred, incarnación cuando ambas declaradas, escenario/versión/revisión/huellas) contrastada entre origen, `run.json`, `manifest.json.reference` y la versión ejecutada; `manifest.dependencies` debe coincidir EXACTAMENTE con el grafo reconstruido de los recursos verificados. Formato v1, importación y bancos sin cambios. Verificado: 407 passed (+9; los 7 negativos fallaban con el código anterior); E2E 2D-A 62/62. Detalle: `PARAMIJEFE.md` Entrega 4 §20.
+- **Decisiones técnicas a revisar (Claude Code):** estudios en banco de la INSTALACIÓN (no en la microrred); texto exacto de documentos/manifiestos; validación de lectura mínima + huellas (no reglas de edición actuales); `content_id` para duplicados; transacción única; exportación rechazada con rodada en ejecución; ARQUIVAR NESTA INSTALAÇÃO = exportar + importar. Ver Entrega 4 §3.
+- **Pendiente / riesgos:** SHA-256 ≠ firma; estudios no eliminables por la interfaz; límite de upload del Streamlit (200 MB) y del paquete (512 MiB); "CRIAR VARIANTE OPERATIVA" solo como contrato; PDF/Excel/figuras = Piso 2D-B.
 
 ## 3. Próxima misión propuesta
 
-**Piso 2D — Arquivo científico** (no implementada ni autorizada): exportación/importación de escenarios + rodadas (manifiesto y `scenario_run_data` con SHA-256) en ZIP científico, PDF/Excel. Después: piso del optimizador para las capacidades pendientes (Entrega 3 §14.1).
+**Piso 2D-B** (no implementada ni autorizada): informes PDF, planillas Excel y ZIP de figuras a partir de `StudyView` (rodadas archivadas) y del `MicrogridStore` (rodadas locales). Después: piso del optimizador para las capacidades pendientes (Entrega 3 §14.1).
 
 ---
+
+## Histórico — entrega anterior: Piso 2C · Execução EMS e Persistência Científica (PR #8, integrado en `34a8b52`)
+
+- Etapas 03 Estrategia EMS y 04 Ejecución; preflight (fases A/B) que BLOQUEA lo no representable; runner en thread propio; persistencia v4 (`scenario_runs` + `scenario_run_data`) con manifiesto inmutable y series completas; auditoría favorable + corrección C-02. Verificado entonces: 355 passed; E2E 2C 55/55. Informe: `PARAMIJEFE.md` Entrega 3.
 
 ## Histórico — entrega anterior: Piso 2B · Previsões e Dados (PR #7, integrado en `43ee6f5`)
 
@@ -95,6 +98,7 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#5](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/5) — Gestor de microrredes + H-01/H-02/H-03 (merge squash `50ef4d6`, 2026-11-06; 237 passed, E2E Gestor 52/52 y Piso 1 66/66 reportados entonces). La regla de microrred única queda **sustituida por autorización del responsable**.
 - PR [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) — Piso 2A, Centro de Operação + C-01 (merge `4709f0c`); inicia el protocolo `PARAMIJEFE.md`.
 - PR [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) — Piso 2B, Previsões e Dados (merge `43ee6f5`): `PARAMIJEFE.md` Entrega 2.
-- Piso 2C — Execução EMS e Persistência Científica (rama `ccr-21b1e00e-u5u64z`; PR [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8)): `PARAMIJEFE.md` Entrega 3.
+- PR [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) — Piso 2C, Execução EMS e Persistência Científica + C-02 (merge `34a8b52`): `PARAMIJEFE.md` Entrega 3.
+- Piso 2D-A — Arquivo Científico Portátil (rama `ccr-dea994b8-wl7tp3`; PR [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9), pendiente de auditoría): `PARAMIJEFE.md` Entrega 4.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

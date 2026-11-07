@@ -28,12 +28,13 @@ from seeds2.operation import initialization as I
 from seeds2.operation import scenarios as S
 from seeds2.operation import service
 
-from . import execution_ui, forecasts_ui, forms, home, session, shell
+from . import archive_ui, execution_ui, forecasts_ui, forms, home, session, shell
 
 SCN = shell.SCENARIO_KEY
 TAB_INIT = "inicializacao"
 TAB_FC = forecasts_ui.TAB
 TAB_SG, TAB_EX, TAB_RUN = execution_ui.TAB_STRATEGY, execution_ui.TAB_EXEC, execution_ui.TAB_RUN
+TAB_AR, TAB_STUDY = archive_ui.TAB_LIST, archive_ui.TAB_STUDY        # Piso 2D-A — Arquivo Científico
 KIND_ORDER = ("battery", "pemfc", "thermal", "pv", "wind")
 KIND_SECTION = {"battery": "Armazenamento — baterias", "pemfc": "H₂ / PEMFC", "thermal": "Térmica",
                 "pv": "Solar fotovoltaica", "wind": "Eólica"}
@@ -343,6 +344,23 @@ def _cards(store, cur) -> None:
                 f'{_pill(ex_label + f" (v{cur.version})", ex_tone)}</div>' + "".join(rows))
 
 
+def _archive_card(store, cur) -> None:
+    """Piso 2D-A: acesso ao ARQUIVO CIENTÍFICO (exportar/importar/consultar estudos) sem alterar as etapas 01–04."""
+    try:
+        n = len(session.archive().list_studies())
+    except StoreError:
+        n = None
+    with st.container(border=True, key="op_archive_card"):
+        c1, c2 = st.columns([3.2, 1.3], vertical_alignment="center")
+        c1.html('<div class="op-k">Arquivo Científico</div><div class="op-t">Exportar, importar e consultar estudos</div>'
+                '<p class="op-d">EXPORTAR CENÁRIO COMPLETO (todas as versões, previsões, rodadas e resultados) em um pacote '
+                '.seeds2study.zip portátil; estudos importados ficam somente leitura e separados desta microrrede.'
+                + (f" {n} estudo(s) arquivado(s) nesta instalação." if n is not None else "") + '</p>')
+        if c2.button("ABRIR ARQUIVO CIENTÍFICO", key="op_open_ar", type="primary", width="stretch"):
+            shell.go("operacao", TAB_AR)
+            st.rerun()
+
+
 def _rebase(store, cur) -> None:
     try:
         res = service.rebase(store, cur.scenario_uid, cur.version)
@@ -415,6 +433,7 @@ def _panel(store, items, cur) -> None:
                   "estratégia e janela — sobre a revisão do inventário que ele referencia, e grava cada rodada (imutável) "
                   "nesta microrrede. A <b>Simulação</b> (console V1.6) continua independente: usa a configuração salva da "
                   "microrrede, suas condições da rodada e a demanda/clima do inventário.", "")
+    _archive_card(store, cur)
     with st.expander("Instalação física (inventário salvo) e prontidão do console V1.6"):
         home.installation_summary()
     with st.expander("Ferramentas V1.6 — bancadas individuais dos modelos"):
@@ -612,6 +631,8 @@ def render() -> None:
         execution_ui.render_execution(store, cur)
     elif tab == TAB_RUN:
         execution_ui.render_run(store, cur)
+    elif tab in (TAB_AR, TAB_STUDY):
+        archive_ui.render(store, base_view="operacao")
     else:
         _panel(store, items, cur)
 

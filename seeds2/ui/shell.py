@@ -12,7 +12,7 @@ from seeds2 import APP_VERSION
 
 STATIC = Path(__file__).resolve().parent / "static"
 _KIT = (STATIC / "kit.css").read_text(encoding="utf-8")
-VIEWS = ("gestor", "operacao", "gestao", "simulacao", "resultados", "alcance", "comissionamento")
+VIEWS = ("gestor", "operacao", "gestao", "simulacao", "resultados", "alcance", "comissionamento", "arquivo")
 VIEW_ALIASES = {"inicio": "operacao"}      # Piso 2A: o antigo "Início" foi substituído pelo Centro de Operação
 # Navegação da microrrede ativa, agrupada: operação (cotidiano) · gestão física · resultados. A microrrede NÃO é
 # um item do menu: é o contexto (identidade + TROCAR MICRORREDE na barra superior). "Alcance" é documentação
@@ -20,17 +20,26 @@ VIEW_ALIASES = {"inicio": "operacao"}      # Piso 2A: o antigo "Início" foi sub
 NAV_ACTIVE = [("operacao", "Centro de Operação", "operacao"), ("simulacao", "Simulação", "operacao"),
               ("gestao", "Gestão da Microrrede", "fisica"), ("resultados", "Resultados", "resultados")]
 NAV_COMMISSIONING = [("comissionamento", "Comissionamento", "fisica")]
-NAV_GESTOR = [("gestor", "Gestor de microrredes", "gestor")]
+NAV_GESTOR = [("gestor", "Gestor de microrredes", "gestor"), ("arquivo", "Arquivo Científico", "gestor")]
 NAV_DOCS = [("alcance", "Alcance")]
 SWITCH_KEY = "seeds_switch_requested"
 ROUTE_KEY = "seeds_route"
 SCENARIO_KEY = "op_scenario_uid"          # cenário selecionado no Centro de Operação (sobrevive à recarga: ?sc=)
+STUDY_KEY = "ar_study_uid"                # Piso 2D-A: estudo arquivado aberto (sobrevive à recarga: ?study=)
 # Alcance do backup ZIP (formato 2, inalterado nos Pisos 2A/2B/2C): exibido em TODA exportação/restauração/exclusão.
 BACKUP_SCOPE = ("O backup ZIP atual contém a configuração da microrrede e os dados compatíveis do Piso 1 (inventário, "
                 "dados de entrada importados, histórico de revisões). **Não inclui os cenários operativos do Centro de "
                 "Operação (Piso 2A)**, as previsões associadas a eles (Piso 2B) **nem as rodadas científicas executadas e "
                 "seus resultados (Piso 2C: séries completas, procedência e indicadores)**: nada disso pode ser recuperado a "
-                "partir deste arquivo. A exportação de cenários e resultados está prevista para o Piso 2D.")
+                "partir deste arquivo. Para preservar cenários, versões, previsões e rodadas use **EXPORTAR CENÁRIO COMPLETO** no "
+                "**Arquivo Científico** (pacote .seeds2study.zip, Piso 2D-A) — que, por sua vez, guarda experimentos e não "
+                "substitui este backup da configuração da microrrede.")
+# Arquivo Científico (Piso 2D-A): alcance exibido em toda exportação/importação de estudos.
+STUDY_SCOPE = ("O **Arquivo Científico** (.seeds2study.zip) preserva UM cenário completo — todas as versões, as revisões do "
+               "inventário que elas referenciam, previsões (séries normalizadas e arquivos originais), estratégia, janela e "
+               "todas as rodadas finalizadas com manifesto, resultados e séries — para consulta em qualquer instalação do "
+               "SEEDS2, sem executar o EMS de novo. **Não substitui o backup da microrrede** (.seeds2backup.zip): não "
+               "restaura a microrrede, o catálogo nem outros cenários.")
 RESTORE_SCOPE = ("Restaurar um backup ZIP cria uma nova revisão da configuração; **nenhum cenário operativo nem rodada "
                  "científica é restaurado** (o arquivo não os contém). Os cenários já existentes nesta microrrede são mantidos e passam a indicar "
                  "que o inventário mudou.")
@@ -172,9 +181,13 @@ def go(view: str, tab: str | None = None) -> None:
     sc = st.session_state.get(SCENARIO_KEY) if mg else None
     # Piso 2C: a rodada aberta (?run=<uid>) sobrevive à recarga enquanto a vista for a da rodada.
     run = (st.session_state.get("op_run_uid") or st.query_params.get("run")) if mg and tab == "rodada" else None
+    # Piso 2D-A: o estudo arquivado aberto (?study=<uid>) e a rodada consultada nele (?srun=) sobrevivem à recarga.
+    study = (st.session_state.get(STUDY_KEY) or st.query_params.get("study")) if tab == "estudo" else None
+    srun = (st.session_state.get("ar_run_uid") or st.query_params.get("srun")) if study else None
     st.query_params.clear()
     st.query_params.update({"view": r["view"], **({"tab": tab} if tab else {}), **({"mg": mg} if mg else {}),
-                            **({"sc": sc} if sc else {}), **({"run": run} if run else {})})
+                            **({"sc": sc} if sc else {}), **({"run": run} if run else {}),
+                            **({"study": study} if study else {}), **({"srun": srun} if srun else {})})
 
 
 def _on_topbar() -> None:

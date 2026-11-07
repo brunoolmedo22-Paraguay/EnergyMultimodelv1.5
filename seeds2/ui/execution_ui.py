@@ -487,9 +487,16 @@ def render_run(store, cur) -> None:
     if run.state == "em_execucao":
         _live(store, run.run_uid)
         return
+    run_results(store, run, key="op_run")
+
+
+def run_results(source, run, *, key: str) -> None:
+    """Resultados de uma rodada FINALIZADA lidos de ``source`` (``MicrogridStore`` da microrrede ou, no Piso 2D-A, um
+    estudo arquivado — mesmo contrato ``run_data``). Nunca chama modelos nem o otimizador. ``key`` prefixa os widgets."""
+    m = run.manifest
     if run.state != "concluida":
         err = run.error or {}
-        shell.callout(f"<b>Rodada {escape(contracts.RUN_STATE_LABELS[run.state].lower())}</b> — "
+        shell.callout(f"<b>Rodada {escape(contracts.RUN_STATE_LABELS.get(run.state, run.state).lower())}</b> — "
                       f"{escape(err.get('message') or '')} Nenhum resultado foi gravado como concluído.", "bad")
         chk = ((run.outcome or {}).get("engine_check") or {}).get("items") or err.get("items") or []
         if chk:
@@ -499,22 +506,22 @@ def render_run(store, cur) -> None:
     s = run.summary or {}
     _kpis(s)
     try:
-        out = runner.load_csv(store, run.run_uid, "saidas/despacho_ems.csv")
-        inp = runner.load_csv(store, run.run_uid, "entradas/missao.csv")
+        out = runner.load_csv(source, run.run_uid, "saidas/despacho_ems.csv")
+        inp = runner.load_csv(source, run.run_uid, "entradas/missao.csv")
     except StoreError as exc:
         st.error(shell.md(exc))
         return
     sub = f"{len(out)} passos de 60 s · fuso {M.tz_label((m.get('mission') or {}).get('timezone'))}"
-    st.plotly_chart(RC.power_figure(out, subtitle=sub), config=RC.CONFIG, key="op_run_power", width="stretch")
+    st.plotly_chart(RC.power_figure(out, subtitle=sub), config=RC.CONFIG, key=f"{key}_power", width="stretch")
     bat = ((m.get("engine_inputs") or {}).get("declared_initial_state") or {}).get("battery") or {}
     fig = RC.soc_figure(out, soc_min=bat.get("soc_min_pct"), soc_max=bat.get("soc_max_pct"), subtitle=sub)
     if fig is not None:
-        st.plotly_chart(fig, config=RC.CONFIG, key="op_run_soc", width="stretch")
+        st.plotly_chart(fig, config=RC.CONFIG, key=f"{key}_soc", width="stretch")
     fig = RC.h2_figure(out, subtitle=sub)
     if fig is not None:
-        st.plotly_chart(fig, config=RC.CONFIG, key="op_run_h2", width="stretch")
+        st.plotly_chart(fig, config=RC.CONFIG, key=f"{key}_h2", width="stretch")
     with st.expander("Entradas da missão gravadas (grade do motor)"):
-        st.plotly_chart(RC.inputs_figure(inp, subtitle=sub), config=RC.CONFIG, key="op_run_inputs", width="stretch")
+        st.plotly_chart(RC.inputs_figure(inp, subtitle=sub), config=RC.CONFIG, key=f"{key}_inputs", width="stretch")
     if s.get("avisos"):
         st.markdown('<div class="sd-section">Avisos do motor</div>', unsafe_allow_html=True)
         st.html("".join(shell.check(escape(a), "warn") for a in s["avisos"]))
@@ -553,4 +560,4 @@ def _provenance(run) -> None:
 
 
 __all__ = ["TAB_EXEC", "TAB_RUN", "TAB_STRATEGY", "clear_state", "open_run", "preflight", "render_execution", "render_run",
-           "render_strategy", "stage_state"]
+           "render_strategy", "run_results", "stage_state"]

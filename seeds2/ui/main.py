@@ -12,7 +12,7 @@ import streamlit as st
 from seeds2.microgrid.registry import MicrogridNotFound, valid_uid
 from seeds2.microgrid.store import MissingStoreError, StoreError
 
-from . import commissioning, gestor, management, operation_center, operations, scope, session, shell
+from . import archive_ui, commissioning, gestor, management, operation_center, operations, scope, session, shell
 
 
 def _restore_from_url() -> None:
@@ -67,10 +67,13 @@ def render(legacy_css: Callable[[], None]) -> None:
     r = shell.route()
     view = r["view"]
     if not is_open:
-        if view not in ("gestor", "alcance"):
+        if view not in ("gestor", "alcance", "arquivo"):     # Piso 2D-A: Arquivo Científico também sem microrrede
             view = "gestor"
     elif not commissioned and view not in ("comissionamento", "alcance"):
         view = "comissionamento"
+    elif commissioned and view == "arquivo":            # com microrrede aberta, o Arquivo fica no Centro de Operação
+        shell.go("operacao", r.get("tab") if r.get("tab") == archive_ui.TAB_STUDY else archive_ui.TAB_LIST)
+        r, view = shell.route(), "operacao"
     elif commissioned and view in ("comissionamento", "gestor"):
         view = "operacao"                               # Piso 2A: Centro de Operação é o início da microrrede ativa
     if view != r["view"] or (uid and st.query_params.get("mg") != uid):
@@ -99,6 +102,8 @@ def render(legacy_css: Callable[[], None]) -> None:
     try:
         if view == "gestor":
             gestor.render()
+        elif view == "arquivo":
+            archive_ui.render(None, base_view="arquivo")
         elif view == "comissionamento":
             commissioning.render()
         elif view == "alcance":
