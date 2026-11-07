@@ -19,12 +19,15 @@ Representação dos estados iniciais no EMS V1.6 (código, não suposição):
   restrição EFETIVA do despacho; SOC-alvo final = SOC inicial ± tolerância. SOC fora de [SOC_min, SOC_max] ou bancos
   agregados com SOC distintos → NÃO representável (bloqueio; o cenário continua gravável).
 * PEMFC — ``n_ini = N_fc`` (todas as unidades em operação), ``P_prev = 0``. Representável: "em operação" com TODAS as
-  unidades; potência inicial 0 é exatamente o contrato do motor; potência > 0 só se a restrição de rampa do primeiro
-  passo for comprovadamente inativa (fase B). Desligada, em partida ou com parte das unidades → bloqueio.
+  unidades; potência inicial 0 é exatamente o contrato do motor; potência > 0 só se (1) for admissível no envelope
+  caracterizado do 1º passo para as unidades em operação e (2) a rampa do 1º passo for comprovadamente inativa
+  (fase B; C-02.2). Desligada, em partida ou com parte das unidades → bloqueio.
 * Térmica — ``n_ini = int(Pmín > 0)``, ``P_prev = 0``. Representável: "desligada" quando Pmín = 0; "em operação"
-  quando Pmín > 0 (rampa do primeiro passo comprovadamente inativa, fase B). Demais → bloqueio. Sem física de partida.
+  quando Pmín > 0 com as mesmas condições (1) e (2) da fase B. Demais → bloqueio. Sem física de partida.
 * Indisponível — equipamento excluído SOMENTE da rodada (cópia do inventário com o equipamento desabilitado; o
-  adaptador agrega apenas o que é fisicamente equivalente). A exclusão é listada no relatório e gravada na rodada.
+  adaptador agrega apenas o que é fisicamente equivalente). A exclusão é listada no relatório e gravada na rodada. Seu
+  estado inicial não é exigido (o motor não o usa — C-02.1), mas valores declarados continuam validados (p. ex.
+  indisponível e em operação = erro de coerência).
 """
 from __future__ import annotations
 
@@ -161,17 +164,31 @@ def prepare(store, stored) -> Preflight:
             pf.add(OK, "inventario", f"Inventário de referência: revisão {rev.revision} "
                    + ("(atual)." if d.same_revision else f"(equivalente à revisão atual {saved.revision})."))
     # ---- estados iniciais (regras do Piso 2A)
+    # C-02.1: equipamento DECLARADO indisponível (e habilitado na revisão de referência) é excluído desta rodada; o
+    # motor não usará seu estado inicial, que portanto não é exigido ("não definido" vira informação). Erros de
+    # coerência de valores efetivamente declarados (p. ex. indisponível e em operação) continuam bloqueando.
+    enabled_ref = {e["id"] for e in rev.config.get("equipment", []) if e.get("enabled", True)}
+    unavailable_ids = {eq_id for eq_id, st in _states(doc).items()
+                       if eq_id in enabled_ref and (st or {}).get("availability") == "indisponivel"}
+    not_required: set[str] = set()
     findings = S.findings(doc)
     for f in findings:
         name = (_refs(doc).get(f.eq_id) or {}).get("name") if f.eq_id else None
         prefix = f"{name}: " if name else ""
         if f.level == I.ERROR:
             pf.add(ERROR, "inicializacao", prefix + f.message, f.eq_id)
+        elif f.level == I.INCOMPLETE and f.eq_id in unavailable_ids:
+            not_required.add(f.eq_id)
         elif f.level == I.INCOMPLETE:
             pf.add(ERROR, "inicializacao", prefix + "não definido — " + f.message, f.eq_id)
         elif f.level == I.WARNING:
             pf.add(WARNING, "inicializacao", prefix + f.message, f.eq_id)
         # PENDING: reinterpretado abaixo pelas regras de compatibilidade com o motor (nada é ignorado em silêncio).
+    for eq_id in sorted(not_required, key=lambda e: (_refs(doc).get(e) or {}).get("position", 0)):
+        r = _refs(doc).get(eq_id) or {}
+        pf.add(INFO, "inicializacao", f"{r.get('name', eq_id)}: estado inicial não definido e NÃO requerido — o "
+               "equipamento está declarado indisponível e é excluído do despacho desta rodada (o motor não o utiliza).",
+               eq_id)
     # ---- estratégia
     strat = doc.get("ems_strategy")
     if strat is None:
@@ -189,7 +206,7 @@ def prepare(store, stored) -> Preflight:
     by_id = {e["id"]: e for e in eff.get("equipment", [])}
     unavailable = set()
     for eq_id, st in states.items():
-        if eq_id in by_id and by_id[eq_id].get("enabled", True) and (st or {}).get("availability") == "indisponivel":
+        if eq_id in unavailable_ids and eq_id in by_id:
             unavailable.add(eq_id)
             by_id[eq_id]["enabled"] = False
             r = refs.get(eq_id) or {}
@@ -285,9 +302,10 @@ def _classify(pf: Preflight, plan: A.SimulationPlan, doc: dict, unavailable: set
                    "motor não pode ser demonstrada (o estado declarado é potência líquida entregue).")
         else:
             pf.add(CHECK, "inicializacao", f"PEMFC: {n_fc} unidade(s) em operação com {p0:g} kW. O EMS V1.6 começa com "
-                   "P_prev = 0 (sem restrição de rampa no 1º passo); antes do otimizador será verificado, com a rampa e o "
-                   "envelope caracterizados, que essa restrição não seria ativa a partir da potência declarada. Caso "
-                   "contrário a execução é recusada.")
+                   "P_prev = 0 (sem restrição de rampa no 1º passo); antes do otimizador será verificado, com o contrato "
+                   "caracterizado, (1) que a potência declarada é admissível no envelope do 1º passo para as unidades em "
+                   "operação e (2) que a rampa do 1º passo não seria ativa a partir dela. Caso contrário a execução é "
+                   "recusada.")
             pf.checks.append({"kind": "ramp", "source": "fc", "p0_kW": p0})
     # ---- térmica
     if spec["thermal"]["active"]:
@@ -305,8 +323,9 @@ def _classify(pf: Preflight, plan: A.SimulationPlan, doc: dict, unavailable: set
             pf.checks.append({"kind": "n_ini", "source": "termica", "expected": 0})
         elif state == "em_operacao" and n_ini == 1:
             pf.add(CHECK, "inicializacao", f"Térmica em operação com {p0:g} kW (Pmín = {pmin:g} kW → o EMS V1.6 inicia com "
-                   "n_ini = 1 e P_prev = 0). Antes do otimizador será verificado que a rampa do 1º passo não seria ativa "
-                   "a partir da potência declarada; caso contrário a execução é recusada.")
+                   "n_ini = 1 e P_prev = 0). Antes do otimizador será verificado que a potência declarada é admissível no "
+                   "envelope caracterizado do 1º passo e que a rampa do 1º passo não seria ativa a partir dela; caso "
+                   "contrário a execução é recusada.")
             pf.checks += [{"kind": "n_ini", "source": "termica", "expected": 1},
                           {"kind": "ramp", "source": "termica", "p0_kW": p0}]
         else:
@@ -395,10 +414,26 @@ def _engine_sources(package_dir: Path):
     return montar_fontes(pasta, t_min, arch, econ, C.get("opcoes_fontes", {}), Log()), float(C.get("Ts_s", 60))
 
 
+def initial_power_admissible(f, p0: float) -> tuple[bool, str]:
+    """C-02.2: a potência inicial declarada ``p0`` > 0 é uma condição ADMISSÍVEL do contrato caracterizado, no estado
+    discreto que o motor realmente representa no instante inicial (``n_ini`` unidades em operação)? Exige
+    ``n_ini ≥ 1`` e ``n_ini·P_min_unid_kW[0] ≤ p0 ≤ n_ini·P_max_unid_kW[0]`` (envelope do 1º passo). Independe da
+    rampa: uma rampa ilimitada não elimina os limites físicos de potência."""
+    n = int(f.n_ini)
+    pmin, pmax = float(f.P_min_unid_kW[0]), float(f.P_max_unid_kW[0])
+    if n < 1:
+        return False, f"o motor representa {n} unidade(s) em operação no instante inicial; potência {p0:g} kW > 0 é inadmissível"
+    lo, hi = n * pmin, n * pmax
+    ok = lo - 1e-9 <= p0 <= hi + 1e-9
+    return ok, (f"declarada {p0:g} kW; intervalo efetivo [{lo:.4g}, {hi:.4g}] kW = {n} unidade(s) em operação × envelope "
+                f"caracterizado do 1º passo [{pmin:.4g}, {pmax:.4g}] kW por unidade")
+
+
 def ramp_inactive(f, p0: float, ts_s: float) -> tuple[bool, str]:
     """A restrição de rampa do 1º passo que o EMS aplicaria com ``P_prev = p0`` (``despacho.restricoes_lineares``) é
     inativa em TODA a caixa viável de cada configuração candidata? Então o problema com ``P_prev = 0`` (contrato do
-    motor) é o mesmo problema que o estado declarado definiria."""
+    motor) é o mesmo problema que o estado declarado definiria. Trata SOMENTE da rampa: a admissibilidade de ``p0``
+    no envelope é verificada antes, por ``initial_power_admissible`` (C-02.2)."""
     from ems_integration.despacho import _n_prev_de
 
     if not np.isfinite(f.ramp_kW_min):
@@ -454,9 +489,18 @@ def engine_check(pf: Preflight, package_dir: Path) -> tuple[bool, list[dict], di
             if f is None:
                 res(False, f"Fonte {c['source']} ausente do contrato do motor.")
                 continue
-            good, detail = ramp_inactive(f, float(c["p0_kW"]), ts_s)
             label = {"fc": "PEMFC", "termica": "Térmica"}[c["source"]]
-            res(good, f"{label}: potência inicial declarada {c['p0_kW']:g} kW — " + (
+            p0 = float(c["p0_kW"])
+            # 1) limites físicos do contrato caracterizado (sempre; mesmo com rampa ilimitada)
+            adm, adetail = initial_power_admissible(f, p0)
+            res(adm, f"{label}: potência inicial " + ("admissível no envelope efetivo do motor " if adm else
+                "FORA do envelope efetivo do motor — estado declarado não representável; execução recusada antes do "
+                "otimizador ") + f"({adetail}).")
+            if not adm:
+                continue
+            # 2) só então, a rampa do 1º passo
+            good, detail = ramp_inactive(f, p0, ts_s)
+            res(good, f"{label}: potência inicial declarada {p0:g} kW — " + (
                 "restrição de rampa do 1º passo comprovadamente inativa; P_prev = 0 do motor é equivalente "
                 if good else "a rampa do 1º passo PODERIA restringir o despacho; o motor (P_prev = 0) não representa o "
                 "estado declarado — execução recusada antes do otimizador ") + f"({detail}).")
@@ -467,4 +511,4 @@ def engine_check(pf: Preflight, package_dir: Path) -> tuple[bool, list[dict], di
 
 
 __all__ = ["AREAS", "AREA_LABELS", "CHECK", "ERROR", "INFO", "Item", "LEVEL_LABELS", "OK", "Preflight", "WARNING",
-           "engine_check", "prepare", "ramp_inactive"]
+           "engine_check", "initial_power_admissible", "prepare", "ramp_inactive"]

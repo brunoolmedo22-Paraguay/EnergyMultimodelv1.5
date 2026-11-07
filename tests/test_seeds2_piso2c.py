@@ -720,5 +720,191 @@ class ExecucaoTest(_Base):
         self.assertAlmostEqual(float(r["rel"]["custo_total_rs"]), 417.684638, places=5)
 
 
+# =========================================================================== correção de auditoria C-02
+def _ids(sc, kind=None, name=None):
+    eqs = sc.document["inventory_ref"]["equipment"]
+    return [e for e, r in eqs.items() if (kind is None or r["kind"] == kind) and (name is None or r["name"] == name)]
+
+
+class CorrecaoC02IndisponivelTest(_Base):
+    """C-02.1 — equipamento declarado indisponível (excluído do despacho) não exige estado inicial que o motor não usa;
+    valores declarados continuam validados; disponível com estado incompleto continua bloqueado."""
+
+    def test_bateria_indisponivel_sem_soc_executa_e_fica_fora_do_pacote(self):
+        _, st = self.make()
+        sc = ready(st)
+        bats = _ids(sc, "battery")
+
+        def bats_off(d):
+            for e in bats:
+                d["initialization"]["equipment"][e].update(availability="indisponivel", soc0_pct=None)
+        sc2 = edit(st, sc, bats_off)
+        before_inv = st.load()
+        before_doc = st.get_scenario(sc2.scenario_uid, sc2.version)
+        pf = runner.prepare(st, sc2.scenario_uid, sc2.version)
+        self.assertTrue(pf.ok, levels(pf, P.ERROR))
+        infos = levels(pf, P.INFO)
+        self.assertEqual(sum("NÃO requerido" in m for m in infos), 2, infos)       # informado por banco
+        self.assertFalse(pf.plan.spec["battery"]["active"])
+        self.assertEqual(sorted(e["id"] for e in pf.excluded), sorted(bats))
+        run = runner.submit(st, sc2.scenario_uid, sc2.version, runner.new_request_id(), background=False)
+        self.assertEqual(run.state, "concluida", run.error)
+        self.assertEqual(run.outcome["effective_engine"]["nomes"], ["fc"])        # bateria fora do contrato do EMS
+        names = zipfile.ZipFile(io.BytesIO(st.run_data(run.run_uid, "pacote_troca.zip"))).namelist()
+        self.assertNotIn("bateria.csv", names)
+        cfg = json.loads(zipfile.ZipFile(io.BytesIO(st.run_data(run.run_uid, "pacote_troca.zip"))).read("ems_config.json"))
+        self.assertEqual(cfg["opcoes_fontes"]["fontes"], ["fc"])
+        self.assertNotIn("SOC_bateria", runner.load_csv(st, run.run_uid, "saidas/despacho_ems.csv").columns)
+        # inventário físico e versão gravada do cenário intactos
+        after_inv = st.load()
+        self.assertEqual((after_inv.revision, after_inv.fingerprint), (before_inv.revision, before_inv.fingerprint))
+        after_doc = st.get_scenario(sc2.scenario_uid, sc2.version)
+        self.assertEqual(after_doc.fingerprint, before_doc.fingerprint)
+        self.assertIsNone(after_doc.document["initialization"]["equipment"][bats[0]]["soc0_pct"])
+        self.assertTrue(all(e["enabled"] for e in after_inv.config["equipment"]))
+
+    def test_bateria_disponivel_sem_soc_continua_bloqueada(self):
+        _, st = self.make()
+        sc = ready(st)
+        bats = _ids(sc, "battery")
+        sc2 = edit(st, sc, lambda d: d["initialization"]["equipment"][bats[0]].update(soc0_pct=None))
+        pf = runner.prepare(st, sc2.scenario_uid, sc2.version)
+        self.assertFalse(pf.ok)
+        self.assertTrue(any("não definido" in e and "SOC inicial" in e for e in levels(pf, P.ERROR)), levels(pf, P.ERROR))
+        self.assertFalse(any("NÃO requerido" in m for m in levels(pf, P.INFO)))
+        with self.assertRaises(runner.PreflightError):
+            runner.submit(st, sc2.scenario_uid, sc2.version, runner.new_request_id(), background=False)
+
+    def test_indisponivel_com_estado_contraditorio_mantem_o_erro(self):
+        _, st = self.make()
+        sc = ready(st)
+        fc_b = _ids(sc, name="Bloco PEMFC B")[0]
+        # indisponível e EM OPERAÇÃO: incoerente → o Piso 2A recusa gravar; o preflight também recusa o documento
+        doc = copy.deepcopy(sc.document)
+        doc["initialization"]["equipment"][fc_b].update(availability="indisponivel", state="em_operacao", units_on=1,
+                                                       power_kW=0.0)
+        with self.assertRaises(S.ScenarioValidationError):
+            service.save(st, doc, sc.version)
+        stored = st.save_scenario(doc, sc.version, note="gravação direta (documento incoerente)")   # sem a camada 2A
+        pf = runner.prepare(st, stored.scenario_uid, stored.version)
+        self.assertFalse(pf.ok)
+        self.assertTrue(any("indisponível não pode estar 'em operação'" in e for e in levels(pf, P.ERROR)),
+                        levels(pf, P.ERROR))
+
+    def test_pemfc_e_termica_indisponiveis_sem_estado_nao_exigem_estado(self):
+        _, st = self.make()
+        self.add_equipment(st, thermal_eq(pmin=20.0))
+        sc = ready(st, thermal={"state": "em_operacao", "power_kW": 50.0})
+        fc_b = _ids(sc, name="Bloco PEMFC B")[0]
+        th = _ids(sc, "thermal")[0]
+
+        def off(d):
+            d["initialization"]["equipment"][fc_b].update(availability="indisponivel", state=None, units_on=None,
+                                                         power_kW=None)
+            d["initialization"]["equipment"][th].update(availability="indisponivel", state=None, power_kW=None)
+        sc2 = edit(st, sc, off)
+        pf = runner.prepare(st, sc2.scenario_uid, sc2.version)
+        self.assertTrue(pf.ok, levels(pf, P.ERROR))
+        self.assertEqual(sum("NÃO requerido" in m for m in levels(pf, P.INFO)), 2)
+        self.assertEqual(pf.plan.spec["fc"]["N_fc"], 3)
+        self.assertFalse(pf.plan.spec["thermal"]["active"])
+        # a mesma PEMFC DISPONÍVEL sem estado: bloqueio mantido
+        sc3 = edit(st, sc2, lambda d: d["initialization"]["equipment"][fc_b].update(availability="disponivel"))
+        pf = runner.prepare(st, sc3.scenario_uid, sc3.version)
+        self.assertTrue(any("Estado operativo inicial não definido" in e for e in levels(pf, P.ERROR)), levels(pf, P.ERROR))
+
+
+class CorrecaoC02PotenciaInicialTest(_Base):
+    """C-02.2 — potência inicial > 0 precisa ser admissível no envelope caracterizado (estado discreto representado)
+    ANTES da verificação de rampa; rampa ilimitada não dispensa os limites físicos."""
+
+    def _fonte(self, **kw):
+        from ems_integration.contrato import Fonte
+        base = dict(nome="fc", tipo="geracao", n_unid=4, n_ini=4, dn_max=1, P_max_unid_kW=np.full(3, 50.0),
+                    P_min_unid_kW=np.full(3, 10.0), ramp_kW_min=np.inf)
+        base.update(kw)
+        return Fonte(**base)
+
+    def test_admissibilidade_independe_da_rampa(self):
+        f = self._fonte()
+        self.assertEqual(P.ramp_inactive(f, 30.0, 60.0)[0], True)              # rampa ilimitada…
+        ok, detail = P.initial_power_admissible(f, 30.0)                      # …mas 30 < 4 × 10 kW
+        self.assertFalse(ok)
+        self.assertIn("declarada 30 kW; intervalo efetivo [40, 200] kW", detail)
+        self.assertFalse(P.initial_power_admissible(f, 201.0)[0])
+        self.assertTrue(P.initial_power_admissible(f, 40.0)[0])
+        self.assertTrue(P.initial_power_admissible(f, 200.0)[0])
+        off = self._fonte(nome="termica", n_unid=1, n_ini=0, dn_max=np.inf, P_min_unid_kW=np.zeros(3))
+        self.assertFalse(P.initial_power_admissible(off, 5.0)[0])              # motor desligado: P0 > 0 inadmissível
+
+    def _run(self, st, sc):
+        with mock.patch("orchestrator_runtime.run_optimizer", side_effect=AssertionError("otimizador chamado")):
+            return runner.submit(st, sc.scenario_uid, sc.version, runner.new_request_id(), background=False)
+
+    def test_fora_do_envelope_com_rampa_finita_recusada_antes_do_otimizador(self):
+        _, st = self.make()
+        sc = ready(st, fc_power=30.0)                                          # 4 unidades × Pmín 10 kW = 40 kW
+        self.assertTrue(runner.prepare(st, sc.scenario_uid, sc.version).ok)   # aceito na fase A (verificação condicionada)
+        run = self._run(st, sc)
+        self.assertEqual((run.state, run.error["kind"]), ("falhou", "incompatibilidade"))
+        msgs = [i["message"] for i in run.outcome["engine_check"]["items"]]
+        self.assertTrue(any("FORA do envelope efetivo" in m and "intervalo efetivo [40, 200] kW" in m for m in msgs), msgs)
+        self.assertFalse(any("rampa do 1º passo" in m for m in msgs))         # rampa nem avaliada
+        self.assertEqual((run.data, run.summary), ({}, None))
+
+    def test_fora_do_envelope_com_rampa_ilimitada_recusada(self):
+        _, st = self.make()
+        sc = ready(st, fc_power=30.0)
+        real = P._engine_sources
+
+        def unlimited(pasta):
+            fontes, ts = real(pasta)
+            for f in fontes:
+                if f.nome == "fc":
+                    f.ramp_kW_min = np.inf
+            return fontes, ts
+        with mock.patch.object(P, "_engine_sources", side_effect=unlimited):
+            run = self._run(st, sc)
+        self.assertEqual((run.state, run.error["kind"]), ("falhou", "incompatibilidade"))
+        eff = run.outcome["engine_check"]["effective_initial_state"]["fc"]
+        self.assertIsNone(eff["ramp_kW_min"])                                  # rampa ilimitada de fato
+        self.assertTrue(any("FORA do envelope" in i["message"] for i in run.outcome["engine_check"]["items"]))
+
+    def test_dentro_do_envelope_rampa_inativa_e_resultado_identico_ao_p0_zero(self):
+        _, st = self.make()
+        zero = runner.submit(st, ready(st, name="P0 0").scenario_uid, 2, runner.new_request_id(), background=False)
+        sc = ready(st, fc_power=100.0, name="P0 100")
+        run = runner.submit(st, sc.scenario_uid, sc.version, runner.new_request_id(), background=False)
+        self.assertEqual(run.state, "concluida", run.error)
+        msgs = [i["message"] for i in run.outcome["engine_check"]["items"]]
+        self.assertTrue(any("admissível no envelope efetivo" in m and "intervalo efetivo [40, 200] kW" in m for m in msgs))
+        self.assertTrue(any("comprovadamente inativa" in m for m in msgs))
+        # problema equivalente → mesmas entradas do motor → mesmo custo e mesmo despacho que P0 = 0
+        self.assertEqual(run.summary["custo_total_rs"], zero.summary["custo_total_rs"])
+        a = runner.load_csv(st, run.run_uid, "saidas/despacho_ems.csv")
+        b = runner.load_csv(st, zero.run_uid, "saidas/despacho_ems.csv")
+        np.testing.assert_array_equal(a["P_fc_kW"].to_numpy(), b["P_fc_kW"].to_numpy())
+
+    def test_valida_mas_rampa_restritiva_continua_recusada(self):
+        _, st = self.make()
+        sc = ready(st, fc_power=195.0)
+        run = self._run(st, sc)
+        self.assertEqual((run.state, run.error["kind"]), ("falhou", "incompatibilidade"))
+        msgs = [i["message"] for i in run.outcome["engine_check"]["items"]]
+        self.assertTrue(any("admissível no envelope efetivo" in m for m in msgs))     # 1º limites físicos (ok)…
+        self.assertTrue(any("PODERIA restringir" in m for m in msgs))                 # …depois a rampa (recusa)
+
+    def test_termica_sem_rampa_dentro_do_envelope_executa(self):
+        _, st = self.make()
+        self.add_equipment(st, thermal_eq(pmin=20.0, ramp=None))
+        sc = ready(st, thermal={"state": "em_operacao", "power_kW": 50.0})
+        run = runner.submit(st, sc.scenario_uid, sc.version, runner.new_request_id(), background=False)
+        self.assertEqual(run.state, "concluida", run.error)
+        eff = run.outcome["engine_check"]["effective_initial_state"]["termica"]
+        self.assertEqual((eff["n_ini"], eff["ramp_kW_min"]), (1, None))
+        msgs = [i["message"] for i in run.outcome["engine_check"]["items"]]
+        self.assertTrue(any("Térmica: potência inicial admissível" in m and "[20, 80] kW" in m for m in msgs), msgs)
+
+
 if __name__ == "__main__":
     unittest.main()
