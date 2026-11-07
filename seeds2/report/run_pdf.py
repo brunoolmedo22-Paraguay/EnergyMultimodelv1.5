@@ -356,6 +356,12 @@ def _executive(d: D.RunDossier) -> list:
                  f"({t(M.tz_label(d.timezone))}; UTC {t(mis.get('start_utc'))}), discretizada pelo motor em "
                  f"{t(s.get('passos'))} instantes com passo de {num(s.get('Ts_s'), 0, 's')}. Todos os valores desta seção "
                  "são lidos do resumo persistido da rodada (<i>StoredRun.summary</i>); nenhum foi recalculado."))
+    ic = D.integration_convention(d)
+    out.append(note(f"<b>Integração temporal (convenção registrada, não corrigida).</b> Duração declarada: "
+                    f"{t(ic['duration_min'])} min · passos integrados: {t(ic['steps'])} · passo Ts = "
+                    f"{num(ic['Ts_s'], 0, 's')} · duração efetivamente integrada: {num(ic['integrated_min'], 0, 'min')}. "
+                    f"Fórmula do runner: {t(ic['formula'])}. {t(ic['note'])}", "warn" if ic["differs"] else "info"))
+    out.append(Spacer(1, 2 * mm))
     rows = []
     for ind in D.indicators(d):
         if ind.key.startswith(("energia_por_fonte", "custo_por_fonte", "rel.pct")):
@@ -688,6 +694,9 @@ def _limitations(d: D.RunDossier, n: int) -> list:
     sw = [f"{t(_rule_label(k))}: {t(v)}" for k, v in ((d.manifest.get("engine_inputs") or {}).get("engine_initial_state_rule") or {}).items()]
     sw += [f"{t(k)}: {t(v)}" for k, v in (d.manifest.get("engine_fixed") or {}).items()]
     sw.append("Função objetivo única (custo econômico do EMS V1.6); sem otimização multiobjetivo.")
+    if d.concluded:
+        ic = D.integration_convention(d)
+        sw.append(f"Integração temporal das energias: {t(ic['formula'])} — {t(ic['note'])}")
     out += bullets(sw)
     return out
 
@@ -714,6 +723,7 @@ def _diagnostic(d: D.RunDossier) -> list:
 # ====================================================================== montagem
 def build_report(d: D.RunDossier, *, generated_at: str | None = None, progress=None) -> bytes:
     """PDF do relatório (rodada concluída) ou do diagnóstico (falha/interrupção). Nada é gravado."""
+    D.require_complete(d)
     _fonts()
     S.update(_styles())
     say = progress or (lambda _m: None)

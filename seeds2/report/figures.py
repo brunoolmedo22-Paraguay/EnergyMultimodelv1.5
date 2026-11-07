@@ -81,6 +81,7 @@ def run_figures(d: D.RunDossier, *, forecasts: bool = True) -> list[FigureSpec]:
 
     if not d.concluded:
         return []
+    D.require_complete(d)
     out_df, inp = d.outputs(), d.inputs()
     specs: list[FigureSpec] = []
     if out_df is not None:

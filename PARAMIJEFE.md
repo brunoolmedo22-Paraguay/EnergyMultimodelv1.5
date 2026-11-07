@@ -1427,9 +1427,9 @@ orchestrator_runtime.py orchestrator_app.py` **vazio**.
 | Base | `main` `3b73971` (merge do PR #9, Piso 2D-A + C-03) |
 | PR | [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) contra `main` (sem merge; aguarda auditoria) |
 | Último commit | `git log -1 origin/claude/seeds2-piso2db-relatorios-9k1qph` (o SHA final é informado no PR) |
-| Hitos concluídos | A (contrato de leitura unificado), B (Excel), C (figuras + PDF), D (interface + E2E) |
+| Hitos concluídos | A (contrato de leitura unificado), B (Excel), C (figuras + PDF), D (interface + E2E); correção de auditoria C-04 (§21) |
 | Pendências | nenhuma desta missão; integração aguarda auditoria e autorização humana |
-| Testes | `python -m pytest tests/ -q` **443 passed**; E2E 2D-B **55/55 (+145/145 nos arquivos baixados)**; regressão E2E Piso 1 e Gestor concluídos, 2A 53/53, 2B 58/58, 2C 55/55, 2D-A 62/62 |
+| Testes | após C-04: `python -m pytest tests/ -q` **454 passed, 0 failed (353 s; 128 subtests; os mesmos 7 avisos) — 443 anteriores + 11 novos**; E2E 2D-B **57/57 (+157/157 nos arquivos baixados)** (antes de C-04: 443 passed; 55/55 + 145/145); regressão E2E Piso 1 e Gestor concluídos, 2A 53/53, 2B 58/58, 2C 55/55, 2D-A 62/62 |
 | Próxima ação | auditoria independente do PR; depois, piso do otimizador (§20) |
 
 ### 1. Resumo executivo
@@ -1444,8 +1444,8 @@ e ZIP de figuras com manifesto — **sem nova simulação**, sem alterar nada do
   recalculadas, identidade do manifesto, SHA-256 e tamanho de TODOS os dados da rodada e das previsões); indicadores
   como fonte única (`indicators`) lidos do resumo persistido.
 - **Excel** `seeds2/report/xlsx.py`: 12+ folhas (índice, identificação, indicadores, equipamentos, condições iniciais,
-  estratégia, entradas, despacho, previsões, uma folha por modelo, procedência, dicionário), precisão bit a bit,
-  datas reais com referência temporal declarada, texto nunca fórmula, limites do formato tratados explicitamente.
+  estratégia, entradas, despacho, previsões, uma folha por modelo, procedência, dicionário), doubles SERIALIZADOS
+  exatos no arquivo (leitura bit a bit por Python; o Microsoft Excel garante 15 algarismos — ver §9 e §21), datas reais com referência temporal declarada, texto nunca fórmula, limites do formato tratados explicitamente.
 - **Figuras** `seeds2/report/figures.py`: as MESMAS figuras Plotly da interface (`run_charts`, `forecast_charts`)
   desenhadas estaticamente (matplotlib) em PNG 300 dpi, SVG vetorial e PDF vetorial; ZIP `seeds2-figures` v1 com
   `manifest.json` (SHA-256 por arquivo, unidade, descrição, dados de origem com SHA-256) e `LEIA-ME.txt`.
@@ -1560,19 +1560,28 @@ coluna `h2_kg` (kg por passo) — feita pela função já existente `run_charts.
 participação por fonte lida de `relatorio_ems.json` (`pct_atendimento`, definição do EMS). Valores |x| < 10⁻³ são
 exibidos em notação científica (nunca arredondados para zero).
 
-### 9. Garantias de precisão numérica
+### 9. Garantias de precisão numérica (redação revista pela correção C-04.2, §21)
 
-openpyxl e xlsxwriter gravam números com `%.16g` (16 algarismos: NÃO reproduz todo double). O escritor grava cada
-número com `repr(float)` — a menor representação decimal que reproduz o double EXATO (≤ 17 algarismos) — no elemento
-numérico `<v>` (a célula continua numérica). Os CSVs são lidos com `float_precision="round_trip"`. Teste: cada célula
-numérica das folhas de entradas, despacho e modelos tem os mesmos **bits** (`float.hex`) que o texto do CSV persistido
-(> 5 000 células); casos extremos (0,1+0,2; 1/3; 5e-324; 1,797…e308; −0,0; 2⁵³). NaN → célula vazia (contada);
-±∞ → texto "inf"/"-inf"; inteiros > 2⁵³ → texto; o formato de exibição "Geral" não altera valores. Datas: células de
-data/hora do Excel (resolução de segundo verificada na volta), referência (UTC / relógio de parede do fuso / grade do
-runtime / relógio não declarado) no comentário do cabeçalho e no dicionário — missão sem fuso nunca é rotulada UTC.
-Linhas > 1 048 575 → divisão EXPLÍCITA em partes numeradas registradas no índice e nos avisos; > 12 M células → recusa
-com indicação do `.seeds2study.zip`; textos > 32 767 caracteres → encurtados e marcados; controles ilegais em XML →
-U+FFFD (contados).
+Três níveis, distinguidos no índice do Excel, na interface e aqui:
+
+1. **Precisão serializada no arquivo `.xlsx`.** openpyxl e xlsxwriter gravariam `%.16g` (16 algarismos: NÃO reproduz
+   todo double). O escritor grava cada número com `repr(float)` — a menor representação decimal que reproduz o double
+   EXATO (≤ 17 algarismos) — no elemento numérico `<v>` (a célula continua numérica). Os CSVs são lidos com
+   `float_precision="round_trip"`. Teste: cada célula numérica das folhas de entradas, despacho e modelos, **lida por
+   Python (openpyxl/pandas)**, tem os mesmos bits (`float.hex`) que o texto do CSV persistido (> 5 000 células); casos
+   extremos (0,1+0,2; 1/3; 5e-324; 1,797…e308; −0,0; 2⁵³).
+2. **Precisão garantida pelo Microsoft Excel.** O Excel documenta precisão de **15 algarismos significativos**: ao
+   abrir, editar ou salvar o arquivo no Excel, valores com mais algarismos podem ser exibidos ou regravados
+   arredondados. **Não se afirma preservação bit a bit dentro do Excel.** Quando a planilha contém valores com mais de
+   15 algarismos significativos, a exportação emite uma advertência explícita (índice + interface) com a contagem.
+3. **Fontes originais para reprodução exata:** os CSVs da rodada e o pacote `.seeds2study.zip`.
+
+NaN → célula vazia (contada); ±∞ → texto "inf"/"-inf"; inteiros > 2⁵³ → texto; o formato de exibição "Geral" não
+altera o valor serializado. Datas: células de data/hora do Excel (resolução de segundo verificada na volta),
+referência (UTC / relógio de parede do fuso / grade do runtime / relógio não declarado) no comentário do cabeçalho e
+no dicionário — missão sem fuso nunca é rotulada UTC. Linhas > 1 048 575 → divisão EXPLÍCITA em partes numeradas
+registradas no índice e nos avisos; > 12 M células → recusa com indicação do `.seeds2study.zip`; textos > 32 767
+caracteres → encurtados e marcados; controles ilegais em XML → U+FFFD (contados).
 
 ### 10. Procedência e imutabilidade
 
@@ -1634,7 +1643,8 @@ E2E desde diretórios vazios, com reinícios entre as fases (servidor derrubado 
 
 ### 15. Problemas detectados e corrigidos durante a missão
 
-- O escritor padrão do openpyxl perderia o 17º algarismo de alguns doubles → escrita com `repr` (teste bit a bit).
+- O escritor padrão do openpyxl perderia o 17º algarismo de alguns doubles → escrita com `repr` (leitura bit a bit por
+  Python testada; o Excel garante 15 algarismos — §9/§21).
 - `pd.read_csv` padrão não garante o double exato → `float_precision="round_trip"`.
 - Texto do cenário entrava no título Plotly como marcação (o matplotlib descartaria `<b>…</b>`) → escapado antes;
   caracteres de controle → U+FFFD (sem avisos de glifo); `$` escapado (sem mathtext).
@@ -1703,6 +1713,61 @@ verificável, sem recomputação. Dívida remanescente: rodadas do console V1.6 
 - Funções objetivo adicionais: `manifest.objective` já identifica a função; o PDF lê o rótulo e os termos do manifesto.
 - Comparação de múltiplas rodadas/estudos: o `RunDossier` é a unidade de leitura reutilizável.
 
+### 21. Correção de auditoria C-04 — completude do dossiê e precisão documentada do Excel
+
+Auditoria independente do PR #10: **favorável**, com duas observações focalizadas, corrigidas nesta rama/PR.
+
+**C-04.1 — rodada concluída com recursos essenciais ausentes.** *Causa:* `dossier._check_run` exigia o resumo, mas não
+os dados essenciais; `xlsx.build_workbook` usava `if d.has(name)` e omitiria em silêncio uma tabela obrigatória (o PDF
+e as figuras também toleravam a ausência). *Correção:* `dossier.REQUIRED_CONCLUDED = (entradas/missao.csv,
+saidas/despacho_ems.csv, saidas/relatorio_ems.json)`; `_check_run` (antes de qualquer leitura) e `require_complete`
+(barreira chamada por `run_pdf.build_report`, `xlsx.build_workbook` e `figures.run_figures`, mesmo para um dossiê
+montado por fora de `load`) recusam com `DossierIntegrityError` que NOMEIA o recurso ausente do índice original;
+verificações de SHA-256 e tamanho preservadas; o `if d.has` do Excel foi removido (tabelas obrigatórias). Rodadas
+falha/interrompida continuam gerando diagnóstico (nada exigido); modelos físicos (`modelos/*.csv`) não são impostos
+(dependem das tecnologias da rodada — p. ex. rodada sem FV não tem `solar.csv` e é aceita).
+
+**C-04.2 — precisão do XLSX frente ao Excel.** A escrita `repr` foi mantida (as células continuam numéricas; nenhuma
+virou texto); a documentação foi corrigida para distinguir precisão serializada × precisão garantida pelo Microsoft
+Excel (15 algarismos) × fontes originais (§9): `xlsx.PRECISION_NOTE` no índice da planilha; advertência condicional
+quando há números com > 15 algarismos significativos (`sig_digits`; contagem no índice e na interface); legenda junto
+ao download do Excel (`report_exports.EXCEL_PRECISION_CAPTION`) e ajuda do botão sem "precisão integral"; CLAUDE.md e
+HANDOFF ajustados. Nenhuma afirmação de preservação bit a bit DENTRO do Excel permanece.
+
+**Risco metodológico (dívida científica prioritária, não corrigida):** PDF e Excel identificam agora, explicitamente,
+a duração declarada (30 min), os passos usados (31), Ts (60 s), a duração efetivamente integrada (31 min) e a
+convenção do runner (`E = Σ_{k=0}^{passos−1} P_k · Ts`), por `dossier.integration_convention` (somente descrição):
+nota no Resumo executivo e nas Limitações do PDF; linhas em `02 Indicadores` e nota no índice do Excel. Fórmula do
+runner, optimizador e valores persistidos inalterados (teste confirma `energia_demanda_kWh` idêntico).
+
+**Testes (11 novos + 1 asserção de interface):**
+
+| Exigência | Teste | Resultado |
+|---|---|---|
+| 1 concluída sem entradas → recusada (local e arquivada; PDF/Excel/figuras) | `C04CompletudeTest.test_1_sem_entradas_recusada` | recusada, recurso nomeado |
+| 2 sem despacho | `test_2_sem_despacho_recusada` | recusada |
+| 3 sem relatório do EMS | `test_3_sem_relatorio_ems_recusada` | recusada |
+| 4 completa aceita; modelos não impostos (rodada sem FV) | `test_4_rodada_completa_aceita_e_modelos_nao_sao_impostos` | aceita |
+| 5 falha/interrompida sem resultados → diagnóstico | `test_5_rodada_falha_sem_resultados_permite_diagnostico` | PDF/Excel diagnóstico |
+| 6 geradores não produzem documento de dossiê incompleto (inclusive montado por fora) | `test_6_geradores_recusam_dossie_incompleto_mesmo_montado_por_fora` + 1–3 | recusado |
+| precisão: algarismos significativos; nota no índice; aviso só quando > 15 | `C04PrecisaoTest` (4) | ok |
+| leitura exata por Python preservada | `C04PrecisaoTest.test_leitura_exata_por_python_preservada` + `ExcelTest.test_precisao_numerica_bit_a_bit` | bits iguais |
+| texto na interface | `test_interface_explica_a_precisao`; `RodadaLocalTest` (legenda + aviso na página) | ok |
+| duração × passos × convenção no PDF e Excel | `C04IntegracaoTemporalTest` | 30 min · 31 passos · 31 min |
+
+**Resultados medidos:** `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` → **454 passed, 0 failed (353 s; 128 subtests; os mesmos 7 avisos) — 443 anteriores + 11 novos**. E2E 2D-B repetido
+desde diretórios vazios com o código corrigido (origem → instalação LIMPA com o motor sabotado → `kill -9` → reinício
+→ tablet): **57/57** (local 21 · importar 14 · reinício 8 · tablet 14; +2 asserções da legenda de precisão) e
+conferência dos downloads **157/157** (+12: nota de precisão nos 3 Excel; duração/passos/integração nos 3 PDF);
+motor nunca chamado; nenhuma microrrede criada no destino. PDF e Excel legítimos inspecionados (nota de integração no
+Resumo executivo). Diff científico, esquemas SQLite e formato `.seeds2study.zip`: inalterados.
+
+**Arquivos:** `seeds2/report/dossier.py` (`REQUIRED_CONCLUDED`, `missing_required`, `require_complete`,
+`integration_convention`), `xlsx.py` (`PRECISION_NOTE`, `sig_digits`, aviso, linhas de integração, tabelas
+obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_exports.py` (legenda/ajuda),
+`tests/test_seeds2_piso2db.py`, `tests/test_seeds2_piso2db_app.py`, `tools/e2e/e2e_piso2db_relatorios.js`,
+`tools/e2e/check_piso2db_downloads.py`, `PARAMIJEFE.md`, `CLAUDE.md`, `docs/ai/HANDOFF.md`.
+
 ---
 
 ## Histórico de entregas
@@ -1713,4 +1778,4 @@ verificável, sem recomputação. Dívida remanescente: rodadas do console V1.6 
 | 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
 | 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
 | 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
-| 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | Implementado e verificado na rama; aguardando auditoria |
+| 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | Implementado e verificado na rama; aguardando auditoria |

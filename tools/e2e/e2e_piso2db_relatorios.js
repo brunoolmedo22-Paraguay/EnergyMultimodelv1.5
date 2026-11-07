@@ -66,6 +66,7 @@ async function exportAll(p, prefix) {
   assert(magic(pdf.file) === "%PDF" && pdf.name.endsWith(".pdf") && pdf.size > 50000, `PDF baixado (${pdf.size} bytes)`);
   const xl = await exportDoc(p, "EXPORTAR DADOS EXCEL", "BAIXAR DADOS EXCEL", prefix);
   assert(magic(xl.file).startsWith("PK") && xl.name.endsWith(".xlsx"), `Excel baixado (${xl.size} bytes)`);
+  assert(await visible(p, "15 algarismos significativos"), "C-04.2: precisão do Excel explicada (arquivo × Microsoft Excel)");
   const fg = await exportDoc(p, "EXPORTAR FIGURAS", "BAIXAR FIGURAS (PNG + SVG)", prefix);
   assert(magic(fg.file).startsWith("PK") && fg.name.endsWith(".zip"), `ZIP de figuras baixado (${fg.size} bytes)`);
   return { pdf, xl, fg };

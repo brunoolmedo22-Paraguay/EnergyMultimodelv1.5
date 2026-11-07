@@ -44,6 +44,9 @@ ORIGIN_LABELS = {LOCAL: "Rodada local (armazenamento desta microrrede)",
 MAX_DOSSIER_BYTES = 512 * 1024 * 1024      # mesmo teto do pacote seeds2-study (proteção de memória)
 CSV_INPUTS, CSV_OUTPUTS, EMS_REPORT, EXCHANGE = ("entradas/missao.csv", "saidas/despacho_ems.csv",
                                                   "saidas/relatorio_ems.json", "pacote_troca.zip")
+# C-04.1 — recursos ESSENCIAIS de uma rodada concluída (gravados pelo runner do 2C na mesma transação da conclusão).
+# Modelos físicos (``modelos/*.csv``) NÃO entram: dependem das tecnologias que participaram da rodada.
+REQUIRED_CONCLUDED = (CSV_INPUTS, CSV_OUTPUTS, EMS_REPORT)
 DERIVED_NOTE = ("Documento DERIVADO: representação dos dados persistidos de uma rodada já executada. A geração deste "
                 "documento não executa modelos nem o EMS e não altera rodadas, cenários, inventário ou estudos. "
                 "A fonte portátil integral do experimento é o pacote .seeds2study.zip (Arquivo Científico).")
@@ -341,6 +344,26 @@ def indicators(d: RunDossier) -> list[Indicator]:
     return out
 
 
+def integration_convention(d: RunDossier) -> dict:
+    """Duração declarada × passos integrados × convenção registrada pelo runner do Piso 2C (somente DESCRIÇÃO: nada é
+    recalculado nem corrigido). Dívida científica prioritária — decisão matemática do piso dedicado ao EMS."""
+    dur = d.mission.get("duration_min")
+    n = d.summary.get("passos")
+    ts = d.summary.get("Ts_s") or d.mission.get("step_s")
+    integ = (float(n) * float(ts) / 60.0) if is_number(n) and is_number(ts) else None
+    differs = is_number(dur) and integ is not None and abs(integ - float(dur)) > 1e-9
+    return {
+        "duration_min": dur, "steps": n, "Ts_s": ts, "integrated_min": integ, "differs": bool(differs),
+        "formula": "E = Σ_{k=0}^{passos−1} P_k · Ts (runner do Piso 2C, seeds2.operation.runner.summarize)",
+        "note": (f"Missão declarada de {dur} min; o motor usa {n} instantes (início ao fim, inclusive) e o resumo "
+                 f"persistido integra cada um como um passo completo de {ts:g} s"
+                 + (f" = {integ:g} min integrados (o instante terminal entra como um passo inteiro)." if differs else ".")
+                 + " Convenção registrada e NÃO corrigida nos relatórios: dívida científica prioritária, a decidir no piso "
+                   "dedicado ao EMS (PARAMIJEFE.md, Entrega 5 §16)."
+                 if is_number(ts) else "Convenção de integração não disponível no resumo persistido."),
+    }
+
+
 def is_number(v: Any) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(float(v))
 
@@ -382,10 +405,29 @@ def _check_run(run: StoredRun) -> None:
         raise DossierIntegrityError("O manifesto da rodada diverge da identidade registrada: " + ", ".join(bad) + ".")
     if run.state == "concluida" and not run.summary:
         raise DossierIntegrityError("Rodada concluída sem resumo persistido.")
+    missing = missing_required(run)
+    if missing:
+        raise DossierIntegrityError("Rodada concluída incompleta: recurso(s) essencial(is) ausente(s) do índice original "
+                                    "da rodada: " + ", ".join(missing) + ". Nenhum documento é gerado.")
     total = sum(int(d.get("size") or 0) for d in run.data.values())
     if total > MAX_DOSSIER_BYTES:
         raise DossierError(f"Os dados desta rodada ({total / 2**20:.0f} MiB) excedem o limite de leitura dos "
                            f"relatórios ({MAX_DOSSIER_BYTES / 2**20:.0f} MiB).")
+
+
+def missing_required(run: StoredRun) -> list[str]:
+    """Recursos essenciais ausentes do índice ORIGINAL de uma rodada concluída (falha/interrupção: nenhum exigido)."""
+    if run.state != "concluida":
+        return []
+    return [n for n in REQUIRED_CONCLUDED if n not in (run.data or {})]
+
+
+def require_complete(d: RunDossier) -> None:
+    """Barreira dos geradores (PDF, Excel, figuras): rodada concluída sem um recurso essencial → recusa explícita."""
+    missing = missing_required(d.run)
+    if missing:
+        raise DossierIntegrityError("Rodada concluída incompleta: recurso(s) essencial(is) ausente(s) do índice original "
+                                    "da rodada: " + ", ".join(missing) + ". Nenhum documento é gerado.")
 
 
 def _verify_all(d: RunDossier) -> None:
@@ -504,6 +546,7 @@ def safe_stem(d: RunDossier, kind: str) -> str:
     return f"seeds2_{kind}_{name}_v{int(d.run.scenario_version)}_{uid}"
 
 
-__all__ = ["ARCHIVED", "DERIVED_NOTE", "DossierError", "DossierIntegrityError", "Indicator", "LOCAL", "ORIGIN_LABELS",
-           "RunDossier", "generator_info", "identity_for_manifest", "indicators", "is_number", "load", "load_archived", "load_local", "safe_stem",
-           "source_label", "utc_now"]
+__all__ = ["ARCHIVED", "DERIVED_NOTE", "DossierError", "DossierIntegrityError", "Indicator", "LOCAL",
+           "ORIGIN_LABELS", "REQUIRED_CONCLUDED", "RunDossier", "generator_info", "identity_for_manifest",
+           "indicators", "integration_convention", "is_number", "load", "load_archived", "load_local",
+           "missing_required", "require_complete", "safe_stem", "source_label", "utc_now"]

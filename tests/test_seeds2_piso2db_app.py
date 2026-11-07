@@ -117,6 +117,10 @@ class RodadaLocalTest(_Base):
         for lb in LABELS:
             app = self.click(app, lb)
         self.assert_docs(app, run.run_uid)
+        caps = "\n".join(c.value for c in app.caption)                                # C-04.2: precisão explicada
+        self.assertIn("15 algarismos significativos", caps)
+        self.assertIn(".seeds2study.zip", caps)
+        self.assertTrue(any("mais de 15 algarismos" in w.value for w in app.warning))
         self.assertEqual(_dump(st), before)                                            # rodadas/cenários intactos
         self.assertEqual(len(st.list_runs()), 1)
 

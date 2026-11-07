@@ -25,6 +25,11 @@ KINDS = {
     "xlsx": ("DADOS EXCEL", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
     "fig": ("FIGURAS (PNG + SVG)", "application/zip"),
 }
+EXCEL_PRECISION_CAPTION = (
+    "Precisão do Excel: o arquivo .xlsx preserva cada número com a precisão do double persistido (até 17 algarismos; "
+    "leitura exata por Python/pandas), mas o Microsoft Excel documenta precisão de 15 algarismos significativos — ao "
+    "abrir, editar ou salvar no Excel, valores podem ser arredondados. Para reprodução exata, use os CSVs originais da "
+    "rodada ou o pacote .seeds2study.zip.")
 CSS = """
 <style>
 .rx-note { font-size: .82rem; opacity: .85; margin: -.2rem 0 .5rem 0; }
@@ -90,7 +95,8 @@ def render(source, run, *, key: str) -> None:
     helps = {"pdf": "Relatório técnico-científico (capa, resumo, configuração, condições iniciais, previsões, metodologia, "
                     "resultados, armazenamento/H₂, discussão factual, procedência e limitações).",
              "xlsx": "Planilha .xlsx com todas as colunas das entradas, do despacho e dos modelos, indicadores persistidos, "
-                     "configuração, procedência e dicionário de dados (precisão integral).",
+                     "configuração, procedência e dicionário de dados. Números serializados com precisão de double (17 "
+                     "algarismos); o Microsoft Excel garante 15 — reprodução exata: CSVs / .seeds2study.zip.",
              "fig": "ZIP com as figuras em PNG (300 dpi) e SVG vetorial + manifest.json com SHA-256 de cada arquivo."}
     clicked = None
     for col, kind in zip(cols, ("pdf", "xlsx", "fig")):
@@ -126,6 +132,8 @@ def render(source, run, *, key: str) -> None:
         c1.caption(f"{name} · {len(data) / 1024:,.0f} KiB · gerado em {when}".replace(",", "."))
         c2.download_button(f"BAIXAR {KINDS[kind][0]}", data=data, file_name=name, mime=mime, key=f"{key}_dl_{kind}",
                            width="stretch", type="primary", on_click="ignore")
+        if kind == "xlsx":
+            st.caption(EXCEL_PRECISION_CAPTION)
         for w in warnings:
             st.warning(w)
         if kind == "fig":
@@ -138,4 +146,4 @@ def render(source, run, *, key: str) -> None:
                               width="stretch", on_click="ignore")
 
 
-__all__ = ["KINDS", "STATE_PREFIX", "clear_state", "generate", "render"]
+__all__ = ["EXCEL_PRECISION_CAPTION", "KINDS", "STATE_PREFIX", "clear_state", "generate", "render"]

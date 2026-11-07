@@ -6,9 +6,11 @@ Garantias:
   (uma folha por modelo), as séries originais normalizadas das previsões, o resumo persistido integral, o relatório do
   EMS, o manifesto da rodada achatado e os SHA-256 de todos os dados. Nenhuma coluna é omitida; cabeçalho = nome
   EXATO da coluna original (leitura direta por pandas/R/MATLAB); unidades e significado em "Dicionário de dados".
-* **Precisão:** cada número é escrito com a representação decimal MAIS CURTA que reproduz exatamente o double
-  persistido (``repr``; até 17 algarismos significativos) — openpyxl, por padrão, escreveria 16. O formato de exibição
-  "Geral" não altera o valor armazenado. Inteiros acima de 2⁵³ (não representáveis no Excel) seriam gravados como texto
+* **Precisão (C-04.2):** cada número é SERIALIZADO com a representação decimal MAIS CURTA que reproduz exatamente o
+  double persistido (``repr``; até 17 algarismos significativos) — openpyxl, por padrão, escreveria 16; a leitura por
+  Python recupera o double bit a bit (testado). O Microsoft Excel documenta precisão de 15 algarismos: ao abrir, editar
+  ou salvar no Excel não há garantia bit a bit (``PRECISION_NOTE`` no índice; aviso quando há valores > 15 algarismos).
+  Reprodução exata: CSVs originais / ``.seeds2study.zip``. O formato de exibição "Geral" não altera o valor armazenado. Inteiros acima de 2⁵³ (não representáveis no Excel) seriam gravados como texto
   e listados em "Avisos".
 * **Ausentes:** NaN → célula VAZIA (nunca zero); ±infinito → texto "inf"/"-inf"; ambos contados em "Avisos".
 * **Tempo:** colunas de instante gravadas como data/hora do Excel (sem fuso, que o Excel não suporta) com formato
@@ -50,6 +52,16 @@ EXCEL_MAX_ROWS = 1_048_576
 DATA_ROWS_PER_SHEET = EXCEL_MAX_ROWS - 1           # 1 linha de cabeçalho
 EXCEL_MAX_COLS = 16_384
 CELL_TEXT_MAX = 32_767
+EXCEL_SIG_DIGITS = 15
+# C-04.2 — distinção obrigatória entre o arquivo serializado e o que o Microsoft Excel garante.
+PRECISION_NOTE = (
+    "Precisão: (1) SERIALIZADA no arquivo .xlsx — cada número foi gravado com a representação decimal mais curta que "
+    "reproduz exatamente o double persistido (até 17 algarismos significativos); leitores que preservam doubles (p. ex. "
+    "Python/openpyxl/pandas) recuperam o valor bit a bit. (2) GARANTIDA pelo Microsoft Excel — o Excel documenta "
+    "precisão de 15 algarismos significativos: ao abrir, editar ou salvar no Excel, valores podem ser exibidos ou "
+    "regravados arredondados nesse limite; não há garantia de preservação bit a bit dentro do Excel. (3) Para "
+    "reprodução EXATA use os CSVs originais da rodada e o pacote .seeds2study.zip (fontes originais). O formato de "
+    "exibição não altera o valor; célula vazia = valor ausente.")
 MAX_CELLS = 12_000_000                             # proteção de memória/tempo (não é limite científico)
 DATETIME_FMT = "yyyy-mm-dd hh:mm:ss"
 _ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
@@ -72,6 +84,7 @@ class _Stats:
     inf: int = 0
     big_int: int = 0
     illegal: int = 0
+    over15: int = 0                 # números com mais de 15 algarismos significativos (limite documentado do Excel)
     truncated: int = 0
     split: list[str] = field(default_factory=list)
     sheets: list[tuple[str, str, int, int]] = field(default_factory=list)   # (folha, conteúdo, linhas, colunas)
@@ -126,6 +139,8 @@ class _Book:
             return self.text(ws, "inf" if f > 0 else "-inf")
         c = WriteOnlyCell(ws, value=None)
         c._value, c.data_type = repr(f), "n"            # repr = menor decimal que reproduz o double exatamente
+        if sig_digits(c._value) > EXCEL_SIG_DIGITS:
+            self.stats.over15 += 1
         return c
 
     def when(self, ws, v: datetime) -> WriteOnlyCell:
@@ -224,6 +239,12 @@ class _Book:
         return self.value(ws, v)
 
 
+def sig_digits(text: str) -> int:
+    """Algarismos significativos de um decimal em texto (``repr``): sem sinal, expoente, ponto e zeros à esquerda/direita."""
+    mant = text.lstrip("+-").split("e")[0].split("E")[0].replace(".", "").lstrip("0").rstrip("0")
+    return len(mant)
+
+
 _TIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?Z?$")
 
 
@@ -315,6 +336,13 @@ def _indicator_rows(d: D.RunDossier) -> list[tuple]:
     for ind in D.indicators(d):
         rows.append((ind.label, ind.value if ind.value is not None else "não disponível", ind.unit, ind.key, ind.source,
                      ind.note))
+    ic = D.integration_convention(d)
+    rows += [("Duração declarada da missão", ic["duration_min"], "min", "mission.duration_min", "manifesto", ""),
+             ("Passos integrados no resumo", ic["steps"], "passos", "passos", "StoredRun.summary",
+              "Instantes da grade do motor, do início ao fim inclusive."),
+             ("Duração efetivamente integrada (passos × Ts)", ic["integrated_min"], "min", "passos × Ts_s / 60",
+              "derivado (descritivo)", "Cálculo descritivo da convenção; não altera nenhum indicador."),
+             ("Convenção de integração temporal", ic["formula"], "—", "—", "seeds2.operation.runner.summarize", ic["note"])]
     for a in d.engine_warnings():
         rows.append(("Aviso do motor", a, "—", "avisos", "StoredRun.summary", ""))
     return rows
@@ -431,14 +459,14 @@ class WorkbookResult:
 
 
 def build_workbook(d: D.RunDossier, *, generated_at: str | None = None, progress=None) -> WorkbookResult:
+    D.require_complete(d)
     generated_at = generated_at or D.utc_now()
     say = progress or (lambda _m: None)
     tables: list[tuple[str, str, pd.DataFrame, bool]] = []
     if d.concluded:
         for name, title, content in ((D.CSV_INPUTS, "06 Entradas", "Entradas da missão (entradas/missao.csv)"),
                                      (D.CSV_OUTPUTS, "07 Despacho EMS", "Despacho EMS (saidas/despacho_ems.csv)")):
-            if d.has(name):
-                tables.append((title, content, d.table(name), False))
+            tables.append((title, content, d.table(name), False))      # obrigatórias (D.require_complete)
         for slot in ("demand", "climate"):
             if slot in d.forecasts():
                 tables.append((f"08 Previsão {'demanda' if slot == 'demand' else 'clima'}",
@@ -494,6 +522,11 @@ def build_workbook(d: D.RunDossier, *, generated_at: str | None = None, progress
         warnings.append(f"{st.nan} valor(es) ausente(s) (NaN) gravado(s) como célula VAZIA (nunca zero).")
     if st.inf:
         warnings.append(f"{st.inf} valor(es) infinito(s) gravado(s) como texto 'inf'/'-inf' (o Excel não representa ±∞).")
+    if st.over15:
+        warnings.append(f"{st.over15} valor(es) numérico(s) com mais de {EXCEL_SIG_DIGITS} algarismos significativos: o "
+                        "arquivo .xlsx os preserva exatamente (leitura por Python verificada), mas o Microsoft Excel "
+                        f"documenta precisão de {EXCEL_SIG_DIGITS} algarismos — ao abrir, editar ou salvar no Excel podem "
+                        "ser arredondados. Para reprodução exata, use os CSVs originais / .seeds2study.zip.")
     if st.big_int:
         warnings.append(f"{st.big_int} inteiro(s) acima de 2^53 gravado(s) como texto (precisão do Excel).")
     if st.illegal:
@@ -509,10 +542,13 @@ def build_workbook(d: D.RunDossier, *, generated_at: str | None = None, progress
     ws.append([book.text(ws, f"{d.scenario_name} · versão {d.run.scenario_version} · rodada {d.run_uid} · "
                              f"{d.state_label}", font=META_FONT)])
     ws.append([book.text(ws, D.DERIVED_NOTE, font=NOTE_FONT)])
-    ws.append([book.text(ws, "Precisão: números gravados com a representação decimal exata do double persistido; "
-                             "o formato de exibição não altera o valor. Célula vazia = valor ausente. Datas/horas sem fuso "
-                             "no Excel: a referência de cada coluna está no comentário do cabeçalho e no dicionário.",
-                         font=NOTE_FONT)])
+    ws.append([book.text(ws, PRECISION_NOTE, font=NOTE_FONT)])
+    ws.append([book.text(ws, "Datas/horas sem fuso no Excel: a referência de cada coluna está no comentário do cabeçalho "
+                             "e no dicionário.", font=NOTE_FONT)])
+    if d.concluded:
+        ic = D.integration_convention(d)
+        ws.append([book.text(ws, "Integração temporal (registrada, não corrigida): " + ic["note"] + " Fórmula: "
+                             + ic["formula"] + ".", font=NOTE_FONT)])
     ws.append([])
     hc = [book.text(ws, h, font=HEAD_FONT) for h in ("Folha", "Conteúdo", "Linhas", "Colunas")]
     for c in hc:
@@ -533,4 +569,5 @@ def build_workbook(d: D.RunDossier, *, generated_at: str | None = None, progress
     return WorkbookResult(buf.getvalue(), list(st.sheets), warnings)
 
 
-__all__ = ["CELL_TEXT_MAX", "DATA_ROWS_PER_SHEET", "MAX_CELLS", "WorkbookLimitError", "WorkbookResult", "build_workbook"]
+__all__ = ["CELL_TEXT_MAX", "DATA_ROWS_PER_SHEET", "EXCEL_SIG_DIGITS", "MAX_CELLS", "PRECISION_NOTE",
+           "WorkbookLimitError", "WorkbookResult", "build_workbook", "sig_digits"]

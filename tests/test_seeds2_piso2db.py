@@ -650,5 +650,126 @@ class CombinacoesTest(_Base):
         self.assertIn("não instalada", pdf)
 
 
+# =========================================================================== C-04 (auditoria do PR #10)
+def _without(run, name):
+    """A mesma rodada com o recurso ``name`` ausente do índice ORIGINAL (simula rodada concluída incompleta)."""
+    return type(run)(**{**run.__dict__, "data": {k: v for k, v in run.data.items() if k != name}})
+
+
+class C04CompletudeTest(_Base):
+    """C-04.1 — rodada concluída precisa de entradas, despacho e relatório do EMS; falha/interrupção não."""
+
+    def _assert_rejected(self, source, run, name):
+        bad = _without(run, name)
+        with mock.patch.object(type(source), "get_run", return_value=bad):
+            with self.assertRaises(D.DossierIntegrityError) as cm:
+                D.load(source, run.run_uid)
+            self.assertIn(name, str(cm.exception))                                      # identifica o recurso
+            for kind in ("pdf", "xlsx", "fig"):                                        # 6: nenhum documento
+                with self.assertRaises(D.DossierIntegrityError, msg=kind):
+                    RX.generate(source, run.run_uid, kind)
+
+    def test_1_sem_entradas_recusada(self):
+        self._assert_rejected(self.store, self.done, D.CSV_INPUTS)
+        self._assert_rejected(self.view(), self.done, D.CSV_INPUTS)
+
+    def test_2_sem_despacho_recusada(self):
+        self._assert_rejected(self.store, self.done, D.CSV_OUTPUTS)
+        self._assert_rejected(self.view(), self.done, D.CSV_OUTPUTS)
+
+    def test_3_sem_relatorio_ems_recusada(self):
+        self._assert_rejected(self.store, self.done, D.EMS_REPORT)
+        self._assert_rejected(self.view(), self.done, D.EMS_REPORT)
+
+    def test_4_rodada_completa_aceita_e_modelos_nao_sao_impostos(self):
+        self.assertEqual(D.REQUIRED_CONCLUDED, (D.CSV_INPUTS, D.CSV_OUTPUTS, D.EMS_REPORT))
+        for src in (self.store, self.view()):
+            d = D.load(src, self.done.run_uid)
+            self.assertEqual(D.missing_required(d.run), [])
+        st, run = _Fixture.get()[5]["sem_fv"]                                           # rodada sem FV: sem solar.csv
+        self.assertNotIn("modelos/solar.csv", run.data)
+        d = D.load(st, run.run_uid)
+        self.assertEqual(D.missing_required(d.run), [])
+
+    def test_5_rodada_falha_sem_resultados_permite_diagnostico(self):
+        for key in ("failed", "interrupted"):
+            run = self.info[key]
+            self.assertFalse(set(D.REQUIRED_CONCLUDED) & set(run.data))                # sem resultados gravados
+            self.assertEqual(D.missing_required(run), [])
+            for kind in ("pdf", "xlsx"):
+                name, data, *_ = RX.generate(self.view(), run.run_uid, kind)
+                self.assertTrue(name.startswith("seeds2_diagnostico_"))
+
+    def test_6_geradores_recusam_dossie_incompleto_mesmo_montado_por_fora(self):
+        d = D.load(self.store, self.done.run_uid)
+        d.run = _without(d.run, D.CSV_OUTPUTS)                                          # barreira dos próprios geradores
+        for build in (RP.build_report, X.build_workbook, FG.run_figures, FG.figures_zip):
+            with self.assertRaisesRegex(D.DossierIntegrityError, "saidas/despacho_ems.csv"):
+                build(d)
+
+
+class C04PrecisaoTest(_Base):
+    """C-04.2 — precisão serializada no .xlsx × precisão garantida pelo Microsoft Excel (documentada)."""
+
+    def test_algarismos_significativos(self):
+        for txt, n in (("88.3190884544543", 15), ("0.30000000000000004", 17), ("6.57209464492104e-09", 15),
+                       ("1e-09", 1), ("100.0", 1), ("-0.0", 0), ("0.1", 1)):
+            self.assertEqual(X.sig_digits(txt), n, txt)
+
+    def test_nota_de_precisao_no_indice_e_aviso_quando_ha_mais_de_15_algarismos(self):
+        res = X.build_workbook(D.load(self.store, self.done.run_uid))
+        idx = [c for row in _wb(res.data)["00 Índice"].iter_rows(values_only=True) for c in row if isinstance(c, str)]
+        note = next(c for c in idx if c.startswith("Precisão:"))
+        self.assertEqual(note, X.PRECISION_NOTE)
+        for t in ("SERIALIZADA", "17 algarismos", "bit a bit", "Microsoft Excel", "15 algarismos significativos",
+                  "não há garantia de preservação bit a bit dentro do Excel", "CSVs originais", ".seeds2study.zip"):
+            self.assertIn(t, note)
+        w = [x for x in res.warnings if "mais de 15 algarismos" in x]
+        self.assertEqual(len(w), 1)                                                     # esta rodada tem valores > 15
+        self.assertIn("Microsoft Excel", w[0])
+        self.assertTrue(any("Microsoft Excel" in x and "15" in x for x in idx))         # aviso também no índice
+        # sem nenhum valor > 15 algarismos: nenhuma advertência desnecessária
+        b = X._Book()
+        ws = b.wb.create_sheet("t")
+        ws.append([b.number(ws, v) for v in (0.5, 88.3190884544543, 1e-9)])
+        self.assertEqual(b.stats.over15, 0)
+        ws.append([b.number(ws, 0.1 + 0.2)])
+        self.assertEqual(b.stats.over15, 1)
+        b.wb.save(io.BytesIO())                                                         # fecha o workbook write-only
+
+    def test_leitura_exata_por_python_preservada(self):
+        res = X.build_workbook(D.load(self.store, self.done.run_uid))
+        d = D.load(self.store, self.done.run_uid)
+        xl = pd.read_excel(io.BytesIO(res.data), sheet_name="07 Despacho EMS")
+        out = d.outputs()
+        for c in out.columns:
+            if not c.startswith("timestamp"):
+                self.assertTrue(all(float(a).hex() == float(b).hex() for a, b in zip(xl[c], out[c])), c)
+
+    def test_interface_explica_a_precisao(self):
+        self.assertIn("15 algarismos significativos", RX.EXCEL_PRECISION_CAPTION)
+        self.assertIn(".seeds2study.zip", RX.EXCEL_PRECISION_CAPTION)
+
+
+class C04IntegracaoTemporalTest(_Base):
+    """Risco metodológico registrado: duração declarada × passos integrados × convenção (nada corrigido)."""
+
+    def test_pdf_e_excel_identificam_duracao_passos_e_convencao(self):
+        d = D.load(self.store, self.done.run_uid)
+        ic = D.integration_convention(d)
+        self.assertEqual((ic["duration_min"], ic["steps"], ic["integrated_min"], ic["differs"]), (30, 31, 31.0, True))
+        self.assertEqual(d.summary["energia_demanda_kWh"], self.done.summary["energia_demanda_kWh"])   # não corrigido
+        txt = " ".join(_pdf_text(RP.build_report(d)).split())
+        for t in ("Duração declarada: 30 min", "passos integrados: 31", "duração efetivamente integrada: 31 min",
+                  "Σ_{k=0}^{passos−1} P_k · Ts", "NÃO corrigida", "Entrega 5 §16"):
+            self.assertIn(t, txt, t)
+        ind = pd.read_excel(io.BytesIO(X.build_workbook(d).data), sheet_name="02 Indicadores")
+        val = dict(zip(ind["indicador"], ind["valor"]))
+        self.assertEqual(float(val["Duração declarada da missão"]), 30.0)
+        self.assertEqual(float(val["Passos integrados no resumo"]), 31.0)
+        self.assertEqual(float(val["Duração efetivamente integrada (passos × Ts)"]), 31.0)
+        self.assertIn("Σ_{k=0}^{passos−1} P_k · Ts", val["Convenção de integração temporal"])
+
+
 if __name__ == "__main__":
     unittest.main()

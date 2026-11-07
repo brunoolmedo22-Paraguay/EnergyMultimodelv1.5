@@ -57,6 +57,9 @@ def main(out: str, origin_path: str, engine_log: str | None = None) -> None:
                   "Potência (kW)", "Estado de carga (%)", *o["data"].values()):
             check(t in txt, f"PDF {tag}: contém {t[:40]}")
         check(("Estudo arquivado" in txt) == (tag != "local"), f"PDF {tag}: origem dos dados identificada")
+        flat = " ".join(txt.split())
+        for t in ("Duração declarada: 30 min", "passos integrados: 31", "duração efetivamente integrada: 31 min"):
+            check(t in flat, f"PDF {tag}: C-04 integração temporal — {t}")
         import pypdfium2 as pdfium
 
         doc = pdfium.PdfDocument(f)
@@ -74,6 +77,12 @@ def main(out: str, origin_path: str, engine_log: str | None = None) -> None:
             pd.testing.assert_frame_equal(sheets["local"][name], sheets["arquivo"][name], check_exact=True)
             pd.testing.assert_frame_equal(sheets["local"][name], sheets["reinicio"][name], check_exact=True)
             check(True, f"Excel: folha '{name}' idêntica (local × arquivo × reinício)")
+    from openpyxl import load_workbook
+
+    for tag, f in books.items():
+        idx = [c for r in load_workbook(f)["00 Índice"].iter_rows(values_only=True) for c in r if isinstance(c, str)]
+        check(any(c.startswith("Precisão: (1) SERIALIZADA") and "15 algarismos significativos" in c for c in idx),
+              f"Excel {tag}: C-04.2 nota de precisão (arquivo × Microsoft Excel × fontes originais)")
     ind = sheets["arquivo"]["02 Indicadores"]
     val = dict(zip(ind["chave"], ind["valor"]))
     for k in ("custo_total_rs", "energia_demanda_kWh", "energia_atendida_kWh", "energia_nao_atendida_kWh", "h2_kg"):
