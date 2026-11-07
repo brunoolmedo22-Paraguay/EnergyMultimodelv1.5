@@ -17,10 +17,13 @@ Piso 2C — Execução (IMPLEMENTADO — ``seeds2/operation/preflight.py``, ``mi
     inventário) e grava manifesto de procedência, resumo e séries completas de entrada/saída
     (``scenario_run_data``). O otimizador e os modelos não foram alterados.
 
-Piso 2D — Arquivo científico
-    O documento do cenário é JSON autossuficiente (esquema + versão, instantâneo das referências físicas,
-    dados referenciados apenas por SHA-256), o que permite exportá-lo junto com execuções sem recalcular. Nenhum
-    formato de exportação (PDF/Excel/ZIP) é implementado aqui.
+Piso 2D-A — Arquivo Científico Portátil (IMPLEMENTADO — pacote ``seeds2.archive``)
+    O documento do cenário é JSON autossuficiente (esquema + versão, instantâneo das referências físicas, dados
+    referenciados apenas por SHA-256). ``seeds2.archive`` exporta UM cenário completo (todas as versões, revisões do
+    inventário referenciadas, previsões, rodadas finalizadas com manifesto/resultado/séries) no pacote versionado
+    ``seeds2-study`` v1 (.seeds2study.zip), verifica pacotes não confiáveis e importa estudos SOMENTE LEITURA no
+    Arquivo Científico da instalação (banco próprio, separado das microrredes), sem recalcular. PDF/Excel/figuras:
+    Piso 2D-B (não implementado).
 """
 from __future__ import annotations
 

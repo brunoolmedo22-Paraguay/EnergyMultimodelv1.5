@@ -41,7 +41,10 @@ _CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp", "mg_active_uid"
                   # Previsões (Piso 2B): dados pendentes ainda não gravados (estado de aplicação)
                   "op_blobs",
                   # Execução (Piso 2C): rodada aberta (estado de aplicação)
-                  "op_run_uid")
+                  "op_run_uid",
+                  # Arquivo Científico (Piso 2D-A): estudo/rodada abertos, mensagens, exportação preparada, versão
+                  # consultada, renovação do seletor de arquivo e verificação (estado de aplicação; nunca conteúdo)
+                  "ar_study_uid", "ar_run_uid", "ar_flash", "ar_export", "ar_version", "ar_up_token", "ar_verify_result")
 # Previsões (Piso 2B): estado de aplicação por slot (tabela manual, CSV enviado, token do editor, verificação) e a
 # fonte escolhida e a aba ativa (chaves fixas — valores transportáveis entre execuções).
 _PREFIXOS_EXTRAS = ("op_fcs_", "opw_fc_src_", "opw_fc_tab",
