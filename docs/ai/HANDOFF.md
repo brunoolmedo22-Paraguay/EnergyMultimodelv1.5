@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-06 · **rama:** `ccr-21b1e00e-u5u64z` · **PR:** [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) (pendiente de auditoría; sin merge) · **estado:** **Piso 2C — Execução EMS e Persistência Científica** implementado y verificado en la rama; **no integrado** en `main`.
+**Actualización:** 2026-11-06 · **rama:** `ccr-21b1e00e-u5u64z` · **PR:** [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) (pendiente de auditoría; sin merge) · **estado:** **Piso 2C — Execução EMS e Persistência Científica** implementado; auditoría favorable y corrección C-02 aplicada; **no integrado** en `main` (espera autorización).
 
 > **Informe técnico completo de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 3** (canal permanente con el auditor). Este HANDOFF es solo el resumen de continuidad.
 
@@ -19,6 +19,7 @@
 - **Verificado (2026-11-06):** `python -m pytest tests/ -q` → **345 passed** (7 avisos, iguales a la línea de base) (línea de base `main`: 308 passed; +37 nuevos; 7 tests existentes actualizados al estado real); E2E Chromium desde directorios vacíos: Piso 2C **55/55** (con `kill -9` del servidor durante una rodada → `Interrompida` tras reiniciar); Piso 2B **58/58**, Piso 2A **53/53**, Gestor **52/52**, Piso 1 **66/66**. Costo idéntico al EMS V1.6 para entradas equivalentes (R$ 88,3190884544543 en 30 min; despacho ≤ 1e-9 kW).
 - **Decisiones del responsable aplicadas:** no corregir el optimizador; bloquear (no reinterpretar) lo no representable; ZIP sin cambio de formato; textos en portugués.
 - **Decisiones técnicas a revisar (Claude Code):** ventana en el escenario (no en la rodada); indisponible = excluido solo de la rodada; equipo disponible no representable = bloqueo; deriva del inventario = advertencia (usa la revisión de referencia); declaración explícita de "mismo reloj" para series sin fuso; prueba de rampa del 1º paso con `despacho._n_prev_de`; ver `PARAMIJEFE.md` Entrega 3 §4.
+- **Auditoría del PR #8 (2026-11-07): favorable** + corrección **C-02** (commit `4c8f14e`): C-02.1 equipo indisponible y excluido no exige estado inicial (`incompleto` → información; errores de coherencia y equipos disponibles incompletos siguen bloqueando); C-02.2 potencia inicial > 0 verificada contra `n_ini × [P_min_unid, P_max_unid]` del 1º paso ANTES de la rampa (rampa ilimitada no dispensa límites físicos), rechazo sin llamar al optimizador. Verificado: 355 passed; E2E 2C 55/55; diff científico vacío. Detalle: `PARAMIJEFE.md` Entrega 3 §17.
 - **Pendiente / riesgos:** capacidades científicas bloqueadas (SOC fuera de límites efectivos, SOC distintos, PEMFC apagada/parcial, térmica ≠ `int(Pmín>0)`, rampa activa); sin cancelación de rodada; ejecuciones serializadas por proceso; ZIP sin escenarios/rodadas (2D); rodadas del console V1.6 siguen solo con resumen.
 
 ## 3. Próxima misión propuesta

@@ -988,6 +988,66 @@ Na primeira execução do roteiro 2C a verificação do número de pontos da cur
 **Piso 2D — Arquivo científico:** exportação/importação de cenários + rodadas (manifesto, `scenario_run_data` com
 SHA-256) em ZIP científico, PDF/Excel; depois, piso do otimizador para as capacidades pendentes do §14.1.
 
+### 17. Correção de auditoria C-02 — validade do preflight científico
+
+A auditoria independente do PR #8 foi **favorável** (arquitetura de execução, persistência v4, separação
+cenário/rodada, integração com o EMS V1.6, rastreabilidade e recuperação aprovadas) e pediu duas correções pontuais do
+preflight antes do merge. Escopo: somente `seeds2/operation/preflight.py` e testes de regressão; modelos, EMS,
+otimizador, N, esquema v4 e contratos de resultados **inalterados**.
+
+**C-02.1 — equipamento indisponível com estado inicial incompleto**
+
+- *Causa:* `initialization._battery/_pemfc/_thermal` (Piso 2A) devolvem `incompleto` quando o SOC / o estado operativo
+  não está definido, mesmo com `availability = "indisponivel"`; `preflight.prepare` convertia TODO `incompleto` em
+  incompatibilidade ANTES de excluir o equipamento do plano efetivo. Um banco excluído — cujo SOC o motor nunca lê —
+  impedia a execução.
+- *Correção:* o preflight determina primeiro os equipamentos declarados indisponíveis e habilitados na revisão de
+  referência (os que serão excluídos do despacho). Para ESSES, `incompleto` vira **informação** explícita ("estado
+  inicial não definido e NÃO requerido — excluído do despacho desta rodada"); `erro` de coerência continua
+  bloqueando (p. ex. indisponível e "em operação"); `aviso` continua aviso. Equipamentos disponíveis com estado
+  incompleto continuam bloqueados. As regras do Piso 2A não foram alteradas (gravação e Inicialização idênticas); o
+  inventário físico e a versão do cenário não são modificados. Vale para bateria, PEMFC e térmica.
+
+**C-02.2 — potência inicial e limites efetivos da caracterização**
+
+- *Causa:* `ramp_inactive` só verificava a rampa do 1º passo e, com rampa infinita, aceitava qualquer potência inicial
+  sem conferi-la com o envelope caracterizado pelo motor.
+- *Correção:* nova `initial_power_admissible(f, P0)` na fase B, executada ANTES da rampa para PEMFC e térmica com
+  P0 > 0: com o contrato já caracterizado (`montar_fontes`), exige `n_ini ≥ 1` e
+  `n_ini·P_min_unid_kW[0] ≤ P0 ≤ n_ini·P_max_unid_kW[0]` (estado discreto que o motor realmente representa:
+  PEMFC `n_ini = N_fc`; térmica `n_ini = 1`). Fora do intervalo → rodada `falhou` (`incompatibilidade`) sem chamar
+  `run_optimizer`, com o valor declarado e o intervalo efetivo no relatório da rodada. Só se admissível avalia-se a
+  rampa; rampa ilimitada dispensa a rampa, NÃO os limites físicos. P0 = 0 mantém o tratamento existente (convenção
+  inicial exata do motor, sem verificação condicionada). Nenhuma física de partida acrescentada.
+
+**Evidência** (`tests/test_seeds2_piso2c.py`, classes `CorrecaoC02IndisponivelTest` e `CorrecaoC02PotenciaInicialTest`):
+
+| Exigência da auditoria | Teste | Resultado |
+|---|---|---|
+| Bateria indisponível, SOC indefinido, outra despachável disponível → compatível | `test_bateria_indisponivel_sem_soc_executa_e_fica_fora_do_pacote` | rodada concluída; 2 informações "NÃO requerido" |
+| Mesma bateria disponível com SOC indefinido → bloqueada | `test_bateria_disponivel_sem_soc_continua_bloqueada` | `PreflightError`, nada iniciado |
+| Indisponível com estado contraditório → erro conservado | `test_indisponivel_com_estado_contraditorio_mantem_o_erro` | Piso 2A recusa gravar; documento gravado à força → preflight recusa |
+| Fonte excluída ausente do pacote do EMS | idem ao 1º | `nomes = ["fc"]`; sem `bateria.csv`; `opcoes_fontes.fontes = ["fc"]`; sem coluna de SOC |
+| Inventário e cenário gravado intactos | idem ao 1º | revisão/impressão digital do inventário e do cenário iguais; SOC continua `None` |
+| PEMFC e térmica (mesma regra) | `test_pemfc_e_termica_indisponiveis_sem_estado_nao_exigem_estado` | compatível (N_fc 3; térmica fora); PEMFC disponível sem estado → bloqueio |
+| P0 > 0 dentro do envelope e rampa inativa → permitida | `test_dentro_do_envelope_rampa_inativa_e_resultado_identico_ao_p0_zero` | concluída; custo e despacho **idênticos** ao caso P0 = 0 |
+| P0 fora do envelope, rampa ilimitada → recusada | `test_fora_do_envelope_com_rampa_ilimitada_recusada`; `test_admissibilidade_independe_da_rampa` | `falhou/incompatibilidade`; "intervalo efetivo [40, 200] kW" |
+| P0 fora do envelope, rampa finita → recusada | `test_fora_do_envelope_com_rampa_finita_recusada_antes_do_otimizador` | idem; rampa nem avaliada |
+| P0 válida, rampa restritiva → recusada | `test_valida_mas_rampa_restritiva_continua_recusada` | envelope ok, depois "PODERIA restringir" |
+| Detecção antes de `run_optimizer` | todos os casos recusados com `run_optimizer` substituído por `AssertionError` | otimizador nunca chamado |
+| Térmica sem rampa (ilimitada) dentro do envelope | `test_termica_sem_rampa_dentro_do_envelope_executa` | concluída; "[20, 80] kW" |
+| Casos equivalentes ao V1.6 inalterados | `test_execucao_real_igual_ao_ems_v16_e_gravacao_completa`; `test_console_v16_inalterado` | custo idêntico; R$ 417,684638 |
+
+Execuções: `python -m pytest tests/ -q` → **355 passed, 0 failed** (248 s; 105 subtests; os mesmos 7 avisos) — 345 anteriores + 10 novos; nenhum teste existente alterado. E2E Piso 2C repetido desde diretório vazio
+(`kill -9` do servidor durante a rodada + reinício): **55/55** (operar 38 · reinício 10 · tablet 7; estado final do banco `[('concluida', v4, 8 dados), ('interrompida', v7, 0 dados)]`). `git diff origin/main --stat -- models h2_pemfc
+simulation config ems_integration reference_models orchestrator_runtime.py orchestrator_app.py` **vazio**.
+
+**Riscos residuais:** (1) a admissibilidade usa o envelope do 1º passo da caracterização (como o próprio EMS); a
+duração da missão altera a caracterização da PEMFC (rampa observada 6 kW/min em 10 min × 36 kW/min em ≥ 30 min) —
+comportamento existente do motor, não alterado; (2) estados de equipamentos indisponíveis continuam visíveis na
+Inicialização como "não definido" (regra do Piso 2A preservada de propósito); (3) avisos de valores declarados de
+equipamentos indisponíveis (p. ex. SOC fora do recomendado) continuam aparecendo como advertências não bloqueantes.
+
 ---
 
 
@@ -997,4 +1057,4 @@ SHA-256) em ZIP científico, PDF/Excel; depois, piso do otimizador para as capac
 |---|---|---|---|---|
 | 1 | 2026-11-06 | Piso 2A — Centro de Operação (fundação operacional) | `claude/seeds2-piso2a-centro-operacao` / [#6](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/6) | **Integrado** em `main` (merge `4709f0c`), após auditoria favorável e correção C-01 (§15) |
 | 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
-| 3 | 2026-11-06 | Piso 2C — Execução EMS e Persistência Científica | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | Implementado e verificado na rama; aguardando auditoria (sem merge) |
+| 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | Auditoria favorável; correção C-02 implementada e verificada (§17); aguardando autorização de merge |
