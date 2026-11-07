@@ -354,6 +354,150 @@ class IntegridadeTest(_Base):
         self.assertTrue(any("não concluída com dados" in e for e in rep.errors), rep.errors)
 
 
+# =========================================================================== C-03: relações históricas completas
+def _jmut(path: str, fn):
+    """Mutação de um JSON do pacote + manifesto recalculado (recursos íntegros, hashes coerentes, relação contraditória)."""
+    def mut(f):
+        obj = json.loads(f[path])
+        fn(obj)
+        f[path] = json.dumps(obj).encode()
+        _resign(f)
+    return mut
+
+
+def _mmut(fn):
+    """Mutação do próprio manifesto (ex.: índice de dependências), sem tocar nos recursos."""
+    def mut(f):
+        m = json.loads(f["manifest.json"])
+        fn(m)
+        f["manifest.json"] = json.dumps(m).encode()
+    return mut
+
+
+class RelacoesC03Test(_Base):
+    """Auditoria C-03: identidade das rodadas e grafo de dependências contrastados com os recursos verificados."""
+
+    def _bad(self, mutate, fragment: str) -> None:
+        rep = FMT.inspect(_rezip(self.pkg, mutate))
+        self.assertFalse(rep.ok, "pacote contraditório aceito")
+        self.assertTrue(any(fragment in e for e in rep.errors), rep.errors)
+        with self.assertRaises(StudyRejected):
+            self.archive.import_package(_rezip(self.pkg, mutate))
+        self.assertEqual(self.archive.list_studies(), [])
+
+    def _good(self, mutate) -> None:
+        rep = FMT.inspect(_rezip(self.pkg, mutate))
+        self.assertTrue(rep.ok, rep.errors)
+
+    @property
+    def ru(self) -> str:
+        return self.info["done"].run_uid
+
+    def test_pacote_autentico_continua_aceito_e_dependencias_reconstruidas(self):
+        rep = FMT.inspect(self.pkg)
+        self.assertTrue(rep.ok, rep.errors)
+        self.assertEqual(set(self.man["dependencies"]["runs"]), set(self.man["study"]["runs"]))
+        self._good(lambda f: None)                                         # reempacotar sem mudanças: aceito
+
+    def test_1_rodada_atribuida_a_outra_microrrede(self):
+        self._bad(_jmut(f"runs/{self.ru}/run.json", lambda r: r.update(microgrid_uid="c" * 32)), "outra microrrede")
+
+    def test_2_incarnacao_contraditoria_quando_ambas_declaradas(self):
+        self.assertIsNotNone(self.man["study"]["origin"]["microgrid_incarnation"])
+        self._bad(_jmut(f"runs/{self.ru}/run.json", lambda r: r.update(incarnation="d" * 32)), "incarnação")
+        self._bad(_jmut(f"runs/{self.ru}/manifest.json",
+                        lambda m: m["reference"].update(microgrid_incarnation="d" * 32)), "incarnação")
+
+    def test_incarnacao_nao_registrada_em_dados_herdados_nao_e_conflito(self):
+        def legacy(f):
+            for ru in self.man["study"]["runs"]:
+                r = json.loads(f[f"runs/{ru}/run.json"])
+                r["incarnation"] = None
+                f[f"runs/{ru}/run.json"] = json.dumps(r).encode()
+                mm = json.loads(f[f"runs/{ru}/manifest.json"])
+                mm["reference"]["microgrid_incarnation"] = None
+                f[f"runs/{ru}/manifest.json"] = json.dumps(mm).encode()
+            _resign(f)
+        self._good(legacy)                                                 # None = não registrado: aceito
+
+        def no_origin(f):
+            m = json.loads(f["manifest.json"])
+            m["study"]["origin"]["microgrid_incarnation"] = None
+            f["manifest.json"] = json.dumps(m).encode()
+        self._good(no_origin)
+
+    def test_3_revisao_ou_impressao_do_manifesto_da_rodada_diferente_do_registro(self):
+        self._bad(_jmut(f"runs/{self.ru}/manifest.json", lambda m: m["reference"].update(config_revision=2)),
+                  "config_revision")
+        self._bad(_jmut(f"runs/{self.ru}/manifest.json", lambda m: m["reference"].update(config_fingerprint="e" * 64)),
+                  "config_fingerprint")
+        # registro e manifesto coerentes entre si, mas a revisão difere da referenciada pela versão executada
+
+        def both(f):
+            for path in (f"runs/{self.ru}/run.json",):
+                r = json.loads(f[path])
+                r["config_fingerprint"] = "e" * 64
+                f[path] = json.dumps(r).encode()
+            mm = json.loads(f[f"runs/{self.ru}/manifest.json"])
+            mm["reference"]["config_fingerprint"] = "e" * 64
+            f[f"runs/{self.ru}/manifest.json"] = json.dumps(mm).encode()
+            _resign(f)
+        self._bad(both, "revisão do inventário")
+
+    def test_4_referencia_de_cenario_contraditoria(self):
+        self._bad(_jmut(f"runs/{self.ru}/manifest.json", lambda m: m["reference"].update(microgrid_uid="c" * 32)),
+                  "outra microrrede")
+        self._bad(_jmut(f"runs/{self.ru}/manifest.json", lambda m: m["reference"].update(scenario_uid="f" * 32)),
+                  "scenario_uid")
+        self._bad(_jmut(f"runs/{self.ru}/manifest.json", lambda m: m["reference"].update(scenario_version=3)),
+                  "scenario_version")
+
+    def test_5_dependencia_de_versao_aponta_para_outra_revisao(self):
+        """Estudo com DUAS revisões reais do inventário: a dependência da versão rebaseada é trocada pela outra."""
+        tmp = tempfile.TemporaryDirectory()
+        try:
+            reg = MicrogridRegistry(tmp.name)
+            cfg = v16_equivalent_config("Duas revisões")
+            reg.create(cfg, origin="commissioning")
+            st = reg.open(cfg["installation"]["uid"])
+            sc = ready(st, name="Rebaseado")
+            cur = st.load()
+            c2 = copy.deepcopy(cur.config)
+            c2["equipment"][0]["name"] = "Arranjo renomeado"
+            st.save(c2, cur.revision)
+            sc3 = service.rebase(st, sc.scenario_uid, sc.version)
+            pkg, man = exporter.export_bytes(st, sc.scenario_uid)
+        finally:
+            tmp.cleanup()
+        self.assertEqual(man["study"]["inventory_revisions"], [1, 2])
+        self.assertTrue(FMT.inspect(pkg).ok)
+        v = str(sc3.version)
+        self.assertEqual(man["dependencies"]["versions"][v]["inventory_revision"], FMT.revision_path(2, True))
+        bad = _rezip(pkg, _mmut(lambda m: m["dependencies"]["versions"][v].update(
+            inventory_revision=FMT.revision_path(1, True))))
+        rep = FMT.inspect(bad)
+        self.assertFalse(rep.ok)
+        self.assertTrue(any(f"versions/{v} alterada" in e for e in rep.errors), rep.errors)
+
+    def test_6_dependencia_aponta_para_blob_diferente(self):
+        other = f"forecasts/blobs/{self.info['csv_original']}"            # blob existente, mas de outra versão
+        self._bad(_mmut(lambda m: m["dependencies"]["versions"]["2"]["forecasts"].__setitem__(0, other)),
+                  "versions/2 alterada")
+        self._bad(_mmut(lambda m: m["dependencies"]["inventory_revisions"]["1"]["blobs"].append(other)),
+                  "inventory_revisions/1 alterada")
+
+    def test_7_dependencia_de_rodada_omite_ou_acrescenta_arquivo(self):
+        ru, other = self.ru, self.info["failed"].run_uid
+        self._bad(_mmut(lambda m: m["dependencies"]["runs"][ru]["files"].pop()), f"runs/{ru[:40]} alterada")
+        self._bad(_mmut(lambda m: m["dependencies"]["runs"][ru]["files"].append(f"runs/{other}/run.json")),
+                  f"runs/{ru[:40]} alterada")
+        self._bad(_mmut(lambda m: m["dependencies"]["runs"][ru].update(scenario_version=FMT.version_path(3, True))),
+                  "alterada")
+        self._bad(_mmut(lambda m: m["dependencies"]["runs"].__setitem__("a" * 32, {"files": []})), "inexistente")
+        self._bad(_mmut(lambda m: m["dependencies"]["versions"].pop("1")), "versions/1 ausente")
+        self._bad(_mmut(lambda m: m.pop("dependencies")), "dependências ausente")
+
+
 # =========================================================================== segurança do importador
 def _zip(entries: list[tuple], **kw) -> bytes:
     buf = io.BytesIO()

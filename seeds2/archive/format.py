@@ -439,12 +439,27 @@ def _inspect(source, rep: Inspection) -> None:
     _relations(rep, total)
 
 
+def _clash(a: Any, b: Any) -> bool:
+    """Dois valores DECLARADOS e diferentes (``None`` = não registrado em dados legítimos anteriores: não é conflito)."""
+    return a is not None and b is not None and a != b
+
+
 def _relations(rep: Inspection, total: int) -> None:
-    """Relações entre cenário, versões, revisões do inventário, previsões e rodadas (tudo já com SHA-256 conferido)."""
+    """Relações entre cenário, versões, revisões do inventário, previsões e rodadas (tudo já com SHA-256 conferido).
+
+    C-03: a identidade de cada rodada (microrrede, incarnação, cenário, versão, revisão e impressões digitais) é
+    contrastada entre a origem do estudo, ``run.json``, ``manifest.json``/``reference`` e a versão executada; o índice
+    ``dependencies`` do manifesto deve ser EXATAMENTE o grafo reconstruído dos recursos verificados (mesmas funções de
+    referência usadas pelo exportador)."""
+    from seeds2.microgrid.store import MicrogridStore
+
     m, d, res = rep.manifest, rep.docs, rep.manifest["resources"]
     st, o = m["study"], m["study"]["origin"]
     err = rep.errors.append
     used: set[str] = set()
+    inc_o = o.get("microgrid_incarnation")
+    deps: dict[str, dict] = {"versions": {}, "inventory_revisions": {}, "runs": {}}
+    vbase: dict[int, tuple] = {}
     scn = d.get("scenario/scenario.json")
     used.add("scenario/scenario.json")
     if not isinstance(scn, dict):
@@ -475,20 +490,25 @@ def _relations(rep: Inspection, total: int) -> None:
         if doc.get("schema") != "seeds2-scenario" or not _is_int(doc.get("schema_version")):
             err(f"Versão {v}: documento de cenário não reconhecido.")
             continue
-        if doc.get("scenario_uid") != o["scenario_uid"] or (doc.get("microgrid") or {}).get("uid") != o["microgrid_uid"]:
+        mg_doc = doc.get("microgrid") if isinstance(doc.get("microgrid"), dict) else {}
+        if doc.get("scenario_uid") != o["scenario_uid"] or mg_doc.get("uid") != o["microgrid_uid"]:
             err(f"Versão {v}: o documento pertence a outro cenário ou microrrede.")
+        if _clash(mg_doc.get("incarnation"), inc_o):
+            err(f"Versão {v}: incarnação da microrrede no documento contradiz a origem do estudo.")
+        if meta.get("microgrid_uid") != o["microgrid_uid"]:
+            err(f"Versão {v}: metadados atribuídos a outra microrrede.")
         ref = doc.get("inventory_ref") if isinstance(doc.get("inventory_ref"), dict) else {}
         br = meta.get("base_revision")
         if br != ref.get("config_revision") or meta.get("base_fingerprint") != ref.get("config_fingerprint"):
             err(f"Versão {v}: referência ao inventário inconsistente entre metadados e documento.")
         if br not in revs:
             err(f"Versão {v}: revisão {br} do inventário referenciada mas não incluída.")
-        fc = doc.get("forecasts")
-        for slot, e in (fc.items() if isinstance(fc, dict) else []):
-            for k in ("data", "blob"):
-                h = e.get(k) if isinstance(e, dict) else None
-                if isinstance(h, str) and _HEX64.fullmatch(h):
-                    blobs_needed[f"forecasts/blobs/{h}"] = f"versão {v}, previsão '{slot}'"
+        vbase[v] = (br, meta.get("base_fingerprint"))
+        fblobs = sorted(f"forecasts/blobs/{h}" for h in MicrogridStore._scenario_blobs(doc))
+        for p in fblobs:
+            blobs_needed[p] = f"versão {v}, previsão"
+        deps["versions"][str(v)] = {"document": dp, "inventory_revision": revision_path(br, True) if _is_int(br) else None,
+                                    "forecasts": fblobs}
     rfp: dict[int, str] = {}
     for r in sorted(revs):
         mp, dp = revision_path(r), revision_path(r, True)
@@ -504,10 +524,10 @@ def _relations(rep: Inspection, total: int) -> None:
         if meta.get("installation_uid") != o["microgrid_uid"]:
             err(f"Revisão {r} do inventário pertence a outra microrrede.")
         rfp[r] = str(meta.get("fingerprint"))
-        from seeds2.microgrid.store import MicrogridStore
-
-        for h in MicrogridStore._referenced_blobs(doc):
-            blobs_needed[f"inventory/blobs/{h}"] = f"revisão {r} do inventário"
+        iblobs = sorted(f"inventory/blobs/{h}" for h in MicrogridStore._referenced_blobs(doc))
+        for p in iblobs:
+            blobs_needed[p] = f"revisão {r} do inventário"
+        deps["inventory_revisions"][str(r)] = {"document": dp, "blobs": iblobs}
     for v in versions:
         meta = d.get(version_path(v)) or {}
         if meta.get("base_revision") in rfp and meta.get("base_fingerprint") != rfp[meta["base_revision"]]:
@@ -541,10 +561,29 @@ def _relations(rep: Inspection, total: int) -> None:
             err(f"Rodada {ru[:8]}…: versão {v} do cenário ausente ou com outra impressão digital.")
         if row.get("config_revision") not in rfp or row.get("config_fingerprint") != rfp.get(row.get("config_revision")):
             err(f"Rodada {ru[:8]}…: revisão do inventário ausente ou com outra impressão digital.")
+        if (vbase.get(v) or (None, None)) != (row.get("config_revision"), row.get("config_fingerprint")):
+            err(f"Rodada {ru[:8]}…: revisão do inventário diferente da referenciada pela versão {v} executada.")
+        # ---- C-03: identidade da rodada × origem do estudo × registro × manifesto de procedência
+        if row.get("microgrid_uid") != o["microgrid_uid"]:
+            err(f"Rodada {ru[:8]}…: registro atribuído a outra microrrede (não pertence à origem deste estudo).")
+        if _clash(row.get("incarnation"), inc_o):
+            err(f"Rodada {ru[:8]}…: incarnação da microrrede no registro contradiz a origem do estudo.")
         ref = man.get("reference") if isinstance(man.get("reference"), dict) else {}
-        if man.get("run_uid") != ru or ref.get("scenario_uid") != o["scenario_uid"] or \
-                ref.get("scenario_version") != v or ref.get("scenario_fingerprint") != row.get("scenario_fingerprint"):
+        if man.get("run_uid") != ru or not ref:
             err(f"Rodada {ru[:8]}…: o manifesto de procedência não corresponde à rodada.")
+        if ref.get("microgrid_uid") != row.get("microgrid_uid"):
+            err(f"Rodada {ru[:8]}…: o manifesto de procedência atribui a rodada a outra microrrede.")
+        if _clash(ref.get("microgrid_incarnation"), row.get("incarnation")) or \
+                _clash(ref.get("microgrid_incarnation"), inc_o):
+            err(f"Rodada {ru[:8]}…: incarnação no manifesto de procedência contradiz o registro ou a origem.")
+        bad = [k for k in ("scenario_uid", "scenario_version", "scenario_fingerprint", "config_revision",
+                           "config_fingerprint") if ref.get(k) != row.get(k)]
+        if bad:
+            err(f"Rodada {ru[:8]}…: o manifesto de procedência diverge do registro da rodada ({', '.join(bad)}).")
+        deps["runs"][ru] = {"scenario_version": version_path(v, True) if _is_int(v) else None,
+                            "inventory_revision": revision_path(row["config_revision"], True)
+                            if _is_int(row.get("config_revision")) else None,
+                            "files": sorted(p for p in res if p.startswith(base))}
         for n in ("outcome", "summary", "error"):
             p = f"{base}{n}.json"
             if p in res:
@@ -577,6 +616,23 @@ def _relations(rep: Inspection, total: int) -> None:
         if c and c[0] in ("run_json", "run_data") and c[1][0] not in set(st["runs"]):
             err(f"Recurso de rodada não listada no índice: {rp[:80]!r}.")
             break
+    # ---- C-03: o grafo declarado deve ser exatamente o reconstruído (só comparado com o restante consistente)
+    if not rep.errors:
+        declared = m.get("dependencies")
+        if not isinstance(declared, dict):
+            err("Índice de dependências ausente ou inválido no manifesto.")
+        else:
+            for sec in ("versions", "inventory_revisions", "runs"):
+                got, exp = declared.get(sec), deps[sec]
+                if not isinstance(got, dict):
+                    err(f"Índice de dependências sem a seção {sec!r}.")
+                    continue
+                for k in sorted(set(got) | set(exp), key=str)[:200]:
+                    if got.get(k) != exp.get(k):
+                        what = "inexistente no estudo" if k not in exp else ("ausente" if k not in got else "alterada")
+                        err(f"Dependência {sec}/{str(k)[:40]} {what}: não corresponde às relações dos recursos verificados.")
+            if set(declared) - set(deps):
+                err("Índice de dependências com seções desconhecidas.")
     cnt = st.get("counts") if isinstance(st.get("counts"), dict) else {}
     if cnt.get("versions") != len(versions) or cnt.get("runs") != len(st["runs"]):
         err("As contagens declaradas no manifesto não conferem com o conteúdo.")
