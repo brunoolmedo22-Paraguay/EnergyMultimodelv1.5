@@ -578,7 +578,7 @@ def render(store, cur) -> None:
     tone, label, detail = F.stage_status(doc)
     shell.hero("Previsões e Dados", doc["name"],
                "Condições FUTURAS do experimento — demanda elétrica e variáveis meteorológicas — com base temporal "
-               "original preservada. Não altera o inventário físico e ainda não é aplicada às rodadas (Piso 2C).",
+               "original preservada. Não altera o inventário físico; usadas pela Execução do cenário (etapa 04).",
                [("Cenário", f"v{cur.version}" + (" · alterações não salvas" if oc.is_dirty() else "")),
                 ("Inventário de referência", f"rev. {ref['config_revision']}"),
                 ("Renováveis habilitadas", ", ".join(F.TECH_LABELS[t] for t in techs) or "nenhuma"),
@@ -587,7 +587,7 @@ def render(store, cur) -> None:
     st.html('<div class="op-legend">'
             '<span><b style="color:#C2364A">✕ Erro</b> — impede incorporar e salvar</span>'
             '<span><b style="color:#C77700">! Advertência</b> — permitido</span>'
-            '<span><b style="color:#2F6FED">◷ Capacidade pendente</b> — ainda não interpretada pelo EMS V1.6 (Piso 2C)</span>'
+            '<span><b style="color:#2F6FED">◷ Capacidade pendente</b> — tratada pela verificação de compatibilidade da Execução</span>'
             '<span><b>– Não definido</b> — prontidão do cenário</span></div>')
     # Abas com estado (chave própria): a aba ativa sobrevive às reexecuções e só a aba aberta é processada.
     tabs = st.tabs(list(TAB_LABELS.values()), key=TAB_KEY, on_change="rerun")
@@ -609,10 +609,11 @@ def render(store, cur) -> None:
         st.html(_findings_html(_f2d(fs)))
     ov = F.overlap(doc["forecasts"].get("demand"), doc["forecasts"].get("climate"))
     if ov:
-        st.caption(f"Período comum demanda × clima: {_when(ov[0])} → {_when(ov[1])}. A janela experimental, a "
-                   "discretização do motor e o horizonte móvel serão escolhidos no Piso 2C.")
-    shell.callout("Este cenário <b>ainda não é executado</b> com estas previsões: a Simulação (console V1.6) continua "
-                  "usando a configuração salva da microrrede. O runner do cenário é o Piso 2C.", "")
+        st.caption(f"Período comum demanda × clima: {_when(ov[0])} → {_when(ov[1])}. A janela da missão (convertida para "
+                   "UTC), o passo do motor e o horizonte móvel são escolhidos nas etapas 03 e 04.")
+    shell.callout("Estas previsões alimentam a <b>Execução do cenário</b> (etapa 04): a janela da missão é convertida para a "
+                  "grade de 1 min do motor sem extrapolação, e a conversão fica registrada em cada rodada. A Simulação "
+                  "(console V1.6) continua usando a configuração salva da microrrede.", "")
     oc._save_bar(store, cur, I.summarize(S.findings(doc)))
 
 

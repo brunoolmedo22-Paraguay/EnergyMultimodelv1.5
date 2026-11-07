@@ -21,7 +21,9 @@ Estrutura::
                        "equipment": {<eq_id>: {"kind", "name", "tag", "enabled", "fingerprint", ...referência física}}},
      "initialization": {"equipment": {<eq_id>: estado}, "orphaned": {<eq_id>: {...}}},
      "forecasts": {<slot>: ForecastInput},   # Piso 2B — ver contracts.ForecastInput e forecasts.py
-     "ems_strategy": None,     # Piso 2C — ainda não implementado
+     "ems_strategy": None | {...},   # Piso 2C — strategy.default_strategy() (opções existentes do motor V1.6)
+     "mission": None | {...},        # Piso 2C — janela da missão (strategy.default_mission); chave opcional:
+                                     #   documentos anteriores ao 2C não a têm (= None) e mantêm a impressão digital
      "lineage": {"created_at": iso, "duplicated_from": None | {"scenario_uid", "version", "name"}}}
 """
 from __future__ import annotations
@@ -38,6 +40,7 @@ from seeds2.microgrid import config as C
 from . import contracts
 from . import forecasts as FC
 from . import initialization as I
+from . import strategy as SG
 
 SCHEMA = "seeds2-scenario"
 SCHEMA_VERSION = 1
@@ -106,6 +109,7 @@ def new_scenario(config: dict, revision: int, fingerprint: str, *, name: str, de
         "initialization": {"equipment": states, "orphaned": {}},
         "forecasts": contracts.empty_forecasts(),
         "ems_strategy": None,
+        "mission": None,
         "lineage": {"created_at": C.utc_now(), "duplicated_from": None},
     }
 
@@ -157,8 +161,8 @@ def structural_errors(doc: Any) -> list[str]:
     if not isinstance(ini, dict) or not isinstance(ini.get("equipment"), dict) or not isinstance(ini.get("orphaned", {}), dict):
         errs.append("Bloco de inicialização inválido.")
     errs += contracts.forecast_errors(doc.get("forecasts"))
-    if doc.get("ems_strategy") is not None:
-        errs.append("Estratégia EMS ainda não é suportada (Piso 2C); o campo deve permanecer vazio.")
+    errs += SG.strategy_errors(doc.get("ems_strategy"))       # Piso 2C (None = ainda não definida)
+    errs += SG.mission_errors(doc.get("mission"))
     return errs
 
 
@@ -254,14 +258,34 @@ def rebase(doc: dict, current_config: dict, revision: int, fingerprint: str) -> 
 STAGES = (
     ("inicializacao", "Inicialização", "Estados iniciais dos equipamentos"),
     ("previsoes", "Previsões", "Demanda e clima: perfis manuais, CSV, sintéticos ou de referência"),
-    ("estrategia", "Estratégia EMS", "Escolha e parâmetros da estratégia — piso dedicado ao otimizador"),
-    ("execucao", "Execução", "Rodada EMS do cenário e arquivo de resultados — Piso 2C"),
+    ("estrategia", "Estratégia EMS", "Função objetivo, algoritmo, horizonte N e parâmetros do motor V1.6"),
+    ("execucao", "Execução", "Janela da missão, verificação de compatibilidade, rodada EMS e resultados gravados"),
 )
 
 
+def strategy_status(doc: dict) -> tuple[str, str, str]:
+    s = doc.get("ems_strategy")
+    if s is None:
+        return "warn", "Não definida", "defina e salve os parâmetros do otimizador"
+    errs = SG.strategy_errors(s)
+    if errs:
+        return "bad", "Com erros", f"{len(errs)} problema(s)"
+    return "ok", "Definida", f"{SG.ALGORITHMS[s['algorithm']].split(' ·')[0]} · N = {s['N']} · semente {s['seed']}"
+
+
+def execution_status(doc: dict) -> tuple[str, str, str]:
+    m = doc.get("mission")
+    if m is None:
+        return "warn", "Janela não definida", "defina início e duração da missão"
+    if SG.mission_errors(m):
+        return "bad", "Janela inválida", "corrija a janela da missão"
+    return "info", "Janela definida", f"{m['duration_min']} min · compatibilidade verificada antes de executar"
+
+
 def readiness(doc: dict, fs: list[I.Finding], d: Drift | None) -> dict:
-    """Estado de preparação do cenário. Inicialização (Piso 2A) e Previsões (Piso 2B) disponíveis; Estratégia EMS e
-    Execução são declaradas como NÃO implementadas (nunca simuladas como prontas)."""
+    """Estado de preparação do cenário a partir do DOCUMENTO. A decisão de executar não é tomada aqui: depende do
+    preflight científico (``seeds2.operation.preflight``), que lê o inventário de referência e as séries gravadas —
+    por isso ``executable`` é ``None`` ("decidido pelo preflight")."""
     s = I.summarize(fs)
     if s[I.ERROR]:
         init = ("bad", "Com erros de coerência", f"{s[I.ERROR]} erro(s) a corrigir")
@@ -276,13 +300,14 @@ def readiness(doc: dict, fs: list[I.Finding], d: Drift | None) -> dict:
     prev = FC.stage_status(doc)
     stages = {"inicializacao": init,
               "previsoes": prev,
-              "estrategia": ("off", "Não implementado", "Piso dedicado ao otimizador"),
-              "execucao": ("off", "Não implementado", "Piso 2C")}
-    return {"stages": stages, "counts": s, "executable": False,
-            "summary": "Inicialização " + init[1].lower() + " · Previsões " + prev[1].lower() + " · Estratégia EMS e "
-                       "Execução ainda não implementadas (o cenário ainda não é executável)."}
+              "estrategia": strategy_status(doc),
+              "execucao": execution_status(doc)}
+    return {"stages": stages, "counts": s, "executable": None,
+            "summary": "Inicialização " + init[1].lower() + " · Previsões " + prev[1].lower() + " · Estratégia EMS "
+                       + stages["estrategia"][1].lower() + " · Execução: " + stages["execucao"][1].lower()
+                       + " (a compatibilidade com o motor é verificada antes de executar)."}
 
 
 __all__ = ["Drift", "SCHEMA", "SCHEMA_VERSION", "STAGES", "ScenarioValidationError", "check_for_save", "drift", "duplicate",
            "equipment_fingerprint", "findings", "inventory_fingerprint", "inventory_reference", "new_scenario",
-           "readiness", "rebase", "structural_errors"]
+           "execution_status", "readiness", "rebase", "strategy_status", "structural_errors"]

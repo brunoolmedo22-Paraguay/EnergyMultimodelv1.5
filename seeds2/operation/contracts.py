@@ -10,12 +10,12 @@ Piso 2B — Previsões (IMPLEMENTADO — ``seeds2/operation/forecasts.py`` e ``f
     gravados na MESMA transação da versão do cenário. O slot ``resources`` (hidrogênio/combustível) continua
     reservado: nenhum contrato científico o consome ainda, e ele não é editável.
 
-Piso 2C — Execução
-    Entidades separadas: ``Scenario`` (editável, versionado em ``scenario_versions``) e ``Run`` (imutável depois
-    de concluída). Uma execução deverá referenciar a versão IMUTÁVEL do cenário que a gerou (``RunReference``),
-    além da microrrede/incarnação e da revisão do inventário. As séries completas do despacho serão gravadas com
-    a execução (dívida técnica registrada no Piso 1). Nada disso existe ainda: não há runner novo e o otimizador
-    não foi alterado.
+Piso 2C — Execução (IMPLEMENTADO — ``seeds2/operation/preflight.py``, ``mission.py``, ``runner.py``)
+    Entidades separadas: ``Scenario`` (editável, versionado em ``scenario_versions``) e ``Run`` (tabela
+    ``scenario_runs``, esquema v4; imutável depois de finalizada). Toda execução referencia a versão IMUTÁVEL do
+    cenário que a gerou (``RunReference``: microrrede/incarnação, cenário/versão/impressão digital, revisão do
+    inventário) e grava manifesto de procedência, resumo e séries completas de entrada/saída
+    (``scenario_run_data``). O otimizador e os modelos não foram alterados.
 
 Piso 2D — Arquivo científico
     O documento do cenário é JSON autossuficiente (esquema + versão, instantâneo das referências físicas,
@@ -140,7 +140,11 @@ def run_reference(stored_scenario: Any) -> RunReference:
                         config_revision=stored_scenario.base_revision, config_fingerprint=stored_scenario.base_fingerprint)
 
 
-RUN_STATES = ("preparada", "em_execucao", "concluida", "falhou")     # concluída/falhou → imutável (Piso 2C)
+# "preparada" = relatório do preflight (efêmero, não persistido); persistidos: em_execucao → concluida | falhou |
+# interrompida (processo encerrado antes da conclusão). Estados finais são imutáveis.
+RUN_STATES = ("preparada", "em_execucao", "concluida", "falhou", "interrompida")
+RUN_STATE_LABELS = {"preparada": "Preparada", "em_execucao": "Em execução", "concluida": "Concluída", "falhou": "Falhou",
+                    "interrompida": "Interrompida"}
 
-__all__ = ["FORECAST_SLOTS", "FORECAST_SOURCE_TYPES", "ForecastInput", "RUN_STATES", "RunReference",
+__all__ = ["FORECAST_SLOTS", "FORECAST_SOURCE_TYPES", "ForecastInput", "RUN_STATES", "RUN_STATE_LABELS", "RunReference",
            "empty_forecasts", "forecast_errors", "run_reference"]

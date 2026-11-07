@@ -39,10 +39,13 @@ _CHAVES_EXTRAS = ("seeds_route", "seeds_last_view", "mg_ack_fp", "mg_active_uid"
                   "op_scenario_uid", "op_work", "op_work_uid", "op_base_version", "op_base_fp", "op_token",
                   "op_conflict", "op_stale", "op_form", "op_flash", "op_url_checked",
                   # Previsões (Piso 2B): dados pendentes ainda não gravados (estado de aplicação)
-                  "op_blobs")
+                  "op_blobs",
+                  # Execução (Piso 2C): rodada aberta (estado de aplicação)
+                  "op_run_uid")
 # Previsões (Piso 2B): estado de aplicação por slot (tabela manual, CSV enviado, token do editor, verificação) e a
 # fonte escolhida e a aba ativa (chaves fixas — valores transportáveis entre execuções).
-_PREFIXOS_EXTRAS = ("op_fcs_", "opw_fc_src_", "opw_fc_tab")
+_PREFIXOS_EXTRAS = ("op_fcs_", "opw_fc_src_", "opw_fc_tab",
+                    "op_ex_")      # Piso 2C: cache do preflight e pedido de execução pendente (estado de aplicação)
 _V16_DIR: str | None = None
 _V16_UID: str | None = None
 

@@ -25,13 +25,14 @@ NAV_DOCS = [("alcance", "Alcance")]
 SWITCH_KEY = "seeds_switch_requested"
 ROUTE_KEY = "seeds_route"
 SCENARIO_KEY = "op_scenario_uid"          # cenário selecionado no Centro de Operação (sobrevive à recarga: ?sc=)
-# Alcance do backup ZIP (formato 2, inalterado nos Pisos 2A/2B): exibido em TODA exportação/restauração/exclusão.
+# Alcance do backup ZIP (formato 2, inalterado nos Pisos 2A/2B/2C): exibido em TODA exportação/restauração/exclusão.
 BACKUP_SCOPE = ("O backup ZIP atual contém a configuração da microrrede e os dados compatíveis do Piso 1 (inventário, "
                 "dados de entrada importados, histórico de revisões). **Não inclui os cenários operativos do Centro de "
-                "Operação (Piso 2A)** nem as previsões associadas a eles (Piso 2B): eles não podem ser recuperados a partir "
-                "deste arquivo. A exportação de cenários está prevista para o Piso 2D.")
-RESTORE_SCOPE = ("Restaurar um backup ZIP cria uma nova revisão da configuração; **nenhum cenário operativo é restaurado** "
-                 "(o arquivo não os contém). Os cenários já existentes nesta microrrede são mantidos e passam a indicar "
+                "Operação (Piso 2A)**, as previsões associadas a eles (Piso 2B) **nem as rodadas científicas executadas e "
+                "seus resultados (Piso 2C: séries completas, procedência e indicadores)**: nada disso pode ser recuperado a "
+                "partir deste arquivo. A exportação de cenários e resultados está prevista para o Piso 2D.")
+RESTORE_SCOPE = ("Restaurar um backup ZIP cria uma nova revisão da configuração; **nenhum cenário operativo nem rodada "
+                 "científica é restaurado** (o arquivo não os contém). Os cenários já existentes nesta microrrede são mantidos e passam a indicar "
                  "que o inventário mudou.")
 
 
@@ -169,9 +170,11 @@ def go(view: str, tab: str | None = None) -> None:
     r["tab"] = tab
     mg = st.session_state.get("mg_active_uid")          # a microrrede ativa DESTA aba sobrevive à recarga
     sc = st.session_state.get(SCENARIO_KEY) if mg else None
+    # Piso 2C: a rodada aberta (?run=<uid>) sobrevive à recarga enquanto a vista for a da rodada.
+    run = (st.session_state.get("op_run_uid") or st.query_params.get("run")) if mg and tab == "rodada" else None
     st.query_params.clear()
     st.query_params.update({"view": r["view"], **({"tab": tab} if tab else {}), **({"mg": mg} if mg else {}),
-                            **({"sc": sc} if sc else {})})
+                            **({"sc": sc} if sc else {}), **({"run": run} if run else {})})
 
 
 def _on_topbar() -> None:

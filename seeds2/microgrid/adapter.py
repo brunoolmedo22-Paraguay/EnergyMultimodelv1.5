@@ -141,7 +141,12 @@ def _describe_group(kind: str, key: tuple) -> str:
     return str(key)
 
 
-def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | None = None) -> SimulationPlan:
+def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | None = None,
+               external_inputs: bool = False) -> SimulationPlan:
+    """``external_inputs`` (Piso 2C — execução de cenário): demanda e clima NÃO vêm do inventário, e sim das
+    previsões do cenário (preparadas por ``seeds2.operation.mission``); o plano então não exige a demanda do
+    inventário e declara o clima como "CSV climático" (o runtime V1.6 o recebe por ``climate_raw``). A
+    classificação dos equipamentos e a agregação são exatamente as mesmas."""
     from .derived import battery_derived, pv_array_kWp
 
     spec = _inactive_spec()
@@ -281,7 +286,10 @@ def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | 
     # ---- clima, demanda e bloqueios
     clim = config.get("climate") or {}
     climate_descriptor: dict = {}
-    if spec["solar"]["active"] or spec["wind"]["active"]:
+    if external_inputs:
+        if spec["solar"]["active"] or spec["wind"]["active"]:
+            spec["climate"]["source"] = "CSV climático"
+    elif spec["solar"]["active"] or spec["wind"]["active"]:
         if clim.get("source") == "csv":
             spec["climate"]["source"] = "CSV climático"
             climate_descriptor = {"source": "csv", "blob": (clim.get("csv") or {}).get("blob")}
@@ -291,8 +299,8 @@ def build_plan(config: dict, *, revision: int | None = None, fingerprint: str | 
             warnings.append("Solar/eólica usarão o clima SINTÉTICO diário (demonstração), não medições da instalação.")
     if not any(spec[k]["active"] for k in ("fc", "battery", "thermal")):
         blockers.append("Nenhuma fonte despachável representável (H₂/PEMFC, bateria ou térmica): o EMS exige ao menos uma.")
-    load_descriptor = demand_descriptor(config.get("demand") or {})
-    if not load_descriptor:
+    load_descriptor = {} if external_inputs else demand_descriptor(config.get("demand") or {})
+    if not load_descriptor and not external_inputs:
         blockers.append("Demanda da microrrede não definida ou incompleta (Gestão → Demanda e dados).")
     pv_repr = 0.0
     if spec["solar"]["active"]:

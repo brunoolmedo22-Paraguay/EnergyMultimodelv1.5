@@ -28,11 +28,12 @@ from seeds2.operation import initialization as I
 from seeds2.operation import scenarios as S
 from seeds2.operation import service
 
-from . import forecasts_ui, forms, home, session, shell
+from . import execution_ui, forecasts_ui, forms, home, session, shell
 
 SCN = shell.SCENARIO_KEY
 TAB_INIT = "inicializacao"
 TAB_FC = forecasts_ui.TAB
+TAB_SG, TAB_EX, TAB_RUN = execution_ui.TAB_STRATEGY, execution_ui.TAB_EXEC, execution_ui.TAB_RUN
 KIND_ORDER = ("battery", "pemfc", "thermal", "pv", "wind")
 KIND_SECTION = {"battery": "Armazenamento — baterias", "pemfc": "H₂ / PEMFC", "thermal": "Térmica",
                 "pv": "Solar fotovoltaica", "wind": "Eólica"}
@@ -98,6 +99,7 @@ def _clear_selection() -> None:
     for k in (SCN, "op_work", "op_work_uid", "op_base_version", "op_base_fp", "op_conflict", "op_error", "op_stale"):
         ss.pop(k, None)
     forecasts_ui.clear_state()
+    execution_ui.clear_state()
 
 
 def work() -> dict | None:
@@ -335,9 +337,10 @@ def _cards(store, cur) -> None:
             tone, label, detail = rd["stages"][key]
             rows.append(shell.check(f"<b>{escape(title)}</b> — {escape(label)}"
                                     f"{' · ' + escape(detail) if detail else ''}", {"info": "warn"}.get(tone, tone)))
+        ex_tone, ex_label, _ = execution_ui.stage_state(store, cur)
         st.html('<div class="op-k">Preparação do cenário</div><div class="op-row"><div class="op-t">'
                 f'{"Inicialização definida" if rd["stages"]["inicializacao"][0] == "ok" else "Em preparação"}</div>'
-                f'{_pill("Não executável nesta versão", "off")}</div>' + "".join(rows))
+                f'{_pill(ex_label + f" (v{cur.version})", ex_tone)}</div>' + "".join(rows))
 
 
 def _rebase(store, cur) -> None:
@@ -355,7 +358,7 @@ def _rebase(store, cur) -> None:
     st.rerun()
 
 
-def _stages(cur) -> None:
+def _stages(store, cur) -> None:
     st.markdown('<div class="sd-section">Etapas do experimento</div>', unsafe_allow_html=True)
     doc = work()
     fs = S.findings(doc) if doc else []
@@ -378,10 +381,20 @@ def _stages(cur) -> None:
                 if st.button("ABRIR PREVISÕES", key="op_open_fc", type="primary", width="stretch", disabled=cur is None):
                     shell.go("operacao", TAB_FC)
                     st.rerun()
+            elif key == "estrategia":
+                tone, label, _ = S.strategy_status(doc) if doc else ("off", "Sem cenário", "")
+                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
+                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}.</p>')
+                if st.button("ABRIR ESTRATÉGIA EMS", key="op_open_sg", type="primary", width="stretch", disabled=cur is None):
+                    shell.go("operacao", TAB_SG)
+                    st.rerun()
             else:
-                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill("Não implementado", "off")}</div>'
-                        f'<div class="op-t" style="opacity:.7">{escape(title)}</div><p class="op-d">{escape(sub)}. '
-                        'Ainda não operativo: sem controles nesta versão.</p>')
+                tone, label, _ = execution_ui.stage_state(store, cur) if cur is not None else ("off", "Sem cenário", "")
+                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
+                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}.</p>')
+                if st.button("ABRIR EXECUÇÃO", key="op_open_ex", type="primary", width="stretch", disabled=cur is None):
+                    shell.go("operacao", TAB_EX)
+                    st.rerun()
 
 
 def _panel(store, items, cur) -> None:
@@ -397,11 +410,11 @@ def _panel(store, items, cur) -> None:
     _form(store, items, cur)
     if cur is not None and work() is not None:
         _cards(store, cur)
-    _stages(cur)
-    shell.callout("O cenário <b>ainda não é aplicado às rodadas</b>: a Simulação (console V1.6) continua usando a "
-                  "configuração salva da microrrede e suas condições da rodada — inclusive a demanda e o clima do "
-                  "inventário, não as previsões do cenário. A conexão cenário → execução é o Piso 2C.",
-                  "")
+    _stages(store, cur)
+    shell.callout("<b>Execução de cenário (etapa 04)</b>: usa as condições DESTE cenário — estados iniciais, previsões, "
+                  "estratégia e janela — sobre a revisão do inventário que ele referencia, e grava cada rodada (imutável) "
+                  "nesta microrrede. A <b>Simulação</b> (console V1.6) continua independente: usa a configuração salva da "
+                  "microrrede, suas condições da rodada e a demanda/clima do inventário.", "")
     with st.expander("Instalação física (inventário salvo) e prontidão do console V1.6"):
         home.installation_summary()
     with st.expander("Ferramentas V1.6 — bancadas individuais dos modelos"):
@@ -593,6 +606,12 @@ def render() -> None:
         _initialization(store, cur)
     elif tab == TAB_FC:
         forecasts_ui.render(store, cur)
+    elif tab == TAB_SG:
+        execution_ui.render_strategy(store, cur)
+    elif tab == TAB_EX:
+        execution_ui.render_execution(store, cur)
+    elif tab == TAB_RUN:
+        execution_ui.render_run(store, cur)
     else:
         _panel(store, items, cur)
 

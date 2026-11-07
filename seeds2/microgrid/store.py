@@ -147,6 +147,64 @@ MIGRATIONS: list[tuple[int, list[str]]] = [
         """CREATE TRIGGER scenario_versions_immutable_d BEFORE DELETE ON scenario_versions
                BEGIN SELECT RAISE(ABORT, 'versões de cenário são imutáveis'); END""",
     ]),
+    # v4 (Piso 2C — Execução EMS e persistência científica): rodadas de cenário DESTA microrrede. Somente tabelas
+    # novas. ``scenario_runs``: uma linha por execução de uma versão IMUTÁVEL do cenário (chave estrangeira para
+    # ``scenario_versions``), com manifesto (procedência completa) gravado no início e resultado gravado na MESMA
+    # transação que muda o estado para 'concluida'. Linhas finalizadas são imutáveis (triggers) e nunca excluídas.
+    # ``scenario_run_data``: séries completas de entrada/saída e dados dos modelos (SHA-256 do conteúdo), gravados
+    # somente enquanto a rodada está em execução (na transação de conclusão) e imutáveis depois.
+    (4, [
+        """CREATE TABLE scenario_runs (
+               run_uid TEXT PRIMARY KEY CHECK (length(run_uid) = 32),
+               request_id TEXT NOT NULL UNIQUE,
+               microgrid_uid TEXT NOT NULL,
+               incarnation TEXT,
+               scenario_uid TEXT NOT NULL,
+               scenario_version INTEGER NOT NULL CHECK (scenario_version >= 1),
+               scenario_fingerprint TEXT NOT NULL,
+               config_revision INTEGER NOT NULL REFERENCES revisions(revision),
+               config_fingerprint TEXT NOT NULL,
+               state TEXT NOT NULL CHECK (state IN ('em_execucao', 'concluida', 'falhou', 'interrompida')),
+               owner TEXT NOT NULL,
+               created_at TEXT NOT NULL,
+               heartbeat_at TEXT NOT NULL,
+               finished_at TEXT,
+               progress TEXT NOT NULL DEFAULT '{}',
+               manifest TEXT NOT NULL,
+               outcome TEXT,
+               summary TEXT,
+               error TEXT,
+               FOREIGN KEY (scenario_uid, scenario_version) REFERENCES scenario_versions(scenario_uid, version))""",
+        """CREATE INDEX scenario_runs_by_scenario ON scenario_runs(scenario_uid, created_at)""",
+        """CREATE TRIGGER scenario_runs_final_u BEFORE UPDATE ON scenario_runs WHEN OLD.state <> 'em_execucao'
+               BEGIN SELECT RAISE(ABORT, 'rodadas finalizadas são imutáveis'); END""",
+        """CREATE TRIGGER scenario_runs_identity_u BEFORE UPDATE ON scenario_runs
+               WHEN NEW.run_uid IS NOT OLD.run_uid OR NEW.request_id IS NOT OLD.request_id
+                 OR NEW.microgrid_uid IS NOT OLD.microgrid_uid OR NEW.incarnation IS NOT OLD.incarnation
+                 OR NEW.scenario_uid IS NOT OLD.scenario_uid OR NEW.scenario_version IS NOT OLD.scenario_version
+                 OR NEW.scenario_fingerprint IS NOT OLD.scenario_fingerprint
+                 OR NEW.config_revision IS NOT OLD.config_revision OR NEW.config_fingerprint IS NOT OLD.config_fingerprint
+                 OR NEW.owner IS NOT OLD.owner OR NEW.created_at IS NOT OLD.created_at OR NEW.manifest IS NOT OLD.manifest
+               BEGIN SELECT RAISE(ABORT, 'identidade e manifesto da rodada são imutáveis'); END""",
+        """CREATE TRIGGER scenario_runs_immutable_d BEFORE DELETE ON scenario_runs
+               BEGIN SELECT RAISE(ABORT, 'rodadas são imutáveis'); END""",
+        """CREATE TABLE scenario_run_data (
+               run_uid TEXT NOT NULL REFERENCES scenario_runs(run_uid),
+               name TEXT NOT NULL,
+               sha256 TEXT NOT NULL,
+               media_type TEXT NOT NULL,
+               encoding TEXT NOT NULL CHECK (encoding IN ('identity', 'zlib')),
+               size INTEGER NOT NULL,
+               content BLOB NOT NULL,
+               PRIMARY KEY (run_uid, name))""",
+        """CREATE TRIGGER scenario_run_data_open_only BEFORE INSERT ON scenario_run_data
+               WHEN (SELECT state FROM scenario_runs WHERE run_uid = NEW.run_uid) IS NOT 'em_execucao'
+               BEGIN SELECT RAISE(ABORT, 'dados de rodada só podem ser gravados durante a execução'); END""",
+        """CREATE TRIGGER scenario_run_data_immutable_u BEFORE UPDATE ON scenario_run_data
+               BEGIN SELECT RAISE(ABORT, 'dados de rodada são imutáveis'); END""",
+        """CREATE TRIGGER scenario_run_data_immutable_d BEFORE DELETE ON scenario_run_data
+               BEGIN SELECT RAISE(ABORT, 'dados de rodada são imutáveis'); END""",
+    ]),
 ]
 LATEST_DB_VERSION = MIGRATIONS[-1][0]
 
@@ -212,6 +270,18 @@ class ScenarioNotFound(StoreError):
     """O cenário não existe NESTA microrrede (nunca existiu, ou pertence a outra microrrede/incarnação)."""
 
 
+class RunNotFound(StoreError):
+    """A rodada não existe NESTA microrrede."""
+
+
+class RunBusyError(StoreError):
+    """Já existe uma rodada de cenário em execução nesta microrrede (nenhuma nova foi iniciada)."""
+
+
+class RunStateError(StoreError):
+    """Operação incompatível com o estado da rodada (p. ex. concluir uma rodada já finalizada ou de outro dono)."""
+
+
 class MissingStoreError(StoreError):
     """O banco da microrrede não existe (p. ex. excluída por outra sessão)."""
 
@@ -248,6 +318,37 @@ class StoredScenario:
     origin: str
     created_at: str
     updated_at: str
+
+
+@dataclass(frozen=True)
+class StoredRun:
+    """Rodada de cenário (Piso 2C). ``manifest`` é a procedência gravada no início (imutável); ``outcome`` e
+    ``summary`` só existem em rodadas concluídas (ou falhas, com ``error``). ``data`` lista os dados gravados
+    (nome → {sha256, media_type, size}) sem o conteúdo (lido sob demanda por ``run_data``)."""
+    run_uid: str
+    request_id: str
+    microgrid_uid: str
+    incarnation: str | None
+    scenario_uid: str
+    scenario_version: int
+    scenario_fingerprint: str
+    config_revision: int
+    config_fingerprint: str
+    state: str
+    owner: str
+    created_at: str
+    heartbeat_at: str
+    finished_at: str | None
+    progress: dict
+    manifest: dict
+    outcome: dict | None
+    summary: dict | None
+    error: dict | None
+    data: dict = field(default_factory=dict)
+
+    @property
+    def final(self) -> bool:
+        return self.state != "em_execucao"
 
 
 @dataclass
@@ -799,6 +900,174 @@ class MicrogridStore:
             rows = con.execute("SELECT version, base_revision, fingerprint, saved_at, note, origin FROM scenario_versions "
                                "WHERE scenario_uid = ? ORDER BY version DESC LIMIT ?", (str(scenario_uid), int(limit))).fetchall()
         return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------ rodadas de cenário (Piso 2C)
+    # Ciclo de vida: ``start_run`` (linha 'em_execucao' + manifesto imutável) → ``heartbeat_run`` (progresso real do
+    # motor) → ``finish_run`` (dados + resumo + estado 'concluida' NA MESMA transação) ou ``fail_run`` ('falhou' /
+    # 'interrompida', sem dados). Nenhum resultado parcial é marcado como concluído. Toda operação passa por
+    # ``_tx``/``_read`` (lápide e incarnação verificadas — H-01/H-02/H-03).
+    _RUN_UID = re.compile(r"[0-9a-f]{32}")
+    RUN_FINAL_STATES = ("concluida", "falhou", "interrompida")
+
+    @staticmethod
+    def _run_row(con: sqlite3.Connection, row: sqlite3.Row) -> StoredRun:
+        data = {r["name"]: {"sha256": r["sha256"], "media_type": r["media_type"], "size": int(r["size"])}
+                for r in con.execute("SELECT name, sha256, media_type, size FROM scenario_run_data WHERE run_uid = ? "
+                                     "ORDER BY name", (row["run_uid"],)).fetchall()}
+        js = (lambda v: json.loads(v) if v else None)
+        return StoredRun(row["run_uid"], row["request_id"], row["microgrid_uid"], row["incarnation"], row["scenario_uid"],
+                         int(row["scenario_version"]), row["scenario_fingerprint"], int(row["config_revision"]),
+                         row["config_fingerprint"], row["state"], row["owner"], row["created_at"], row["heartbeat_at"],
+                         row["finished_at"], json.loads(row["progress"] or "{}"), json.loads(row["manifest"]),
+                         js(row["outcome"]), js(row["summary"]), js(row["error"]), data)
+
+    @staticmethod
+    def _recover_con(con: sqlite3.Connection, is_dead) -> list[str]:
+        """Dentro de ``_tx``: rodadas 'em_execucao' cujo dono morreu (processo encerrado, servidor reiniciado) passam a
+        'interrompida' — nunca a 'concluida' — e ficam imutáveis, sem dados."""
+        out = []
+        for r in con.execute("SELECT run_uid, owner, heartbeat_at FROM scenario_runs WHERE state = 'em_execucao'").fetchall():
+            if is_dead(r["run_uid"], r["owner"], r["heartbeat_at"]):
+                err = {"kind": "interrupcao", "message": "Execução interrompida: o processo que a executava terminou "
+                       "(encerramento ou reinício do servidor) antes da conclusão. Nenhum resultado foi gravado."}
+                con.execute("UPDATE scenario_runs SET state = 'interrompida', finished_at = ?, error = ? WHERE run_uid = ?",
+                            (C.utc_now(), C.canonical_json(err), r["run_uid"]))
+                out.append(r["run_uid"])
+        return out
+
+    def recover_runs(self, is_dead) -> list[str]:
+        with self._tx() as con:
+            return self._recover_con(con, is_dead)
+
+    def start_run(self, *, run_uid: str, request_id: str, scenario_uid: str, scenario_version: int,
+                  scenario_fingerprint: str, manifest: dict, owner: str, is_dead=None) -> tuple[StoredRun, bool]:
+        """Abre uma rodada sobre a versão IMUTÁVEL ``scenario_version``. Idempotente por ``request_id`` (o mesmo pedido
+        nunca executa duas vezes: devolve ``(rodada existente, False)``). Recusa se já houver rodada em execução nesta
+        microrrede (``RunBusyError``) ou se a versão não existir/tiver outra impressão digital."""
+        if not (isinstance(run_uid, str) and self._RUN_UID.fullmatch(run_uid)):
+            raise StoreError("Identificador de rodada inválido.")
+        if not isinstance(request_id, str) or not 8 <= len(request_id) <= 80:
+            raise StoreError("Identificador de pedido de execução inválido.")
+        now = C.utc_now()
+        with self._tx() as con:
+            ex = con.execute("SELECT * FROM scenario_runs WHERE request_id = ?", (request_id,)).fetchone()
+            if ex is not None:
+                return self._run_row(con, ex), False
+            if is_dead is not None:
+                self._recover_con(con, is_dead)
+            busy = con.execute("SELECT run_uid FROM scenario_runs WHERE state = 'em_execucao'").fetchone()
+            if busy is not None:
+                raise RunBusyError(f"Já há uma execução em andamento nesta microrrede (rodada {busy[0][:8]}…); "
+                                   "aguarde a conclusão. Nada foi iniciado.")
+            sv = con.execute("SELECT * FROM scenario_versions WHERE scenario_uid = ? AND version = ?",
+                             (str(scenario_uid), int(scenario_version))).fetchone()
+            if sv is None:
+                raise ScenarioNotFound(f"Versão {scenario_version} do cenário inexistente nesta microrrede.")
+            if sv["fingerprint"] != scenario_fingerprint:
+                raise StoreError("A versão do cenário gravada difere da versão preparada (impressão digital); nada foi "
+                                 "iniciado.")
+            mg = con.execute("SELECT installation_uid FROM microgrid WHERE id = 1").fetchone()
+            if mg is None or mg["installation_uid"] != sv["microgrid_uid"] or (
+                    self.fixed_uid is not None and sv["microgrid_uid"] != self.fixed_uid):
+                raise IdentityError("O cenário pertence a outra microrrede; nada foi iniciado.")
+            inc = con.execute("SELECT value FROM meta WHERE key = ?", (INCARNATION_KEY,)).fetchone()
+            con.execute("INSERT INTO scenario_runs(run_uid, request_id, microgrid_uid, incarnation, scenario_uid, "
+                        "scenario_version, scenario_fingerprint, config_revision, config_fingerprint, state, owner, "
+                        "created_at, heartbeat_at, progress, manifest) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (run_uid, request_id, sv["microgrid_uid"], inc[0] if inc else None, sv["scenario_uid"],
+                         int(sv["version"]), sv["fingerprint"], int(sv["base_revision"]), sv["base_fingerprint"],
+                         "em_execucao", str(owner), now, now, C.canonical_json({"phase": "preparando"}),
+                         C.canonical_json(manifest)))
+            return self._run_row(con, con.execute("SELECT * FROM scenario_runs WHERE run_uid = ?", (run_uid,)).fetchone()), True
+
+    def heartbeat_run(self, run_uid: str, owner: str, progress: dict) -> bool:
+        """Atualiza o progresso REAL (fase e passo do motor). Falso se a rodada não está mais em execução por este dono."""
+        with self._tx() as con:
+            cur = con.execute("UPDATE scenario_runs SET heartbeat_at = ?, progress = ? WHERE run_uid = ? AND owner = ? "
+                              "AND state = 'em_execucao'", (C.utc_now(), C.canonical_json(progress), run_uid, owner))
+            return cur.rowcount == 1
+
+    def _open_run(self, con: sqlite3.Connection, run_uid: str, owner: str) -> sqlite3.Row:
+        row = con.execute("SELECT * FROM scenario_runs WHERE run_uid = ?", (run_uid,)).fetchone()
+        if row is None:
+            raise RunNotFound("A rodada não existe nesta microrrede.")
+        if row["state"] != "em_execucao" or row["owner"] != owner:
+            raise RunStateError(f"A rodada não está mais em execução por este processo (estado: {row['state']}); "
+                                "nada foi gravado.")
+        return row
+
+    def finish_run(self, run_uid: str, owner: str, *, outcome: dict, summary: dict,
+                   data: dict[str, tuple[bytes, str]]) -> StoredRun:
+        """Conclui a rodada: grava TODOS os dados, o resultado e o estado 'concluida' numa única transação."""
+        import zlib
+
+        with self._tx() as con:
+            self._open_run(con, run_uid, owner)
+            for name, (content, media_type) in sorted(data.items()):
+                raw = bytes(content)
+                if len(raw) > MAX_BLOB_BYTES * 4:
+                    raise StoreError(f"Dado de rodada '{name}' grande demais; nada foi gravado.")
+                packed = zlib.compress(raw, 6) if len(raw) > 2048 else raw
+                con.execute("INSERT INTO scenario_run_data(run_uid, name, sha256, media_type, encoding, size, content) "
+                            "VALUES (?,?,?,?,?,?,?)", (run_uid, str(name)[:200], sha256(raw).hexdigest(), str(media_type)[:100],
+                                                       "zlib" if packed is not raw else "identity", len(raw), packed))
+            now = C.utc_now()
+            con.execute("UPDATE scenario_runs SET state = 'concluida', finished_at = ?, heartbeat_at = ?, progress = ?, "
+                        "outcome = ?, summary = ? WHERE run_uid = ?",
+                        (now, now, C.canonical_json({"phase": "concluida"}), C.canonical_json(outcome),
+                         C.canonical_json(summary), run_uid))
+            return self._run_row(con, con.execute("SELECT * FROM scenario_runs WHERE run_uid = ?", (run_uid,)).fetchone())
+
+    def fail_run(self, run_uid: str, owner: str, error: dict, *, state: str = "falhou", outcome: dict | None = None) -> StoredRun:
+        """Finaliza SEM resultados ('falhou' ou 'interrompida'); a linha fica imutável com o motivo."""
+        if state not in ("falhou", "interrompida"):
+            raise StoreError("Estado final inválido para falha.")
+        with self._tx() as con:
+            self._open_run(con, run_uid, owner)
+            now = C.utc_now()
+            con.execute("UPDATE scenario_runs SET state = ?, finished_at = ?, heartbeat_at = ?, error = ?, outcome = ? "
+                        "WHERE run_uid = ?", (state, now, now, C.canonical_json(error),
+                                              C.canonical_json(outcome) if outcome is not None else None, run_uid))
+            return self._run_row(con, con.execute("SELECT * FROM scenario_runs WHERE run_uid = ?", (run_uid,)).fetchone())
+
+    def get_run(self, run_uid: str) -> StoredRun:
+        with self._read() as con:
+            row = con.execute("SELECT * FROM scenario_runs WHERE run_uid = ?", (str(run_uid),)).fetchone()
+            if row is None:
+                raise RunNotFound("A rodada não existe nesta microrrede.")
+            return self._run_row(con, row)
+
+    def list_runs(self, scenario_uid: str | None = None, limit: int = 200) -> list[StoredRun]:
+        with self._read() as con:
+            if scenario_uid is None:
+                rows = con.execute("SELECT * FROM scenario_runs ORDER BY created_at DESC, rowid DESC LIMIT ?",
+                                   (int(limit),)).fetchall()
+            else:
+                rows = con.execute("SELECT * FROM scenario_runs WHERE scenario_uid = ? ORDER BY created_at DESC, rowid DESC "
+                                   "LIMIT ?", (str(scenario_uid), int(limit))).fetchall()
+            return [self._run_row(con, r) for r in rows]
+
+    def count_scenario_runs(self) -> dict[str, int]:
+        with self._read() as con:
+            rows = con.execute("SELECT state, COUNT(*) FROM scenario_runs GROUP BY state").fetchall()
+        return {r[0]: int(r[1]) for r in rows}
+
+    def run_data(self, run_uid: str, name: str) -> bytes:
+        """Conteúdo de um dado da rodada (SHA-256 conferido)."""
+        import zlib
+
+        with self._read() as con:
+            row = con.execute("SELECT sha256, encoding, content FROM scenario_run_data WHERE run_uid = ? AND name = ?",
+                              (str(run_uid), str(name))).fetchone()
+        if row is None:
+            raise RunNotFound(f"Dado '{name}' não encontrado na rodada.")
+        try:
+            raw = zlib.decompress(bytes(row["content"])) if row["encoding"] == "zlib" else bytes(row["content"])
+        except zlib.error:
+            raise StoreError(f"Dado '{name}' da rodada corrompido (descompressão).") from None
+        if sha256(raw).hexdigest() != row["sha256"]:
+            raise StoreError(f"Dado '{name}' da rodada corrompido (hash divergente).")
+        return raw
 
     # ------------------------------------------------------------ backup / restauração
     def export_backup(self) -> bytes:

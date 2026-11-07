@@ -83,10 +83,13 @@ async function operar(b) {
   for (const s of ["Previsões", "Estratégia EMS", "Execução"]) {
     assert(await p.getByText(s, { exact: true }).first().isVisible(), `etapa identificada: ${s}`);
   }
-  // Piso 2B: Previsões passou a ser uma etapa real (ABRIR PREVISÕES); Estratégia EMS e Execução seguem sem controles.
+  // Piso 2B/2C: as etapas 02–04 são reais (ABRIR PREVISÕES / ABRIR ESTRATÉGIA EMS / ABRIR EXECUÇÃO); EXECUTAR só
+  // existe DENTRO da etapa 04, depois do preflight — nunca no painel.
   assert(await p.getByRole("button", { name: "ABRIR PREVISÕES" }).count() === 1, "etapa 02 Previsões com ABRIR PREVISÕES (Piso 2B)");
-  const fake = await p.getByRole("button", { name: /EXECUTAR|RODAR|OTIMIZAR|GERAR PREVIS|ESTRAT/i }).count();
-  assert(fake === 0, "nenhum botão fictício de estratégia/execução");
+  assert(await p.getByRole("button", { name: "ABRIR ESTRATÉGIA EMS" }).count() === 1, "etapa 03 Estratégia EMS real (Piso 2C)");
+  assert(await p.getByRole("button", { name: "ABRIR EXECUÇÃO" }).count() === 1, "etapa 04 Execução real (Piso 2C)");
+  const fake = await p.getByRole("button", { name: /EXECUTAR|RODAR|OTIMIZAR|GERAR PREVIS/i }).count();
+  assert(fake === 0, "nenhum botão de execução fora da etapa 04");
   await shot(p, "p2a_01_centro_vazio.png");
   // criar cenário
   await p.getByRole("button", { name: "＋ NOVO CENÁRIO" }).click(); await ready(p);
@@ -95,7 +98,7 @@ async function operar(b) {
   await p.getByRole("button", { name: "Criar cenário" }).click(); await ready(p);
   assert(await p.getByText("criado (versão 1, inventário rev. 1)", { exact: false }).isVisible(), "cenário criado e vinculado à revisão 1");
   assert(await p.getByText("Revisão 1", { exact: true }).isVisible(), "card do inventário de referência");
-  assert(await p.getByText("Não executável nesta versão").isVisible(), "prontidão não simula execução");
+  assert(await p.getByText("Não executável (v1)").isVisible(), "prontidão decidida pelo preflight (cenário incompleto não executável)");
   await shot(p, "p2a_02_centro_cenario.png");
   // inicialização
   await inicializacao(p);

@@ -89,12 +89,12 @@ async function operar(b) {
   await p.getByLabel("Nome do cenário *").fill("Experimento previsões E2E");
   await p.getByRole("button", { name: "Criar cenário" }).click(); await ready(p);
   assert(await p.getByRole("button", { name: "ABRIR PREVISÕES" }).isEnabled(), "etapa 02 Previsões disponível no Centro");
-  assert(await p.getByText("Não implementado").count() >= 2, "Estratégia EMS e Execução continuam 'Não implementado'");
+  assert(await p.getByText("Não implementado").count() === 0, "Piso 2C: as quatro etapas são reais (nenhuma 'Não implementado')");
   assert(await p.getByRole("button", { name: /EXECUTAR|OTIMIZAR|RODAR/ }).count() === 0, "nenhum botão fictício de execução");
   await previsoes(p);
   assert(await p.getByRole("tab", { name: "Demanda elétrica (kW)" }).isVisible(), "aba Demanda elétrica");
   assert(await p.getByRole("tab", { name: "Clima — variáveis meteorológicas" }).isVisible(), "aba Clima");
-  assert(await p.getByText("ainda não é executado", { exact: false }).first().isVisible(), "aviso: cenário ainda não executado (Piso 2C)");
+  assert(await p.getByText("alimentam a Execução do cenário", { exact: false }).first().isVisible(), "aviso: previsões alimentam a Execução (Piso 2C)");
   await shot(p, "p2b_01_previsoes_vazio.png");
 
   // ---------------- Demanda: CSV malformado → recusado, sem gráfico
