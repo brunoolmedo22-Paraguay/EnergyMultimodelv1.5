@@ -903,7 +903,21 @@ Chromium real (Playwright), servidores Streamlit reais, diretórios vazios:
 |---|---|---|
 | `tools/e2e/e2e_piso2c_execucao.js` (novo; dados `tools/e2e/seed_piso2c.py`) | operar 38 · **`kill -9` do servidor durante a rodada longa** · reinício 10 · tablet 7 | **55/55** |
 
-(Repetição dos E2E dos Pisos 1, Gestor, 2A e 2B: em execução no momento deste commit — resultado no commit seguinte.)
+| `tools/e2e/e2e_piso2b_previsoes.js` | operar 43 · reinício 8 · tablet 7 | **58/58** (2 asserções atualizadas ao estado real: zero "Não implementado"; aviso de que as previsões alimentam a Execução) |
+| `tools/e2e/e2e_piso2a_centro_operacao.js` | operar 43 · reinício 5 · tablet 5 | **53/53** (+2 verificações: ABRIR ESTRATÉGIA EMS e ABRIR EXECUÇÃO; EXECUTAR continua proibido no painel) |
+| `tools/e2e/e2e_gestor_microrredes.js` (`SEEDS2_DEV_MODE=1`; `legado` com banco v2 anterior ao Gestor, agora migrado até v4) | multi 39 · reinício 6 · tablet 2 · legado 5 | **52/52** |
+| `tools/e2e/e2e_piso1_microrrede.js` (inclui rodada EMS real do console V1.6) | comissionar 41 · reabrir 21 · tablet 4 | **66/66** |
+
+Todos desde diretórios vazios, com reinício real do servidor entre fases, sem exceções Streamlit nem erros de
+JavaScript. Verificado no navegador (2C): função objetivo única e algoritmos existentes; estratégia e janela gravadas
+como versões 3 e 4; relatório com conversão UTC (demanda America/Sao_Paulo × clima UTC) e interpolação registrada
+(clima de 10 min → grade de 1 min); EXECUTAR bloqueado com alterações não salvas e com SOC 15 %; rodada concluída com
+indicadores e curvas Plotly (121 passos); recarga do navegador reabre a MESMA rodada (`?run=`) sem criar outra;
+`kill -9` do servidor durante a rodada de 700 min (fase "modelos" gravada no banco) → após o reinício: "Interrompida",
+sem dados (`scenario_run_data` vazio), rodada concluída reaberta com o mesmo custo; tablet retrato/paisagem sem rolagem
+horizontal; tema escuro. Estado final do banco: `[('concluida', v4, 8 dados), ('interrompida', v7, 0 dados)]`.
+Na primeira execução do roteiro 2C a verificação do número de pontos da curva falhou por um erro do PRÓPRIO roteiro
+(lia `data[].y`, que o Plotly 6 mantém codificado em base64); corrigido para `_fullData` e o protocolo inteiro repetido.
 
 ### 11. Compatibilidade
 
