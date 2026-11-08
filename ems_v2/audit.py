@@ -430,9 +430,9 @@ def _auditar_geradores(entrada, cand, prog_all, col, N, gen, tolP, tol, vazoes) 
         col.constatacoes.append(erro("uid_desconhecido_na_candidata", f"geradores[{k}]", "UID inexistente na entrada."))
     for g in entrada.geradores:
         k = str(g.uid)
-        prog = prog_all.get(k)
+        prog = prog_all.get(k) if isinstance(prog_all, dict) else None
         if not isinstance(prog, (list, tuple)) or len(prog) != N or any(
-                isinstance(x, bool) or x not in (0, 1) for x in prog):
+                type(x) is not int or x not in (0, 1) for x in prog):
             col.constatacoes.append(erro("compromisso_invalido", f"compromisso[{k}]",
                                          f"Programa ausente ou inválido (exigidos {N} valores em {{0, 1}})."))
             continue

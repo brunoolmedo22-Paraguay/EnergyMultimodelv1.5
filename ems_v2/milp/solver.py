@@ -21,17 +21,57 @@ from ..contracts import EntradaModeloEMS, hash_entrada, validar_entrada
 from ..diagnostics import Constatacao, erro
 from .ambiente import INTERFACE, verificar_ambiente
 from .config import ConfiguracaoSolver, configuracao_registro, preflight_3bp, validar_configuracao
+from .integridade import verificar_testemunho
 from .resultado import ResultadoResolucao, classificar, gaps
 
 DESPACHAVEIS = ("otimo", "factivel_nao_otimo")
 
 
-def _hash_compromisso(c: dict | None) -> str:
-    dado = {str(k): [int(x) for x in v] for k, v in sorted((c or {}).items())} if isinstance(c, dict) else None
+def _canonico(x):
+    """Representação canônica SEM PERDA e com tipo explícito (1, 1.0 e True são distintos; NaN/Inf preservados por
+    ``float.hex``). Nunca levanta exceção: tipos desconhecidos viram ``["obj", nome_do_tipo]`` (sem ``repr``, que
+    poderia conter endereços de memória). A VALIDAÇÃO dos valores {0, 1} é responsabilidade do preflight."""
+    if x is None:
+        return ["none"]
+    if isinstance(x, bool):
+        return ["bool", x]
+    if isinstance(x, int):
+        return ["int", str(x)]
+    if isinstance(x, float):
+        return ["float", x.hex()]
+    if isinstance(x, str):
+        return ["str", x]
+    if isinstance(x, (list, tuple)):
+        return ["seq", [_canonico(v) for v in x]]
+    if isinstance(x, dict):
+        itens = [[_canonico(k), _canonico(v)] for k, v in x.items()]
+        return ["map", sorted(itens, key=lambda kv: json.dumps(kv[0], separators=(",", ":")))]
+    return ["obj", type(x).__name__]
+
+
+def _hash_compromisso(c) -> str | None:
+    """Identidade determinística do programa de compromisso tal como recebido (inclusive inválido)."""
     try:
-        return hashlib.sha256(json.dumps(dado, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    except (TypeError, ValueError):
-        return hashlib.sha256(repr(c).encode()).hexdigest()
+        txt = json.dumps(_canonico(c), separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        return hashlib.sha256(txt.encode("utf-8")).hexdigest()
+    except Exception:  # noqa: BLE001 — identidade nunca derruba a resolução
+        return None
+
+
+class OpcaoHighsInvalida(ValueError):
+    """Opção do HiGHS recusada pelo próprio HiGHS (nome, tipo ou faixa)."""
+
+
+def _validar_opcoes_highs(opcoes: dict) -> None:
+    """O HiGHS ignora opções inválidas sem falhar a resolução: valida cada uma ANTES, para não registrar uma
+    configuração que não foi aplicada."""
+    import highspy
+
+    h = highspy.Highs()
+    h.setOptionValue("output_flag", False)
+    for k, v in opcoes.items():
+        if h.setOptionValue(k, v) != highspy.HighsStatus.kOk:
+            raise OpcaoHighsInvalida(f"Opção HiGHS recusada: {k}={v!r}.")
 
 
 def _executar_highs(modelo, config: ConfiguracaoSolver) -> dict:
@@ -39,6 +79,7 @@ def _executar_highs(modelo, config: ConfiguracaoSolver) -> dict:
     from pyomo.contrib.solver.common.factory import SolverFactory
 
     opt = SolverFactory("highs")
+    _validar_opcoes_highs({"random_seed": config.semente, **config.opcoes_highs})
     kw = dict(load_solutions=False, raise_exception_on_nonoptimal_result=False, threads=config.threads,
               rel_gap=config.rel_gap, abs_gap=config.abs_gap,
               solver_options={"random_seed": config.semente, **config.opcoes_highs})
@@ -98,11 +139,14 @@ def _extrair(mc, e: EntradaModeloEMS) -> tuple[CandidatoDespacho, dict, list[str
         if g in mc.geradores_pwl:
             ger[g]["q"] = tuple(_valor(m.q[g, t], f"q[{g},{t}]", f) for t in T)
             S = sorted({s for (gg, s) in m.GS if gg == g})
-            seg[g] = tuple(next((s for s in S if (m.delta[g, s, t].value or 0) > 0.5), None) for t in T)
+            dl = tuple(tuple(_valor(m.delta[g, s, t], f"delta[{g},{s},{t}]", f) for s in S) for t in T)
+            th = tuple(tuple(_valor(m.theta[g, s, t], f"theta[{g},{s},{t}]", f) for s in S) for t in T)
+            seg[g] = {"delta": dl, "theta": th, "segmento_ativo": tuple(
+                (lambda at: at[0] if len(at) == 1 else None)([s for s in S if math.isfinite(dl[t][s]) and dl[t][s] > 0.5])
+                for t in T)}
     cand = CandidatoDespacho(renovaveis=ren, baterias=bat, demandas=dem, descarte=desc, geradores=ger)
     despacho = {"renovaveis": ren, "baterias": {b: {**bat[b], "z_b": zb[b]} for b in bat}, "demandas": dem,
-                "descarte": desc, "geradores": {g: {**ger[g], **({"segmento_ativo": seg[g]} if g in seg else {})}
-                                                for g in ger}}
+                "descarte": desc, "geradores": {g: {**ger[g], **seg.get(g, {})} for g in ger}}
     return cand, despacho, f
 
 
@@ -145,7 +189,15 @@ def resolver(entrada: EntradaModeloEMS, configuracao: ConfiguracaoSolver, compro
                             "inviável sem chamar o solver (nenhuma folga é criada)."))
         return sem("inviavel", constat, {"construcao_s": t_cons}, tam, he, term="trivialmente_inviavel_na_construcao")
 
-    exe = (_executor or _executar_highs)(mc.modelo, configuracao)
+    try:
+        exe = (_executor or _executar_highs)(mc.modelo, configuracao)
+        if not isinstance(exe, dict):
+            raise TypeError(f"executor devolveu {type(exe).__name__}, esperado dict")
+    except Exception as exc:  # noqa: BLE001 — falha do solver vira resultado de ERRO controlado, nunca factibilidade
+        cod = "opcao_highs_invalida" if isinstance(exc, OpcaoHighsInvalida) else "falha_solver"
+        constat.append(erro(cod, "solver", f"{type(exc).__name__}: {exc}"))
+        return sem("erro", constat, {"construcao_s": t_cons, "total_s": time.perf_counter() - t_ini}, tam, he,
+                   term="excecao")
     tempos = {"construcao_s": t_cons, "solver_s": exe.get("tempo_solver_s"), "highs_s": exe.get("tempo_highs_s")}
     term, st = exe.get("terminacao"), exe.get("status_solucao")
     classif = classificar(term, st)
@@ -154,8 +206,13 @@ def resolver(entrada: EntradaModeloEMS, configuracao: ConfiguracaoSolver, compro
         tempos["total_s"] = time.perf_counter() - t_ini
         return sem(classif, constat, tempos, tam, he, term, st, {"limite": _finito(lim), "gap_highs": exe.get("gap_highs")})
 
-    exe["carregar"]()
-    cand, despacho, faltas = _extrair(mc, entrada)
+    try:
+        exe["carregar"]()
+        cand, despacho, faltas = _extrair(mc, entrada)
+    except Exception as exc:  # noqa: BLE001
+        constat.append(erro("falha_carregamento", "solucao", f"{type(exc).__name__}: {exc}"))
+        tempos["total_s"] = time.perf_counter() - t_ini
+        return sem("erro", constat, tempos, tam, he, term, st, {"limite": _finito(lim)})
     if faltas:
         constat.append(erro("valor_nao_carregado", "solucao", f"{len(faltas)} variável(is) sem valor finito "
                                                               f"({faltas[:5]}): nenhum despacho."))
@@ -171,8 +228,15 @@ def resolver(entrada: EntradaModeloEMS, configuracao: ConfiguracaoSolver, compro
     cand = CandidatoDespacho(renovaveis=cand.renovaveis, baterias=cand.baterias, demandas=cand.demandas,
                              descarte=cand.descarte, geradores=cand.geradores, custos_reportados=dict(custos_modelo))
     aud = auditar(entrada, cand, tolerancias, compromisso_fixo=compromisso_fixo if entrada.geradores else None)
-    ok = aud.aceito and not any(c.severidade in ("erro", "pendente") for c in constat)
-    estado = ("aceito_otimo" if classif == "otimo" else "aceito_factivel_nao_otimo") if ok else "rejeitado_auditoria"
+    integ = verificar_testemunho(entrada, despacho, tolerancias)
+    ok_aud = aud.aceito and not any(c.severidade in ("erro", "pendente") for c in constat)
+    ok = ok_aud and integ.aceito
+    if not integ.aceito:
+        constat.append(erro("testemunho_milp_invalido", "integridade",
+                            f"Testemunho auxiliar do MILP inconsistente: famílias {sorted(integ.familias_reprovadas())}, "
+                            f"constatações {sorted(integ.codigos())}. Despacho NÃO aceito."))
+    estado = (("aceito_otimo" if classif == "otimo" else "aceito_factivel_nao_otimo") if ok
+              else "rejeitado_auditoria" if not ok_aud else "rejeitado_integridade")
     ga, gr = gaps(inc, lim)
     tempos["total_s"] = time.perf_counter() - t_ini
     return ResultadoResolucao(**base, hash_entrada=he, classificacao=classif, terminacao=term, status_solucao=st,
@@ -180,7 +244,8 @@ def resolver(entrada: EntradaModeloEMS, configuracao: ConfiguracaoSolver, compro
                               limite_dual=_finito(lim), gap_abs=ga, gap_rel=gr, gap_highs=exe.get("gap_highs"),
                               tempos_s=tempos, tamanho=tam, candidato=cand, despacho=despacho,
                               custos_modelo=custos_modelo, auditoria=aud, estado_despacho=estado, aceito=ok,
-                              constatacoes=tuple(constat), familias_nao_modeladas=aud.familias_nao_modeladas)
+                              constatacoes=tuple(constat), familias_nao_modeladas=aud.familias_nao_modeladas,
+                              integridade=integ)
 
 
 def _finito(x):
@@ -191,4 +256,4 @@ def _finito(x):
     return v if math.isfinite(v) else None
 
 
-__all__ = ["DESPACHAVEIS", "resolver"]
+__all__ = ["DESPACHAVEIS", "OpcaoHighsInvalida", "resolver"]

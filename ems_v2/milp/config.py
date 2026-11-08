@@ -59,6 +59,13 @@ def configuracao_registro(c: ConfiguracaoSolver) -> dict:
             "semente": c.semente, "opcoes_highs": dict(c.opcoes_highs)}
 
 
+def programa_valido(prog, N: int) -> bool:
+    """Programa u: lista/tupla de exatamente N inteiros 0/1 (tipo ``int`` estrito; ``bool``, ``float`` — mesmo 1.0 —,
+    texto, NaN e None são rejeitados, sem conversão)."""
+    return (isinstance(prog, (list, tuple)) and len(prog) == N
+            and all(type(x) is int and x in (0, 1) for x in prog))
+
+
 def preflight_3bp(e: EntradaModeloEMS, compromisso: dict | None) -> list[Constatacao]:
     """Condições do perfil 3B-P além de ``validar_entrada``."""
     out: list[Constatacao] = []
@@ -66,12 +73,17 @@ def preflight_3bp(e: EntradaModeloEMS, compromisso: dict | None) -> list[Constat
         out.append(erro("formulacao_nao_3bp", "versao_formulacao",
                         f"O MILP 3B-P só resolve entradas declaradas '{FORMULACAO_3BP}' (recebido "
                         f"{e.versao_formulacao!r}); entradas 3A não ganham capacidades implicitamente."))
-    compromisso = compromisso or {}
+    if compromisso is None:
+        compromisso = {}
+    if not isinstance(compromisso, dict):
+        return out + [erro("compromisso_invalido", "compromisso",
+                           f"Esperado dicionário UID → programa; recebido {type(compromisso).__name__}.")]
     N = e.malha.N
     estados = {str(s.uid): s for s in e.estados_geradores}
     uids = {str(g.uid) for g in e.geradores}
-    for k in sorted(set(compromisso) - uids):
-        out.append(erro("compromisso_uid_desconhecido", f"compromisso[{k}]", "UID não é gerador da entrada."))
+    for k in sorted((x for x in compromisso if x not in uids), key=repr):
+        out.append(erro("compromisso_uid_desconhecido", f"compromisso[{k!r}]",
+                        "Chave não é UID (texto) de gerador da entrada."))
     for g in e.geradores:
         k = str(g.uid)
         if k not in compromisso:
@@ -79,9 +91,9 @@ def preflight_3bp(e: EntradaModeloEMS, compromisso: dict | None) -> list[Constat
                                 "Commitment livre exige M09/M11/M12 (Piso 3C): declarar programa fixo."))
             continue
         prog = compromisso[k]
-        if not isinstance(prog, (list, tuple)) or len(prog) != N or any(
-                isinstance(x, bool) or x not in (0, 1) for x in prog):
-            out.append(erro("compromisso_invalido", f"compromisso[{k}]", f"Exigidos {N} valores em {{0, 1}}."))
+        if not programa_valido(prog, N):
+            out.append(erro("compromisso_invalido", f"compromisso[{k}]",
+                            f"Exigida sequência de {N} inteiros em {{0, 1}} (sem bool, float, texto, NaN ou None)."))
             continue
         st = estados.get(k)
         if st is None or not isinstance(st.ligado, bool):
@@ -97,4 +109,5 @@ def preflight_3bp(e: EntradaModeloEMS, compromisso: dict | None) -> list[Constat
     return out
 
 
-__all__ = ["CONFIG_ANALITICA", "ConfiguracaoSolver", "configuracao_registro", "preflight_3bp", "validar_configuracao"]
+__all__ = ["CONFIG_ANALITICA", "ConfiguracaoSolver", "configuracao_registro", "preflight_3bp", "programa_valido",
+           "validar_configuracao"]

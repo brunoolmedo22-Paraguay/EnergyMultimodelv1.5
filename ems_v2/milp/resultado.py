@@ -25,7 +25,8 @@ CLASSIFICACOES = {
     "bloqueado_validacao": "Entrada/configuração rejeitada antes de construir o modelo",
     "solver_indisponivel": "Pyomo/HiGHS indisponível — nada foi resolvido",
 }
-ESTADOS_DESPACHO = ("aceito_otimo", "aceito_factivel_nao_otimo", "rejeitado_auditoria", "sem_despacho")
+ESTADOS_DESPACHO = ("aceito_otimo", "aceito_factivel_nao_otimo", "rejeitado_auditoria", "rejeitado_integridade",
+                    "sem_despacho")
 
 
 def classificar(terminacao: str | None, status_solucao: str | None) -> str:
@@ -95,6 +96,7 @@ class ResultadoResolucao:
     aceito: bool
     constatacoes: tuple[Constatacao, ...] = field(default_factory=tuple)
     familias_nao_modeladas: tuple[str, ...] = ()
+    integridade: RelatorioAuditoria | None = None   # testemunho auxiliar do MILP (z_b, δ, θ) — C-3B-02
     rotulo: str = ROTULO_EVIDENCIA
 
     def codigos(self) -> set[str]:
