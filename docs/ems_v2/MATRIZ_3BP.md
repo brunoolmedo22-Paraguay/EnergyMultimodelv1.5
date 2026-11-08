@@ -7,8 +7,8 @@ Pyomo, los de solver se saltan explícitamente). Comandos y resultados en la des
 - `tests/ems_v2/test_ems_v2_milp_casos.py`: 32 tests.
 - `tests/ems_v2/test_ems_v2_milp_integridade.py`: 41 tests.
 - `tests/ems_v2/test_ems_v2_milp_perfil.py`: 13 tests.
-- `tests/ems_v2/test_ems_v2_milp_auditoria_3b.py` (correcciones C-3B): 49 tests.
-- Total nuevo: 135. `tests/ems_v2` completo: **403 passed** (268 del 3A + 135).
+- `tests/ems_v2/test_ems_v2_milp_auditoria_3b.py` (correcciones C-3B-01..03): 62 tests.
+- Total nuevo: 148. `tests/ems_v2` completo: **416 passed** (268 del 3A + 148).
 
 Abreviaturas: `casos::` = `test_ems_v2_milp_casos.py`, `integ::` = `test_ems_v2_milp_integridade.py`,
 `perfil::` = `test_ems_v2_milp_perfil.py`, `aud3b::` = `test_ems_v2_milp_auditoria_3b.py`. Todos los módulos de implementación están en `ems_v2/`.
@@ -87,4 +87,4 @@ Abreviaturas: `casos::` = `test_ems_v2_milp_casos.py`, `integ::` = `test_ems_v2_
 | C-3B-01 identidad y preflight del compromiso | M10 (programa fijo), R33 | `milp/solver._canonico`, `_hash_compromisso`; `milp/config.programa_valido`, `preflight_3bp`; `audit._auditar_geradores` | `aud3b::test_c3b01_*` (24) | 21 programas inválidos ⇒ `bloqueado_validacao` sin excepción ni solver; hash sin pérdida, determinista e independiente del orden | implemented |
 | C-3B-02 testigo auxiliar del MILP | M06 (z_b), M14–M16 (δ, θ) | `milp/integridade.verificar_testemunho`; extracción de δ/θ en `milp/solver._extrair`; estado `rejeitado_integridade` | `aud3b::test_c3b02_*` (20) | z_b fraccional o incoherente, δ en otro segmento o fraccional, θ fuera del segmento o de [0,1] ⇒ rechazados; sin valor o no finito ⇒ `sem_despacho`; soluciones legítimas íntegras; tolerancias no relajadas | implemented |
 | Robustez a excepciones del solver y del cargador; opciones HiGHS | R33 | `milp/solver._validar_opcoes_highs`, `try/except` en `resolver` | `aud3b::test_opcao_highs_invalida_*`, `aud3b::test_excecao_*` (5) | `erro` controlado (`opcao_highs_invalida`, `falha_solver`, `falha_carregamento`), sin despacho | implemented |
-
+| C-3B-03 metadatos de configuración antes de validar | R33, configuración explícita | `milp/solver.resolver` (valida antes del registro), `milp/config.configuracao_registro` (sin excepciones, sin reinterpretación) | `aud3b::test_c3b03_*` (13) | `opcoes_highs` inválidas (None, 42, "abc", 3.5, lista de pares, tupla, bool, dict reservado) y configuraciones de tipo incorrecto ⇒ `bloqueado_validacao` + `configuracao_invalida`, valor original preservado; registro válido sin cambios | implemented |

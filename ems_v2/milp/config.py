@@ -54,9 +54,19 @@ def validar_configuracao(c) -> list[Constatacao]:
     return out
 
 
-def configuracao_registro(c: ConfiguracaoSolver) -> dict:
-    return {"time_limit_s": c.time_limit_s, "threads": c.threads, "rel_gap": c.rel_gap, "abs_gap": c.abs_gap,
-            "semente": c.semente, "opcoes_highs": dict(c.opcoes_highs)}
+def configuracao_registro(c, valida: bool | None = None) -> dict:
+    """Metadados da configuração RECEBIDA, para diagnóstico (C-3B-03). Nunca levanta exceção e nunca reinterpreta
+    valores inválidos: ``opcoes_highs`` só é copiado (cópia rasa) quando é ``dict``; qualquer outro valor (None,
+    número, texto, lista de pares…) é preservado tal como recebido. ``valida=False`` marca o veredito
+    negativo de ``validar_configuracao``, que é chamada ANTES deste registro em ``resolver``."""
+    if not isinstance(c, ConfiguracaoSolver):
+        return {"tipo_recebido": type(c).__name__, "valida": False}
+    op = c.opcoes_highs
+    reg = {"time_limit_s": c.time_limit_s, "threads": c.threads, "rel_gap": c.rel_gap, "abs_gap": c.abs_gap,
+           "semente": c.semente, "opcoes_highs": dict(op) if isinstance(op, dict) else op}
+    if valida is False:                   # só marcada quando inválida: o registro de uma configuração válida é inalterado
+        reg["valida"] = False
+    return reg
 
 
 def programa_valido(prog, N: int) -> bool:

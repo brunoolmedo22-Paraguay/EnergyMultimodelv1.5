@@ -31,6 +31,7 @@
   - **C-3B-02:** verificación separada del testigo MILP (`z_b`, `δ`, `θ`) ⇒ `rejeitado_integridade`.
   - **Robustez:** excepciones del solver o del cargador y opciones HiGHS inválidas ⇒ `erro` controlado.
   - Verificado: 49 tests nuevos (37 fallan en `a8e3426`); `tests/ems_v2` **403 passed**; suite completa **857 passed, 7 warnings, 128 subtests**. Detalle: PARAMIJEFE Entrega 7 §6b; FORMULACAO_3BP §7.
+- **Segunda fiscalización: C-3B-01/02 aprobados.** **C-3B-03:** la configuración se valida antes de registrar los metadatos; las `opcoes_highs` inválidas ⇒ `bloqueado_validacao`, sin excepción y con el valor original preservado. Verificado: 13 tests (12 fallan en `a47a306`); `tests/ems_v2` **416 passed**; suite completa **870 passed, 7 warnings, 128 subtests**. PARAMIJEFE Entrega 7 §6c.
 - **Decisiones registradas:**
   - compromiso fijo constante (sin transiciones);
   - A04/A08 con coeficientes sintéticos declarados;

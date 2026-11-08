@@ -231,3 +231,35 @@ def test_excecao_do_carregador_vira_erro_controlado():
     assert not r.aceito and r.despacho is None and r.objetivo is None
     assert r.terminacao == "convergenceCriteriaSatisfied"          # terminação original registrada, sem despacho
     assert not math.isnan(r.tempos_s["total_s"])
+
+
+# ----------------------------------------------------------------------------- C-3B-03
+@pytest.mark.parametrize("opcoes", [None, 42, "abc", 3.5, [("mip_max_nodes", 1)], ("x",), True, {"time_limit": 5}],
+                         ids=lambda v: repr(v)[:24])
+def test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao(opcoes):
+    import dataclasses
+    e, cp = X.b01b()
+    r = resolver(e, dataclasses.replace(CFG, opcoes_highs=opcoes), cp, _executor=_nunca)
+    assert r.classificacao == "bloqueado_validacao" and "configuracao_invalida" in r.codigos()
+    assert not r.aceito and r.despacho is None
+    reg = r.configuracao
+    assert reg["valida"] is False
+    assert reg["opcoes_highs"] == opcoes and type(reg["opcoes_highs"]) is type(opcoes)   # preservado, não convertido
+
+
+@pytest.mark.parametrize("cfg", [None, {"threads": 1}, object(), 7], ids=lambda v: type(v).__name__)
+def test_c3b03_configuracao_de_tipo_errado_registrada_sem_excecao(cfg):
+    e, cp = X.b01b()
+    r = resolver(e, cfg, cp, _executor=_nunca)
+    assert r.classificacao == "bloqueado_validacao" and "configuracao_invalida" in r.codigos()
+    assert r.configuracao == {"tipo_recebido": type(cfg).__name__, "valida": False}
+
+
+def test_c3b03_registro_de_configuracao_valida_inalterado():
+    import dataclasses
+    e, cp = X.b01b()
+    cfg = dataclasses.replace(CFG, opcoes_highs={"mip_max_nodes": 10})
+    r = resolver(e, cfg, cp)
+    assert r.aceito and r.configuracao == {"time_limit_s": 60.0, "threads": 1, "rel_gap": 0.0, "abs_gap": 0.0,
+                                           "semente": 0, "opcoes_highs": {"mip_max_nodes": 10}}
+    assert r.configuracao["opcoes_highs"] is not cfg.opcoes_highs                            # cópia, sem aliasing

@@ -1865,7 +1865,7 @@ Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas 
 | Rama | `claude/seeds2-piso3b-milp-highs` (nueva, desde `main`; no reutiliza la rama del PR #11) |
 | Base | `main` `f6d009db169b60a84657f79a7006640e20470b82` (merge del PR #11); árbol idéntico al HEAD auditado del 3A (`37ba4f1`) |
 | PR | [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) contra `main` **sin merge** |
-| Pendientes de esta misión | ninguno; correcciones C-3B-01/02 aplicadas (§6b); integración aguarda la fiscalización final. **No iniciar 3C sin autorización.** |
+| Pendientes de esta misión | ninguno; correcciones C-3B-01/02 (§6b) y C-3B-03 (§6c) aplicadas; integración aguarda la fiscalización final. **No iniciar 3C sin autorización.** |
 
 ### 1. Resumen
 
@@ -1942,6 +1942,16 @@ despacho. Hardware de la evidencia: 4 CPU x86_64, 15 GiB.
 corrección. `tests/ems_v2` ⇒ **403 passed**. Suite completa ⇒ **857 passed, 7 warnings, 128 subtests (370 s)** =
 808 + 49. V1.6, runtime, UI, `requirements.txt` y `requirements-ems_v2.txt` sin cambios en el hotfix. Detalle:
 `docs/ems_v2/FORMULACAO_3BP.md` §7.
+
+### 6c. Corrección C-3B-03 (segunda fiscalización: C-3B-01/02 aprobados)
+
+- **Defecto:** `configuracao_registro()` ejecutaba `dict(opcoes_highs)` antes de `validar_configuracao()`. Con `X.b01b()`, `opcoes_highs` igual a None, 42 o "abc" provocaba una **excepción no controlada**. Una lista de pares se registraba **reinterpretada** como dict, y una configuración de tipo incorrecto se registraba como `{}`.
+- **Corrección:** `resolver()` valida antes de preparar los metadatos. El registro nunca lanza excepciones ni reinterpreta valores: preserva el valor original y marca `valida: False`. El registro válido no cambia.
+- **Verificación:**
+  - 13 tests `test_c3b03_*`: 12 fallan contra `a47a306` (solo pasa el control válido).
+  - `tests/ems_v2`: **416 passed**.
+  - Suite completa: **870 passed, 7 warnings, 128 subtests**.
+  - Formulación, tolerancias, auditor, contrato y dependencias sin cambios. Detalle: FORMULACAO_3BP §7.
 
 ### 7. Rollback
 

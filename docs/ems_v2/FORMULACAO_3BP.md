@@ -119,3 +119,12 @@ Tests: `tests/ems_v2/test_ems_v2_milp_auditoria_3b.py` (49 casos). Contra `a8e34
 que pasan son los programas inválidos que el preflight antiguo ya bloqueaba sin excepción, el control válido y
 `z_b = Inf`, que el extractor antiguo ya detectaba. Con la corrección pasan todos.
 
+### C-3B-03 — Serialización prematura de la configuración (segunda fiscalización; C-3B-01/02 aprobados)
+
+| | Detalle |
+|---|---|
+| Defecto | `configuracao_registro()` ejecutaba `dict(c.opcoes_highs)` al preparar los metadatos de `resolver()`, **antes** de `validar_configuracao()` |
+| Antes (`a47a306`) | Con `X.b01b()`, `opcoes_highs` igual a `None`, `42` o `"abc"` ⇒ **excepción no controlada** (`TypeError`/`ValueError`). La lista `[("mip_max_nodes", 1)]` se bloqueaba, pero el registro la **reinterpretaba** como `{"mip_max_nodes": 1}`. Una configuración de tipo incorrecto se registraba como `{}` y se perdía el diagnóstico |
+| Corrección | `resolver()` valida la configuración **antes** de preparar los metadatos. `configuracao_registro()` nunca lanza excepciones ni reinterpreta valores: copia `opcoes_highs` solo si es `dict` y preserva cualquier otro valor tal como se recibió. Las configuraciones inválidas se marcan con `valida: False`; una configuración de otro tipo se registra como `{"tipo_recebido", "valida": False}`. El registro de una configuración válida no cambia |
+| Después | `bloqueado_validacao` + `configuracao_invalida`, sin llamar al solver, con el valor original preservado. Tests `test_c3b03_*` (13): **12 fallan contra `a47a306`**; el único que pasa es el control con configuración válida |
+

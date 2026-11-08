@@ -154,10 +154,11 @@ def resolver(entrada: EntradaModeloEMS, configuracao: ConfiguracaoSolver, compro
              tolerancias: Tolerancias = Tolerancias(), _executor=None) -> ResultadoResolucao:
     t_ini = time.perf_counter()
     amb = verificar_ambiente()
+    erros_config = validar_configuracao(configuracao)        # valida ANTES de preparar os metadados (C-3B-03)
     base = dict(motor_id=MOTOR_ID, versao_formulacao=getattr(entrada, "versao_formulacao", "?"),
                 microrrede_uid=getattr(entrada, "microrrede_uid", "?"), cenario_uid=getattr(entrada, "cenario_uid", "?"),
                 ambiente={**amb, "interface": INTERFACE}, hash_compromisso=_hash_compromisso(compromisso_fixo),
-                configuracao=configuracao_registro(configuracao) if isinstance(configuracao, ConfiguracaoSolver) else {})
+                configuracao=configuracao_registro(configuracao, valida=not erros_config))
 
     def sem(classif: str, constat, tempos=None, tam=None, hash_e=None, term=None, st=None, extra=None) -> ResultadoResolucao:
         return ResultadoResolucao(**base, hash_entrada=hash_e, classificacao=classif, terminacao=term,
@@ -169,7 +170,7 @@ def resolver(entrada: EntradaModeloEMS, configuracao: ConfiguracaoSolver, compro
 
     if not amb["disponivel"] and _executor is None:
         return sem("solver_indisponivel", [erro("solver_indisponivel", "ambiente", str(amb["erro"]))])
-    constat: list[Constatacao] = list(validar_configuracao(configuracao))
+    constat: list[Constatacao] = list(erros_config)
     rel = validar_entrada(entrada)
     constat += list(rel.constatacoes)
     if rel.aceito:
