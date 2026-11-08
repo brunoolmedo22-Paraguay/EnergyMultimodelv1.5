@@ -1770,6 +1770,67 @@ obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_e
 
 ---
 
+## Entrega 6 — SEEDS2 Piso 3A · Fundaciones del EMS MILP–MPC (contratos, referencia y auditor; sin solver)
+
+> Redactada en español (decisión 4 del responsable para la documentación científica del Piso 3). Detalle completo en
+> `docs/ems_v2/` — este apartado resume y remite, sin duplicar.
+
+### Punto de continuidad
+
+| Campo | Valor |
+|---|---|
+| Rama | `ccr-fb5b5eb8-bvbyw2` (designada por el entorno de la sesión) |
+| Base | `main` `8556b71a76dd13d279a0e0ecd8ad9bd498df72f1` (merge del PR #10) = SHA base auditado por el paquete maestro; **sin diferencias de código** |
+| PR | abierto contra `main` **sin merge** (número y SHA final en la descripción del PR) |
+| Autorización | Plan 3A aprobado con condiciones A–F (2026-11-08); sólo Piso 3A |
+| Pendientes de esta misión | ninguno; integración aguarda auditoría y autorización humana. **No iniciar 3B sin revisión.** |
+
+### 1. Resumen
+
+**Solicitado:** fundaciones del EMS MILP–MPC (orden ejecutiva 3A): contratos canónicos por UID con procedencia,
+unidades/fronteras, malla temporal N/N+1, cálculo de referencia algebraico (B01), fixtures sintéticas, auditor
+algebraico independiente, catálogo de símbolos M01–M23 + adenda v1.1 con prueba de cobertura. Sin Pyomo/HiGHS,
+sin despacho, sin selector, sin cambios en el Centro de Operação ni en el V1.6.
+
+**Entregado:** paquete `ems_v2/` (solo biblioteca estándar), `ems_v2/catalogo/` (150 símbolos, 42 ecuaciones),
+`docs/ems_v2/` (README, DECISIONES_3A, MATRIZ_3A, referencias versionadas con SHA-256) y `tests/ems_v2/` (135 tests
+sintéticos/algebraicos). Registro de la arquitectura experimental en `CLAUDE.md` y `docs/ai/HANDOFF.md`.
+
+### 2. Condiciones de la fiscalización (A–F)
+
+| Cond. | Cumplimiento |
+|---|---|
+| A — auditor independiente | `ems_v2/audit.py` (punto flotante, segundos, bisección) no importa `ems_v2/reference.py` (racionales exactos); verificado por AST. Esperados = literales analíticos de los documentos. Toda mutación aislada ±1e-3 en 7 casos es rechazada. |
+| B — catálogo | estados `ativo_3A` / `auditado_3A` / `futuro` / `substituido` y `variante` `comum`/`instantanea`/`multimodo`; 0 símbolos indefinidos; activos con código resoluble; futuros sin capacidad; variantes B05 sin mezcla. |
+| C — sin valores implícitos | Ningún campo científico con valor por defecto (test parametrizado); ausente ⇒ `erro`/`pendente`. Única regla de política: `D̄ = 0` sin dispositivo (adenda v1.1, D03). |
+| D — tolerancias provisionales | `Tolerancias.status = "provisoria"` (dossier §Métricas algebraicas + propuesta 3A para kg/h y kg); ninguna ajustada para obtener verde. |
+| E — documentación acotada | `CLAUDE.md` +10 líneas (arquitectura y estado real); reglas generales intactas. `ems_v2/` **no** se agregó a la lista de directorios protegidos (sería cambiar una regla general): queda para decisión del responsable. |
+| F — especificaciones | A05-OPT, A07, A08 (`especificacao_3B`) y B05A (`especificacao_3C`) con `executado_por_solver = False`. |
+
+### 3. Pruebas y evidencia
+
+- Nuevas: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q` → **135 passed** (≈0,5 s; sin solver).
+- Regresión completa: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` → **589 passed, 7 warnings, 128 subtests
+  passed (366 s)** = 454 de `main` (medidos en esta sesión antes de cambiar nada) + 135 nuevos; los mismos 7 avisos
+  (SciPy SLSQP del V1.6). Ninguna falla preexistente ni introducida.
+- V1.6 intacto: `git diff --stat 8556b71 -- ems_integration models h2_pemfc simulation config reference_models
+  orchestrator_runtime.py orchestrator_app.py app.py seeds2 requirements.txt` vacío; ningún archivo Python fuera de
+  `ems_v2/` y `tests/ems_v2/` menciona `ems_v2` (test).
+- Sin E2E de navegador: el PR no toca interfaz.
+
+### 4. Contradicciones, hipótesis y riesgos
+
+C1–C8 resueltas según lo aprobado; observaciones adicionales (M12 en multimodo; tolerancia de kg/h) e hipótesis
+H-3A-01…09 en `docs/ems_v2/DECISIONES_3A.md` §4–§5. Riesgos y propuesta para 3B-P en §6–§7 del mismo documento.
+**Obligación registrada:** congelar las salidas numéricas del V1.6 antes de cualquier benchmark comparativo.
+
+### 5. Rollback
+
+Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas de `CLAUDE.md`/`HANDOFF.md`/
+`PARAMIJEFE.md`; ningún otro archivo, base de datos ni resultado histórico depende de ellos.
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
@@ -1778,4 +1839,5 @@ obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_e
 | 2 | 2026-11-06 | Piso 2B — Previsões e Dados | `ccr-68eaae98-0rs4e4` / [#7](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/7) | **Integrado** em `main` (merge `43ee6f5`) |
 | 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
 | 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
-| 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | Implementado e verificado na rama; aguardando auditoria |
+| 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
+| 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / PR aberto (sem merge) | Implementado e verificado na rama; aguardando auditoria |
