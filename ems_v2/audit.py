@@ -1,0 +1,400 @@
+"""Auditor algébrico INDEPENDENTE (especificação v1.0 §17; requisito R32; ordem executiva 3A.4).
+
+Recebe a entrada canônica e uma atribuição CANDIDATA explícita (valores por UID) e mede resíduos, em unidades
+físicas, de: compatibilidade temporal (N intervalos, N+1 estados), balanço M02, renováveis M03-v1.1, serviço e
+descarte M04, exclusividade/limites BESS M06, recorrência M07, limites e estado inicial M08, KPIs de
+indisponibilidade/curtailment e custo de curtailment operacional (M21-v1.1). Domínio ON/OFF e vazão PWL (M10,
+M15/M16) são auditados em ``auditar_pwl`` (caso A06).
+
+**Não é solver, não gera despacho, não corrige valores.** Nunca recorta (clip); toda violação acima da tolerância
+rejeita a candidata. Famílias não implementadas no Piso 3A (commitment M09/M11/M12, auxiliares M05, multimodo,
+terminal, H2 em estoque) → ``nao_suportado`` e rejeição.
+
+Independência (condição A): implementação em ponto flutuante, com durações em SEGUNDOS (h = Δs/3600), busca
+binária na PWL e sem importar ``ems_v2.reference`` (verificado por teste de AST). As tolerâncias são PROVISÓRIAS
+(dossiê v1.0 "Métricas algébricas", propostas pré-registráveis; decisão D07 pendente) e separadas por grandeza.
+"""
+from __future__ import annotations
+
+import bisect
+import math
+from dataclasses import dataclass, field
+
+from . import ROTULO_EVIDENCIA
+from .contracts import EntradaModeloEMS, EspecGerador, validar_entrada, validar_gerador
+from .diagnostics import Constatacao, erro, pendente
+from .series import alinhar_a_malha
+from .timegrid import MalhaTemporal
+
+
+@dataclass(frozen=True)
+class Tolerancias:
+    """Tolerâncias PROVISÓRIAS por grandeza (nunca uma tolerância única para grandezas heterogêneas)."""
+    potencia_abs_kW: float = 1e-5          # balanço/potência: 1e-5 kW + 1e-7 P_scale
+    potencia_rel_escala: float = 1e-7
+    energia_abs_kWh: float = 1e-6          # recorrência por banco: 1e-6 kWh + 1e-8 C_b
+    energia_rel_capacidade: float = 1e-8
+    soc_fracao: float = 1e-6               # violação de cotas de SOC (fração)
+    custo_abs_R: float = 1e-4              # custo: 1e-4 R$ + 1e-7 max(1 R$, |J|)
+    custo_rel: float = 1e-7
+    binario: float = 1e-6                  # distância ao inteiro
+    vazao_abs_kg_h: float = 1e-6           # PROPOSTA 3A (o dossiê não fixa valor): 1e-6 kg/h + 1e-8 Q_max
+    vazao_rel_qmax: float = 1e-8
+    massa_abs_kg: float = 1e-9             # PROPOSTA 3A: 1e-9 kg + 1e-8 massa
+    status: str = "provisoria"
+    origem: str = ("dossiê v1.0, Campanha de validação — Métricas algébricas (propostas pré-registráveis); "
+                   "vazão/massa: proposta do Piso 3A; decisão D07 pendente")
+
+
+@dataclass(frozen=True)
+class Residuo:
+    familia: str
+    equacao: str
+    uid: str
+    indice: int | None
+    valor: float
+    unidade: str
+    tolerancia: float
+
+    @property
+    def aprovado(self) -> bool:
+        return math.isfinite(self.valor) and abs(self.valor) <= self.tolerancia
+
+
+@dataclass(frozen=True)
+class RelatorioAuditoria:
+    aceito: bool
+    reprovados: tuple[Residuo, ...]
+    maximos: dict[str, tuple[float, str, float]]        # família → (|resíduo| máx., unidade, tolerância)
+    constatacoes: tuple[Constatacao, ...]
+    familias_verificadas: tuple[str, ...]
+    familias_nao_suportadas: tuple[str, ...]
+    custos_reconstruidos: dict[str, float] = field(default_factory=dict)
+    kpis_reconstruidos: dict[str, dict[str, float]] = field(default_factory=dict)
+    rotulo: str = ROTULO_EVIDENCIA
+
+    def codigos(self) -> set[str]:
+        return {c.codigo for c in self.constatacoes}
+
+    def familias_reprovadas(self) -> set[str]:
+        return {r.familia for r in self.reprovados}
+
+
+@dataclass(frozen=True)
+class CandidatoDespacho:
+    """Atribuição candidata explícita por UID (todas as chaves exigidas; ausência = rejeição, não zero).
+
+    * ``renovaveis[uid] = {"P_R": N, "C_oper": N}`` [kW]
+    * ``baterias[uid] = {"P_c": N, "P_d": N, "e": N+1}`` [kW, kWh]
+    * ``demandas[uid] = {"ell": N}`` [kW] carga efetivamente desconectada
+    * ``descarte``: N valores [kW] — só se existir dispositivo físico declarado
+    * ``custos_reportados``: p. ex. ``{"curtailment_operacional": R$}``
+    * ``kpis_reportados``: p. ex. ``{"E_indisp_kWh": {uid: kWh}, "E_curt_oper_kWh": {uid: kWh}}``
+    """
+    renovaveis: dict[str, dict[str, tuple[float, ...]]] = field(default_factory=dict)
+    baterias: dict[str, dict[str, tuple[float, ...]]] = field(default_factory=dict)
+    demandas: dict[str, dict[str, tuple[float, ...]]] = field(default_factory=dict)
+    descarte: tuple[float, ...] | None = None
+    geradores: dict[str, dict[str, tuple[float, ...]]] = field(default_factory=dict)
+    auxiliares: tuple[float, ...] | None = None
+    custos_reportados: dict[str, float] = field(default_factory=dict)
+    kpis_reportados: dict[str, dict[str, float]] = field(default_factory=dict)
+
+
+class _Coletor:
+    def __init__(self) -> None:
+        self.residuos: list[Residuo] = []
+        self.constatacoes: list[Constatacao] = []
+        self.verificadas: set[str] = set()
+
+    def r(self, familia, equacao, uid, i, valor, unidade, tol) -> None:
+        self.verificadas.add(familia)
+        self.residuos.append(Residuo(familia, equacao, uid, i, float(valor), unidade, float(tol)))
+
+    def limite_superior(self, familia, equacao, uid, i, valor, limite, unidade, tol) -> None:
+        """Registra só o EXCESSO acima do limite (resíduo 0 se dentro)."""
+        self.r(familia, equacao, uid, i, max(0.0, valor - limite), unidade, tol)
+
+    def limite_inferior(self, familia, equacao, uid, i, valor, limite, unidade, tol) -> None:
+        self.r(familia, equacao, uid, i, max(0.0, limite - valor), unidade, tol)
+
+
+def _vetor(cand: dict, chave: str, n: int, caminho: str, col: _Coletor, terminal: int | None = None) -> list[float] | None:
+    if not isinstance(cand, dict) or chave not in cand or cand[chave] is None:
+        col.constatacoes.append(erro("variavel_candidata_ausente", caminho,
+                                     f"'{chave}' ausente na candidata (ausência nunca vira zero)."))
+        return None
+    v = cand[chave]
+    try:
+        m = len(v)
+    except TypeError:
+        col.constatacoes.append(erro("vetor_invalido", caminho, "Vetor não sequencial."))
+        return None
+    if m != n:
+        cod = "instante_terminal_como_intervalo" if terminal is not None and m == terminal else "comprimento_incompativel"
+        col.constatacoes.append(erro(cod, caminho, f"Esperados {n} valores; recebidos {m}."))
+        return None
+    out = []
+    for i, x in enumerate(v):
+        if isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x):
+            col.constatacoes.append(erro("valor_ausente_ou_nao_finito", f"{caminho}[{i}]", "NaN/Inf/não numérico."))
+            return None
+        out.append(float(x))
+    return out
+
+
+def _dur_h(malha: MalhaTemporal) -> float:
+    return malha.delta_s / 3600.0
+
+
+def _tol_custo(tol: Tolerancias, J: float) -> float:
+    return tol.custo_abs_R + tol.custo_rel * max(1.0, abs(J))
+
+
+def _finalizar(col: _Coletor, nao_suportadas: list[str], custos=None, kpis=None) -> RelatorioAuditoria:
+    reprov = tuple(r for r in col.residuos if not r.aprovado)
+    maximos: dict[str, tuple[float, str, float]] = {}
+    for r in col.residuos:
+        cur = maximos.get(r.familia)
+        if cur is None or abs(r.valor) > cur[0]:
+            maximos[r.familia] = (abs(r.valor), r.unidade, r.tolerancia)
+    bloqueia = any(c.severidade in ("erro", "pendente") for c in col.constatacoes)
+    return RelatorioAuditoria(aceito=not reprov and not bloqueia and not nao_suportadas, reprovados=reprov,
+                              maximos=maximos, constatacoes=tuple(col.constatacoes),
+                              familias_verificadas=tuple(sorted(col.verificadas)),
+                              familias_nao_suportadas=tuple(nao_suportadas),
+                              custos_reconstruidos=custos or {}, kpis_reconstruidos=kpis or {})
+
+
+def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias = Tolerancias()) -> RelatorioAuditoria:
+    col = _Coletor()
+    rel = validar_entrada(entrada)
+    col.constatacoes += [c for c in rel.constatacoes]
+    if not rel.aceito:
+        return _finalizar(col, [])
+    nao_sup: list[str] = []
+    if entrada.geradores or cand.geradores:
+        nao_sup.append("commitment_M09_M12")
+        col.constatacoes.append(pendente("commitment_nao_suportado_3A", "geradores",
+                                         "Transições/rampas/permanências (M09–M12) não são auditáveis no Piso 3A; "
+                                         "domínio PWL isolado: usar auditar_pwl."))
+    if cand.auxiliares is not None:
+        nao_sup.append("auxiliares_M05")
+        col.constatacoes.append(pendente("auxiliares_nao_suportados_3A", "auxiliares", "M05 é futuro."))
+    if nao_sup:
+        return _finalizar(col, nao_sup)
+
+    m = entrada.malha
+    N, h = m.N, _dur_h(m)
+    # ------------------------------------------------ dados exógenos alinhados (contrato já validado)
+    L = {str(d.uid): alinhar_a_malha(d.potencia, m, "")[0] for d in entrada.demandas}
+    chi = {}
+    for d in entrada.demandas:
+        if entrada.politica_servico.modo == "duro" or d.criticidade == "critica" or d.fracao_interrompivel is None:
+            chi[str(d.uid)] = [0.0] * N
+        else:
+            chi[str(d.uid)] = list(alinhar_a_malha(d.fracao_interrompivel, m, "")[0])
+    A = {str(r.uid): alinhar_a_malha(r.potencial, m, "")[0] for r in entrada.renovaveis}
+    aR = {str(r.uid): alinhar_a_malha(r.disponibilidade.serie, m, "")[0] for r in entrada.renovaveis}
+    aB = {str(b.uid): alinhar_a_malha(b.disponibilidade.serie, m, "")[0] for b in entrada.baterias}
+    P_scale = max([1.0] + [sum(L[k][t] for k in L) for t in range(N)] + [sum(A[k][t] for k in A) for t in range(N)]
+                  + [max(float(b.p_carga_max_kW.valor), float(b.p_descarga_max_kW.valor)) for b in entrada.baterias])
+    tolP = tol.potencia_abs_kW + tol.potencia_rel_escala * P_scale
+
+    # ------------------------------------------------ chaves esperadas × fornecidas (por UID)
+    for nome, esperados, dados in (("renovaveis", set(A), cand.renovaveis), ("baterias", set(aB), cand.baterias),
+                                   ("demandas", set(L), cand.demandas)):
+        for k in sorted(set(dados) - esperados):
+            col.constatacoes.append(erro("uid_desconhecido_na_candidata", f"{nome}[{k}]", "UID inexistente na entrada."))
+        for k in sorted(esperados - set(dados)):
+            col.constatacoes.append(erro("variavel_candidata_ausente", f"{nome}[{k}]", "UID sem valores na candidata."))
+
+    gen = [0.0] * N
+    carga = [0.0] * N
+    # ------------------------------------------------ renováveis M03-v1.1
+    kpi_ind: dict[str, float] = {}
+    kpi_cur: dict[str, float] = {}
+    custo_curt = 0.0
+    custo_curt_ok = True
+    for r in entrada.renovaveis:
+        k = str(r.uid)
+        c = cand.renovaveis.get(k, {})
+        P = _vetor(c, "P_R", N, f"renovaveis[{k}].P_R", col, N + 1)
+        C = _vetor(c, "C_oper", N, f"renovaveis[{k}].C_oper", col, N + 1)
+        Ak, ak = A[k], aR[k]
+        kpi_ind[k] = sum((1.0 - ak[t]) * Ak[t] for t in range(N)) * h
+        if P is None or C is None:
+            continue
+        for t in range(N):
+            gen[t] += P[t]
+            disp = ak[t] * Ak[t]
+            res = P[t] + C[t] - disp
+            col.r("renovavel", "M03-v1.1", k, t, res, "kW", tolP)
+            col.limite_inferior("renovavel", "M03-v1.1", k, t, P[t], 0.0, "kW", tolP)
+            col.limite_inferior("renovavel", "M03-v1.1", k, t, C[t], 0.0, "kW", tolP)
+            if ak[t] == 0.0 and C[t] > tolP:
+                col.constatacoes.append(erro("indisponibilidade_registrada_como_curtailment",
+                                             f"renovaveis[{k}].C_oper[{t}]",
+                                             "a = 0: potência indisponível não é vertimento operacional (B01)."))
+        kpi_cur[k] = sum(C) * h
+        if r.custo_curtailment is not None and r.custo_curtailment.valor is not None:
+            custo_curt += float(r.custo_curtailment.valor) * kpi_cur[k]
+        else:
+            custo_curt_ok = False
+    # ------------------------------------------------ demanda e serviço M04
+    for d in entrada.demandas:
+        k = str(d.uid)
+        ell = _vetor(cand.demandas.get(k, {}), "ell", N, f"demandas[{k}].ell", col, N + 1)
+        if ell is None:
+            continue
+        for t in range(N):
+            carga[t] += L[k][t] - ell[t]
+            col.limite_inferior("servico", "M04", k, t, ell[t], 0.0, "kW", tolP)
+            lim = chi[k][t] * L[k][t]
+            col.limite_superior("servico", "M04", k, t, ell[t], lim, "kW", tolP)
+            if ell[t] > lim + tolP and lim == 0.0:
+                col.constatacoes.append(erro("interrupcao_nao_autorizada", f"demandas[{k}].ell[{t}]",
+                                             "Carga desconectada sem autorização (crítica ou serviço duro)."))
+    # ------------------------------------------------ descarte M04
+    desc = entrada.politica_servico.descarte
+    if desc is None:
+        if cand.descarte is not None:
+            dv = _vetor({"d": cand.descarte}, "d", N, "descarte", col, N + 1)
+            if dv is not None:
+                for t in range(N):
+                    col.limite_superior("descarte", "M04", "-", t, dv[t], 0.0, "kW", tolP)
+                    carga[t] += dv[t]
+                if any(x > tolP for x in dv):
+                    col.constatacoes.append(erro("descarte_sem_dispositivo_fisico", "descarte",
+                                                 "D̄ = 0: não existe sumidouro físico declarado (energia fictícia)."))
+    else:
+        dv = _vetor({"d": cand.descarte}, "d", N, "descarte", col, N + 1)
+        if dv is not None:
+            Dmax = float(desc.p_max_kW.valor)
+            for t in range(N):
+                carga[t] += dv[t]
+                col.limite_inferior("descarte", "M04", str(desc.uid), t, dv[t], 0.0, "kW", tolP)
+                col.limite_superior("descarte", "M04", str(desc.uid), t, dv[t], Dmax, "kW", tolP)
+    # ------------------------------------------------ BESS M06–M08
+    estados = {str(s.uid): s for s in entrada.estados_baterias}
+    for b in entrada.baterias:
+        k = str(b.uid)
+        c = cand.baterias.get(k, {})
+        Pc = _vetor(c, "P_c", N, f"baterias[{k}].P_c", col, N + 1)
+        Pd = _vetor(c, "P_d", N, f"baterias[{k}].P_d", col, N + 1)
+        e = _vetor(c, "e", N + 1, f"baterias[{k}].e", col)
+        if Pc is None or Pd is None or e is None:
+            continue
+        Cb = float(b.capacidade_kWh.valor)
+        smin, smax = float(b.soc_min.valor), float(b.soc_max.valor)
+        ec, ed = float(b.eta_carga.valor), float(b.eta_descarga.valor)
+        pcm, pdm = float(b.p_carga_max_kW.valor), float(b.p_descarga_max_kW.valor)
+        alpha = 1.0 if b.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(
+            -float(b.autodescarga_1_h.valor) * h)
+        tolE = tol.energia_abs_kWh + tol.energia_rel_capacidade * Cb
+        tolS = tol.soc_fracao * Cb       # violação de SOC expressa em kWh equivalentes
+        for t in range(N):
+            gen[t] += Pd[t] - Pc[t]
+            col.limite_inferior("bess_potencia", "M06", k, t, Pc[t], 0.0, "kW", tolP)
+            col.limite_inferior("bess_potencia", "M06", k, t, Pd[t], 0.0, "kW", tolP)
+            col.limite_superior("bess_potencia", "M06", k, t, Pc[t], aB[k][t] * pcm, "kW", tolP)
+            col.limite_superior("bess_potencia", "M06", k, t, Pd[t], aB[k][t] * pdm, "kW", tolP)
+            col.r("bess_exclusividade", "M06", k, t, min(Pc[t], Pd[t]), "kW", tolP)
+            prev = alpha * e[t] + h * ec * Pc[t] - h * Pd[t] / ed
+            col.r("bess_energia", "M07", k, t, e[t + 1] - prev, "kWh", tolE)
+        col.r("bess_estado_inicial", "M08", k, 0, e[0] - float(estados[k].energia_kWh.valor), "kWh", tolE)
+        for i, x in enumerate(e):
+            col.limite_inferior("bess_soc", "M08", k, i, x, Cb * smin, "kWh", tolS)
+            col.limite_superior("bess_soc", "M08", k, i, x, Cb * smax, "kWh", tolS)
+    # ------------------------------------------------ balanço M02
+    for t in range(N):
+        col.r("balanco", "M02", "barramento", t, gen[t] - carga[t], "kW", tolP)
+    # ------------------------------------------------ custos e KPIs reconstruídos
+    custos: dict[str, float] = {}
+    if custo_curt_ok and entrada.renovaveis:
+        custos["curtailment_operacional"] = custo_curt
+    for nome, rep in cand.custos_reportados.items():
+        if nome != "curtailment_operacional":
+            col.constatacoes.append(pendente("custo_nao_reconstruivel_3A", f"custos_reportados[{nome}]",
+                                             "Termo de custo sem reconstrução no Piso 3A."))
+        elif "curtailment_operacional" not in custos:
+            col.constatacoes.append(erro("custo_nao_reconstruivel", "custos_reportados[curtailment_operacional]",
+                                         "c^curt ausente: custo reportado não pode ser conferido."))
+        else:
+            col.r("custo", "M21-v1.1", "J_curt", None, float(rep) - custos[nome], "R$", _tol_custo(tol, custos[nome]))
+    if "curtailment_operacional" in entrada.politica_objetivo.termos and \
+            "curtailment_operacional" not in cand.custos_reportados:
+        col.constatacoes.append(Constatacao("custo_nao_reportado", "custos_reportados",
+                                            "Termo no objetivo sem valor reportado: só reconstruído.", "aviso"))
+    kpis = {"E_indisp_kWh": kpi_ind, "E_curt_oper_kWh": kpi_cur}
+    for nome, por_uid in cand.kpis_reportados.items():
+        if nome not in kpis:
+            col.constatacoes.append(erro("kpi_desconhecido", f"kpis_reportados[{nome}]", "KPI não reconstruível."))
+            continue
+        for k, v in por_uid.items():
+            if k not in kpis[nome]:
+                col.constatacoes.append(erro("kpi_uid_desconhecido", f"kpis_reportados[{nome}][{k}]", "UID sem KPI."))
+                continue
+            col.r("kpi_energia", "B01", k, None, float(v) - kpis[nome][k], "kWh",
+                  tol.energia_abs_kWh + tol.energia_rel_capacidade * max(1.0, abs(kpis[nome][k])))
+    return _finalizar(col, [], custos, kpis)
+
+
+# =============================================================================== PWL (A06)
+def _interp_bisect(Ps: list[float], Qs: list[float], p: float) -> float:
+    j = bisect.bisect_right(Ps, p) - 1
+    j = min(max(j, 0), len(Ps) - 2)
+    w = (p - Ps[j]) / (Ps[j + 1] - Ps[j])
+    return Qs[j] * (1.0 - w) + Qs[j + 1] * w
+
+
+def auditar_pwl(g: EspecGerador, malha: MalhaTemporal, u: list, p: list, q: list, massa_kg: list | None = None,
+                tol: Tolerancias = Tolerancias()) -> RelatorioAuditoria:
+    """Domínio ON/OFF (M10) e vazão PWL (M15/M16) por intervalo; massa operacional h·q (sem eventos).
+    Só confere valores PREPARADOS: não escolhe u, p nem q."""
+    col = _Coletor()
+    col.constatacoes += [c for c in validar_gerador(g, malha, "gerador")]
+    if any(c.severidade in ("erro", "pendente") for c in col.constatacoes) or g.curva_h2 is None:
+        if g.curva_h2 is None:
+            col.constatacoes.append(pendente("curva_h2_ausente", "gerador.curva_h2", "Sem curva PWL."))
+        return _finalizar(col, [])
+    N, h = malha.N, _dur_h(malha)
+    uu = _vetor({"u": u}, "u", N, "u", col, N + 1)
+    pp = _vetor({"p": p}, "p", N, "p", col, N + 1)
+    qq = _vetor({"q": q}, "q", N, "q", col, N + 1)
+    mm = None if massa_kg is None else _vetor({"m": massa_kg}, "m", N, "massa_kg", col, N + 1)
+    if uu is None or pp is None or qq is None:
+        return _finalizar(col, [])
+    Ps = [float(v[0]) for v in g.curva_h2.vertices]
+    Qs = [float(v[1]) for v in g.curva_h2.vertices]
+    pmin, pmax = float(g.p_min_kW.valor), float(g.p_max_kW.valor)
+    P_scale = max(1.0, pmax)
+    tolP = tol.potencia_abs_kW + tol.potencia_rel_escala * P_scale
+    tolQ = tol.vazao_abs_kg_h + tol.vazao_rel_qmax * max(Qs)
+    disp = alinhar_a_malha(g.disponibilidade.serie, malha, "")[0]
+    for t in range(N):
+        col.r("integralidade", "M09", str(g.uid), t, min(abs(uu[t]), abs(uu[t] - 1.0)), "1", tol.binario)
+        on = uu[t] > 0.5
+        if on and disp[t] == 0.0:
+            col.constatacoes.append(erro("on_indisponivel", f"u[{t}]", "Unidade ON com a = 0."))
+        if not on:
+            col.r("dominio_on_off", "M10", str(g.uid), t, pp[t], "kW", tolP)
+            col.r("vazao_pwl", "M16", str(g.uid), t, qq[t], "kg/h", tolQ)
+            if mm is not None:
+                col.r("massa_h2", "M17", str(g.uid), t, mm[t], "kg", tol.massa_abs_kg)
+            continue
+        lo, hi = max(pmin, Ps[0]), min(pmax, Ps[-1])
+        col.limite_inferior("dominio_on_off", "M10", str(g.uid), t, pp[t], lo, "kW", tolP)
+        col.limite_superior("dominio_on_off", "M10", str(g.uid), t, pp[t], hi, "kW", tolP)
+        if pp[t] < lo - tolP or pp[t] > hi + tolP:
+            col.constatacoes.append(erro("on_fora_do_dominio", f"p[{t}]",
+                                         f"ON em {pp[t]} kW fora de [{lo}, {hi}] kW (sem segmento até zero)."))
+            continue
+        col.r("vazao_pwl", "M16", str(g.uid), t, qq[t] - _interp_bisect(Ps, Qs, pp[t]), "kg/h", tolQ)
+        if mm is not None:
+            alvo = qq[t] * h
+            col.r("massa_h2", "M17", str(g.uid), t, mm[t] - alvo, "kg", tol.massa_abs_kg + 1e-8 * abs(alvo))
+    return _finalizar(col, [])
+
+
+__all__ = ["CandidatoDespacho", "RelatorioAuditoria", "Residuo", "Tolerancias", "auditar", "auditar_pwl"]
