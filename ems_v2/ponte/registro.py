@@ -14,8 +14,8 @@ informação de reprodução.
 * ``AvaliacaoValorFuturo`` — avaliação econômica de um estado terminal usada por um planejador (3C-4). No 3C-0 é
   sempre ``nao_implementado_3C0`` com ``valor_R = None``; ``contabilizado_como_custo`` é SEMPRE falso (invariante).
 
-Persistência: arquivo JSON por execução, criado de forma EXCLUSIVA e atômica (hard link de um temporário completo, ou
-``O_EXCL``); regravar o mesmo UID com conteúdo diferente é recusado mesmo entre processos concorrentes (H-03). A integração com o banco de cada microrrede (``MicrogridStore``) NÃO é feita no 3C-0.
+Persistência: arquivo JSON por execução, criado de forma EXCLUSIVA e publicado atomicamente (hard link de um temporário
+completo; sem hard link, reserva ``O_EXCL`` + ``os.replace``); regravar o mesmo UID com conteúdo diferente é recusado mesmo entre processos concorrentes (H-03). A integração com o banco de cada microrrede (``MicrogridStore``) NÃO é feita no 3C-0.
 """
 from __future__ import annotations
 
@@ -258,7 +258,12 @@ class RegistroImutavelError(ContratoInvalido):
     pass
 
 
-_ESPERA_LEITURA_S = 2.0          # fallback O_EXCL: tempo máximo para um escritor concorrente concluir o arquivo
+_ESPERA_RESERVA_S = 2.0          # fallback: tempo máximo à espera da publicação pelo detentor da reserva
+
+
+class RegistroReservaOrfaError(ContratoInvalido):
+    """Reserva de publicação sem registro publicado após a espera (escritor interrompido no fallback sem hard link).
+    Nada é sobrescrito; a recuperação é MANUAL (conferir e remover o arquivo de reserva)."""
 
 
 def _fsync_diretorio(d: Path) -> None:
@@ -276,38 +281,57 @@ def _fsync_diretorio(d: Path) -> None:
 
 
 def _ja_existente(alvo: Path, texto: str) -> Path:
-    """O UID já tem registro: idêntico ⇒ idempotente; diferente ⇒ ``RegistroImutavelError``. Um arquivo incompleto
-    (só possível no fallback O_EXCL, enquanto outro escritor ainda grava) é relido por até ``_ESPERA_LEITURA_S``."""
-    import json
+    """O UID já tem registro (sempre COMPLETO: as duas rotas publicam atomicamente). Idêntico ⇒ idempotente;
+    diferente ⇒ ``RegistroImutavelError``."""
+    if alvo.read_text(encoding="utf-8") == texto:
+        return alvo
+    raise RegistroImutavelError([erro("registro_imutavel", alvo.name,
+                                      "Já existe registro desta execução com conteúdo diferente.")])
+
+
+def _publicar_sem_hard_link(tmp: Path, alvo: Path, texto: str) -> Path:
+    """Rota alternativa (C-03): RESERVA exclusiva + publicação ATÔMICA.
+
+    1. ``O_CREAT | O_EXCL`` em ``.<arquivo>.reserva`` — um único escritor por UID (exclusão mútua portável);
+    2. com a reserva: alvo já existente ⇒ comparação; senão ``os.replace(temporario_completo, alvo)`` — o alvo surge
+       inteiro (rename atômico no mesmo diretório; ``MoveFileEx`` no Windows), nunca parcialmente escrito;
+    3. a reserva é removida só DEPOIS da publicação; quem não obteve a reserva espera o alvo aparecer (até
+       ``_ESPERA_RESERVA_S``) e compara; se não aparecer, ``RegistroReservaOrfaError`` (nada é sobrescrito)."""
     import time
-    limite = time.monotonic() + _ESPERA_LEITURA_S
-    while True:
-        atual = alvo.read_text(encoding="utf-8")
-        if atual == texto:
-            return alvo
-        try:
-            json.loads(atual)
-            completo = True
-        except ValueError:
-            completo = False
-        if completo or time.monotonic() >= limite:
-            raise RegistroImutavelError([erro("registro_imutavel", alvo.name,
-                                              "Já existe registro desta execução com conteúdo diferente.")])
-        time.sleep(0.01)
+    reserva = alvo.with_name(f".{alvo.name}.reserva")
+    try:
+        fdr = os.open(reserva, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    except FileExistsError:
+        limite = time.monotonic() + _ESPERA_RESERVA_S
+        while not alvo.exists():
+            if time.monotonic() >= limite:
+                raise RegistroReservaOrfaError([erro("reserva_orfa", reserva.name,
+                                                     "Reserva de publicação sem registro publicado (escritor interrompido?)."
+                                                     " Nada foi sobrescrito; conferir e remover a reserva manualmente.")])
+            time.sleep(0.005)
+        return _ja_existente(alvo, texto)
+    try:
+        os.close(fdr)
+        if alvo.exists():
+            return _ja_existente(alvo, texto)
+        os.replace(tmp, alvo)
+        return alvo
+    finally:
+        reserva.unlink(missing_ok=True)
 
 
 def gravar_registro(diretorio: str | os.PathLike, r: RegistroExecucaoEMS) -> Path:
-    """Criação EXCLUSIVA e atômica do arquivo ``<execucao_uid>.ems3c0.json`` (H-03): nunca sobrescreve.
+    """Criação EXCLUSIVA e publicação ATÔMICA de ``<execucao_uid>.ems3c0.json`` (H-03, C-03): nunca sobrescreve e
+    nunca expõe arquivo parcial.
 
     1. O conteúdo canônico (selo conferido) é escrito e sincronizado num temporário ÚNICO no mesmo diretório;
-    2. publicação por ``os.link(temporario, alvo)``, que FALHA se o alvo já existir (POSIX e NTFS) — o alvo só
-       aparece completo; não há janela entre verificar e gravar;
-    3. sistemas de arquivos sem hard link: ``os.open(alvo, O_CREAT | O_EXCL)`` (criação exclusiva) e escrita;
-       falha durante a escrita remove o alvo criado por ESTE processo;
-    4. o temporário é sempre removido (``finally``).
+    2. publicação por ``os.link(temporario, alvo)``, que FALHA se o alvo já existir (POSIX e NTFS);
+    3. sistemas de arquivos sem hard link: reserva ``O_EXCL`` + ``os.replace`` (``_publicar_sem_hard_link``);
+    4. o temporário (e a reserva, se obtida) é sempre removido.
 
     Mesmo UID e mesmo conteúdo ⇒ idempotente; conteúdo diferente ⇒ ``RegistroImutavelError``, inclusive entre
-    processos concorrentes (exatamente um conteúdo vence)."""
+    processos concorrentes (exatamente um conteúdo vence). Supõe-se que todos os escritores de um diretório usam a
+    mesma rota (o suporte a hard link é propriedade do sistema de arquivos)."""
     import tempfile
     c = verificar_registro(r)
     if c:
@@ -316,12 +340,11 @@ def gravar_registro(diretorio: str | os.PathLike, r: RegistroExecucaoEMS) -> Pat
     d.mkdir(parents=True, exist_ok=True)
     alvo = d / f"{r.execucao_uid}{SUFIXO_ARQUIVO}"
     texto = json_canonico(r)
-    dados = texto.encode("utf-8")
     fd, nome_tmp = tempfile.mkstemp(prefix=f".{r.execucao_uid}.", suffix=".tmp", dir=d)
     tmp = Path(nome_tmp)
     try:
         with os.fdopen(fd, "wb") as f:
-            f.write(dados)
+            f.write(texto.encode("utf-8"))
             f.flush()
             os.fsync(f.fileno())
         try:
@@ -329,18 +352,7 @@ def gravar_registro(diretorio: str | os.PathLike, r: RegistroExecucaoEMS) -> Pat
         except FileExistsError:
             return _ja_existente(alvo, texto)
         except (OSError, NotImplementedError, AttributeError):
-            try:                                   # sem hard link neste sistema de arquivos: criação exclusiva
-                fd2 = os.open(alvo, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o644)
-            except FileExistsError:
-                return _ja_existente(alvo, texto)
-            try:
-                with os.fdopen(fd2, "wb") as f:
-                    f.write(dados)
-                    f.flush()
-                    os.fsync(f.fileno())
-            except BaseException:
-                alvo.unlink(missing_ok=True)       # só o alvo que ESTE processo criou (O_EXCL)
-                raise
+            _publicar_sem_hard_link(tmp, alvo, texto)
         _fsync_diretorio(d)
         return alvo
     finally:
@@ -356,6 +368,6 @@ def ler_registro(caminho: str | os.PathLike) -> RegistroExecucaoEMS:
 
 
 __all__ = ["AvaliacaoValorFuturo", "ComponenteCusto", "CustoRealizado", "Discretizacao", "METODOS_VALOR_FUTURO",
-           "ReferenciaOrigem", "RegistroExecucaoEMS", "RegistroImutavelError", "ResumoSolver", "gravar_registro",
+           "ReferenciaOrigem", "RegistroExecucaoEMS", "RegistroImutavelError", "RegistroReservaOrfaError", "ResumoSolver", "gravar_registro",
            "indicadores_e_custo", "ler_registro", "selar_registro", "validar_registro", "valor_futuro_nao_implementado",
            "verificar_registro"]

@@ -72,5 +72,25 @@ Base: HEAD del PR `4b77788`. Mismo entorno y `PYTHONDONTWRITEBYTECODE=1`.
 | C-3C0-01 Excepción de lectura SEEDS2 | **Aceptada condicionalmente; condiciones verificadas** | `test_c3c001_leitor_nao_muta_armazenamento_e_preserva_identidade`, `test_ems_v2_ponte_isolamento.py` (4), `test_aplicacao_nao_referencia_ems_v2` (3A) |
 
 Portabilidad (H-03): `os.link` crea hard links en POSIX y NTFS y falla si el destino existe; sin soporte de hard link
-se usa `O_CREAT | O_EXCL` (con `O_BINARY` en Windows). Verificado en Linux; **Windows no fue ejecutado** en este
-entorno (el fallback se probó en Linux simulando la ausencia de hard link).
+se usa reserva `O_CREAT | O_EXCL` + `os.replace` (C-03, §6). Verificado en Linux; **Windows no fue ejecutado** en este
+entorno (la ruta alternativa se probó en Linux simulando la ausencia de hard link).
+
+## 6. Cierre de la segunda auditoría (C-01..C-03; base `d74f883`)
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1 | `pytest tests/ems_v2/test_ems_v2_ponte_auditoria_pr13.py` | **40 passed** (31 → 40: +10 C-01/C-02/C-03, −1 test de un punto de fallo que ya no existe en la ruta alternativa) |
+| 2 | Suite 3A / suite 3B-P | **268** / **148** passed (sin cambios) |
+| 3 | `pytest tests/ems_v2` | **535 passed**; sin Pyomo/HiGHS: 394 passed, 5 skipped |
+| 4 | Regresión completa `pytest tests/` | **989 passed, 7 warnings, 128 subtests** (370 s) = 980 + 9 |
+| 5 | Repetición de los tests de concurrencia/límite (`-k "h03 or c03 or c02 or c01"`, 17 tests × 5) | 5/5 verdes |
+| 6 | Lector concurrente durante la escritura por la ruta alternativa (escritura lenta en trozos de 64 B), código de `d74f883` × corrección | **17 097 de 89 053** lecturas parciales × **0 de 68 418** |
+| 7 | Diff de esta ronda | Solo `ems_v2/ponte/{execucao,preflight,registro}.py` y `tests/ems_v2/test_ems_v2_ponte_auditoria_pr13.py`; barreras de aislamiento, suites 3A/3B-P y V1.6 sin cambios desde `d74f883` |
+
+### Tabla de cierre
+
+| Punto | Estado | Pruebas |
+|---|---|---|
+| C-01 Preflight con k = 0 | **Resuelto** | `test_c01_k0_valido_para_preparar_otimizacao`, `test_c01_k1_exige_series_observadas_coerentes`, `test_c01_cobertura_parcial_e_series_ausentes`, `test_c01_offline_continua_exigindo_series` |
+| C-02 Límite temporal obligatorio | **Resuelto** | `test_c02_limite_observado_pertence_ao_contrato_nao_ao_executor`, `test_c02_pausa_inviabilidade_e_erro_de_dados_sao_distintos`, `test_c02_pausa_retoma_do_checkpoint_sem_falsificar_inviabilidade`, `test_h04_execucao_nunca_ultrapassa_o_observado_e_retoma_com_nova_observacao` (actualizado: pausa, no inviabilidad) |
+| C-03 Publicación sin hard links | **Resuelto en Linux**; Windows sin ejecutar | `test_c03_leitor_concorrente_nunca_ve_registro_parcial_na_rota_alternativa`, `test_c03_escritores_concorrentes_na_rota_alternativa`, `test_c03_reserva_orfa_nunca_e_sobrescrita`, `test_h03_falha_limpa_temporarios_e_nao_deixa_alvo`, `test_h03_fallback_sem_hard_link_tambem_e_exclusivo` |

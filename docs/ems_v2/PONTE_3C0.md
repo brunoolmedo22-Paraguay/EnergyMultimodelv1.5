@@ -100,8 +100,13 @@ Núcleo (`ponte/`, `fixtures_3c0.py`): solo biblioteca estándar (test `test_nuc
   de la realización. La causalidad por instante de emisión sigue bloqueante.
 - **Realización offline × online (H-04).** `Realizacao.modo`: `completa_offline` (cubre la misión) o
   `incremental_online` con `observado_ate_utc = τ_k`: cobertura verificada solo en [τ_0, τ_k); valores posteriores a
-  τ_k son información futura (`realizacao_alem_do_observado`). El ejecutor nunca pasa de τ_k
-  (`realizacao_sem_cobertura`) y la ejecución se reanuda desde el checkpoint cuando llega una observación posterior.
+  τ_k son información futura (`realizacao_alem_do_observado`). **C-02:** `executar` verifica el límite ANTES de llamar
+  a cualquier `ExecutorPasso` (incluido un futuro ejecutor físico): ningún intervalo cuyo fin supere τ_k se aplica.
+  Situaciones distintas: `pausada_aguardando_observacoes` (último estado válido + checkpoint; se reanuda con una
+  observación posterior; **no** es inviabilidad), `interrompida_inexequivel` (consigna físicamente inexequible) y
+  `erro_dados` (dato realizado ausente/desalineado/ilegible; `PassoAplicado.falha = "dados"`). **C-01:** con
+  `observado_ate_utc = τ_0` (k = 0) el preflight acepta preparar la optimización con previsiones (advertencia
+  `nenhum_intervalo_observado`); para k ≥ 1 exige series coherentes para los intervalos observados.
 - **Plan → ejecución → estado.** El plan solo nace de un `ResultadoResolucao` aceptado y de la misma entrada
   (`hash_entrada`). El ejecutor recibe la consigna del intervalo y el entorno **realizado**; inexequible ⇒
   `interrompida_inexequivel` sin recorte. Se verifica antes y después de cada paso: microrred, índice global e
@@ -114,9 +119,12 @@ Núcleo (`ponte/`, `fixtures_3c0.py`): solo biblioteca estándar (test `test_nuc
 - **Preflight: diagnóstico × optimización (H-02).** `finalidade="diagnostico"` evalúa datos sin exigir ni crear
   políticas (`apto_para_otimizacao` siempre falso); `finalidade="otimizacao"` (por defecto) exige políticas, previsión,
   proyección existente y aceptada, formulación `v1.1-3B-P` y `ems_v2.milp.config.preflight_3bp` sin bloqueos.
-- **Persistencia inmutable (H-03).** `gravar_registro` publica con `os.link(temporal_único_completo, destino)`, que
-  falla si el destino existe (POSIX y NTFS); sin hard link, `O_CREAT|O_EXCL`. Mismo contenido ⇒ idempotente; otro
-  contenido ⇒ `RegistroImutavelError`; temporales siempre eliminados.
+- **Persistencia inmutable (H-03, C-03).** `gravar_registro` publica con `os.link(temporal_único_completo, destino)`,
+  que falla si el destino existe (POSIX y NTFS). Sin hard link: **reserva** exclusiva `O_CREAT|O_EXCL`
+  (`.<archivo>.reserva`) + `os.replace(temporal_completo, destino)`; un lector solo ve «ausente» o «completo», nunca un
+  archivo parcial. Mismo contenido ⇒ idempotente; otro contenido ⇒ `RegistroImutavelError`; temporales y reserva
+  siempre eliminados. Reserva huérfana (escritor interrumpido) ⇒ `RegistroReservaOrfaError`, nada se sobrescribe,
+  recuperación manual.
 
 ## 5. Decisiones tomadas en 3C-0 (técnicas, conservadoras; a revisar por el responsable)
 
@@ -178,3 +186,15 @@ Cambios contractuales que aún necesitará 3C-2 (no implementados; brecha K6 en 
 observaciones *append-only* con instante de recepción por valor (latencia, datos tardíos y revisiones de medición),
 previsión reemitida por ventana (un `ConjuntoPrevisao` por τ_k), estimación del estado a partir de medidas y política
 explícita para huecos de observación (nunca completados).
+
+### 9b. Cierre de la segunda auditoría (base `d74f883`)
+
+| ID | Punto | Corrección | Pruebas |
+|---|---|---|---|
+| C-01 | Preflight exigía series realizadas con k = 0 observados | `realizacao_ausente_para_recurso` solo si k ≥ 1 (offline: K_M); k = 0 ⇒ advertencia `nenhum_intervalo_observado` | `test_c01_*` (4: k=0, k=1, cobertura parcial/series ausentes, offline) |
+| C-02 | El límite de observación dependía de que faltaran datos en las series | Barrera del contrato en `executar` (`limite_observado`), antes de cualquier ejecutor; pausa × inexequible × error de datos diferenciados (`PassoAplicado.falha`) | `test_c02_*` (3), con un ejecutor alternativo que NO consulta el entorno y una realización online con valores futuros |
+| C-03 | Ruta sin hard link podía exponer un archivo parcial | Reserva `O_EXCL` + `os.replace` del temporal completo; reserva huérfana ⇒ error, nunca sobrescritura | `test_c03_*` (3: lector concurrente, escritores concurrentes, reserva huérfana) + `test_h03_falha_limpa_temporarios_e_nao_deixa_alvo`. Contra el código de `d74f883`, el mismo lector observó 17 097 lecturas parciales de 89 053; con la corrección, 0 de 68 418 |
+
+Limitaciones que permanecen: Windows **no** fue ejecutado (el comportamiento de `os.link`/`os.replace` en NTFS es el
+documentado por Python, no verificado aquí); la ruta alternativa supone que todos los escritores de un directorio usan
+la misma ruta (el soporte de hard link es del sistema de archivos); la reserva huérfana exige recuperación manual.

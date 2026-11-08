@@ -29,7 +29,7 @@ la microrred de prueba equivalente al V1.6 es leída por dispositivo y `montar_e
 | K3 | Remuestreo/alineación a Δ del EMS V2 | No hay remuestreo (3A); series del 2B con otra resolución ⇒ pendente |
 | K4 | Disponibilidad variable en el tiempo | Solo estática por escenario (D-3C0-05) |
 | K5 | Políticas terminal/servicio/objetivo | Siguen como declaración explícita (D01/D02 abiertas) |
-| K6 | Operación online del MPC (3C-2): log de observaciones *append-only* con instante de recepción, datos tardíos/revisados, previsión reemitida por ventana, estimación de estado, política de huecos | **Bloqueante para 3C-2.** Preparado en 3C-0 (H-04): `Realizacao.modo = "incremental_online"` + `observado_ate_utc`, cobertura solo hasta τ_k, valores futuros rechazados, ejecución que se detiene en τ_k y se reanuda desde checkpoint. Verificable: `test_h04_*` |
+| K6 | Operación online del MPC (3C-2): log de observaciones *append-only* con instante de recepción, datos tardíos/revisados, previsión reemitida por ventana, estimación de estado, política de huecos | **Bloqueante para 3C-2.** Preparado en 3C-0 (H-04, C-01, C-02): `Realizacao.modo = "incremental_online"` + `observado_ate_utc`, cobertura solo hasta τ_k (k = 0 válido), valores futuros rechazados, barrera temporal del contrato en `executar` independiente del ejecutor, pausa `pausada_aguardando_observacoes` reanudable desde checkpoint. Verificable: `test_h04_*`, `test_c01_*`, `test_c02_*` |
 
 ## 3. Modelos
 
@@ -58,6 +58,7 @@ la microrred de prueba equivalente al V1.6 es leída por dispositivo y `montar_e
 | I1 | Selector de motor / UI / Centro de Operação | Prohibido en 3C-0 (test `test_aplicacao_nao_referencia_ems_v2`) |
 | I2 | Persistencia del `RegistroExecucaoEMS` en el banco de la microrred y en el Archivo Científico | Solo archivo JSON inmutable (D-3C0-07) |
 | I3 | Lectura de previsiones del 2B (blobs) para construir `ConjuntoPrevisao` | No implementado (depende de K1–K3, M1) |
+| I7 | Registro: validación nativa en Windows; recuperación de reserva huérfana (ruta sin hard link) | No ejecutado en Windows; reserva huérfana ⇒ `RegistroReservaOrfaError` y recuperación MANUAL (nada se sobrescribe) |
 | I4 | Excepción C-3C0-01 (lector `ems_v2 → seeds2`) | Aceptada condicionalmente (auditoría PR #13); condiciones verificadas por tests |
 | I5 | Congelar las salidas numéricas del V1.6 antes de comparar motores | Obligación previa (decisión 3A) |
 | I6 | Campañas de tiempo (p95/p99/máx por horizonte) | Instrumentación lista; sin campaña ejecutada |

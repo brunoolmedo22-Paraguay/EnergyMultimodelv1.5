@@ -26,6 +26,7 @@ from ..diagnostics import Constatacao, aviso, erro
 from ..provenance import Procedencia
 from .canonico import sha256
 from .cenario import (CenarioEMS, ConjuntoPrevisao, DefinicaoTemporal, Realizacao, coerencia_cenario_inventario,
+                      intervalos_observados,
                       validar_cenario, validar_definicao_temporal, validar_previsao, validar_realizacao,
                       validar_separacao)
 from .inventario import InventarioMicrorrede, recursos_ems, validar_inventario
@@ -192,10 +193,18 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
                 refs.append(erro("referencia_uid_inexistente", f"{nome}[{s.uid}:{s.grandeza}]",
                                  f"UID {s.uid} não é recurso habilitado desta microrrede nem classe de demanda declarada."))
     if prev is not None and real is not None:
-        for s in prev.series:
-            if s.grandeza in ("potencia", "disponibilidade") and real.serie(s.uid, s.grandeza) is None:
-                refs.append(erro("realizacao_ausente_para_recurso", f"realizacao[{s.uid}:{s.grandeza}]",
-                                 "Recurso previsto sem série realizada correspondente."))
+        # C-01: só se exige série realizada quando EXISTEM intervalos observados (offline: K_M; online: k de τ_k).
+        # Online com observado_ate_utc = τ_0 (k = 0) é um estado válido: nada foi realizado ainda e nada é inventado.
+        k_obs, _ = intervalos_observados(real, dt)       # erro de modo/instante já constatado em validar_realizacao
+        if k_obs is not None and k_obs > 0:
+            for s in prev.series:
+                if s.grandeza in ("potencia", "disponibilidade") and real.serie(s.uid, s.grandeza) is None:
+                    refs.append(erro("realizacao_ausente_para_recurso", f"realizacao[{s.uid}:{s.grandeza}]",
+                                     f"Recurso previsto sem série realizada para os {k_obs} intervalo(s) observados."))
+        elif k_obs == 0:
+            refs.append(aviso("nenhum_intervalo_observado", "realizacao.observado_ate_utc",
+                              "Observação online em τ_0: nenhum intervalo realizado ainda (válido para preparar a "
+                              "otimização com previsões; nada é completado)."))
     if compromisso is not None:
         gers = {k for k, d in recursos.items() if d.modelo.papel_ems == "gerador"}
         for k, prog in compromisso.items():

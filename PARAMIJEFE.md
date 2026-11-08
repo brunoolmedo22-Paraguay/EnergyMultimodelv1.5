@@ -2045,6 +2045,18 @@ Pruebas: 31 nuevas (`test_ems_v2_ponte_auditoria_pr13.py`); 3A 268 y 3B-P 148 si
 passed**; regresión completa **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31. Tabla de hallazgos → pruebas: `EVIDENCIA_3C0.md` §5. Diff confinado a la
 puente, sus fixtures/tests y documentación; V1.6 y núcleo 3A/3B-P sin cambios.
 
+### 6c. Cierre de la segunda auditoría (base `d74f883`: H-01, H-02 y C-3C0-01 aprobados; H-03 mejorado)
+
+| ID | Antes (`d74f883`) | Después |
+|---|---|---|
+| C-01 | Online con `observado_ate_utc = τ_0` exigía series realizadas inexistentes | k = 0 ⇒ válido para preparar la optimización (advertencia `nenhum_intervalo_observado`); k ≥ 1 y offline siguen exigiendo series coherentes |
+| C-02 | No pasar de τ_k dependía de que faltaran datos en las series (y se rotulaba como inexequible) | Barrera del contrato en `executar` antes de cualquier `ExecutorPasso`; situaciones `pausada_aguardando_observacoes` (reanudable), `interrompida_inexequivel` y `erro_dados` (`PassoAplicado.falha`). Probado con un ejecutor que NO consulta el entorno |
+| C-03 | Ruta sin hard link escribía directamente en el destino (lectura parcial posible) | Reserva `O_EXCL` + `os.replace` del temporal completo; reserva huérfana ⇒ `RegistroReservaOrfaError`. Lector concurrente: 17 097/89 053 lecturas parciales con el código anterior × 0/68 418 con la corrección |
+
+Pruebas: `test_ems_v2_ponte_auditoria_pr13.py` 40 passed; 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **535 passed**;
+regresión completa **989 passed, 7 warnings, 128 subtests** (370 s) = 980 + 9. Limitaciones: Windows no ejecutado; recuperación manual de una reserva huérfana.
+Detalle: `EVIDENCIA_3C0.md` §6, `PONTE_3C0.md` §9b.
+
 ### 7. Rollback
 
 Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures_3c0.py`, los tests
@@ -2064,4 +2076,4 @@ Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
-| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | Auditoria favorável com correções H-01..H-04 (aplicadas, §6b); C-3C0-01 aceita condicionalmente; aguardando fiscalização final |
+| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | H-01..H-04 (§6b) e cierre C-01..C-03 (§6c) aplicados; C-3C0-01 aceita condicionalmente; aguardando autorização de merge |

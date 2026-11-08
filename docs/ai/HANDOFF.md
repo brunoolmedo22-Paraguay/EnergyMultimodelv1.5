@@ -24,6 +24,11 @@
   - **H-03:** `gravar_registro` con creación exclusiva (`os.link`, fallback `O_EXCL`); el arnés multiproceso rompió el código anterior en 8/10 rondas.
   - **H-04:** `Realizacao.modo` offline/online con `observado_ate_utc`; lo que falta para 3C-2 es la brecha K6 (bloqueante).
   - Verificado: 31 tests nuevos; 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **526 passed**; suite completa **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31. Detalle: PARAMIJEFE Entrega 8 §6b; EVIDENCIA_3C0 §5.
+- **Segunda auditoría (base `d74f883`): H-01, H-02 y C-3C0-01 aprobados; cierre C-01..C-03 aplicado:**
+  - **C-01:** preflight online con k = 0 observados es válido (advertencia); k ≥ 1/offline siguen exigiendo series.
+  - **C-02:** barrera temporal `observado_ate_utc` en `executar`, independiente del ejecutor; pausa × inexequible × error de datos diferenciados; reanudación desde checkpoint.
+  - **C-03:** ruta sin hard link = reserva `O_EXCL` + `os.replace` (sin lecturas parciales; reserva huérfana ⇒ error, recuperación manual).
+  - Verificado: `test_ems_v2_ponte_auditoria_pr13.py` 40 passed; `tests/ems_v2` **535 passed**; suite completa **989 passed, 7 warnings, 128 subtests** (370 s) = 980 + 9. Windows no ejecutado. Detalle: PARAMIJEFE Entrega 8 §6c; EVIDENCIA_3C0 §6.
 - **No implementado (fuera de alcance):** commitment dinámico (3C-1), MPC (3C-2), red/economía (3C-3), planificación jerárquica/valor futuro (3C-4), ejecutor físico, persistencia del registro en el banco de la microrred, lectura de previsiones del 2B.
 
 ## 3. Próxima misión propuesta

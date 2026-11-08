@@ -251,34 +251,111 @@ def test_h03_idempotencia_e_conteudo_diferente(tmp_path):
     assert "registro_adulterado" in ei.value.codigos and not (tmp_path / "x" / p.name).exists()
 
 
+def _sem_hard_link(monkeypatch):
+    monkeypatch.setattr(os, "link", lambda *a, **k: (_ for _ in ()).throw(OSError(errno.EPERM, "sem hard link")))
+
+
 def test_h03_falha_limpa_temporarios_e_nao_deixa_alvo(tmp_path, monkeypatch):
-    def falha(*a, **k):
-        raise OSError(errno.EIO, "falha de E/S simulada")
-    monkeypatch.setattr(os, "link", falha)
-    real_open = os.open
-    monkeypatch.setattr(os, "open", lambda p, *a, **k: falha() if str(p).endswith(RG.SUFIXO_ARQUIVO) else real_open(p, *a, **k))
+    """Falha ao escrever o temporário e falha na publicação da rota alternativa: nada fica no diretório."""
+    real_fsync = os.fsync
+    monkeypatch.setattr(os, "fsync", lambda fd: (_ for _ in ()).throw(OSError(errno.EIO, "E/S simulada")))
     with pytest.raises(OSError):
         RG.gravar_registro(tmp_path, _registro("falha"))
     assert list(tmp_path.iterdir()) == []
-
-
-def test_h03_falha_durante_escrita_no_fallback_remove_alvo_proprio(tmp_path, monkeypatch):
-    monkeypatch.setattr(os, "link", lambda *a, **k: (_ for _ in ()).throw(OSError(errno.EPERM, "sem hard link")))
-    real_fsync, chamadas = os.fsync, []
-
-    def fsync(fd):
-        chamadas.append(fd)
-        if len(chamadas) == 2:                 # 1º = temporário; 2º = alvo criado com O_EXCL
-            raise OSError(errno.ENOSPC, "disco cheio simulado")
-        return real_fsync(fd)
-    monkeypatch.setattr(os, "fsync", fsync)
+    monkeypatch.setattr(os, "fsync", real_fsync)
+    _sem_hard_link(monkeypatch)
+    monkeypatch.setattr(os, "replace", lambda *a, **k: (_ for _ in ()).throw(OSError(errno.ENOSPC, "disco cheio")))
     with pytest.raises(OSError):
-        RG.gravar_registro(tmp_path, _registro("fallback"))
-    assert list(tmp_path.iterdir()) == []
+        RG.gravar_registro(tmp_path, _registro("falha"))
+    assert list(tmp_path.iterdir()) == []                       # sem temporário, sem reserva, sem alvo
+
+
+def test_c03_reserva_orfa_nunca_e_sobrescrita(tmp_path, monkeypatch):
+    _sem_hard_link(monkeypatch)
+    monkeypatch.setattr(RG, "_ESPERA_RESERVA_S", 0.05)
+    a = _registro("órfã")
+    reserva = tmp_path / f".{a.execucao_uid}{RG.SUFIXO_ARQUIVO}.reserva"
+    reserva.write_text("escritor interrompido")
+    with pytest.raises(RG.RegistroReservaOrfaError) as ei:
+        RG.gravar_registro(tmp_path, a)
+    assert "reserva_orfa" in ei.value.codigos
+    assert sorted(x.name for x in tmp_path.iterdir()) == [reserva.name]      # nada publicado, reserva intacta
+
+
+class _Lento:
+    """Arquivo cuja escrita avança em pedaços pequenos (expõe qualquer leitura de arquivo parcialmente escrito)."""
+
+    def __init__(self, f):
+        self._f = f
+
+    def write(self, dados):
+        for k in range(0, len(dados), 64):
+            self._f.write(dados[k:k + 64])
+            self._f.flush()
+            time.sleep(0.002)
+        return len(dados)
+
+    def __getattr__(self, nome):
+        return getattr(self._f, nome)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return self._f.__exit__(*exc)
+
+
+def test_c03_leitor_concorrente_nunca_ve_registro_parcial_na_rota_alternativa(tmp_path, monkeypatch):
+    _sem_hard_link(monkeypatch)
+    real_fdopen = os.fdopen
+    monkeypatch.setattr(os, "fdopen", lambda fd, modo="r", *a, **k: _Lento(real_fdopen(fd, modo, *a, **k))
+                        if "w" in modo else real_fdopen(fd, modo, *a, **k))
+    a = _registro("leitura concorrente " + "x" * 2000)
+    alvo = tmp_path / f"{a.execucao_uid}{RG.SUFIXO_ARQUIVO}"
+    final = canonico.json_canonico(a)
+    vistos, parar = [], threading.Event()
+
+    def leitor():
+        while not parar.is_set():
+            try:
+                vistos.append(alvo.read_text(encoding="utf-8"))
+            except FileNotFoundError:
+                vistos.append(None)
+    t = threading.Thread(target=leitor)
+    t.start()
+    try:
+        RG.gravar_registro(tmp_path, a)
+        time.sleep(0.02)
+    finally:
+        parar.set()
+        t.join()
+    assert None in vistos and final in vistos                  # o leitor observou antes e depois da publicação
+    assert {v for v in vistos if v is not None} == {final}     # nenhuma leitura parcial
+    assert RG.ler_registro(alvo) == a
+
+
+def test_c03_escritores_concorrentes_na_rota_alternativa(tmp_path, monkeypatch):
+    _sem_hard_link(monkeypatch)
+    a, b = _registro("alt A"), _registro("alt B")
+    barreira, res = threading.Barrier(12), [None] * 12
+
+    def trabalho(i):
+        barreira.wait()
+        try:
+            RG.gravar_registro(tmp_path, a if i % 2 else b)
+            res[i] = "ok"
+        except RG.RegistroImutavelError:
+            res[i] = "imutavel"
+    ts = [threading.Thread(target=trabalho, args=(i,)) for i in range(12)]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    final = RG.ler_registro(tmp_path / f"{a.execucao_uid}{RG.SUFIXO_ARQUIVO}")
+    assert res == ["ok" if (i % 2 == 1) == (final == a) else "imutavel" for i in range(12)]
+    assert len(list(tmp_path.iterdir())) == 1
 
 
 def test_h03_fallback_sem_hard_link_tambem_e_exclusivo(tmp_path, monkeypatch):
-    monkeypatch.setattr(os, "link", lambda *a, **k: (_ for _ in ()).throw(OSError(errno.EPERM, "sem hard link")))
+    _sem_hard_link(monkeypatch)
     a = _registro("fallback A")
     p = RG.gravar_registro(tmp_path, a)
     assert RG.ler_registro(p) == a and RG.gravar_registro(tmp_path, a) == p
@@ -339,8 +416,9 @@ def test_h04_execucao_nunca_ultrapassa_o_observado_e_retoma_com_nova_observacao(
     ex, e0 = EX.ExecutorAlgebricoReferencia(e), EX.estado_inicial_de_entrada(e)
     uid = "1234567890abcdef1234567890abcdef"
     alem = EX.executar(plano, e0, ex, _parcial(), execucao_uid=uid)
-    assert alem.situacao == "interrompida_inexequivel" and alem.cursor_final == 2
-    assert "realizacao_sem_cobertura" in _cods(alem.constatacoes)                # nada é inventado após τ_2
+    # C-02: pausa por observação pendente (não inviabilidade), antes de consultar o entorno
+    assert alem.situacao == "pausada_aguardando_observacoes" and alem.cursor_final == 2
+    assert _cods(alem.constatacoes) == {"aguardando_observacoes"}
     ate = EX.executar(plano, e0, ex, _parcial(), execucao_uid=uid, intervalos=2)
     assert ate.situacao == "concluida" and ate.checkpoints[-1].cursor_plano == 2
     nova = F.realizacao(observado_ate="2026-01-01T01:00:00+00:00")                 # observação posterior (τ_4)
@@ -357,6 +435,113 @@ def test_h04_preflight_aceita_observacao_online_parcial():
     assert rel.apto_para_otimizacao, rel.texto()
     sep = {c.uid: c for c in CN.classificar_separacao(F.previsao(), _parcial(), F.definicao())}
     assert sep["syn-carga"].intervalos_comparados == 2                        # compara só o já observado
+
+
+# ======================================================================================== C-01 preflight × k observados
+def _real_online(k: int, uids=("syn-carga", "syn-pv1"), cobre=None):
+    """Observação online até τ_k; ``cobre`` = intervalos efetivamente presentes nas séries (padrão: k)."""
+    cobre = k if cobre is None else cobre
+    t_k = (F.definicao().malha.fronteiras_utc()[k]).isoformat()
+    base = F.realizacao(demanda=F.DEMANDA_PREV[:cobre], pv=F.PV_PREV[:cobre], disp_pv=(1,) * cobre, observado_ate=t_k) \
+        if cobre else CN.Realizacao("r", "sintetica", (), F.proc("r"), "incremental_online", t_k)
+    return dataclasses.replace(base, series=tuple(x for x in base.series if x.uid in uids))
+
+
+def _pf_real(real):
+    inv = F.inventario()
+    return PF.preflight_ems_v2(inv, F.cenario(inv), F.definicao(), F.previsao(), real, F.politicas(), contexto="ensaio",
+                               compromisso=F.COMPROMISSO)[0]
+
+
+def test_c01_k0_valido_para_preparar_otimizacao():
+    rel = _pf_real(_real_online(0))
+    assert rel.apto_para_otimizacao, rel.texto()
+    assert "nenhum_intervalo_observado" in rel.codigos("advertencia")
+    assert "realizacao_ausente_para_recurso" not in rel.codigos()
+
+
+def test_c01_k1_exige_series_observadas_coerentes():
+    assert _pf_real(_real_online(1)).apto_para_otimizacao
+    sem_pv = _pf_real(_real_online(1, uids=("syn-carga",)))
+    assert "realizacao_ausente_para_recurso" in sem_pv.codigos("bloqueante")
+
+
+def test_c01_cobertura_parcial_e_series_ausentes():
+    parcial = _pf_real(_real_online(2, cobre=1))                       # observado até τ_2, dados só de 1 intervalo
+    assert "cobertura_insuficiente" in parcial.codigos("bloqueante")
+    sem_series = _pf_real(dataclasses.replace(_real_online(2), series=()))
+    assert "realizacao_ausente_para_recurso" in sem_series.codigos("bloqueante")
+
+
+def test_c01_offline_continua_exigindo_series():
+    real = F.realizacao()
+    sem = dataclasses.replace(real, series=tuple(x for x in real.series if x.uid != "syn-pv1"))
+    assert "realizacao_ausente_para_recurso" in _pf_real(sem).codigos("bloqueante")
+    assert _pf_real(real).apto_para_otimizacao
+
+
+# ======================================================================================== C-02 limite temporal da execução
+class _ExecutorCego:
+    """Executor ALTERNATIVO que deliberadamente NÃO consulta o entorno: aplica a consigna e avança o relógio."""
+    identificador, natureza = "cego", "algebrico_referencia"
+
+    def __init__(self):
+        self.chamadas = 0
+
+    def avancar(self, estado, consignas, entorno, delta_s):
+        from datetime import timedelta
+        from ems_v2.timegrid import ler_instante_utc
+        self.chamadas += 1
+        t1 = ler_instante_utc(estado.instante_utc, "e")[0] + timedelta(seconds=delta_s)
+        return EX.PassoAplicado(dict(consignas), dataclasses.replace(
+            estado, indice_fronteira=estado.indice_fronteira + 1, instante_utc=t1.isoformat()), True)
+
+
+def test_c02_limite_observado_pertence_ao_contrato_nao_ao_executor():
+    e, plano = _plano_analitico()
+    # realização online declarada até τ_2 MAS com valores para os 4 intervalos (dados offline mal rotulados):
+    # sem a barreira do contrato, um executor que não consulta o entorno aplicaria os intervalos 2 e 3.
+    vazada = dataclasses.replace(F.realizacao(), modo="incremental_online", observado_ate_utc=T2)
+    cego = _ExecutorCego()
+    t = EX.executar(plano, EX.estado_inicial_de_entrada(e), cego, vazada, execucao_uid="c" * 32)
+    assert cego.chamadas == 2 and t.cursor_final == 2 and len(t.estados) == 3
+    assert t.situacao == "pausada_aguardando_observacoes" and _cods(t.constatacoes) == {"aguardando_observacoes"}
+    assert t.checkpoints[-1].cursor_plano == 2 and t.checkpoints[-1].estado == t.estados[-1]
+    t0 = EX.executar(plano, EX.estado_inicial_de_entrada(e), _ExecutorCego(), _real_online(0), execucao_uid="c" * 32)
+    assert t0.situacao == "pausada_aguardando_observacoes" and t0.cursor_final == 0 and len(t0.estados) == 1
+    assert "realizacao_alem_do_observado" in _cods(CN.validar_realizacao(vazada, F.definicao()), "erro")
+
+
+def test_c02_pausa_inviabilidade_e_erro_de_dados_sao_distintos():
+    e, plano = _plano_analitico()
+    ex, e0, uid = EX.ExecutorAlgebricoReferencia(e), EX.estado_inicial_de_entrada(e), "d" * 32
+    pausa = EX.executar(plano, e0, ex, _parcial(), execucao_uid=uid)
+    inex = EX.executar(plano, e0, ex, F.realizacao(demanda=(30.0, 45.0, 50.0, 20.0)), execucao_uid=uid)
+    buraco = dataclasses.replace(F.realizacao(), series=tuple(x for x in F.realizacao().series if x.uid != "syn-carga"))
+    dados = EX.executar(plano, e0, ex, buraco, execucao_uid=uid)
+    ilegivel = EX.executar(plano, e0, ex, dataclasses.replace(_parcial(), observado_ate_utc="ontem"), execucao_uid=uid)
+    assert (pausa.situacao, inex.situacao, dados.situacao, ilegivel.situacao) == (
+        "pausada_aguardando_observacoes", "interrompida_inexequivel", "erro_dados", "erro_dados")
+    assert "balanco_realizado_violado" in _cods(inex.constatacoes)
+    assert _cods(dados.constatacoes) == {"realizacao_ausente"} and dados.cursor_final == 0
+    tardia = _com_serie(F.realizacao(), "syn-carga", "potencia", inicio_utc="2026-01-01T00:15:00+00:00")
+    t_tardia = EX.executar(plano, e0, ex, tardia, execucao_uid=uid)
+    assert t_tardia.situacao == "erro_dados" and "realizacao_sem_cobertura" in _cods(t_tardia.constatacoes)
+    assert ilegivel.cursor_final == 0 and "instante_invalido" in _cods(ilegivel.constatacoes)
+    assert set(EX.SITUACOES) == {"concluida", "pausada_aguardando_observacoes", "interrompida_inexequivel", "erro_dados"}
+
+
+def test_c02_pausa_retoma_do_checkpoint_sem_falsificar_inviabilidade():
+    e, plano = _plano_analitico()
+    cego, uid = _ExecutorCego(), "e" * 32
+    p1 = EX.executar(plano, EX.estado_inicial_de_entrada(e), cego, _real_online(1), execucao_uid=uid)
+    assert p1.situacao == "pausada_aguardando_observacoes" and p1.cursor_final == 1
+    p2 = EX.retomar(p1.checkpoints[-1], plano, cego, _real_online(3))
+    assert p2.situacao == "pausada_aguardando_observacoes" and p2.cursor_final == 3
+    p3 = EX.retomar(p2.checkpoints[-1], plano, cego, _real_online(4))
+    assert p3.situacao == "concluida" and p3.cursor_final == 4 and cego.chamadas == 4
+    continuo = EX.executar(plano, EX.estado_inicial_de_entrada(e), _ExecutorCego(), F.realizacao(), execucao_uid=uid)
+    assert p3.estados[-1] == continuo.estados[-1] and p3.passos[-1] == continuo.passos[-1]
 
 
 # ======================================================================================== C-3C0-01 condições

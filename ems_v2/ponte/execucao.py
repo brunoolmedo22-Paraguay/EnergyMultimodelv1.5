@@ -30,7 +30,7 @@ from typing import Protocol
 
 from ..audit import Tolerancias
 from ..contracts import EntradaModeloEMS, hash_entrada
-from ..diagnostics import Constatacao, ContratoInvalido, erro
+from ..diagnostics import Constatacao, ContratoInvalido, aviso, erro
 from ..timegrid import ler_instante_utc
 from . import CONTRATO_VERSAO
 from .canonico import json_canonico, sha256
@@ -49,8 +49,13 @@ GRANDEZAS_ESTADO_PLANO = {"e": ("kWh", "armazenamento", "Energia armazenada na f
 NATUREZAS_EXECUTOR = {"algebrico_referencia": "Dublê algébrico de teste — NÃO é modelo físico",
                       "modelo_fisico": "Adaptador de modelo físico validado (fase posterior)"}
 SITUACOES = {"concluida": "Todos os intervalos pedidos foram aplicados",
+             "pausada_aguardando_observacoes": "Próximo intervalo termina depois de observado_ate_utc (online): pausa "
+                                               "no último estado válido; retomar do checkpoint com nova observação. "
+                                               "NÃO é inviabilidade",
              "interrompida_inexequivel": "Consigna inexequível nas condições realizadas: execução interrompida "
-                                         "no último estado válido (nada foi recortado)"}
+                                         "no último estado válido (nada foi recortado)",
+             "erro_dados": "Dados realizados ausentes, desalinhados ou ilegíveis num intervalo que deveria estar "
+                           "observado (integridade): execução parada no último estado válido"}
 
 
 # ------------------------------------------------------------------------------------------------ plano
@@ -235,6 +240,7 @@ class PassoAplicado:
     estado_final: EstadoMicrorrede
     exequivel: bool
     constatacoes: tuple[Constatacao, ...] = field(default_factory=tuple)
+    falha: str = "inexequivel"                    # quando exequivel=False: "inexequivel" (física) | "dados" (integridade)
 
 
 class ExecutorPasso(Protocol):
@@ -332,7 +338,8 @@ class ExecutorAlgebricoReferencia:
                           f"Injeção {injecao} kW ≠ demanda realizada {demanda} kW + descarte {desc} kW: o plano não "
                           "fecha o balanço nas condições REALIZADAS."))
         if c:
-            return PassoAplicado({}, estado, False, tuple(c))
+            dados = any(x.codigo.endswith("_ausente") for x in c)    # valor/estado ausente = integridade, não física
+            return PassoAplicado({}, estado, False, tuple(c), "dados" if dados else "inexequivel")
         k = estado.indice_fronteira + 1
         t1 = ler_instante_utc(estado.instante_utc, "estado")[0] + timedelta(seconds=delta_s)
         novo = EstadoMicrorrede(estado.microrrede_uid, k, t1.isoformat(), tuple(novos_b), tuple(novos_g))
@@ -423,6 +430,20 @@ def entorno_realizado(real: Realizacao, instante_utc: str, delta_s: int) -> tupl
     return out, c
 
 
+def limite_observado(real: Realizacao):
+    """Fronteira até a qual o entorno foi OBSERVADO: ``None`` no modo ``completa_offline`` (sem limite além da
+    cobertura); o instante UTC de ``observado_ate_utc`` no modo ``incremental_online``."""
+    if real.modo == "completa_offline":
+        if real.observado_ate_utc is not None:
+            return None, [erro("observado_ate_em_modo_offline", "realizacao.observado_ate_utc",
+                               "Realização offline não declara instante de observação.")]
+        return None, []
+    if real.modo != "incremental_online":
+        return None, [erro("modo_realizacao_invalido", "realizacao.modo", f"{real.modo!r}.")]
+    t, c = ler_instante_utc(real.observado_ate_utc, "realizacao.observado_ate_utc")
+    return t, c
+
+
 def executar(plano: PlanoDespacho, estado_inicial: EstadoMicrorrede, executor: ExecutorPasso, realizacao: Realizacao, *,
              execucao_uid: str, intervalos: int | None = None, cursor: int = 0, checkpoint_cada: int = 1,
              checkpoint_anterior: Checkpoint | None = None) -> TrajetoriaExecutada:
@@ -483,18 +504,30 @@ def executar(plano: PlanoDespacho, estado_inicial: EstadoMicrorrede, executor: E
         ant = cp.selo
 
     est = estado_inicial
+    limite, cl = limite_observado(realizacao)
+    if cl:                                           # modo/instante de observação ilegível: integridade
+        cons += cl
+        situacao, n = "erro_dados", 0
     for j in range(cursor, cursor + n):
         k, t = esperado(j)
+        # C-02: limite temporal do CONTRATO, verificado antes de qualquer executor (inclusive futuros físicos):
+        # nenhum intervalo cujo FIM ultrapasse a fronteira observada é aplicado.
+        if limite is not None and t0 + (j + 1) * dt > limite:
+            cons.append(aviso("aguardando_observacoes", f"intervalo[{j}]",
+                              f"Intervalo [{t}, {(t0 + (j + 1) * dt).isoformat()}) termina depois de observado_ate_utc "
+                              f"({realizacao.observado_ate_utc}): pausa até nova observação."))
+            situacao = "pausada_aguardando_observacoes"
+            break
         consignas = {f"{x.uid}|{x.grandeza}": float(x.valores[j]) for x in plano.consignas}
         entorno, ce = entorno_realizado(realizacao, t, plano.delta_s)
         if ce:
             cons += ce
-            situacao = "interrompida_inexequivel"
+            situacao = "erro_dados"
             break
         passo = executor.avancar(est, consignas, entorno, plano.delta_s)
         if not passo.exequivel:
             cons += list(passo.constatacoes)
-            situacao = "interrompida_inexequivel"
+            situacao = "erro_dados" if passo.falha == "dados" else "interrompida_inexequivel"
             break
         k1, t1 = esperado(j + 1)
         novo = passo.estado_final
@@ -537,5 +570,5 @@ __all__ = ["Checkpoint", "ConsignaRecurso", "DesvioPlanoRealizado", "EstadoArmaz
            "EstadoMicrorrede", "ExecutorAlgebricoReferencia", "ExecutorPasso", "GRANDEZAS_CONSIGNA",
            "GRANDEZAS_ESTADO_PLANO", "NATUREZAS_EXECUTOR", "PassoAplicado", "PassoRegistrado", "PlanoDespacho",
            "SITUACOES", "TrajetoriaExecutada", "TrajetoriaPlanejada", "entorno_realizado", "estado_inicial_de_entrada",
-           "executar", "hash_plano", "plano_de_resultado", "retomar", "selar_checkpoint", "validar_plano",
+           "executar", "hash_plano", "limite_observado", "plano_de_resultado", "retomar", "selar_checkpoint", "validar_plano",
            "verificar_checkpoint"]
