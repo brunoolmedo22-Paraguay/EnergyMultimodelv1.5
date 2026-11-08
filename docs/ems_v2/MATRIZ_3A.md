@@ -1,7 +1,7 @@
 # Piso 3A — Matriz de trazabilidad requisito → ecuación → archivo → test → resultado
 
 Todas las pruebas son **sintéticas/algebraicas** (marcador `synthetic_algebraic`); ninguna es validación física.
-Comando: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q` → **135 passed** (2026-11-08; ver PR).
+Comando: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q` → **235 passed** (2026-11-08, tras las correcciones C-3A-01..03; antes 135).
 
 Estados: `implemented` (contrato/referencia/auditor + test verde) · `test_spec_only` (resultado teórico registrado,
 sin solver) · `not_applicable` (fuera de 3A, rechazado explícitamente).
@@ -33,7 +33,7 @@ sin solver) · `not_applicable` (fuera de 3A, rechazado explícitamente).
 | R01 | M01 | `timegrid.py` | A01/A02 | ver arriba | implemented |
 | R02 | M01, §14 | `series.py` | `test_ems_v2_contrato::test_semantica_resolucao_cobertura_e_causalidade` | muestra instantánea como media ⇒ rechazo; sin remuestreo | implemented |
 | R03 | M01 | `series.py`, `timegrid.py` | `…::test_nan_na_serie_nunca_vira_zero`, `…::test_serie_de_instantes_*`, `…::test_periodo_final_duplicado_rejeitado`, `test_ems_v2_malha_unidades::test_fuso_*` | NaN, huecos, duplicados, no monótonos, fuso ambiguo, cobertura y extrapolación ⇒ rechazo | implemented |
-| R04 | M02 | `contracts.py`, `series.py`, `audit.py` | `test_ems_v2_contrato::test_potencia_bruta_misturada_ao_barramento_rejeitada`, `…::test_convencao_de_sinais_e_fronteira_fixas`; balance auditado en todos los casos | frontera ≠ bus ⇒ rechazo; balance ≤ 1e-5 kW + 1e-7 P_scale (provisional) | implemented |
+| R04 | M02, M04 | `contracts.py`, `series.py`, `audit.py` | `test_ems_v2_contrato::test_potencia_bruta_misturada_ao_barramento_rejeitada`, `…::test_convencao_de_sinais_e_fronteira_fixas`; balance auditado en todos los casos | frontera ≠ bus ⇒ rechazo; balance ≤ 1e-5 kW + 1e-7 P_scale (provisional) | implemented |
 | R27 | §12 | `contracts.PoliticaTerminal` | `test_ems_v2_contrato::test_politicas_terminal_e_objetivo` | `nenhuma` solo con justificación; otras ⇒ pendente (D02) | implemented (contrato) |
 | R30 | M01, §13 | `timegrid.py` | `test_ems_v2_malha_unidades::test_campos_temporais_separados_e_regras`, `…::test_horizonte_alem_da_missao_e_hf_nao_declarado` | H_o = NΔ, ρ = mΔ, H_f ≥ H_o, divisibilidad o rechazo | implemented |
 | R46 | Arquitectura | `parameters.py`, `provenance.py` | `test_ems_v2_malha_unidades::test_parametros_invalidos`, `…::test_parametro_bruto_*`, `test_ems_v2_contrato::test_campos_cientificos_sem_padrao_implicito` | valor/unidad/fuente/cadena; `null` rechaza la capacidad; sin valores por defecto | implemented |
@@ -58,6 +58,9 @@ sin solver) · `not_applicable` (fuera de 3A, rechazado explícitamente).
 | Candidato adulterado (potencia, disponibilidad, estado) | `test_ems_v2_auditor::test_toda_mutacao_*`, `…::test_mutacao_de_disponibilidade_na_entrada`, `…::test_mutacao_do_estado_inicial_na_entrada` |
 | Carga y descarga simultáneas | `…::test_carga_e_descarga_simultaneas_rejeitadas_mesmo_com_energia_coerente` |
 | Descarte sin dispositivo físico | `…::test_descarte_sem_dispositivo_fisico_e_com_dispositivo` |
+| Descarte negativo (generación ficticia), con y sin dispositivo — **C-3A-01** | `test_ems_v2_auditor::test_c3a01_descarte_negativo_sem_dispositivo_rejeitado`, `…::test_c3a01_descarte_negativo_com_dispositivo_rejeitado`, control `…::test_c3a01_descarte_nulo_sem_dispositivo_continua_aceito` |
+| Tolerancia NaN/Inf/negativa/no numérica — **C-3A-02** | `test_ems_v2_auditor::test_c3a02_tolerancia_invalida_rejeita_explicitamente` (77 casos), `…::test_c3a02_tolerancias_provisorias_inalteradas_e_validas` |
+| Estructura JSON incompatible / tupla de longitud incorrecta / vértices PWL malformados / NaN literal — **C-3A-03** | `test_ems_v2_contrato::test_c3a03_vertices_pwl_malformados_rejeitados`, `…::test_c3a03_estruturas_incompativeis_rejeitadas`, `…::test_c3a03_constantes_nao_padrao_rejeitadas`, `…::test_c3a03_ida_e_volta_sem_perda_em_todas_as_fixtures` |
 
 ## Condiciones de la fiscalización
 
@@ -66,6 +69,14 @@ sin solver) · `not_applicable` (fuera de 3A, rechazado explícitamente).
 | A — auditor independiente | `audit.py` en punto flotante/segundos/bisección, sin importar `reference` (`test_auditor_independente_do_calculo_de_referencia`); esperados = literales analíticos; tests de mutación |
 | B — activos/futuros/variantes | `test_simbolos_ativos_tem_codigo_e_futuros_nao_se_passam_por_capacidade`, `test_variantes_exclusivas_*`, `test_nenhum_simbolo_usado_indefinido_e_nenhum_orfao` |
 | C — sin valores implícitos | `test_campos_cientificos_sem_padrao_implicito`, `test_parametro_opcional_ausente_e_pendente_nao_presumido`, `parametro_ausente` en contratos |
-| D — tolerancias provisionales | `Tolerancias.status == "provisoria"`; ninguna tolerancia modificada para obtener verde |
+| D — tolerancias provisionales | `Tolerancias.status == "provisoria"`; ninguna tolerancia modificada para obtener verde; valores fijados por `test_c3a02_tolerancias_provisorias_inalteradas_e_validas`; inválidas ⇒ `tolerancia_invalida` (C-3A-02) |
 | E — documentación acotada | `CLAUDE.md`, `HANDOFF.md`, `PARAMIJEFE.md` solo registran arquitectura experimental y estado real |
 | F — A05-OPT/A07/A08/B05A como especificación | `test_casos_so_especificacao_nao_sao_resultados_executados` |
+
+## Correcciones de la auditoría del PR #11
+
+| Hallazgo | Ecuación / requisito | Archivo | Test(s) | Resultado | Estado |
+|---|---|---|---|---|---|
+| C-3A-01 descarte negativo | M04 (`0 <= d <= D̄`), M02 | `ems_v2/audit.py` | `test_c3a01_*` (3) | d = −10 rechazado con y sin dispositivo; d = 0 aceptado | implemented |
+| C-3A-02 tolerancias inválidas | §17, D07 | `ems_v2/audit.py` (`validar_tolerancias`) | `test_c3a02_*` (78) | rechazo explícito `tolerancia_invalida`; valores provisionales intactos | implemented |
+| C-3A-03 serialización con pérdida | R46, R49 (procedencia/integridad) | `ems_v2/contracts.py` (`_construir`, `de_dict`, `entrada_de_json`, `ErroSerializacao`) | `test_c3a03_*` (19) | estructuras incompatibles rechazadas; ida y vuelta idéntica | implemented |

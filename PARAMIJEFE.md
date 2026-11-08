@@ -1783,7 +1783,7 @@ obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_e
 | Base | `main` `8556b71a76dd13d279a0e0ecd8ad9bd498df72f1` (merge del PR #10) = SHA base auditado por el paquete maestro; **sin diferencias de código** |
 | PR | [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) contra `main` **sin merge** (commits `96c2762`, `3c6aabc` + este registro) |
 | Autorización | Plan 3A aprobado con condiciones A–F (2026-11-08); sólo Piso 3A |
-| Pendientes de esta misión | ninguno; integración aguarda auditoría y autorización humana. **No iniciar 3B sin revisión.** |
+| Pendientes de esta misión | ninguno; correcciones C-3A-01..03 aplicadas (§5); integración aguarda auditoría final y autorización humana. **No iniciar 3B sin revisión.** |
 
 ### 1. Resumen
 
@@ -1824,7 +1824,21 @@ C1–C8 resueltas según lo aprobado; observaciones adicionales (M12 en multimod
 H-3A-01…09 en `docs/ems_v2/DECISIONES_3A.md` §4–§5. Riesgos y propuesta para 3B-P en §6–§7 del mismo documento.
 **Obligación registrada:** congelar las salidas numéricas del V1.6 antes de cualquier benchmark comparativo.
 
-### 5. Rollback
+### 5. Corrección de auditoría C-3A (PR #11, dictamen favorable con correcciones obligatorias)
+
+| ID | Defecto | Antes | Después |
+|---|---|---|---|
+| C-3A-01 (bloqueante) | Sin dispositivo de descarte, `audit.auditar` no exigía `d >= 0` (descarte negativo = generación ficticia) | B01B con P_R = 70, C_oper = 30, d = −10 y costo/KPI coherentes: **aceptado** | `0 <= d <= D̄` siempre (`D̄ = 0` sin dispositivo); código `descarte_negativo`; rechazado con y sin dispositivo |
+| C-3A-02 | Tolerancias NaN/±Inf/negativas/no numéricas aceptadas | `potencia_abs_kW = inf` aceptaba candidata adulterada (+1 kW) | `validar_tolerancias` ⇒ `tolerancia_invalida`, sin evaluar familias; valores provisionales intactos |
+| C-3A-03 | `_construir` truncaba tuplas de longitud fija (`zip`) y no verificaba tipos | vértice `[10, 0.7, 99]` truncado; `"abc"` → vértices de caracteres; escalar → `TypeError` no controlado | deserialización estricta con `ErroSerializacao` y ruta del campo; ida y vuelta JSON idéntica (texto y SHA-256) |
+
+Nuevos tests: 100 casos (`test_c3a01_*`, `test_c3a02_*`, `test_c3a03_*`). Contra el código anterior (`5592847`):
+94 fallan, 6 pasan (controles positivos o estructuras que ya lanzaban `TypeError`). Tras la corrección:
+`python -m pytest tests/ems_v2 -q` → **235 passed**; `python -m pytest tests/ -q` → **689 passed, 7 warnings,
+128 subtests (367 s)** = 454 + 235. Formulación científica, tolerancias provisionales, V1.6, runtime e interfaz
+sin cambios. Detalle: `docs/ems_v2/DECISIONES_3A.md` §8 y `MATRIZ_3A.md` (sección final).
+
+### 6. Rollback
 
 Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas de `CLAUDE.md`/`HANDOFF.md`/
 `PARAMIJEFE.md`; ningún otro archivo, base de datos ni resultado histórico depende de ellos.

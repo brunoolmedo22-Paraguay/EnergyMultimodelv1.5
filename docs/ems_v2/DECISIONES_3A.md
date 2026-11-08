@@ -88,6 +88,22 @@ Fecha: 2026-11-08. Plan aprobado por el responsable con condiciones A–F (fisca
 7. El entorno del contenedor traía numpy 2.5.3 / pandas 3.0.5; se reinstaló `requirements.txt` (numpy 2.2.6,
    pandas 2.2.3) antes de medir. `ems_v2` no depende de ninguno.
 
+## 8. Correcciones de la auditoría independiente del PR #11 (2026-11-08)
+
+Dictamen: favorable con correcciones obligatorias. Correcciones limitadas a los tres defectos; formulación científica,
+tolerancias provisionales, V1.6, runtime e interfaz **sin cambios**. Contraejemplos reproducidos ANTES de corregir.
+
+| ID | Defecto | Contraejemplo antes | Corrección | Después |
+|---|---|---|---|---|
+| C-3A-01 (bloqueante) | `audit.auditar` sin dispositivo de descarte verificaba `d <= 0`… pero no `d >= 0`: un descarte negativo actuaba como **generación ficticia** | B01B: L = 80, P_R = 70, C_oper = 30, `descarte = (-10,)`, costo/KPI coherentes con 30 kWh → **aceptado**. Con dispositivo D̄ = 25 → rechazado por residuo, sin código explícito | `0 <= d <= D̄` SIEMPRE, con `D̄ = 0` sin dispositivo; código `descarte_negativo`; dispositivo declarado sin vector `d` ⇒ `variavel_candidata_ausente`. Convención de M02 inalterada (d en el lado de consumo) | rechazado en ambos casos (`descarte_negativo`, familia `descarte`, residuo 10 kW) |
+| C-3A-02 | `Tolerancias` aceptaba NaN, ±Inf, negativos y no numéricos | `potencia_abs_kW = inf` → candidata adulterada (+1 kW) **aceptada**; NaN/negativa → rechazo de TODO sin causa explícita; `'x'` → aceptada sin uso | `validar_tolerancias`: cada campo debe ser real finito ≥ 0; inválida ⇒ `tolerancia_invalida`, ninguna familia evaluada, `aceito = False` (en `auditar` y `auditar_pwl`). Valores provisionales sin cambio | rechazo explícito en los 11 campos × {inf, −inf, NaN, negativo, texto, None, bool} |
+| C-3A-03 | `contracts._construir` usaba `zip(args, dado)` en tuplas de longitud fija y no verificaba tipos | vértice `[10, 0.7, 99]` → **truncado** a `(10, 0.7)`; `"abc"` → `(('a',), ('b',), ('c',))`; escalar → `TypeError` no controlado; `NaN` aceptado por `json.loads` | Reconstrucción ESTRICTA: longitud exacta, listas/objetos/primitivos del tipo declarado (sin `bool` como número, sin texto como número), campos obligatorios presentes, constantes `NaN/Infinity` prohibidas; error controlado `ErroSerializacao` (subclase de `ValueError`) con ruta del campo | todas rechazadas; ida y vuelta JSON → contrato → JSON idéntica (texto y SHA-256) en las 10 entradas de fixtures |
+
+Evidencia ejecutable: `tests/ems_v2/test_ems_v2_auditor.py::test_c3a01_*`, `::test_c3a02_*` y
+`tests/ems_v2/test_ems_v2_contrato.py::test_c3a03_*` (100 casos). Ejecutados contra el código ANTERIOR (`5592847`):
+94 fallan y 6 pasan; los 6 son controles positivos (d = 0, ida y vuelta) o estructuras que ya lanzaban
+`TypeError`, hoy convertido en `ErroSerializacao`. Con la corrección: todos pasan.
+
 ## 7. Propuesta concreta para el PR 3B-P (no iniciado; requiere revisión)
 
 1. Dependencias fijadas: `pyomo` y `highspy` con versión exacta, licencia y smoke de instalación limpia; decidir
