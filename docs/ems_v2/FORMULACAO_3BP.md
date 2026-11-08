@@ -75,7 +75,7 @@ Todas las restricciones y el objetivo son lineales: un test verifica `polynomial
 | `tempos_s`, `tamanho` | Construcción, solver, HiGHS y total; número de variables, binarias libres y restricciones |
 | `ambiente`, `configuracao`, `hash_entrada`, `hash_compromisso` | Versiones, configuración explícita (sin valores implícitos) e identidad de la entrada |
 | `despacho`, `candidato`, `custos_modelo` | Por UID y por intervalo (incluye `z_b` y el segmento PWL activo). Las clases sin autorización tienen ℓ ≡ 0 por estructura |
-| `auditoria`, `estado_despacho`, `aceito` | `aceito_otimo`, `aceito_factivel_nao_otimo`, `rejeitado_auditoria` o `sem_despacho`. **Ninguna solución rechazada por el auditor se acepta** |
+| `auditoria`, `integridade`, `estado_despacho`, `aceito` | `aceito_otimo`, `aceito_factivel_nao_otimo`, `rejeitado_auditoria`, `rejeitado_integridade` o `sem_despacho`. **Ninguna solución rechazada por el auditor o por la verificación del testigo MILP se acepta** (C-3B-02) |
 
 Configuración explícita y obligatoria: `CONFIG_ANALITICA = (time_limit 60 s, 1 thread, rel_gap 0, abs_gap 0,
 semente 0)`. Es configuración de software, no un parámetro físico.
@@ -103,3 +103,19 @@ pip install -r requirements.txt -r requirements-ems_v2.txt pytest
 PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q        # sin Pyomo: los tests del solver se saltan explícitamente
 PYTHONDONTWRITEBYTECODE=1 python -m ems_v2.milp.evidencia docs/ems_v2/EVIDENCIA_3BP.md
 ```
+
+## 7. Correcciones de la auditoría independiente del PR #12 (2026-11-08)
+
+Dictamen: favorable con dos correcciones bloqueantes. Contraejemplos reproducidos sobre `a8e3426` **antes** de
+corregir. Formulación, contratos físicos, esquema, tolerancias provisionales, V1.6 y dependencias **sin cambios**.
+
+| ID | Defecto | Antes (`a8e3426`) | Corrección | Después |
+|---|---|---|---|---|
+| C-3B-01 | `_hash_compromisso` convertía con `int(x)` **antes** del preflight | Con A07, los programas `NaN`, `Infinity`, `None`, `"abc"`, un escalar, `None` como programa o una lista anidada provocaban una **excepción no controlada** (`ValueError`/`OverflowError`/`TypeError`). `(1,)`, `(1.0,)` y `(True,)` tenían **el mismo hash**, y `1.0` pasaba el preflight | Identidad por representación canónica **sin pérdida y con tipo** (`float.hex`, etiquetas de tipo, mapas ordenados). Nunca lanza excepción. El preflight es el único validador de `{0, 1}`, con `int` estricto (rechaza `bool`, `float` incluido 1.0, texto, NaN y None). Una estructura que no sea dict se bloquea con diagnóstico. El auditor aplica la misma exigencia | Todos `bloqueado_validacao` + `compromisso_invalido`, sin llamar al solver. El hash es determinista, no depende del orden y distingue tipos |
+| C-3B-02 | El testigo auxiliar (`z_b`, `δ`, `θ`) no se verificaba; `δ`/`θ` ni siquiera se extraían (`value or 0`) | `z_b = 0,5` (con P_c, P_d y e preservados), `z_b = 0` con P_c = 10, `δ` en otro segmento, `δ = 0,5`, `θ` fuera del segmento o en 1,7, `θ = None` y `δ = NaN` se **aceptaban** como `aceito_otimo` | Nueva capa `ems_v2/milp/integridade.py` (sin Pyomo, separada de `ems_v2.audit`): integralidad de `z_b` y coherencia con `P_c ≤ a·P̄^c·z` y `P_d ≤ a·P̄^d·(1−z)`; integralidad de `δ`; `Σδ = u`; `θ ∈ [0,1]` y `θ ≤ δ`; reconstrucción de `p` y `q` desde (δ, θ); segmento reportado coherente; valores finitos. `δ`/`θ` se extraen con la misma regla que las demás variables (ausente o no finito ⇒ `valor_nao_carregado`) | `rejeitado_integridade` + `testemunho_milp_invalido`, o `sem_despacho` si hay valores ausentes. Tolerancias provisionales sin cambio (`z_b = 1 − 2·10⁻⁶` se rechaza; `1 − 5·10⁻⁷` se acepta) |
+| Robustez | Excepción del executor/HiGHS o del cargador ⇒ excepción no controlada. Opción HiGHS inválida ⇒ **ignorada en silencio** y resultado `aceito_otimo` con una configuración no aplicada | — | `try/except` alrededor de la ejecución y de la carga ⇒ clasificación `erro` (`falha_solver`, `falha_carregamento`). Las opciones se validan con el propio HiGHS antes de resolver (`opcao_highs_invalida`) | Error controlado, sin despacho, objetivo ni factibilidad declarada |
+
+Tests: `tests/ems_v2/test_ems_v2_milp_auditoria_3b.py` (49 casos). Contra `a8e3426`: **37 fallan y 12 pasan**. Los 12
+que pasan son los programas inválidos que el preflight antiguo ya bloqueaba sin excepción, el control válido y
+`z_b = Inf`, que el extractor antiguo ya detectaba. Con la corrección pasan todos.
+

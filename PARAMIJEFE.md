@@ -1865,7 +1865,7 @@ Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas 
 | Rama | `claude/seeds2-piso3b-milp-highs` (nueva, desde `main`; no reutiliza la rama del PR #11) |
 | Base | `main` `f6d009db169b60a84657f79a7006640e20470b82` (merge del PR #11); árbol idéntico al HEAD auditado del 3A (`37ba4f1`) |
 | PR | [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) contra `main` **sin merge** |
-| Pendientes de esta misión | ninguno; integración aguarda auditoría. **No iniciar 3C sin autorización.** |
+| Pendientes de esta misión | ninguno; correcciones C-3B-01/02 aplicadas (§6b); integración aguarda la fiscalización final. **No iniciar 3C sin autorización.** |
 
 ### 1. Resumen
 
@@ -1929,6 +1929,19 @@ despacho. Hardware de la evidencia: 4 CPU x86_64, 15 GiB.
 4. **Combustible:** solo h·q. Los eventos (m^SU/m^SD) no existen en el contrato y las transiciones están bloqueadas.
 5. **"Óptimo"** = convergencia de HiGHS dentro de los gaps configurados (0 en los casos analíticos); es la optimalidad del modelo reducido.
 6. **Límite de tiempo con incumbent:** no es determinista. Como test se usa un límite de soluciones real más una simulación en el adaptador, y la observación real queda en EVIDENCIA.
+
+### 6b. Corrección de auditoría C-3B (PR #12: favorable con dos correcciones bloqueantes)
+
+| ID | Antes (`a8e3426`) | Después |
+|---|---|---|
+| C-3B-01 | Programas de compromiso con NaN/Inf/None/texto/escalar/anidados ⇒ **excepción no controlada** en `_hash_compromisso` (`int(x)` antes del preflight). `(1,)`, `(1.0,)` y `(True,)` tenían el mismo hash; `1.0` se aceptaba | Hash canónico sin pérdida y con tipo, que nunca lanza excepción. Preflight con `int` estricto en `{0, 1}` ⇒ `bloqueado_validacao` + `compromisso_invalido` |
+| C-3B-02 | `z_b = 0,5`, `z_b` incoherente, δ en otro segmento o fraccional, θ fuera del segmento o de [0,1], θ = None y δ = NaN ⇒ **`aceito_otimo`** | Capa separada `ems_v2/milp/integridade.py` (sin Pyomo) ⇒ `rejeitado_integridade` (o `sem_despacho` con valores ausentes). Auditoría algebraica intacta; tolerancias no relajadas |
+| Robustez | Excepción del executor/cargador ⇒ no controlada. Opción HiGHS inválida ⇒ ignorada en silencio (`aceito_otimo`) | `erro` controlado: `falha_solver`, `falha_carregamento`, `opcao_highs_invalida` |
+
+49 tests adversariales (`test_ems_v2_milp_auditoria_3b.py`): **37 fallan contra `a8e3426`** y todos pasan con la
+corrección. `tests/ems_v2` ⇒ **403 passed**. Suite completa ⇒ **857 passed, 7 warnings, 128 subtests (370 s)** =
+808 + 49. V1.6, runtime, UI, `requirements.txt` y `requirements-ems_v2.txt` sin cambios en el hotfix. Detalle:
+`docs/ems_v2/FORMULACAO_3BP.md` §7.
 
 ### 7. Rollback
 

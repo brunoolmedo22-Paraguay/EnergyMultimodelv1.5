@@ -26,6 +26,11 @@
   - Suite completa → **808 passed, 7 warnings, 128 subtests**.
   - Diff de V1.6/aplicación vacío.
   - Evidencia con óptimos, inviables y terminaciones incompletas reales en `EVIDENCIA_3BP.md`.
+- **Auditoría del PR #12 (2026-11-08): favorable con dos correcciones bloqueantes**, aplicadas en la misma rama:
+  - **C-3B-01:** hash del compromiso sin pérdida y sin excepciones; preflight con `int` estricto en {0, 1}.
+  - **C-3B-02:** verificación separada del testigo MILP (`z_b`, `δ`, `θ`) ⇒ `rejeitado_integridade`.
+  - **Robustez:** excepciones del solver o del cargador y opciones HiGHS inválidas ⇒ `erro` controlado.
+  - Verificado: 49 tests nuevos (37 fallan en `a8e3426`); `tests/ems_v2` **403 passed**; suite completa **857 passed, 7 warnings, 128 subtests**. Detalle: PARAMIJEFE Entrega 7 §6b; FORMULACAO_3BP §7.
 - **Decisiones registradas:**
   - compromiso fijo constante (sin transiciones);
   - A04/A08 con coeficientes sintéticos declarados;
