@@ -1974,7 +1974,7 @@ sentidos. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
 |---|---|
 | Rama | `ccr-0cc9677c-ydyfl7` (desde `main`) |
 | Base | `main` `3c65d980` (merge del PR #12, 3A + 3B-P integrados); verificado idéntico al HEAD de la rama al iniciar |
-| PR | ver HANDOFF (contra `main`, **sin merge**) |
+| PR | [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) contra `main`, **sin merge** |
 | Pendientes | aprobación de la excepción **C-3C0-01** y de D-3C0-01..09; **no iniciar 3C-1 sin autorización** |
 
 ### 1. Resumen
@@ -2050,4 +2050,4 @@ Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
-| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / __PR__ (sem merge) | Implementado e verificado na rama; aguardando auditoria (C-3C0-01 requer aprovação) |
+| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | Implementado e verificado na rama; aguardando auditoria (C-3C0-01 requer aprovação) |

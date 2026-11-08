@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-08 · **rama:** `ccr-0cc9677c-ydyfl7` · **PR:** __PR__ contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-0 — Puente científico EMS MILP ↔ microrredes** implementado y verificado en la rama; **no integrado** (sin UI/runtime).
+**Actualización:** 2026-11-08 · **rama:** `ccr-0cc9677c-ydyfl7` · **PR:** [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-0 — Puente científico EMS MILP ↔ microrredes** implementado y verificado en la rama; **no integrado** (sin UI/runtime).
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 8**; arquitectura y decisiones en [`docs/ems_v2/PONTE_3C0.md`](../ems_v2/PONTE_3C0.md); brechas en [`BRECHAS_3C0.md`](../ems_v2/BRECHAS_3C0.md); transición en [`TRANSICAO_3C0_3C1.md`](../ems_v2/TRANSICAO_3C0_3C1.md); evidencia en [`EVIDENCIA_3C0.md`](../ems_v2/EVIDENCIA_3C0.md).
 
@@ -117,6 +117,6 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) — Piso 2D-A, Arquivo Científico Portátil + C-03 (merge `3b73971`): `PARAMIJEFE.md` Entrega 4.
 - PR [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) — Piso 2D-B, Relatórios Científicos, Excel e Figuras (merge `8556b71`): `PARAMIJEFE.md` Entrega 5.
 - PR [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) — Piso 3A (merge `f6d009d`): Entrega 6. PR [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) — Piso 3B-P (merge `3c65d98`): Entrega 7.
-- Piso 3C-0 — Puente científico (rama `ccr-0cc9677c-ydyfl7`; PR __PR__, pendiente de auditoría): Entrega 8.
+- Piso 3C-0 — Puente científico (rama `ccr-0cc9677c-ydyfl7`; PR [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13), pendiente de auditoría): Entrega 8.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.
