@@ -9,7 +9,7 @@ import pytest
 from ems_v2 import fixtures as F
 from ems_v2.contracts import (ClasseDemanda, CurvaPWL, DispositivoDescarte, EntradaModeloEMS, EstadoBateria,
                               EstadoGerador, PoliticaObjetivo, PoliticaServico, PoliticaTerminal, UIDRecurso,
-                              entrada_de_json, hash_entrada, json_canonico, validar_entrada)
+                              ErroSerializacao, entrada_de_json, hash_entrada, json_canonico, validar_entrada)
 from ems_v2.diagnostics import ContratoInvalido
 from ems_v2.parameters import Parametro
 from ems_v2.provenance import Procedencia
@@ -294,3 +294,66 @@ def test_campos_cientificos_sem_padrao_implicito(cls, campo):
     """Condição C: nenhum parâmetro físico, eficiência, estado inicial ou política tem valor padrão."""
     f = cls.__dataclass_fields__[campo]
     assert f.default is dataclasses.MISSING and f.default_factory is dataclasses.MISSING
+
+
+# ----------------------------------------------------------------------------- auditoria do PR #11 (C-3A-03)
+def _json_com_gerador():
+    g, st, _ = F.a06_gerador(1, 60)
+    return json.loads(json_canonico(replace(base(), geradores=(g,), estados_geradores=(st,))))
+
+
+@pytest.mark.parametrize("vertices", [
+    [[10.0, 0.7, 99.0], [20.0, 1.1]],     # elemento excedente (antes truncado em silêncio)
+    [[10.0], [20.0, 1.1]],                # elemento faltante
+    [10.0, [20.0, 1.1]],                  # escalar no lugar do par (antes TypeError não controlado)
+    "abc",                                # texto no lugar da lista (antes virava (('a',), ('b',), ('c',)))
+    {"P": 10, "Q": 0.7},                  # objeto no lugar da lista
+    [["10", 0.7], [20.0, 1.1]],           # número como texto
+    [[True, 0.7], [20.0, 1.1]],           # booleano no lugar de número
+    [[None, 0.7], [20.0, 1.1]],           # nulo no lugar de número
+])
+def test_c3a03_vertices_pwl_malformados_rejeitados(vertices):
+    d = _json_com_gerador()
+    d["geradores"][0]["curva_h2"]["vertices"] = vertices
+    with pytest.raises(ErroSerializacao):
+        entrada_de_json(json.dumps(d))
+
+
+@pytest.mark.parametrize("mutar", [
+    lambda d: d["malha"].__setitem__("intervalos_otimizacao", 1.5),     # float em campo inteiro
+    lambda d: d["malha"].__setitem__("intervalos_otimizacao", True),    # bool em campo inteiro
+    lambda d: d["demandas"][0]["potencia"].__setitem__("valores", 10.0),  # escalar no lugar da tupla
+    lambda d: d["demandas"][0]["potencia"].__setitem__("valores", [10.0, "x"]),
+    lambda d: d.__setitem__("hashes_fontes", {"a": 1}),                 # dict[str, str] com valor numérico
+    lambda d: d.__setitem__("hashes_fontes", ["a"]),
+    lambda d: d["fronteira"].__delitem__("topologia"),                  # campo obrigatório ausente
+    lambda d: d.__setitem__("malha", None),                             # nulo em campo não opcional
+    lambda d: d.__setitem__("demandas", {"0": None}),
+])
+def test_c3a03_estruturas_incompativeis_rejeitadas(mutar):
+    d = _json_com_gerador()
+    mutar(d)
+    with pytest.raises(ErroSerializacao):
+        entrada_de_json(json.dumps(d))
+
+
+def test_c3a03_constantes_nao_padrao_rejeitadas():
+    s = json_canonico(base()).replace('"valores":[10.0]', '"valores":[NaN]', 1)
+    assert "NaN" in s
+    with pytest.raises(ErroSerializacao):
+        entrada_de_json(s)
+    with pytest.raises(ErroSerializacao):
+        entrada_de_json("{not json")
+
+
+def test_c3a03_ida_e_volta_sem_perda_em_todas_as_fixtures():
+    """JSON → contrato → JSON reemite exatamente o mesmo texto canônico e o mesmo hash."""
+    entradas = [F.a01()[0], F.a02()[0], F.a03()[0], F.a03(1, 60)[0], F.a04()[0], F.b01a()[0], F.b01b()[0],
+                F.a05_feas()[0], F.a05_opt_entrada()]
+    g, st, _ = F.a06_gerador(1, 60)
+    entradas.append(replace(base(), geradores=(g,), estados_geradores=(st,)))
+    for e in entradas:
+        s = json_canonico(e)
+        e2 = entrada_de_json(s)
+        assert json_canonico(e2) == s and e2 == e and hash_entrada(e2) == hash_entrada(e)
+    assert entrada_de_json(json_canonico(entradas[-1])).geradores[0].curva_h2.vertices == ((10.0, 0.7), (20.0, 1.1))

@@ -19,7 +19,7 @@ import math
 import re
 import types
 import typing
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 
 from . import ESQUEMA_VERSAO, FORMULACAO_VERSAO, MOTOR_ID
 from .diagnostics import Constatacao, RelatorioValidacao, aviso, erro, pendente
@@ -589,40 +589,68 @@ def para_dict(obj):
     return obj
 
 
-def _construir(tipo, dado):
-    if dado is None:
-        return None
+class ErroSerializacao(ValueError):
+    """Estrutura JSON incompatível com o contrato (rejeição controlada; nada é truncado nem convertido)."""
+
+
+_PRIMITIVOS = {str: (str,), bool: (bool,), int: (int,), float: (int, float)}
+
+
+def _construir(tipo, dado, caminho: str):
+    """Reconstrução ESTRITA: tipo e comprimento exatos; nenhum elemento descartado, nenhum valor convertido.
+    (C-3A-03: ``zip`` em tuplas de comprimento fixo truncava silenciosamente elementos excedentes.)"""
     origem = typing.get_origin(tipo)
     args = typing.get_args(tipo)
     if origem in (typing.Union, types.UnionType):
+        if dado is None:
+            if type(None) in args:
+                return None
+            raise ErroSerializacao(f"{caminho}: valor nulo não admitido.")
         nao_nulos = [a for a in args if a is not type(None)]
-        if len(nao_nulos) == 1:
-            return _construir(nao_nulos[0], dado)
-        for a in nao_nulos:     # float | int etc.: primitivos
-            if isinstance(dado, a if isinstance(a, type) else object):
-                return dado
-        return dado
+        if len(nao_nulos) != 1:
+            raise ErroSerializacao(f"{caminho}: união de tipos não suportada pelo contrato ({tipo}).")
+        return _construir(nao_nulos[0], dado, caminho)
+    if dado is None:
+        raise ErroSerializacao(f"{caminho}: valor nulo não admitido.")
     if origem is tuple:
+        if not isinstance(dado, (list, tuple)):
+            raise ErroSerializacao(f"{caminho}: esperada lista JSON; recebido {type(dado).__name__}.")
         if len(args) == 2 and args[1] is Ellipsis:
-            return tuple(_construir(args[0], x) for x in dado)
-        return tuple(_construir(a, x) for a, x in zip(args, dado))
+            return tuple(_construir(args[0], x, f"{caminho}[{i}]") for i, x in enumerate(dado))
+        if len(dado) != len(args):
+            raise ErroSerializacao(f"{caminho}: esperados exatamente {len(args)} elementos; recebidos {len(dado)}.")
+        return tuple(_construir(a, x, f"{caminho}[{i}]") for i, (a, x) in enumerate(zip(args, dado)))
     if origem is dict:
-        return {str(k): _construir(args[1], v) for k, v in dado.items()}
+        if not isinstance(dado, dict):
+            raise ErroSerializacao(f"{caminho}: esperado objeto JSON; recebido {type(dado).__name__}.")
+        return {_construir(args[0], k, f"{caminho}.<chave>"): _construir(args[1], v, f"{caminho}[{k}]")
+                for k, v in dado.items()}
     if isinstance(tipo, type) and is_dataclass(tipo):
-        return de_dict(tipo, dado)
-    return dado
+        return de_dict(tipo, dado, caminho)
+    if tipo in _PRIMITIVOS:
+        aceitos = _PRIMITIVOS[tipo]
+        if isinstance(dado, bool) and tipo is not bool or not isinstance(dado, aceitos):
+            raise ErroSerializacao(f"{caminho}: esperado {tipo.__name__}; recebido {type(dado).__name__} ({dado!r}).")
+        if isinstance(dado, float) and not math.isfinite(dado):
+            raise ErroSerializacao(f"{caminho}: valor não finito.")
+        return dado
+    raise ErroSerializacao(f"{caminho}: tipo de contrato não suportado na desserialização ({tipo}).")
 
 
-def de_dict(cls, dado: dict):
-    """Reconstrói um dataclass do contrato a partir de ``para_dict`` (sem ``eval``/``pickle``)."""
+def de_dict(cls, dado: dict, caminho: str | None = None):
+    """Reconstrói um dataclass do contrato a partir de ``para_dict`` (sem ``eval``/``pickle``), de forma estrita."""
+    caminho = caminho or cls.__name__
     if not isinstance(dado, dict):
-        raise TypeError(f"{cls.__name__}: esperado objeto JSON.")
+        raise ErroSerializacao(f"{caminho}: esperado objeto JSON ({cls.__name__}).")
     dicas = typing.get_type_hints(cls)
-    nomes = {f.name for f in fields(cls)}
-    desconhecidos = set(dado) - nomes
+    campos = {f.name: f for f in fields(cls)}
+    desconhecidos = set(dado) - set(campos)
     if desconhecidos:
-        raise ValueError(f"{cls.__name__}: campos desconhecidos {sorted(desconhecidos)}.")
-    return cls(**{k: _construir(dicas[k], v) for k, v in dado.items()})
+        raise ErroSerializacao(f"{caminho}: campos desconhecidos {sorted(desconhecidos)}.")
+    faltando = [n for n, f in campos.items() if n not in dado and f.default is MISSING and f.default_factory is MISSING]
+    if faltando:
+        raise ErroSerializacao(f"{caminho}: campos obrigatórios ausentes {faltando}.")
+    return cls(**{k: _construir(dicas[k], v, f"{caminho}.{k}") for k, v in dado.items()})
 
 
 def json_canonico(e: EntradaModeloEMS) -> str:
@@ -634,8 +662,18 @@ def hash_entrada(e: EntradaModeloEMS) -> str:
     return hashlib.sha256(json_canonico(e).encode("utf-8")).hexdigest()
 
 
+def _constante_proibida(nome: str):
+    raise ErroSerializacao(f"Constante JSON não padrão proibida: {nome} (NaN/Infinity nunca são dados válidos).")
+
+
 def entrada_de_json(texto: str) -> EntradaModeloEMS:
-    return de_dict(EntradaModeloEMS, json.loads(texto))
+    """JSON estrito → contrato. Para toda entrada aceita, ``json_canonico(entrada_de_json(s))`` reemite os mesmos
+    valores (sem truncamento nem conversão)."""
+    try:
+        dado = json.loads(texto, parse_constant=_constante_proibida)
+    except json.JSONDecodeError as exc:
+        raise ErroSerializacao(f"JSON inválido: {exc}") from None
+    return de_dict(EntradaModeloEMS, dado, "EntradaModeloEMS")
 
 
 # =============================================================================== aliases (nomes da ordem executiva)
@@ -652,5 +690,5 @@ EMSModelInput = EntradaModeloEMS
 TimeGrid = MalhaTemporal
 
 __all__ = [n for n in dir() if not n.startswith("_") and n not in {
-    "annotations", "dataclass", "field", "fields", "is_dataclass", "hashlib", "json", "math", "re", "types", "typing"}]
+    "annotations", "MISSING", "dataclass", "field", "fields", "is_dataclass", "hashlib", "json", "math", "re", "types", "typing"}]
 _ = Transformacao  # reexportado para consumidores do contrato

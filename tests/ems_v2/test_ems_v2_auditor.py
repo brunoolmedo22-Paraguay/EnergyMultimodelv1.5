@@ -240,3 +240,58 @@ def test_auditor_independente_do_calculo_de_referencia():
             nomes.update(a.name for a in no.names)
     assert not any("reference" in n for n in nomes), nomes
     assert "Fraction" not in src
+
+
+# ----------------------------------------------------------------------------- auditoria do PR #11
+def _b01b_com_descarte(d):
+    """Contraejemplo C-3A-01: L = 80, P_R = 70, C_oper = 30; custo e KPIs coerentes com 30 kWh vertidos."""
+    e, c = F.b01b()
+    return e, replace(c, renovaveis={"syn-fv": {"P_R": (70.0,), "C_oper": (30.0,)}}, descarte=(d,),
+                      custos_reportados={"curtailment_operacional": 15.0},
+                      kpis_reportados={"E_curt_oper_kWh": {"syn-fv": 30.0}, "E_indisp_kWh": {"syn-fv": 0.0}})
+
+
+def test_c3a01_descarte_negativo_sem_dispositivo_rejeitado():
+    e, c = _b01b_com_descarte(-10.0)
+    r = auditar(e, c)
+    assert not r.aceito and "descarte_negativo" in r.codigos() and r.familias_reprovadas() == {"descarte"}
+    assert r.maximos["descarte"][0] == pytest.approx(10.0)       # resíduo medido em kW, sem recorte
+
+
+def test_c3a01_descarte_negativo_com_dispositivo_rejeitado():
+    e, c = _b01b_com_descarte(-10.0)
+    dev = DispositivoDescarte(UIDRecurso("syn-dump"), Parametro(25.0, "kW", F.proc("teste")))
+    e2 = replace(e, politica_servico=PoliticaServico("duro", F.proc("teste"), descarte=dev))
+    r = auditar(e2, c)
+    assert not r.aceito and "descarte_negativo" in r.codigos() and r.familias_reprovadas() == {"descarte"}
+
+
+def test_c3a01_descarte_nulo_sem_dispositivo_continua_aceito():
+    """d = 0 explícito sem dispositivo é coerente (D̄ = 0); o balanço M02 não muda de convenção."""
+    e, c = F.b01b()
+    assert auditar(e, replace(c, descarte=(0.0,))).aceito
+
+
+@pytest.mark.parametrize("campo", ["potencia_abs_kW", "potencia_rel_escala", "energia_abs_kWh",
+                                   "energia_rel_capacidade", "soc_fracao", "custo_abs_R", "custo_rel", "binario",
+                                   "vazao_abs_kg_h", "vazao_rel_qmax", "massa_abs_kg"])
+@pytest.mark.parametrize("valor", [float("inf"), float("-inf"), float("nan"), -1e-9, "0.1", None, True])
+def test_c3a02_tolerancia_invalida_rejeita_explicitamente(campo, valor):
+    tol = replace(TOL, **{campo: valor})
+    e, c = F.a01()
+    adulterada = replace(c, renovaveis={"syn-fv": {"P_R": (61.0,) * 60, "C_oper": (0.0,) * 60}})
+    for cand in (c, adulterada):
+        r = auditar(e, cand, tol)
+        assert not r.aceito and "tolerancia_invalida" in r.codigos() and r.familias_verificadas == ()
+    g, _, m = F.a06_gerador()
+    r = auditar_pwl(g, m, [1], [15.0], [0.9], [0.015], tol)
+    assert not r.aceito and "tolerancia_invalida" in r.codigos()
+
+
+def test_c3a02_tolerancias_provisorias_inalteradas_e_validas():
+    from ems_v2.audit import validar_tolerancias
+    assert validar_tolerancias(TOL) == []
+    assert (TOL.potencia_abs_kW, TOL.potencia_rel_escala, TOL.energia_abs_kWh, TOL.energia_rel_capacidade,
+            TOL.soc_fracao, TOL.custo_abs_R, TOL.custo_rel, TOL.binario, TOL.vazao_abs_kg_h, TOL.vazao_rel_qmax,
+            TOL.massa_abs_kg) == (1e-5, 1e-7, 1e-6, 1e-8, 1e-6, 1e-4, 1e-7, 1e-6, 1e-6, 1e-8, 1e-9)
+    assert "tolerancia_invalida" in {c.codigo for c in validar_tolerancias(object())}

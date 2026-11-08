@@ -46,6 +46,27 @@ class Tolerancias:
                    "vazão/massa: proposta do Piso 3A; decisão D07 pendente")
 
 
+CAMPOS_TOLERANCIA = ("potencia_abs_kW", "potencia_rel_escala", "energia_abs_kWh", "energia_rel_capacidade", "soc_fracao",
+                     "custo_abs_R", "custo_rel", "binario", "vazao_abs_kg_h", "vazao_rel_qmax", "massa_abs_kg")
+
+
+def validar_tolerancias(tol) -> list[Constatacao]:
+    """C-3A-02: toda tolerância deve ser número real finito e >= 0. Inválida ⇒ rejeição explícita (nunca aprova
+    a candidata nem causa falha não controlada). Os valores provisórios não são alterados aqui."""
+    if not isinstance(tol, Tolerancias):
+        return [erro("tolerancia_invalida", "tolerancias", f"Esperado Tolerancias; recebido {type(tol).__name__}.")]
+    out: list[Constatacao] = []
+    for nome in CAMPOS_TOLERANCIA:
+        v = getattr(tol, nome)
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            out.append(erro("tolerancia_invalida", f"tolerancias.{nome}", f"Não numérica: {v!r}."))
+        elif not math.isfinite(v):
+            out.append(erro("tolerancia_invalida", f"tolerancias.{nome}", f"Não finita: {v!r}."))
+        elif v < 0:
+            out.append(erro("tolerancia_invalida", f"tolerancias.{nome}", f"Negativa: {v!r}."))
+    return out
+
+
 @dataclass(frozen=True)
 class Residuo:
     familia: str
@@ -168,6 +189,10 @@ def _finalizar(col: _Coletor, nao_suportadas: list[str], custos=None, kpis=None)
 
 def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias = Tolerancias()) -> RelatorioAuditoria:
     col = _Coletor()
+    ct = validar_tolerancias(tol)
+    if ct:
+        col.constatacoes += ct
+        return _finalizar(col, [])
     rel = validar_entrada(entrada)
     col.constatacoes += [c for c in rel.constatacoes]
     if not rel.aceito:
@@ -255,26 +280,28 @@ def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias
             if ell[t] > lim + tolP and lim == 0.0:
                 col.constatacoes.append(erro("interrupcao_nao_autorizada", f"demandas[{k}].ell[{t}]",
                                              "Carga desconectada sem autorização (crítica ou serviço duro)."))
-    # ------------------------------------------------ descarte M04
+    # ------------------------------------------------ descarte M04: 0 <= d <= D̄ SEMPRE (C-3A-01)
+    # D̄ = 0 sem dispositivo físico declarado (adenda v1.1; D03). d é CONSUMO no barramento (lado direito de M02):
+    # d < 0 seria geração fictícia e é rejeitado com ou sem dispositivo.
     desc = entrada.politica_servico.descarte
-    if desc is None:
-        if cand.descarte is not None:
-            dv = _vetor({"d": cand.descarte}, "d", N, "descarte", col, N + 1)
-            if dv is not None:
-                for t in range(N):
-                    col.limite_superior("descarte", "M04", "-", t, dv[t], 0.0, "kW", tolP)
-                    carga[t] += dv[t]
-                if any(x > tolP for x in dv):
-                    col.constatacoes.append(erro("descarte_sem_dispositivo_fisico", "descarte",
-                                                 "D̄ = 0: não existe sumidouro físico declarado (energia fictícia)."))
-    else:
+    if desc is not None and cand.descarte is None:
+        col.constatacoes.append(erro("variavel_candidata_ausente", "descarte",
+                                     "Dispositivo de descarte declarado: a candidata deve informar d (ausência ≠ zero)."))
+    elif cand.descarte is not None:
         dv = _vetor({"d": cand.descarte}, "d", N, "descarte", col, N + 1)
         if dv is not None:
-            Dmax = float(desc.p_max_kW.valor)
+            Dmax = 0.0 if desc is None else float(desc.p_max_kW.valor)
+            uid_d = "-" if desc is None else str(desc.uid)
             for t in range(N):
                 carga[t] += dv[t]
-                col.limite_inferior("descarte", "M04", str(desc.uid), t, dv[t], 0.0, "kW", tolP)
-                col.limite_superior("descarte", "M04", str(desc.uid), t, dv[t], Dmax, "kW", tolP)
+                col.limite_inferior("descarte", "M04", uid_d, t, dv[t], 0.0, "kW", tolP)
+                col.limite_superior("descarte", "M04", uid_d, t, dv[t], Dmax, "kW", tolP)
+            if any(x < -tolP for x in dv):
+                col.constatacoes.append(erro("descarte_negativo", "descarte",
+                                             "d < 0: descarte negativo atuaria como geração fictícia (M04 exige d >= 0)."))
+            if desc is None and any(x > tolP for x in dv):
+                col.constatacoes.append(erro("descarte_sem_dispositivo_fisico", "descarte",
+                                             "D̄ = 0: não existe sumidouro físico declarado (energia fictícia)."))
     # ------------------------------------------------ BESS M06–M08
     estados = {str(s.uid): s for s in entrada.estados_baterias}
     for b in entrada.baterias:
@@ -353,6 +380,10 @@ def auditar_pwl(g: EspecGerador, malha: MalhaTemporal, u: list, p: list, q: list
     """Domínio ON/OFF (M10) e vazão PWL (M15/M16) por intervalo; massa operacional h·q (sem eventos).
     Só confere valores PREPARADOS: não escolhe u, p nem q."""
     col = _Coletor()
+    ct = validar_tolerancias(tol)
+    if ct:
+        col.constatacoes += ct
+        return _finalizar(col, [])
     col.constatacoes += [c for c in validar_gerador(g, malha, "gerador")]
     if any(c.severidade in ("erro", "pendente") for c in col.constatacoes) or g.curva_h2 is None:
         if g.curva_h2 is None:
@@ -397,4 +428,5 @@ def auditar_pwl(g: EspecGerador, malha: MalhaTemporal, u: list, p: list, q: list
     return _finalizar(col, [])
 
 
-__all__ = ["CandidatoDespacho", "RelatorioAuditoria", "Residuo", "Tolerancias", "auditar", "auditar_pwl"]
+__all__ = ["CAMPOS_TOLERANCIA", "CandidatoDespacho", "RelatorioAuditoria", "Residuo", "Tolerancias", "auditar",
+           "auditar_pwl", "validar_tolerancias"]
