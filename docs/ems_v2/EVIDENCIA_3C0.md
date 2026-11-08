@@ -43,3 +43,34 @@ Lectura por `ler_inventario` + escenario recién creado; preflight `operacional`
 - Los tiempos de `test_tempos_medidos_sao_registrados_sem_meta_de_desempenho` (5 repeticiones) solo prueban el
   registro; no hay campaña ni meta.
 - No se ejecutaron E2E de navegador: la aplicación no cambió (diff vacío verificado).
+
+## 5. Correcciones de la auditoría del PR #13 (H-01..H-04, C-3C0-01)
+
+Base: HEAD del PR `4b77788`. Mismo entorno y `PYTHONDONTWRITEBYTECODE=1`.
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1 | `pytest tests/ems_v2/test_ems_v2_ponte_auditoria_pr13.py` (hallazgos H-01..H-04 + C-3C0-01) | **31 passed** |
+| 2 | Suite 3A: `pytest tests/ems_v2 --ignore-glob='*ponte*' -k "not milp"` | **268 passed** (sin cambios) |
+| 3 | Suite 3B-P: `pytest tests/ems_v2 -k "milp and not ponte"` | **148 passed** (sin cambios) |
+| 4 | Puente completa: `pytest tests/ems_v2 -k ponte` | **110 passed** (79 + 31) |
+| 5 | `pytest tests/ems_v2` | **526 passed**; sin Pyomo/HiGHS: 385 passed, 5 skipped |
+| 6 | Regresión completa `pytest tests/` | **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31 |
+| 7 | `git diff --stat 3c65d98 -- ems_integration models h2_pemfc simulation config reference_models seeds2 orchestrator_runtime.py orchestrator_app.py app.py ems_app.py requirements*.txt ems_v2/milp ems_v2/{contracts,audit,reference,timegrid,series,units,parameters}.py` | vacío (también lo verifica `test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada`) |
+| 8 | Diff de la corrección | Solo `ems_v2/ponte/{cenario,preflight,registro}.py`, `ems_v2/fixtures_3c0.py`, tests de la puente y documentación 3C-0 |
+| 9 | Repetición de los tests H-03 (5 × 8 tests: 15 rondas multiproceso + 5 rondas de hilos) | 5/5 verdes |
+| 10 | El mismo arnés multiproceso (8 procesos, 2 contenidos, mismo UID) contra el `gravar_registro` ANTERIOR (`4b77788`) | **8/10 rondas violaron la inmutabilidad** (ambos contenidos «grabados» y `FileNotFoundError` por temporal compartido); con la corrección, 0 |
+
+### Tabla de hallazgos
+
+| Hallazgo | Estado | Pruebas que sustentan la resolución |
+|---|---|---|
+| H-01 Separación previsión/realización | **Resuelto** | `test_h01_previsao_independente_identica_e_advertencia_nao_bloqueio`, `test_h01_series_constantes_identicas_nao_sao_fuga`, `test_h01_coincidencia_parcial_e_previsao_independente`, `test_h01_oraculo_explicito_coerente_e_inconsistente`, `test_h01_procedencia_compartilhada_e_advertencia_suspeita`, `test_h01_evidencia_de_fuga_bloqueia`, `test_h01_causalidade_por_emissao_continua_bloqueante`, `test_separacao_previsao_realizacao` |
+| H-02 Preflight sin políticas | **Resuelto** | `test_h02_politicas_ausentes_bloqueiam_otimizacao`, `test_h02_diagnostico_parcial_sem_politicas_artificiais`, `test_h02_politicas_incompletas_e_projecao_rejeitada`, `test_h02_preparacao_para_o_solver` |
+| H-03 Inmutabilidad concurrente | **Resuelto** | `test_h03_concorrencia_real_entre_processos[0-2]`, `test_h03_concorrencia_real_entre_threads`, `test_h03_idempotencia_e_conteudo_diferente`, `test_h03_falha_limpa_temporarios_e_nao_deixa_alvo`, `test_h03_falha_durante_escrita_no_fallback_remove_alvo_proprio`, `test_h03_fallback_sem_hard_link_tambem_e_exclusivo` |
+| H-04 Realización incremental | **Resuelto en el contrato** (offline × online implementado); **pendiente para 3C-2** el lazo online completo (brecha K6, bloqueante para 3C-2) | `test_h04_observacao_online_valida_so_ate_o_instante_observado`, `test_h04_rejeicoes_da_observacao_incremental[7 casos]`, `test_h04_offline_continua_exigindo_a_missao_inteira`, `test_h04_execucao_nunca_ultrapassa_o_observado_e_retoma_com_nova_observacao`, `test_h04_preflight_aceita_observacao_online_parcial` |
+| C-3C0-01 Excepción de lectura SEEDS2 | **Aceptada condicionalmente; condiciones verificadas** | `test_c3c001_leitor_nao_muta_armazenamento_e_preserva_identidade`, `test_ems_v2_ponte_isolamento.py` (4), `test_aplicacao_nao_referencia_ems_v2` (3A) |
+
+Portabilidad (H-03): `os.link` crea hard links en POSIX y NTFS y falla si el destino existe; sin soporte de hard link
+se usa `O_CREAT | O_EXCL` (con `O_BINARY` en Windows). Verificado en Linux; **Windows no fue ejecutado** en este
+entorno (el fallback se probó en Linux simulando la ausencia de hard link).

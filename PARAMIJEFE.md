@@ -1975,7 +1975,7 @@ sentidos. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
 | Rama | `ccr-0cc9677c-ydyfl7` (desde `main`) |
 | Base | `main` `3c65d980` (merge del PR #12, 3A + 3B-P integrados); verificado idéntico al HEAD de la rama al iniciar |
 | PR | [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) contra `main`, **sin merge** |
-| Pendientes | aprobación de la excepción **C-3C0-01** y de D-3C0-01..09; **no iniciar 3C-1 sin autorización** |
+| Pendientes | C-3C0-01 aceptada condicionalmente; correcciones H-01..H-04 aplicadas (§6b); D-3C0-01..09 a revisión; **no iniciar 3C-1 sin autorización** |
 
 ### 1. Resumen
 
@@ -2031,6 +2031,20 @@ D-3C0-01..09 y C-3C0-01/02 en `PONTE_3C0.md` §5 y §8. Destacan: tipo de proced
 (no altera hashes 3A); sugerido ⇒ faltante; C·E = potencia terminal, no de barra; métodos de identificación del V1.6
 no son fuente; registro en archivo JSON inmutable (no en el banco de la microrred); ejecutor algébrico no es físico.
 
+### 6b. Corrección de la auditoría independiente del PR #13 (favorable con correcciones)
+
+| ID | Antes (`4b77788`) | Después |
+|---|---|---|
+| H-01 | Previsión numéricamente igual a la realización ⇒ **error** aunque no hubiera fuga | Clasificación por serie: coincidencia sin evidencia ⇒ advertencia; procedencia compartida ⇒ advertencia de sospecha; **bloqueo solo con evidencia** (procedencia que apunta al SHA-256 del contenido realizado, mismo objeto, oráculo falso). Emisión causal sigue bloqueante |
+| H-02 | Preflight sin políticas podía terminar «aceptado» | `finalidade` `diagnostico` (parcial, nunca autoriza) × `otimizacao` (por defecto): exige políticas, proyección existente y aceptada, formulación 3B-P y `preflight_3bp`; propiedad `apto_para_otimizacao` |
+| H-03 | `exists()` + temporal fijo + `os.replace()` ⇒ sobrescritura concurrente | Publicación exclusiva por `os.link` de un temporal único completo (fallback `O_EXCL`), limpieza garantizada. Arnés multiproceso contra el código anterior: **8/10 rondas violaron la inmutabilidad**; con la corrección, 0 |
+| H-04 | Realización exigida para toda la misión | `Realizacao.modo` (`completa_offline` / `incremental_online`) + `observado_ate_utc`; cobertura y causalidad solo hasta τ_k; ejecución que nunca pasa de τ_k y se reanuda. Lo que falta para 3C-2: brecha **K6** (bloqueante) |
+| C-3C0-01 | Pendiente | **Aceptada condicionalmente**; no mutación verificada sobre el árbol completo de archivos |
+
+Pruebas: 31 nuevas (`test_ems_v2_ponte_auditoria_pr13.py`); 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **526
+passed**; regresión completa **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31. Tabla de hallazgos → pruebas: `EVIDENCIA_3C0.md` §5. Diff confinado a la
+puente, sus fixtures/tests y documentación; V1.6 y núcleo 3A/3B-P sin cambios.
+
 ### 7. Rollback
 
 Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures_3c0.py`, los tests
@@ -2050,4 +2064,4 @@ Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
-| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | Implementado e verificado na rama; aguardando auditoria (C-3C0-01 requer aprovação) |
+| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | Auditoria favorável com correções H-01..H-04 (aplicadas, §6b); C-3C0-01 aceita condicionalmente; aguardando fiscalização final |

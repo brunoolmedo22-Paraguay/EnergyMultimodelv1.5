@@ -33,4 +33,9 @@
 - Datos de permanencias/rampas inexistentes en el inventario real (brechas D6, D9): sin ellos 3C-1 solo correrá en
   ensayo.
 - Tolerancias provisionales (D07) y semántica temporal de rampas en la frontera (M11-EXT) a confirmar.
-- La excepción C-3C0-01 debe estar aprobada si 3C-1 usa el lector real.
+- La excepción C-3C0-01 fue aceptada condicionalmente (auditoría PR #13): cualquier uso del lector en 3C-1 debe
+  preservar sus condiciones (solo lectura, identidad UID/incarnación/revisión, sin excepciones genéricas).
+- Para 3C-2 (no para 3C-1): el modo `incremental_online` de `Realizacao` (H-04) es el punto de partida del lazo
+  cerrado; la brecha K6 enumera lo que falta.
+- El preflight exige `finalidade="otimizacao"` para autorizar el solver (H-02); 3C-1 deberá sustituir
+  `preflight_3bp` por la verificación del commitment libre dentro de esa misma rama.

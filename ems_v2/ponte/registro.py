@@ -14,8 +14,8 @@ informação de reprodução.
 * ``AvaliacaoValorFuturo`` — avaliação econômica de um estado terminal usada por um planejador (3C-4). No 3C-0 é
   sempre ``nao_implementado_3C0`` com ``valor_R = None``; ``contabilizado_como_custo`` é SEMPRE falso (invariante).
 
-Persistência: arquivo JSON por execução, escrito atomicamente; regravar o mesmo UID com conteúdo diferente é recusado
-(imutabilidade). A integração com o banco de cada microrrede (``MicrogridStore``) NÃO é feita no 3C-0.
+Persistência: arquivo JSON por execução, criado de forma EXCLUSIVA e atômica (hard link de um temporário completo, ou
+``O_EXCL``); regravar o mesmo UID com conteúdo diferente é recusado mesmo entre processos concorrentes (H-03). A integração com o banco de cada microrrede (``MicrogridStore``) NÃO é feita no 3C-0.
 """
 from __future__ import annotations
 
@@ -258,7 +258,57 @@ class RegistroImutavelError(ContratoInvalido):
     pass
 
 
+_ESPERA_LEITURA_S = 2.0          # fallback O_EXCL: tempo máximo para um escritor concorrente concluir o arquivo
+
+
+def _fsync_diretorio(d: Path) -> None:
+    """Durabilidade da entrada de diretório (POSIX). No Windows diretórios não abrem para fsync: ignorado."""
+    try:
+        fd = os.open(d, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
+def _ja_existente(alvo: Path, texto: str) -> Path:
+    """O UID já tem registro: idêntico ⇒ idempotente; diferente ⇒ ``RegistroImutavelError``. Um arquivo incompleto
+    (só possível no fallback O_EXCL, enquanto outro escritor ainda grava) é relido por até ``_ESPERA_LEITURA_S``."""
+    import json
+    import time
+    limite = time.monotonic() + _ESPERA_LEITURA_S
+    while True:
+        atual = alvo.read_text(encoding="utf-8")
+        if atual == texto:
+            return alvo
+        try:
+            json.loads(atual)
+            completo = True
+        except ValueError:
+            completo = False
+        if completo or time.monotonic() >= limite:
+            raise RegistroImutavelError([erro("registro_imutavel", alvo.name,
+                                              "Já existe registro desta execução com conteúdo diferente.")])
+        time.sleep(0.01)
+
+
 def gravar_registro(diretorio: str | os.PathLike, r: RegistroExecucaoEMS) -> Path:
+    """Criação EXCLUSIVA e atômica do arquivo ``<execucao_uid>.ems3c0.json`` (H-03): nunca sobrescreve.
+
+    1. O conteúdo canônico (selo conferido) é escrito e sincronizado num temporário ÚNICO no mesmo diretório;
+    2. publicação por ``os.link(temporario, alvo)``, que FALHA se o alvo já existir (POSIX e NTFS) — o alvo só
+       aparece completo; não há janela entre verificar e gravar;
+    3. sistemas de arquivos sem hard link: ``os.open(alvo, O_CREAT | O_EXCL)`` (criação exclusiva) e escrita;
+       falha durante a escrita remove o alvo criado por ESTE processo;
+    4. o temporário é sempre removido (``finally``).
+
+    Mesmo UID e mesmo conteúdo ⇒ idempotente; conteúdo diferente ⇒ ``RegistroImutavelError``, inclusive entre
+    processos concorrentes (exatamente um conteúdo vence)."""
+    import tempfile
     c = verificar_registro(r)
     if c:
         raise ContratoInvalido(c)
@@ -266,15 +316,35 @@ def gravar_registro(diretorio: str | os.PathLike, r: RegistroExecucaoEMS) -> Pat
     d.mkdir(parents=True, exist_ok=True)
     alvo = d / f"{r.execucao_uid}{SUFIXO_ARQUIVO}"
     texto = json_canonico(r)
-    if alvo.exists():
-        if alvo.read_text(encoding="utf-8") == texto:
-            return alvo                       # idempotente: mesmo conteúdo selado
-        raise RegistroImutavelError([erro("registro_imutavel", str(alvo.name),
-                                          "Já existe registro desta execução com conteúdo diferente.")])
-    tmp = alvo.with_suffix(alvo.suffix + ".tmp")
-    tmp.write_text(texto, encoding="utf-8")
-    os.replace(tmp, alvo)
-    return alvo
+    dados = texto.encode("utf-8")
+    fd, nome_tmp = tempfile.mkstemp(prefix=f".{r.execucao_uid}.", suffix=".tmp", dir=d)
+    tmp = Path(nome_tmp)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(dados)
+            f.flush()
+            os.fsync(f.fileno())
+        try:
+            os.link(tmp, alvo)
+        except FileExistsError:
+            return _ja_existente(alvo, texto)
+        except (OSError, NotImplementedError, AttributeError):
+            try:                                   # sem hard link neste sistema de arquivos: criação exclusiva
+                fd2 = os.open(alvo, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o644)
+            except FileExistsError:
+                return _ja_existente(alvo, texto)
+            try:
+                with os.fdopen(fd2, "wb") as f:
+                    f.write(dados)
+                    f.flush()
+                    os.fsync(f.fileno())
+            except BaseException:
+                alvo.unlink(missing_ok=True)       # só o alvo que ESTE processo criou (O_EXCL)
+                raise
+        _fsync_diretorio(d)
+        return alvo
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def ler_registro(caminho: str | os.PathLike) -> RegistroExecucaoEMS:

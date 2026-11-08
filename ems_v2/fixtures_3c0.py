@@ -117,9 +117,9 @@ def definicao(*, n: int = N, m: int | None = None, missao: int | None = None) ->
     return DefinicaoTemporal(MalhaTemporal(INICIO, DELTA_MIN, n, m or n, missao or n, horizonte_previsao_min=DELTA_MIN * n))
 
 
-def _serie(grandeza, unidade, valores, *, emissao=INICIO, inicio=INICIO, fronteira=None) -> SerieTemporal:
+def _serie(grandeza, unidade, valores, *, emissao=INICIO, inicio=INICIO, fronteira=None, caso="3C0") -> SerieTemporal:
     return SerieTemporal(grandeza, unidade, "media_intervalo", inicio, DELTA_MIN * 60, tuple(float(v) for v in valores),
-                         proc(), fronteira=fronteira, emissao_utc=emissao)
+                         proc(caso), fronteira=fronteira, emissao_utc=emissao)
 
 
 def previsao(demanda=DEMANDA_PREV, pv=PV_PREV, *, oraculo: bool = False) -> ConjuntoPrevisao:
@@ -130,11 +130,15 @@ def previsao(demanda=DEMANDA_PREV, pv=PV_PREV, *, oraculo: bool = False) -> Conj
         "Teste de continuidade plano → execução (oráculo rotulado; não mede erro de predição)" if oraculo else "")
 
 
-def realizacao(demanda=DEMANDA_PREV, pv=PV_PREV, disp_pv=(1, 1, 1, 1)) -> Realizacao:
+def realizacao(demanda=DEMANDA_PREV, pv=PV_PREV, disp_pv=(1, 1, 1, 1), *, observado_ate: str | None = None) -> Realizacao:
+    """Realização sintética com procedência PRÓPRIA (caso ``3C0-realizacao``), distinta da previsão. Com
+    ``observado_ate`` vira observação ``incremental_online`` (as séries devem cobrir só até esse instante)."""
+    kw = dict(emissao=None, caso="3C0-realizacao")
     return Realizacao("syn-real-1", "sintetica", (
-        SerieRecurso("syn-carga", "potencia", _serie("potencia", "kW", demanda, emissao=None, fronteira="barramento_liquido")),
-        SerieRecurso("syn-pv1", "potencia", _serie("potencia", "kW", pv, emissao=None, fronteira="barramento_liquido")),
-        SerieRecurso("syn-pv1", "disponibilidade", _serie("disponibilidade", "1", disp_pv, emissao=None))), proc())
+        SerieRecurso("syn-carga", "potencia", _serie("potencia", "kW", demanda, fronteira="barramento_liquido", **kw)),
+        SerieRecurso("syn-pv1", "potencia", _serie("potencia", "kW", pv, fronteira="barramento_liquido", **kw)),
+        SerieRecurso("syn-pv1", "disponibilidade", _serie("disponibilidade", "1", disp_pv, **kw))),
+        proc("3C0-realizacao"), "completa_offline" if observado_ate is None else "incremental_online", observado_ate)
 
 
 def politicas(termos=("curtailment_operacional", "throughput_bess")) -> PoliticasDeclaradas:

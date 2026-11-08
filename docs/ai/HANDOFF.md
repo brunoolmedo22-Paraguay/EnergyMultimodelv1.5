@@ -17,7 +17,13 @@
 - **Implementado (contratos, sin integración):** `ems_v2/ponte/` (núcleo, solo biblioteca estándar): `inventario`, `requisitos`, `cenario`, `projecao`, `execucao`, `preflight`, `registro`, `instrumentacao`, `canonico`; `ems_v2/ponte_seeds2/leitor.py` (lector SOLO LECTURA de microrredes/escenarios reales por el catálogo); `ems_v2/fixtures_3c0.py` (ensayo sintético). Tipo de procedencia aditivo `declarado_seeds2` en `ems_v2/provenance.py`.
 - **Verificado (2026-11-08):** `tests/ems_v2` **495 passed** (416 + 79 nuevos; sin Pyomo: 354 passed, 5 skipped); suite completa **949 passed, 7 warnings, 128 subtests** (= 870 + 79). Diff de V1.6/aplicación/`seeds2`/núcleo 3A-3B-P vacío. Detalle: `docs/ems_v2/EVIDENCIA_3C0.md`.
 - **Hallazgo principal:** ninguna microrred real puede ejecutar el EMS V2 hoy; la equivalente al V1.6 queda bloqueada con explicación (η, P en barra, autodescarga, P_min/curva PEMFC, previsiones). Cadena completa (preflight → 3A → HiGHS → plan → ejecución algébrica → registro sellado) probada solo en ensayo sintético rotulado.
-- **Decisiones:** D-3C0-01..09 (PONTE_3C0 §5). **Contradicciones:** C-3C0-01 (excepción nominal: único archivo de `ems_v2` que importa `seeds2`, con guardia más estricta; test 3B-P `test_so_o_subpacote_milp_importa_pyomo_ou_highspy` ajustado) — **requiere aprobación**; C-3C0-02 (disponibilidad por usina, herencia explícita).
+- **Decisiones:** D-3C0-01..09 (PONTE_3C0 §5). **Contradicciones:** C-3C0-01 (excepción nominal: único archivo de `ems_v2` que importa `seeds2`, con guardia más estricta; test 3B-P `test_so_o_subpacote_milp_importa_pyomo_ou_highspy` ajustado) — **aceptada condicionalmente por el auditor**; C-3C0-02 (disponibilidad por usina, herencia explícita).
+- **Auditoría del PR #13 (2026-11-08): favorable con correcciones H-01..H-04, aplicadas en la misma rama:**
+  - **H-01:** igualdad previsión = realización ⇒ advertencia; bloqueo solo con evidencia de fuga (hash del contenido realizado, mismo objeto, oráculo falso).
+  - **H-02:** `preflight_ems_v2(..., finalidade="diagnostico"|"otimizacao")` y `apto_para_otimizacao`; sin políticas o sin proyección aceptada no hay autorización para el solver.
+  - **H-03:** `gravar_registro` con creación exclusiva (`os.link`, fallback `O_EXCL`); el arnés multiproceso rompió el código anterior en 8/10 rondas.
+  - **H-04:** `Realizacao.modo` offline/online con `observado_ate_utc`; lo que falta para 3C-2 es la brecha K6 (bloqueante).
+  - Verificado: 31 tests nuevos; 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **526 passed**; suite completa **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31. Detalle: PARAMIJEFE Entrega 8 §6b; EVIDENCIA_3C0 §5.
 - **No implementado (fuera de alcance):** commitment dinámico (3C-1), MPC (3C-2), red/economía (3C-3), planificación jerárquica/valor futuro (3C-4), ejecutor físico, persistencia del registro en el banco de la microrred, lectura de previsiones del 2B.
 
 ## 3. Próxima misión propuesta

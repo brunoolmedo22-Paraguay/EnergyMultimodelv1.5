@@ -11,6 +11,12 @@ projeção para a entrada canônica 3A com ``validar_entrada``) e acrescenta:
 Resultado ``RelatorioPreflightEMS``: itens estruturados com área, código, caminho, mensagem e severidade
 ``bloqueante`` (erro/pendente), ``advertencia`` (aviso) ou ``aceitavel`` (verificação realizada sem constatação).
 Determinístico e com SHA-256. Nenhum valor de respaldo é usado para "passar".
+
+**Finalidade (H-02):** ``diagnostico`` × ``otimizacao`` são distintos. ``diagnostico`` avalia os dados disponíveis
+SEM exigir (nem inventar) políticas: o relatório pode não ter bloqueios de dados, mas ``apto_para_otimizacao`` é
+sempre falso. ``otimizacao`` (padrão) só declara aptidão para o solver se: políticas fornecidas, previsão fornecida,
+projeção EXISTENTE e ACEITA (``validar_entrada``), formulação com solver (``v1.1-3B-P``) e pré-verificação do perfil
+3B-P (``ems_v2.milp.config.preflight_3bp``: compromisso fixo de cada gerador) sem bloqueios.
 """
 from __future__ import annotations
 
@@ -28,12 +34,15 @@ from .requisitos import CONTEXTOS, constatacoes as constatacoes_matriz, matriz_p
 
 SEVERIDADES = {"bloqueante": "Impede a execução", "advertencia": "Registrada; não impede",
                "aceitavel": "Verificação realizada sem constatação"}
+FINALIDADES = {"diagnostico": "Diagnóstico dos dados disponíveis (parcial; NUNCA autoriza otimizar)",
+               "otimizacao": "Preparação para o solver (exige políticas, projeção aceita e perfil 3B-P)"}
 AREAS = {"inventario": "Inventário da microrrede", "parametros": "Parâmetros obrigatórios",
          "cenario": "Cenário e coerência com a microrrede", "tempo": "Malha temporal N/N+1 e horizontes",
          "previsoes": "Previsões disponíveis ao controlador", "realizacao": "Realização do entorno",
          "separacao": "Separação previsão × realização", "referencias": "Referências UID",
          "restricoes": "Restrições × equipamentos disponíveis", "sinteticos": "Dados sintéticos × contexto",
-         "contrato": "Entrada canônica 3A/3B-P (validar_entrada)"}
+         "contrato": "Entrada canônica 3A/3B-P (validar_entrada)", "politicas": "Políticas declaradas",
+         "solver": "Preparação para o solver (perfil 3B-P)"}
 _NIVEL = {"erro": "bloqueante", "pendente": "bloqueante", "aviso": "advertencia"}
 TERMO_RECURSO = {"throughput_bess": "armazenamento", "combustivel_h2": "pemfc", "curtailment_operacional": "renovavel",
                  "geracao_termica": "termica"}
@@ -54,11 +63,18 @@ class RelatorioPreflightEMS:
     microrrede_uid: str
     cenario_uid: str
     contexto: str
+    finalidade: str
     itens: tuple[ItemPreflight, ...]
 
     @property
     def aceito(self) -> bool:
+        """Sem itens bloqueantes PARA A FINALIDADE pedida (em diagnóstico: só os dados avaliados)."""
         return not any(i.severidade == "bloqueante" for i in self.itens)
+
+    @property
+    def apto_para_otimizacao(self) -> bool:
+        """Único veredito que autoriza entregar a entrada ao solver (H-02)."""
+        return self.finalidade == "otimizacao" and self.aceito
 
     def codigos(self, severidade: str | None = None) -> set[str]:
         return {i.codigo for i in self.itens if severidade is None or i.severidade == severidade}
@@ -67,8 +83,11 @@ class RelatorioPreflightEMS:
         return tuple(i for i in self.itens if i.area == area)
 
     def texto(self) -> str:
+        veredito = ("APTO PARA OTIMIZAÇÃO" if self.apto_para_otimizacao else
+                    "DIAGNÓSTICO PARCIAL — não autoriza otimização" if self.finalidade == "diagnostico" and self.aceito
+                    else "BLOQUEADO")
         linhas = [f"Preflight EMS V2 (3C-0) — microrrede {self.microrrede_uid} · cenário {self.cenario_uid} · "
-                  f"contexto {self.contexto}: {'ACEITO' if self.aceito else 'BLOQUEADO'}"]
+                  f"contexto {self.contexto} · finalidade {self.finalidade}: {veredito}"]
         for sev in ("bloqueante", "advertencia", "aceitavel"):
             itens = [i for i in self.itens if i.severidade == sev]
             if itens:
@@ -111,9 +130,12 @@ def _procs_sinteticas(inv, cen, prev, real, pol) -> list[str]:
 def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTemporal,
                      prev: ConjuntoPrevisao | None = None, real: Realizacao | None = None,
                      pol: PoliticasDeclaradas | None = None, *, contexto: str = "operacional",
-                     compromisso: dict | None = None) -> tuple[RelatorioPreflightEMS, ResultadoProjecao | None]:
+                     compromisso: dict | None = None, finalidade: str = "otimizacao",
+                     ) -> tuple[RelatorioPreflightEMS, ResultadoProjecao | None]:
     if contexto not in CONTEXTOS:
         raise ValueError(f"Contexto desconhecido: {contexto!r}")
+    if finalidade not in FINALIDADES:
+        raise ValueError(f"Finalidade desconhecida: {finalidade!r}")
     itens: list[ItemPreflight] = []
     vistos: set[tuple[str, str, str]] = set()
 
@@ -160,7 +182,13 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
             continue
         for s in conj.series:
             alvo = s.uid
-            if alvo not in recursos and alvo not in uids_dem and alvo not in inv.uids():
+            if alvo in recursos or alvo in uids_dem or alvo in inv.uids():
+                continue
+            if pol is None:          # classes de demanda são declaradas pelas políticas: sem elas, não verificável
+                refs.append(aviso("uid_nao_verificavel_sem_politicas", f"{nome}[{s.uid}:{s.grandeza}]",
+                                  f"UID {s.uid} não é dispositivo desta microrrede; sem políticas não se sabe se é classe "
+                                  "de demanda declarada."))
+            else:
                 refs.append(erro("referencia_uid_inexistente", f"{nome}[{s.uid}:{s.grandeza}]",
                                  f"UID {s.uid} não é recurso habilitado desta microrrede nem classe de demanda declarada."))
     if prev is not None and real is not None:
@@ -202,12 +230,34 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
         add("sinteticos", [aviso("dado_sintetico_em_ensaio", o, "Dado sintético (ensaio rotulado).") for o in sint],
             "Nenhum dado sintético.")
     proj = None
+    if pol is None:
+        msg = "Políticas (serviço, terminal, objetivo, classes de demanda, variante de commitment) não fornecidas"
+        add("politicas", [erro("politicas_ausentes", "politicas", msg + ": não há autorização para otimizar.")]
+            if finalidade == "otimizacao" else
+            [aviso("politicas_nao_fornecidas_diagnostico_parcial", "politicas",
+                   msg + ": diagnóstico PARCIAL dos dados; nenhuma política é criada.")])
     if prev is not None and pol is not None:
         proj = montar_entrada(inv, cen, prev, dt, pol, contexto=contexto)
         add("contrato", [c for c in proj.constatacoes if c.codigo != "entrada_de_ensaio"],
             "Entrada canônica montada e aceita por validar_entrada (3A/3B-P).")
-    rel = RelatorioPreflightEMS(inv.identidade.uid, cen.cenario_uid, contexto, tuple(itens))
+    if finalidade == "otimizacao":
+        sv: list[Constatacao] = []
+        if proj is None or not proj.aceito:
+            sv.append(erro("projecao_nao_aceita", "projecao",
+                           "Sem entrada canônica aceita (previsão/políticas ausentes ou projeção rejeitada): o solver "
+                           "não pode ser chamado."))
+        else:
+            from .. import FORMULACAO_3BP
+            from ..milp.config import preflight_3bp      # sem Pyomo (só contratos)
+            if proj.entrada.versao_formulacao != FORMULACAO_3BP:
+                sv.append(erro("formulacao_sem_solver", "politicas.versao_formulacao",
+                               f"Formulação {proj.entrada.versao_formulacao!r} não tem solver; o MILP exige "
+                               f"{FORMULACAO_3BP!r}."))
+            else:
+                sv += preflight_3bp(proj.entrada, compromisso)
+        add("solver", sv, "Entrada aceita e perfil 3B-P satisfeito (compromisso fixo coerente).")
+    rel = RelatorioPreflightEMS(inv.identidade.uid, cen.cenario_uid, contexto, finalidade, tuple(itens))
     return rel, proj
 
 
-__all__ = ["AREAS", "ItemPreflight", "RelatorioPreflightEMS", "SEVERIDADES", "hash_preflight", "preflight_ems_v2"]
+__all__ = ["AREAS", "FINALIDADES", "ItemPreflight", "RelatorioPreflightEMS", "SEVERIDADES", "hash_preflight", "preflight_ems_v2"]

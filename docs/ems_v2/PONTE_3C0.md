@@ -93,6 +93,15 @@ Núcleo (`ponte/`, `fixtures_3c0.py`): solo biblioteca estándar (test `test_nuc
   **control** (ventana del MPC de corto plazo) = `H_o = NΔ`; aplicación/reoptimización `ρ = mΔ`; misión `K_M Δ`;
   horizonte de **planeamiento** = campo reservado (`pendente` si se declara). Consignas: N valores; estados: N+1;
   consigna con N+1 valores ⇒ `instante_terminal_como_intervalo`.
+- **Previsión × realización (H-01).** Clasificación POR SERIE (`cenario.classificar_separacao`): independiente;
+  coincidente sin evidencia (advertencia, p. ej. series constantes o previsiones independientes idénticas); oráculo
+  declarado (advertencia); procedencia compartida (advertencia de sospecha). Solo bloquea la **evidencia**: previsión
+  cuya procedencia apunta al SHA-256 del contenido realizado, el mismo objeto de serie, u oráculo declarado que difiere
+  de la realización. La causalidad por instante de emisión sigue bloqueante.
+- **Realización offline × online (H-04).** `Realizacao.modo`: `completa_offline` (cubre la misión) o
+  `incremental_online` con `observado_ate_utc = τ_k`: cobertura verificada solo en [τ_0, τ_k); valores posteriores a
+  τ_k son información futura (`realizacao_alem_do_observado`). El ejecutor nunca pasa de τ_k
+  (`realizacao_sem_cobertura`) y la ejecución se reanuda desde el checkpoint cuando llega una observación posterior.
 - **Plan → ejecución → estado.** El plan solo nace de un `ResultadoResolucao` aceptado y de la misma entrada
   (`hash_entrada`). El ejecutor recibe la consigna del intervalo y el entorno **realizado**; inexequible ⇒
   `interrompida_inexequivel` sin recorte. Se verifica antes y después de cada paso: microrred, índice global e
@@ -101,6 +110,13 @@ Núcleo (`ponte/`, `fixtures_3c0.py`): solo biblioteca estándar (test `test_nuc
 - **Costo realizado ≠ valor futuro.** `CustoRealizado` se recalcula de lo aplicado + entorno realizado, solo con
   términos/coeficientes declarados; no admite término terminal. `custo_objetivo_planejado` es del plan.
   `AvaliacaoValorFuturo` = `nao_implementado_3C0`, `valor_R = None`, `contabilizado_como_custo = False` (invariante).
+
+- **Preflight: diagnóstico × optimización (H-02).** `finalidade="diagnostico"` evalúa datos sin exigir ni crear
+  políticas (`apto_para_otimizacao` siempre falso); `finalidade="otimizacao"` (por defecto) exige políticas, previsión,
+  proyección existente y aceptada, formulación `v1.1-3B-P` y `ems_v2.milp.config.preflight_3bp` sin bloqueos.
+- **Persistencia inmutable (H-03).** `gravar_registro` publica con `os.link(temporal_único_completo, destino)`, que
+  falla si el destino existe (POSIX y NTFS); sin hard link, `O_CREAT|O_EXCL`. Mismo contenido ⇒ idempotente; otro
+  contenido ⇒ `RegistroImutavelError`; temporales siempre eliminados.
 
 ## 5. Decisiones tomadas en 3C-0 (técnicas, conservadoras; a revisar por el responsable)
 
@@ -141,6 +157,24 @@ el inventario de una microrred seleccionada. Mover el lector a `seeds2/` violar�
 (lectura), y una guardia **más estricta** en `test_ems_v2_ponte_isolamento.py`: lista blanca de módulos `seeds2`
 (config/derived/references/scenarios), ninguna API de escritura invocada, ningún import de UI/motor legado/solver en la
 puente. El núcleo `ponte/` sigue sin `seeds2`. Si el auditor rechaza la excepción, el lector puede retirarse sin
-afectar al núcleo. **Requiere aprobación.**
+afectar al núcleo. **Estado (auditoría PR #13): aceptada condicionalmente** — único adaptador autorizado, núcleo MILP
+independiente, sin dependencia inversa desde V1.6, sin escritura, prueba de no mutación del almacenamiento (árbol de
+archivos completo con SHA-256 idéntico tras varias lecturas), identidad UID/incarnación/revisión preservada, sin
+excepciones genéricas en la guardia.
 
 **C-3C0-02 — disponibilidad por usina × recurso por arreglo.** Resuelta por D-3C0-06 (herencia explícita con aviso).
+
+## 9. Correcciones de la auditoría independiente del PR #13
+
+| ID | Hallazgo | Corrección | Pruebas |
+|---|---|---|---|
+| H-01 | Igualdad numérica previsión = realización bloqueaba sin evidencia de fuga | Clasificación por serie (`CATEGORIAS_SEPARACAO`); igualdad ⇒ advertencia; bloqueo solo con evidencia (hash del contenido realizado, mismo objeto, oráculo falso); emisión sigue bloqueante | `test_h01_*` (7) en `test_ems_v2_ponte_auditoria_pr13.py`; `test_separacao_previsao_realizacao` actualizado |
+| H-02 | Preflight sin políticas podía resultar «aceptado» | `finalidade` diagnóstico × optimización; `apto_para_otimizacao`; `politicas_ausentes`, `projecao_nao_aceita`, `formulacao_sem_solver`, `preflight_3bp`; UID de demanda no verificable sin políticas ⇒ advertencia (no se inventa) | `test_h02_*` (4) |
+| H-03 | `exists()` + `os.replace()` permitía sobrescritura concurrente | Creación exclusiva por hard link (fallback `O_EXCL`), temporal único, limpieza garantizada, relectura acotada en el fallback | `test_h03_*` (8: procesos reales ×3, hilos, idempotencia, fallos, fallback). El mismo arnés de procesos contra el código anterior (`4b77788`) violó la inmutabilidad en 8/10 rondas |
+| H-04 | Realización exigida para toda la misión (solo offline) | `Realizacao.modo` + `observado_ate_utc`; cobertura/causalidad solo hasta τ_k; ejecución que nunca sobrepasa lo observado y se reanuda | `test_h04_*` (11) |
+| C-3C0-01 | Excepción de lectura SEEDS2 | Aceptada condicionalmente; prueba de no mutación ampliada al árbol completo | `test_c3c001_*`, `test_ems_v2_ponte_isolamento.py` |
+
+Cambios contractuales que aún necesitará 3C-2 (no implementados; brecha K6 en `BRECHAS_3C0.md`): registro de
+observaciones *append-only* con instante de recepción por valor (latencia, datos tardíos y revisiones de medición),
+previsión reemitida por ventana (un `ConjuntoPrevisao` por τ_k), estimación del estado a partir de medidas y política
+explícita para huecos de observación (nunca completados).

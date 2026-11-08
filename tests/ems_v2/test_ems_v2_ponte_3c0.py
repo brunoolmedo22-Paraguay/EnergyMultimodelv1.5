@@ -252,17 +252,17 @@ def test_realizacao_cobre_missao_e_nao_tem_emissao():
 
 
 def test_separacao_previsao_realizacao():
+    """Resumo da semântica H-01 (casos detalhados em test_ems_v2_ponte_auditoria_pr13.py)."""
     dt = F.definicao()
-    cods = lambda p, r: {c.codigo for c in CN.validar_separacao(p, r, dt)}  # noqa: E731
-    assert "previsao_igual_realizacao_nao_declarada" in cods(F.previsao(), F.realizacao())
-    assert cods(F.previsao(oraculo=True), F.realizacao()) == {"previsao_perfeita_declarada"}
+    cods = lambda p, r: {(c.codigo, c.severidade) for c in CN.validar_separacao(p, r, dt)}  # noqa: E731
+    assert cods(F.previsao(), F.realizacao()) == {("previsao_coincide_com_realizacao", "aviso")}
+    assert cods(F.previsao(oraculo=True), F.realizacao()) == {("previsao_perfeita_declarada", "aviso")}
     sem_just = dataclasses.replace(F.previsao(oraculo=True), justificativa_oraculo="")
     assert "oraculo_sem_justificativa" in {c.codigo for c in CN.validar_previsao(sem_just, dt)}
     assert cods(F.previsao(), F.realizacao(demanda=(30.0, 45.0, 50.0, 20.0), pv=(19.0, 30.0, 10.0, 0.0))) == set()
-    assert cods(F.previsao(), F.realizacao(demanda=(30.0, 45.0, 50.0, 20.0))) == {"previsao_igual_realizacao_nao_declarada"}
     p = F.previsao()
     mesmo = CN.Realizacao("r", "sintetica", (p.series[0],), F.proc())
-    assert "mesmo_objeto_previsao_realizacao" in cods(p, mesmo)
+    assert ("mesmo_objeto_previsao_realizacao", "erro") in cods(p, mesmo)
 
 
 def test_entrada_depende_so_da_previsao_nunca_da_realizacao():
