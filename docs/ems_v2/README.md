@@ -1,4 +1,10 @@
-# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A)
+# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A) y primer MILP ejecutable (Piso 3B-P)
+
+> **Piso 3B-P:** el subpaquete `ems_v2/milp/` construye y resuelve un MILP de **una ventana** con Pyomo + HiGHS
+> (`resolver(entrada, configuracao, compromisso_fixo)`), solo por API y tests. Dependencias en
+> `requirements-ems_v2.txt`; formulación ejecutada, interfaz y límites en [`FORMULACAO_3BP.md`](FORMULACAO_3BP.md);
+> trazabilidad en [`MATRIZ_3BP.md`](MATRIZ_3BP.md); evidencia en [`EVIDENCIA_3BP.md`](EVIDENCIA_3BP.md). El texto
+> siguiente describe el Piso 3A (sigue vigente para las entradas `v1.1-3A`).
 
 **Estado:** experimental, **sin solver**. Base: `main` = `8556b71a76dd13d279a0e0ecd8ad9bd498df72f1`.
 El EMS V1.6 (`legacy_v16`, paquete `ems_integration/`) sigue siendo el **único motor operacional** de la
