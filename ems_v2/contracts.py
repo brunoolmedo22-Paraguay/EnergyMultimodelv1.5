@@ -21,7 +21,7 @@ import types
 import typing
 from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 
-from . import ESQUEMA_VERSAO, FORMULACAO_VERSAO, MOTOR_ID
+from . import ESQUEMA_VERSAO, FORMULACAO_3BP, FORMULACAO_VERSAO, FORMULACOES, MOTOR_ID
 from .diagnostics import Constatacao, RelatorioValidacao, aviso, erro, pendente
 from .parameters import Parametro, validar_parametro
 from .provenance import Procedencia, Transformacao, validar_procedencia
@@ -84,6 +84,7 @@ class ClasseDemanda:
     criticidade: str
     potencia: SerieTemporal                          # L_{ℓ,t} [kW barramento]
     fracao_interrompivel: SerieTemporal | None = None  # χ_{ℓ,t}; obrigatória se interrompível; proibida (>0) se crítica
+    custo_energia_nao_suprida: Parametro | None = None  # V_ℓ [R$/kWh] — só com o termo "energia_nao_suprida" (3B-P)
 
 
 TECNOLOGIAS_RENOVAVEIS = {"fv": "Fotovoltaica", "eolica": "Eólica"}
@@ -162,6 +163,7 @@ class EspecGerador:
     disponibilidade: Disponibilidade
     variante_commitment: str
     curva_h2: CurvaPWL | None = None
+    preco_h2: Parametro | None = None     # c_H [R$/kg] — só PEMFC com curva e termo "combustivel_h2" (3B-P)
 
 
 @dataclass(frozen=True)
@@ -217,6 +219,18 @@ TERMOS_OBJETIVO = {
     "regularizador_rampa": ("futuro", "γ v"),
 }
 TERMOS_PROIBIDOS = {"indisponibilidade_como_curtailment": "Indisponibilidade não é vertimento (adenda B01)"}
+
+# Perfil de capacidades por versão de formulação DECLARADA na entrada (extensão controlada e versionada).
+# "v1.1-3A": comportamento e códigos do Piso 3A inalterados. "v1.1-3B-P": termos implementados E testados no MILP
+# do Piso 3B-P (cada um exige seus coeficientes declarados; nenhum custo é presumido).
+PERFIS_FORMULACAO = {
+    FORMULACAO_VERSAO: {"sufixo": "3A", "termos": frozenset({"curtailment_operacional"}),
+                        "variantes_combustivel": frozenset()},
+    FORMULACAO_3BP: {"sufixo": "3BP",
+                     "termos": frozenset({"curtailment_operacional", "throughput_bess", "energia_nao_suprida",
+                                          "combustivel_h2"}),
+                     "variantes_combustivel": frozenset({"instantanea"})},
+}
 
 
 @dataclass(frozen=True)
@@ -426,6 +440,8 @@ def validar_gerador(g: EspecGerador, malha: MalhaTemporal, cam: str) -> list[Con
     elif g.variante_commitment == "multimodo":
         out.append(pendente("multimodo_nao_suportado_3A", cam + ".variante_commitment",
                             "Autômato multimodo (M20) não é construído no Piso 3A."))
+    if g.preco_h2 is not None:
+        out += validar_parametro(g.preco_h2, cam + ".preco_h2", unidade="R$/kg", dominio="nao_negativo")
     if g.curva_h2 is not None:
         out += validar_curva(g.curva_h2, pmin, pmax, cam + ".curva_h2")
     elif g.tecnologia == "pemfc":
@@ -482,21 +498,68 @@ def validar_politicas(e: EntradaModeloEMS) -> list[Constatacao]:
                         "'nenhuma' só é aceita com justificativa explícita (caso analítico/ablação rotulada)."))
     out += validar_procedencia(t.procedencia, "politica_terminal.procedencia")
     out += validar_procedencia(o.procedencia, "politica_objetivo.procedencia")
+    perfil = PERFIS_FORMULACAO.get(e.versao_formulacao, PERFIS_FORMULACAO[FORMULACAO_VERSAO])
+    suf = perfil["sufixo"]
     for termo in o.termos:
         if termo in TERMOS_PROIBIDOS:
             out.append(erro("termo_objetivo_proibido", f"politica_objetivo.termos[{termo}]", TERMOS_PROIBIDOS[termo]))
         elif termo not in TERMOS_OBJETIVO:
             out.append(erro("termo_objetivo_desconhecido", f"politica_objetivo.termos[{termo}]", f"{termo!r}."))
-        elif TERMOS_OBJETIVO[termo][0] != "implementado_3A":
-            out.append(pendente("termo_objetivo_nao_suportado_3A", f"politica_objetivo.termos[{termo}]",
-                                f"{termo}: {TERMOS_OBJETIVO[termo][1]} — previsto para piso posterior."))
+        elif termo not in perfil["termos"]:
+            out.append(pendente(f"termo_objetivo_nao_suportado_{suf}", f"politica_objetivo.termos[{termo}]",
+                                f"{termo}: {TERMOS_OBJETIVO[termo][1]} — não implementado na formulação "
+                                f"{e.versao_formulacao}."))
     if len(set(o.termos)) != len(o.termos):
         out.append(erro("termo_objetivo_duplicado", "politica_objetivo.termos", "Termo repetido."))
     if o.lexicografica:
-        out.append(pendente("lexicografica_nao_suportada_3A", "politica_objetivo.lexicografica", "M22 é futuro."))
-    if o.variante_combustivel is not None:
-        out.append(pendente("variante_combustivel_nao_suportada_3A", "politica_objetivo.variante_combustivel",
-                            "Custo de combustível (B05) é futuro."))
+        out.append(pendente(f"lexicografica_nao_suportada_{suf}", "politica_objetivo.lexicografica", "M22 é futuro."))
+    if o.variante_combustivel is not None and o.variante_combustivel not in perfil["variantes_combustivel"]:
+        out.append(pendente(f"variante_combustivel_nao_suportada_{suf}", "politica_objetivo.variante_combustivel",
+                            f"Variante {o.variante_combustivel!r} não implementada em {e.versao_formulacao} "
+                            "(B05: só a parte operacional h·q da variante instantânea, sem eventos, no 3B-P)."))
+    if e.versao_formulacao == FORMULACAO_3BP:
+        out += _coeficientes_3bp(e)
+    return out
+
+
+def _coeficientes_3bp(e: EntradaModeloEMS) -> list[Constatacao]:
+    """Perfil 3B-P: cada termo habilitado exige TODOS os seus coeficientes declarados (nenhum custo zero implícito);
+    serviço degradado exige critério explícito de minimização da ENS."""
+    out: list[Constatacao] = []
+    o, termos = e.politica_objetivo, set(e.politica_objetivo.termos)
+    if "throughput_bess" in termos:
+        for i, b in enumerate(e.baterias):
+            out += validar_parametro(b.custo_throughput, f"baterias[{i}].custo_throughput", unidade="R$/kWh",
+                                     dominio="nao_negativo")
+    if "energia_nao_suprida" in termos:
+        for i, d in enumerate(e.demandas):
+            if d.criticidade == "interrompivel":
+                out += validar_parametro(d.custo_energia_nao_suprida, f"demandas[{i}].custo_energia_nao_suprida",
+                                         unidade="R$/kWh", dominio="positivo")
+    for i, d in enumerate(e.demandas):
+        if d.custo_energia_nao_suprida is not None and "energia_nao_suprida" not in termos:
+            out.append(erro("coeficiente_sem_termo", f"demandas[{i}].custo_energia_nao_suprida",
+                            "V_ℓ declarado sem o termo 'energia_nao_suprida' no objetivo."))
+    if e.politica_servico.modo == "degradado" and "energia_nao_suprida" not in termos:
+        out.append(erro("criterio_ens_ausente", "politica_objetivo.termos",
+                        "Serviço degradado exige critério explícito de minimização da ENS ('energia_nao_suprida' "
+                        "com V_ℓ declarado); um objetivo degenerado não decide o corte de carga."))
+    if "combustivel_h2" in termos:
+        if o.variante_combustivel != "instantanea":
+            out.append(erro("variante_combustivel_ausente", "politica_objetivo.variante_combustivel",
+                            "Termo 'combustivel_h2' exige variante declarada ('instantanea' no 3B-P)."))
+        for i, g in enumerate(e.geradores):
+            if g.tecnologia == "pemfc":
+                out += validar_parametro(g.preco_h2, f"geradores[{i}].preco_h2", unidade="R$/kg", dominio="nao_negativo")
+    elif o.variante_combustivel is not None:
+        out.append(erro("variante_sem_termo", "politica_objetivo.variante_combustivel",
+                        "Variante de combustível declarada sem o termo 'combustivel_h2'."))
+    for i, g in enumerate(e.geradores):
+        if g.preco_h2 is not None and g.tecnologia != "pemfc":
+            out.append(erro("preco_h2_em_nao_pemfc", f"geradores[{i}].preco_h2", "c_H só se aplica a PEMFC."))
+        elif g.preco_h2 is not None and "combustivel_h2" not in termos:
+            out.append(erro("coeficiente_sem_termo", f"geradores[{i}].preco_h2",
+                            "c_H declarado sem o termo 'combustivel_h2' no objetivo."))
     return out
 
 
@@ -506,7 +569,7 @@ def validar_entrada(e: EntradaModeloEMS) -> RelatorioValidacao:
         out.append(erro("versao_esquema_incompativel", "versao_esquema", f"{e.versao_esquema!r} ≠ {ESQUEMA_VERSAO}."))
     if e.motor_id != MOTOR_ID:
         out.append(erro("motor_incompativel", "motor_id", f"{e.motor_id!r}: este contrato é de {MOTOR_ID}."))
-    if e.versao_formulacao != FORMULACAO_VERSAO:
+    if e.versao_formulacao not in FORMULACOES:
         out.append(erro("formulacao_incompativel", "versao_formulacao", f"{e.versao_formulacao!r}."))
     for nome in ("microrrede_uid", "cenario_uid"):
         if not isinstance(getattr(e, nome), str) or not getattr(e, nome).strip():
@@ -544,6 +607,9 @@ def validar_entrada(e: EntradaModeloEMS) -> RelatorioValidacao:
                 uids[k] = f"{nome}[{i}]"
     for i, d in enumerate(e.demandas):
         out += validar_demanda(d, e.malha, e.politica_servico, f"demandas[{i}]")
+        if d.custo_energia_nao_suprida is not None:
+            out += validar_parametro(d.custo_energia_nao_suprida, f"demandas[{i}].custo_energia_nao_suprida",
+                                     unidade="R$/kWh", dominio="positivo")
     for i, r in enumerate(e.renovaveis):
         out += validar_renovavel(r, e.malha, e.politica_objetivo, f"renovaveis[{i}]")
     out += _validar_estados(e.baterias, e.estados_baterias, "baterias", "estados_baterias",
@@ -578,10 +644,17 @@ def _validar_estados(specs, estados, nome_s, nome_e, val_spec, val_estado) -> li
 
 
 # =============================================================================== serialização canônica
+# Campos OPCIONAIS acrescentados ao esquema v1 depois do Piso 3A: omitidos do JSON canônico quando ausentes (None),
+# para que toda entrada 3A conserve exatamente o mesmo texto canônico e o mesmo SHA-256 (compatibilidade).
+CAMPOS_EXTENSAO_3BP = {"ClasseDemanda": ("custo_energia_nao_suprida",), "EspecGerador": ("preco_h2",)}
+
+
 def para_dict(obj):
     """Serialização determinística (dataclasses → dict; tuplas → listas)."""
     if is_dataclass(obj) and not isinstance(obj, type):
-        return {f.name: para_dict(getattr(obj, f.name)) for f in fields(obj)}
+        omitir = CAMPOS_EXTENSAO_3BP.get(type(obj).__name__, ())
+        return {f.name: para_dict(getattr(obj, f.name)) for f in fields(obj)
+                if not (f.name in omitir and getattr(obj, f.name) is None)}
     if isinstance(obj, (tuple, list)):
         return [para_dict(x) for x in obj]
     if isinstance(obj, dict):

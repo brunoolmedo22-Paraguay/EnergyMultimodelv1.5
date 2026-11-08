@@ -1,0 +1,6 @@
+# Dependências EXCLUSIVAS do motor experimental ems_v2.milp (Piso 3B-P). NÃO fazem parte da aplicação V1.6.
+# Instalação: pip install -r requirements.txt -r requirements-ems_v2.txt
+# Verificado em ambiente limpo (Python 3.13.18): mantém numpy==2.2.6, pandas==2.2.3, scipy==1.15.3, streamlit==1.66.1.
+# Pyomo: BSD-3-Clause. highspy (HiGHS): MIT. Interface usada: pyomo.contrib.solver "highs" (ver docs/ems_v2/FORMULACAO_3BP.md).
+pyomo==6.10.1
+highspy==1.15.1

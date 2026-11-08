@@ -2,30 +2,58 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-08 · **rama:** `ccr-fb5b5eb8-bvbyw2` · **PR:** [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3A — Fundaciones del EMS MILP–MPC** implementado y verificado en la rama; **no integrado** en `main` (espera autorización).
+**Actualización:** 2026-11-08 · **rama:** `claude/seeds2-piso3b-milp-highs` · **PR:** [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3B-P — Primer optimizador MILP ejecutable (Pyomo + HiGHS)** implementado y verificado en la rama; **no integrado**.
 
-> **Informe técnico de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 6**; detalle científico en [`docs/ems_v2/`](../ems_v2/README.md). Este HANDOFF es solo el resumen de continuidad.
+> **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 7**; formulación y evidencia en [`docs/ems_v2/FORMULACAO_3BP.md`](../ems_v2/FORMULACAO_3BP.md), [`MATRIZ_3BP.md`](../ems_v2/MATRIZ_3BP.md) y [`EVIDENCIA_3BP.md`](../ems_v2/EVIDENCIA_3BP.md).
 
 ## 1. Estado actual
 
-- `main` (`8556b71`): V1.6 + PR #1–#10 (Piso 2D-B + C-04 integrados). Es exactamente el SHA base auditado por el paquete maestro del Piso 3 (sin diferencias). Línea de base medida en esta sesión: **454 passed, 7 warnings, 128 subtests**.
-- Rama `ccr-fb5b5eb8-bvbyw2`: **Piso 3A** (sección 2). Solo adiciones: `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/`; documentación de continuidad.
-- EMS V1.6 (`legacy_v16`, `ems_integration/`), modelos, runtime, `seeds2/` (incluido el Centro de Operação) y `requirements.txt` **sin cambios**. El V1.6 sigue siendo el único motor operacional; `ems_v2` no es importado por la aplicación.
+- `main` (`f6d009d`): V1.6 + PR #1–#11 (Piso 3A integrado tras C-3A-01..04). Línea de base medida en esta sesión: **722 passed, 7 warnings, 128 subtests**.
+- Rama nueva `claude/seeds2-piso3b-milp-highs` desde `main`: **Piso 3B-P** (sección 2). No reutiliza la rama del PR #11.
+- EMS V1.6, modelos, runtime, `seeds2/` (incluido el Centro de Operação) y `requirements.txt` **sin cambios**. `ems_v2` sigue sin ser importado por la aplicación.
 
-## 2. Última entrega — Piso 3A · Fundaciones del EMS MILP–MPC (esta rama)
+## 2. Última entrega — Piso 3B-P (esta rama)
 
-- **Implementado (sin solver):** contratos canónicos por UID (`EntradaModeloEMS` y afines, JSON canónico + SHA-256, procedencia obligatoria, cadena bruto→normalizado); unidades con conversiones explícitas; `MalhaTemporal` N/N+1 con H_f/H_o/ρ/T_M separados; series tipadas `media_intervalo`/`amostra_instantanea` sin remuestreo; cálculo de referencia racional exacto (M01, M07, M03-v1.1/B01, PWL A06, masas); auditor algebraico independiente con tolerancias provisionales por magnitud; registro declarativo de capacidades; fixtures A01–A08/B01/A05-FEAS/OPT/B05A; catálogo de 150 símbolos y manifiesto de 42 ecuaciones (M01–M23 + v1.1) con prueba de cobertura.
-- **Verificado (2026-11-08):** `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q` → **135 passed**; suite completa `python -m pytest tests/ -q` → **589 passed, 7 warnings, 128 subtests** (454 + 135). Diff de V1.6/`seeds2` vacío.
-- **Auditoría del PR #11 (2026-11-08): favorable con correcciones obligatorias**, aplicadas en la misma rama: **C-3A-01** descarte negativo (generación ficticia) aceptado sin dispositivo → `0 <= d <= D̄` siempre; **C-3A-02** tolerancias NaN/Inf/negativas → `tolerancia_invalida`; **C-3A-03** deserialización que truncaba tuplas de longitud fija → reconstrucción estricta (`ErroSerializacao`). Verificado: `tests/ems_v2` **235 passed**; suite completa **689 passed, 7 warnings, 128 subtests**. Detalle: `docs/ems_v2/DECISIONES_3A.md` §8; `PARAMIJEFE.md` Entrega 6 §5.
-- **Segunda fiscalización (2026-11-08): C-3A-01..03 aprobados**; corrección **C-3A-04** (la verificación de la cadena de unidades rechazaba el propio redondeo del conversor, p. ej. `0.12345678912345678 W`) → regla única `units.converter` + `parameters.verificar_cadeia` en parámetros y series (acepta exactamente el `float` declarado, rechaza ±1 ulp). Verificado: `tests/ems_v2` **268 passed**; suite completa **722 passed, 7 warnings, 128 subtests**. Detalle: `DECISIONES_3A.md` §9; `PARAMIJEFE.md` Entrega 6 §5b.
-- **Decisiones del responsable (fiscalización del plan):** paquete en la raíz; referencias versionadas con hash; congelamiento de salidas V1.6 **pospuesto y obligatorio antes de benchmarks**; código PT-BR / documentación científica y PR en ES; C1–C8 aceptadas; condiciones A–F. Ver `docs/ems_v2/DECISIONES_3A.md`.
-- **Pendiente / riesgos:** D01–D08 abiertas (servicio, terminal, descarte, H2, curvas PEMFC, horizonte, tolerancias, selector); previsiones 2B sin semántica muestra/media; inventario sin η por banco ni q(P); `ems_v2/` no añadido a los directorios protegidos (decisión del responsable).
+- **Implementado:** `ems_v2/milp/` (único subpaquete con Pyomo/HiGHS) con `resolver(entrada, configuracao, compromisso_fixo)`.
+  - MILP de una ventana sobre entradas `v1.1-3B-P`: M02, M03-v1.1, M04, M06–M08, M10 con programa fijo constante y M14–M16 PWL sin SOS.
+  - Objetivo con curtailment, throughput, ENS y combustible h·q, siempre con coeficientes declarados.
+  - Clasificación explícita de la terminación y auditoría independiente obligatoria.
+  - Perfil de contrato versionado (las entradas 3A no cambian: mismo texto y hash).
+  - `CAPACIDADES_3BP` y columnas 3B-P en el mismo catálogo.
+  - Dependencias en `requirements-ems_v2.txt` (pyomo 6.10.1, highspy 1.15.1).
+- **Verificado (2026-11-08):**
+  - `tests/ems_v2` → **354 passed** (268 + 86); sin Pyomo, 280 passed y 3 skipped.
+  - Suite completa → **808 passed, 7 warnings, 128 subtests**.
+  - Diff de V1.6/aplicación vacío.
+  - Evidencia con óptimos, inviables y terminaciones incompletas reales en `EVIDENCIA_3BP.md`.
+- **Auditoría del PR #12 (2026-11-08): favorable con dos correcciones bloqueantes**, aplicadas en la misma rama:
+  - **C-3B-01:** hash del compromiso sin pérdida y sin excepciones; preflight con `int` estricto en {0, 1}.
+  - **C-3B-02:** verificación separada del testigo MILP (`z_b`, `δ`, `θ`) ⇒ `rejeitado_integridade`.
+  - **Robustez:** excepciones del solver o del cargador y opciones HiGHS inválidas ⇒ `erro` controlado.
+  - Verificado: 49 tests nuevos (37 fallan en `a8e3426`); `tests/ems_v2` **403 passed**; suite completa **857 passed, 7 warnings, 128 subtests**. Detalle: PARAMIJEFE Entrega 7 §6b; FORMULACAO_3BP §7.
+- **Segunda fiscalización: C-3B-01/02 aprobados.** **C-3B-03:** la configuración se valida antes de registrar los metadatos; las `opcoes_highs` inválidas ⇒ `bloqueado_validacao`, sin excepción y con el valor original preservado. Verificado: 13 tests (12 fallan en `a47a306`); `tests/ems_v2` **416 passed**; suite completa **870 passed, 7 warnings, 128 subtests**. PARAMIJEFE Entrega 7 §6c.
+- **Decisiones registradas:**
+  - compromiso fijo constante (sin transiciones);
+  - A04/A08 con coeficientes sintéticos declarados;
+  - combustible solo h·q;
+  - límite de tiempo con incumbent: test simulado más observación real.
+
+  Ver PARAMIJEFE Entrega 7 §6.
+- **Pendientes / riesgos:**
+  - commitment libre, rampas y permanencias (M09/M11/M12), MPC (M23) y lexicográfico (M22): 3C;
+  - curva PEMFC real (B04): 3D;
+  - D01–D08 siguen abiertas;
+  - congelar las salidas de V1.6 antes de benchmarks.
 
 ## 3. Próxima misión propuesta
 
-Piso 3B-P (Pyomo + HiGHS aislado) — **no autorizado**; propuesta en `docs/ems_v2/DECISIONES_3A.md` §7.
+Piso 3C (commitment con transiciones, rampas/permanencias y MPC algebraico) — **no autorizado**.
 
 ---
+
+## Histórico — entrega anterior: Piso 3A · Fundaciones del EMS MILP–MPC (PR #11, integrado en `f6d009d`)
+
+- Contratos canónicos por UID, malla N/N+1, referencia racional exacta, auditor independiente, catálogo M01–M23 + v1.1 (150 símbolos, 42 ecuaciones); auditoría favorable con correcciones C-3A-01..04. Verificado entonces: `tests/ems_v2` 268 passed; suite 722 passed. Informe: `PARAMIJEFE.md` Entrega 6.
 
 ## Histórico — entrega anterior: Piso 2D-B · Relatórios Científicos e Exportações (PR #10, integrado en `8556b71`)
 

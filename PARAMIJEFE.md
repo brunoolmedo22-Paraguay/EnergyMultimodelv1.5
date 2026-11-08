@@ -1853,6 +1853,115 @@ Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas 
 
 ---
 
+## Entrega 7 — SEEDS2 Piso 3B-P · Primer optimizador MILP ejecutable (Pyomo + HiGHS)
+
+> Redactada en español (documentación científica del Piso 3). Detalle: `docs/ems_v2/FORMULACAO_3BP.md`,
+> `docs/ems_v2/MATRIZ_3BP.md` y `docs/ems_v2/EVIDENCIA_3BP.md`. Este apartado resume y remite.
+
+### Punto de continuidad
+
+| Campo | Valor |
+|---|---|
+| Rama | `claude/seeds2-piso3b-milp-highs` (nueva, desde `main`; no reutiliza la rama del PR #11) |
+| Base | `main` `f6d009db169b60a84657f79a7006640e20470b82` (merge del PR #11); árbol idéntico al HEAD auditado del 3A (`37ba4f1`) |
+| PR | [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) contra `main` **sin merge** |
+| Pendientes de esta misión | ninguno; correcciones C-3B-01/02 (§6b) y C-3B-03 (§6c) aplicadas; integración aguarda la fiscalización final. **No iniciar 3C sin autorización.** |
+
+### 1. Resumen
+
+Primer MILP real del motor `milp_mpc_v1`: `ems_v2.milp.solver.resolver(entrada, configuracao, compromisso_fixo)`.
+Construye en Pyomo un modelo de **una ventana** (N intervalos / N+1 fronteras) a partir de `EntradaModeloEMS`
+declarada `v1.1-3B-P` y lo resuelve con HiGHS. Clasifica la terminación y **solo acepta el despacho aprobado por el
+auditor independiente**, que no usa Pyomo.
+
+- **Restricciones:** M02, M03-v1.1, M04, M06–M08, M10 con compromiso **fijo** constante e igual al estado inicial, y M14–M16 (PWL sintética con binarias por segmento, sin SOS).
+- **Objetivo:** curtailment, throughput, ENS y combustible h·q, siempre con coeficientes declarados.
+- **No incluye:** MPC, transiciones/rampas/permanencias, multimodo, curva PEMFC real, UI ni Centro de Operação.
+
+### 2. Dependencias y entorno
+
+`pyomo==6.10.1` (BSD-3) y `highspy==1.15.1` (MIT, HiGHS 1.15.1) en `requirements-ems_v2.txt`, separado de
+`requirements.txt`. Verificado en un venv limpio con Python 3.13.18: la combinación conserva numpy 2.2.6, pandas
+2.2.3, scipy 1.15.3 y streamlit 1.66.1. Smoke MILP (binaria + continua) correcto en `highs` y `appsi_highs`.
+
+Se eligió `pyomo.contrib.solver` "highs" (justificación en FORMULACAO_3BP §1). HiGHS rechaza SOS y expresiones no
+lineales en esta interfaz, y un problema no acotado devuelve `feasible`; el clasificador nunca lo convierte en
+despacho. Hardware de la evidencia: 4 CPU x86_64, 15 GiB.
+
+### 3. Obstáculos A/B (extensión controlada)
+
+- **A:** el perfil lo elige la `versao_formulacao` de la entrada (`PERFIS_FORMULACAO`).
+  - Las entradas 3A no cambian: A05-OPT 3A sigue `pendente`, y el MILP rechaza las entradas 3A con `formulacao_nao_3bp`.
+  - Dos campos opcionales nuevos (V_ℓ y c_H) se omiten del JSON cuando están ausentes, así que las entradas 3A conservan el mismo texto y el mismo SHA-256 que en `main` (test con los hashes medidos en `f6d009d`).
+- **B:** `auditar(..., compromisso_fixo)` verifica de forma independiente el programa, la integralidad, M10, la PWL, el balance y los costos 3B-P. Rampas y permanencias se declaran `familias_nao_modeladas`. Sin programa, el comportamiento 3A no cambia.
+- **Capacidades y catálogo:** `CAPACIDADES_3BP` y las columnas `status_3BP`/`codigo_3BP` en el **mismo** catálogo. Un test impide símbolos futuros en ecuaciones declaradas implementadas.
+
+### 4. Resultados (HiGHS real; esperados analíticos o por enumeración independiente)
+
+| Caso | Resultado |
+|---|---|
+| A01, A02 | 60 kWh / 1/6 kWh; 61 fronteras |
+| A03, A04 | e_N = 50 / 69 kWh |
+| B01A, B01B | R$ 0 con E_indisp = 100 kWh / R$ 10 |
+| A05-FEAS | Cargar y verter: ambas factibles con objetivo 0 |
+| A05-OPT | **El solver lo encuentra**: P_c = 10 kW, C_oper = 0, e₁ = 59 kWh, R$ 0 |
+| A06 | q = 0,9 kg/h, 0,015 kg/min; ON a 5 kW inviable; OFF p = q = 0 |
+| PWL no convexa | Igual a la enumeración en 5 escenarios; vértice interno p = 16 kW, R$ 12,5 |
+| A07, A08 duro | `provenInfeasible` |
+| A08 degradado | ENS = 5 kWh, R$ 10 (V = 2 R$/kWh declarado) |
+| Dos BESS | 8,75 / 6,25 kW, R$ 1,1875 |
+| Exclusividad | R$ 18,888… (no la solución simultánea de R$ 17,2) |
+| Terminaciones incompletas reales | `time_limit=0` y `mip_max_nodes=0` ⇒ `sem_solucao`; `mip_max_improving_sols=1` ⇒ incumbent no óptimo (gap 0,88 %) auditado y aceptado como `aceito_factivel_nao_otimo`; límite de tiempo real con incumbent (N=48, 0,05 s) registrado en EVIDENCIA |
+
+### 5. Pruebas
+
+- Base `main`: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` ⇒ **722 passed, 7 warnings, 128 subtests**.
+- Rama: `tests/ems_v2` ⇒ **354 passed** (268 del 3A + 86 nuevos). Sin Pyomo: 280 passed y 3 skipped explícitos.
+- Regresión completa ⇒ **808 passed, 7 warnings, 128 subtests (366 s)**; los avisos son los mismos.
+- `git diff --stat f6d009d -- ems_integration models h2_pemfc simulation config reference_models orchestrator_runtime.py orchestrator_app.py app.py ems_app.py seeds2 requirements.txt` ⇒ vacío.
+- Ningún test del 3A fue modificado. El generador de evidencia está dentro del paquete (`python -m ems_v2.milp.evidencia`) para no relajar el test de aislamiento de 3A, que detectó la primera ubicación en `tools/`.
+
+### 6. Decisiones y contradicciones registradas (no bloquean; requieren conocimiento del responsable)
+
+1. **Compromiso fijo más estricto que "fijar compromiso".** El programa debe ser constante e igual al estado inicial, porque sin M09/M11/M12 un arranque o una parada se ignorarían físicamente. Las transiciones quedan para 3C.
+2. **A04 único:** exige un criterio económico declarado (c_curt = 1 R$/kWh en la fixture). Con objetivo nulo, cualquier carga entre 0 y 10 kW es factible.
+3. **A08 degradado:** el criterio de mínima ENS es económico (V_ℓ·ℓ, V declarado). La prioridad lexicográfica (M22) sigue fuera de alcance.
+4. **Combustible:** solo h·q. Los eventos (m^SU/m^SD) no existen en el contrato y las transiciones están bloqueadas.
+5. **"Óptimo"** = convergencia de HiGHS dentro de los gaps configurados (0 en los casos analíticos); es la optimalidad del modelo reducido.
+6. **Límite de tiempo con incumbent:** no es determinista. Como test se usa un límite de soluciones real más una simulación en el adaptador, y la observación real queda en EVIDENCIA.
+
+### 6b. Corrección de auditoría C-3B (PR #12: favorable con dos correcciones bloqueantes)
+
+| ID | Antes (`a8e3426`) | Después |
+|---|---|---|
+| C-3B-01 | Programas de compromiso con NaN/Inf/None/texto/escalar/anidados ⇒ **excepción no controlada** en `_hash_compromisso` (`int(x)` antes del preflight). `(1,)`, `(1.0,)` y `(True,)` tenían el mismo hash; `1.0` se aceptaba | Hash canónico sin pérdida y con tipo, que nunca lanza excepción. Preflight con `int` estricto en `{0, 1}` ⇒ `bloqueado_validacao` + `compromisso_invalido` |
+| C-3B-02 | `z_b = 0,5`, `z_b` incoherente, δ en otro segmento o fraccional, θ fuera del segmento o de [0,1], θ = None y δ = NaN ⇒ **`aceito_otimo`** | Capa separada `ems_v2/milp/integridade.py` (sin Pyomo) ⇒ `rejeitado_integridade` (o `sem_despacho` con valores ausentes). Auditoría algebraica intacta; tolerancias no relajadas |
+| Robustez | Excepción del executor/cargador ⇒ no controlada. Opción HiGHS inválida ⇒ ignorada en silencio (`aceito_otimo`) | `erro` controlado: `falha_solver`, `falha_carregamento`, `opcao_highs_invalida` |
+
+49 tests adversariales (`test_ems_v2_milp_auditoria_3b.py`): **37 fallan contra `a8e3426`** y todos pasan con la
+corrección. `tests/ems_v2` ⇒ **403 passed**. Suite completa ⇒ **857 passed, 7 warnings, 128 subtests (370 s)** =
+808 + 49. V1.6, runtime, UI, `requirements.txt` y `requirements-ems_v2.txt` sin cambios en el hotfix. Detalle:
+`docs/ems_v2/FORMULACAO_3BP.md` §7.
+
+### 6c. Corrección C-3B-03 (segunda fiscalización: C-3B-01/02 aprobados)
+
+- **Defecto:** `configuracao_registro()` ejecutaba `dict(opcoes_highs)` antes de `validar_configuracao()`. Con `X.b01b()`, `opcoes_highs` igual a None, 42 o "abc" provocaba una **excepción no controlada**. Una lista de pares se registraba **reinterpretada** como dict, y una configuración de tipo incorrecto se registraba como `{}`.
+- **Corrección:** `resolver()` valida antes de preparar los metadatos. El registro nunca lanza excepciones ni reinterpreta valores: preserva el valor original y marca `valida: False`. El registro válido no cambia.
+- **Verificación:**
+  - 13 tests `test_c3b03_*`: 12 fallan contra `a47a306` (solo pasa el control válido).
+  - `tests/ems_v2`: **416 passed**.
+  - Suite completa: **870 passed, 7 warnings, 128 subtests**.
+  - Formulación, tolerancias, auditor, contrato y dependencias sin cambios. Detalle: FORMULACAO_3BP §7.
+
+### 7. Rollback
+
+Revertir el PR elimina `ems_v2/milp/`, `ems_v2/fixtures_3b.py`, los tests `test_ems_v2_milp_*`, la documentación
+3B-P y `requirements-ems_v2.txt`. También revierte las extensiones de `contracts.py`, `audit.py`,
+`capabilities.py`, `fixtures.py` y del catálogo; el comportamiento y los hashes del 3A se conservan en ambos
+sentidos. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
@@ -1862,4 +1971,5 @@ Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas 
 | 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
 | 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
-| 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | Implementado e verificado na rama; aguardando auditoria |
+| 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
+| 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) (sem merge) | Implementado e verificado na rama; aguardando auditoria |
