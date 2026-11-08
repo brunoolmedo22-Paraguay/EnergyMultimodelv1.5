@@ -644,10 +644,17 @@ def _validar_estados(specs, estados, nome_s, nome_e, val_spec, val_estado) -> li
 
 
 # =============================================================================== serialização canônica
+# Campos OPCIONAIS acrescentados ao esquema v1 depois do Piso 3A: omitidos do JSON canônico quando ausentes (None),
+# para que toda entrada 3A conserve exatamente o mesmo texto canônico e o mesmo SHA-256 (compatibilidade).
+CAMPOS_EXTENSAO_3BP = {"ClasseDemanda": ("custo_energia_nao_suprida",), "EspecGerador": ("preco_h2",)}
+
+
 def para_dict(obj):
     """Serialização determinística (dataclasses → dict; tuplas → listas)."""
     if is_dataclass(obj) and not isinstance(obj, type):
-        return {f.name: para_dict(getattr(obj, f.name)) for f in fields(obj)}
+        omitir = CAMPOS_EXTENSAO_3BP.get(type(obj).__name__, ())
+        return {f.name: para_dict(getattr(obj, f.name)) for f in fields(obj)
+                if not (f.name in omitir and getattr(obj, f.name) is None)}
     if isinstance(obj, (tuple, list)):
         return [para_dict(x) for x in obj]
     if isinstance(obj, dict):

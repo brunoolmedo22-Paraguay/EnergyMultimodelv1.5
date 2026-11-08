@@ -65,14 +65,21 @@ def test_regras_de_combustivel_e_ens_no_3BP():
     assert "parametro_ausente" in validar_entrada(d2).codigos()
 
 
-def test_campos_novos_retrocompativeis_no_json():
-    from ems_v2.contracts import entrada_de_json, json_canonico
-    import json
-    s = json.loads(json_canonico(F.a01()[0]))
-    for dmd in s["demandas"]:
-        dmd.pop("custo_energia_nao_suprida")          # JSON produzido antes do 3B-P (sem o campo opcional)
-    e = entrada_de_json(json.dumps(s))
-    assert e == F.a01()[0]
+# SHA-256 canônicos das fixtures 3A medidos em main f6d009d (código 3A, antes do Piso 3B-P)
+HASHES_3A_MAIN = {"a01": "b87454a153ca415b", "b01b": "84c4eef103465c06"}
+
+
+def test_campos_novos_nao_alteram_o_json_nem_o_hash_das_entradas_3A():
+    from ems_v2.contracts import entrada_de_json, hash_entrada, json_canonico
+    for nome, pref in HASHES_3A_MAIN.items():
+        e = getattr(F, nome)()[0]
+        assert hash_entrada(e).startswith(pref), nome
+        s = json_canonico(e)
+        assert "custo_energia_nao_suprida" not in s and "preco_h2" not in s
+        assert entrada_de_json(s) == e
+    e = X.a08(True)[0]                                  # presentes ⇒ serializados e relidos sem perda
+    s = json_canonico(e)
+    assert '"custo_energia_nao_suprida"' in s and entrada_de_json(s) == e and json_canonico(entrada_de_json(s)) == s
 
 
 # ----------------------------------------------------------------------------- auditor com compromisso fixo (obstáculo B)
