@@ -1,0 +1,50 @@
+id,type,indices,domain,unit,boundary_or_sign,origin,enabled_if,equations,status
+T,set,t,0..N-1,interval,UTC start,time_grid,always,M01,active
+K,set,k,0..N,state boundary,UTC,time_grid,always,M01,active
+Delta,parameter,-,>0,min,interval duration,time_grid,always,"M01,M07",active
+h,derived,-,>0,h,Delta/60,time_grid,always,"M01,M07,M21",active
+L,parameter,"l,t",>=0,kW_bus,demand,forecast,demand exists,"M02,M04",active
+A_pot,parameter,"r,t",>=0,kW_bus,potential before availability,forecast and provenance,renewable,M03-v1.1,active
+a_r,parameter,"r,t","{0,1} basic",1,availability,inventory/time series,renewable,M03-v1.1,active
+A_usable,derived,"r,t",>=0,kW_bus,available potential,a*A_pot,renewable,M03-v1.1,active
+P_R,variable,"r,t",>=0,kW_bus,injection to bus,MILP,renewable,"M02,M03-v1.1",future
+C_oper,variable,"r,t",>=0,kW_bus,operational curtailment,MILP,renewable,"M03-v1.1,M21",future
+E_indisp,derived,"r,t",>=0,kWh,availability loss KPI,(1-a)*A_pot*h,renewable,M03-v1.1,active
+P_c,variable,"b,t",>=0,kW_bus,bus consumption,MILP,battery,"M02,M06,M07",future
+P_d,variable,"b,t",>=0,kW_bus,bus injection,MILP,battery,"M02,M06,M07",future
+z_b,variable,"b,t","{0,1}",1,charging mode,MILP,battery,M06,future
+e_b,variable,"b,k","[C*smin,C*smax]",kWh,battery stored energy,MILP,battery,"M07,M08",future
+C_b,parameter,b,>0,kWh,battery capacity,device spec,battery,"M07,M08",active
+eta_c,parameter,b,"(0,1]",1,bus-to-internal charge,device spec,battery,M07,active
+eta_d,parameter,b,"(0,1]",1,internal-to-bus discharge,device spec,battery,M07,active
+alpha_b,parameter,b,"(0,1]",1,retention per interval,device spec,battery,M07,future
+chi,parameter,"l,t","[0,1]",1,authorized interrupt fraction,service policy,interruptible demand,M04,active
+ell,variable,"l,t","[0,chi*L]",kW_bus,actually disconnected,MILP,service policy,"M02,M04,M21",future
+d,variable,t,"[0,Dmax]",kW_bus,physical dump consumption,MILP,dump device,"M02,M04,M21",future
+P_aux,derived,t,>=0,kW_bus,auxiliary consumption,mode / event contract,modes,"M02,M05,M20",future
+u,variable,"i,t","{0,1}",1,unit ON,MILP,unit commitment,"M09,M10",future
+y,variable,"i,t","{0,1}",1,instant start,MILP,instant variant,"M09,M21",future
+z,variable,"i,t","{0,1}",1,instant stop,MILP,instant variant,"M09,M21",future
+p,variable,"i,t",>=0,kW_bus,net operative output,MILP,unit,"M02,M10",future
+p_prev,parameter,i,>=0,kW_bus,actual previous unit output,state initial,unit,M11,future
+q,variable,"f,t",>=0,kg/h,H2 supplied ON,MILP,fuel cell PWL,"M16,M17",future
+delta_seg,variable,"f,s,t","{0,1}",1,active PWL segment,MILP,PWL,M14,future
+theta_seg,variable,"f,s,t","[0,1]",1,position inside active segment,MILP,PWL,M14-M16,future
+m_sb,variable,"i,t","{0,1}",1,standby mode,MILP,explicit standby,M05,future
+P_sb,parameter,i,>=0,kW_bus,standby consumption,physical model,explicit standby,M05,future
+m_in,parameter,"h,t",>=0,kg/interval,H2 external inflow,supplier schedule,physical tank,M18,future
+M_stock,variable,"h,k","[Mmin,Mmax]",kg,H2 stock,MILP,physical tank,M18,future
+c_curt,parameter,"r,t",>=0,R$/kWh,operational curtailment cost,economics,renewable,M21-v1.1,active
+c_dump,parameter,t,>=0,R$/kWh,physical dumping cost,economics,dump device,M21,future
+gamma,parameter,i,>=0,R$/kW/transition,ramp regularizer not life prediction,economics,ramp objective,M21,future
+v_abs,variable,"i,t",>=0,kW,absolute dispatch change,MILP,ramp objective,M21,future
+w_priority,parameter,l,>0,1,relative service weights,policy,lexicographic,M22,future
+m_mode,variable,"i,q,t","{0,1}",1,mode selection,MILP,multimode,M20,future
+v_arc,variable,"i,q,qnext,t","{0,1}",1,mode transition,MILP,multimode,M20,future
+q_mode,parameter,"f,q,t",>=0,kg/h,H2 mode supply,physical data,multimode,"M20,B05",future
+g_mode,parameter,"i,q,t",>=0,kW_bus,mode generation,physical data,multimode,"M20,B05",future
+a_mode,parameter,"i,q,t",>=0,kW_bus,mode auxiliary load,physical data,multimode,"M20,B05",future
+y_start,derived,"i,t","{0,1}",event,arc initiating startup,M20 mode transitions,multimode,M20b,future
+z_stop,derived,"i,t","{0,1}",event,arc initiating shutdown,M20 mode transitions,multimode,"M20b,B05",future
+kappa,parameter,b,>=0,R$/kWh,terminal shortage cost,terminal policy,soft terminal,M21,future
+xi,variable,b,>=0,kWh,terminal shortfall,MILP,soft terminal,M21,future
