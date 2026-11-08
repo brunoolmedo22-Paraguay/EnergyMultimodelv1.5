@@ -1,5 +1,11 @@
 # `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A) y primer MILP ejecutable (Piso 3B-P)
 
+> **Piso 3C-0 (puente científico):** `ems_v2/ponte/` (contratos, solo biblioteca estándar) y `ems_v2/ponte_seeds2/`
+> (lector SOLO LECTURA de microrredes reales) conectan **contractualmente** el EMS V2 con el Gestor de microrredes:
+> inventario por UID con procedencia, matriz de parámetros, escenario/previsión/realización separados, plan →
+> ejecución → estado con checkpoints, preflight, registro sellado (costo realizado ≠ valor futuro) e instrumentación.
+> Sin integración con la UI ni el runtime. Ver [`PONTE_3C0.md`](PONTE_3C0.md).
+
 > **Piso 3B-P:** el subpaquete `ems_v2/milp/` construye y resuelve un MILP de **una ventana** con Pyomo + HiGHS
 > (`resolver(entrada, configuracao, compromisso_fixo)`), solo por API y tests. Dependencias en
 > `requirements-ems_v2.txt`; formulación ejecutada, interfaz y límites en [`FORMULACAO_3BP.md`](FORMULACAO_3BP.md);
