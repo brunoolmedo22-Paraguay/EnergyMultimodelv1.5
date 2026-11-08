@@ -53,6 +53,13 @@ def eh_canonica(unidade: str) -> bool:
     return unidade in UNIDADES_CANONICAS
 
 
+def converter(valor: float | int | Fraction | str, fator: Fraction) -> float:
+    """Regra ÚNICA de conversão declarada: produto racional exato (bruto decimal × fator) arredondado UMA vez ao
+    ``float`` mais próximo (``Fraction.__float__`` arredonda corretamente). Usada pelo conversor e pela verificação
+    da cadeia (C-3A-04): o valor normalizado legítimo é exatamente este ``float``."""
+    return float(exato(valor) * fator)
+
+
 def para_canonica(valor: float | int, unidade: str, caminho: str = "valor") -> tuple[float, str, Transformacao | None]:
     """Converte ``valor`` para a unidade canônica. Já canônico → sem transformação. Desconhecida → rejeição."""
     if unidade in UNIDADES_CANONICAS:
@@ -60,7 +67,7 @@ def para_canonica(valor: float | int, unidade: str, caminho: str = "valor") -> t
     if unidade not in CONVERSOES:
         raise ContratoInvalido([erro("unidade_desconhecida", caminho, f"Unidade desconhecida: {unidade!r}.")])
     destino, fator = CONVERSOES[unidade]
-    novo = float(exato(valor) * fator)
+    novo = converter(valor, fator)
     return novo, destino, Transformacao("conversao_unidade", f"{unidade} → {destino} (× {fator})", unidade, destino,
                                         str(fator))
 
@@ -74,4 +81,4 @@ def fator_conversao(origem: str, destino: str) -> Fraction:
                                  f"Não há conversão declarada de {origem!r} para {destino!r}.")])
 
 
-__all__ = ["CONVERSOES", "UNIDADES_CANONICAS", "eh_canonica", "exato", "fator_conversao", "para_canonica"]
+__all__ = ["CONVERSOES", "UNIDADES_CANONICAS", "converter", "eh_canonica", "exato", "fator_conversao", "para_canonica"]

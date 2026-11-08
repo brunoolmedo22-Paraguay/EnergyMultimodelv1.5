@@ -10,7 +10,7 @@ from ems_v2.diagnostics import ContratoInvalido
 from ems_v2.parameters import Parametro, validar_parametro
 from ems_v2.provenance import Procedencia
 from ems_v2.timegrid import MalhaTemporal, validar_malha
-from ems_v2.units import exato, para_canonica
+from ems_v2.units import exato, fator_conversao, para_canonica
 
 pytestmark = pytest.mark.synthetic_algebraic
 P = Procedencia("sintetico", "teste", "malha")
@@ -135,3 +135,83 @@ def test_parametros_invalidos(p, unidade, dominio, cod):
 def test_parametro_opcional_ausente_e_pendente_nao_presumido():
     c = validar_parametro(None, "p", unidade="R$/kWh", dominio="nao_negativo", obrigatorio=False)
     assert [(x.codigo, x.severidade) for x in c] == [("parametro_ausente", "pendente")]
+
+
+# ----------------------------------------------------------------------------- auditoria do PR #11 (C-3A-04)
+import math  # noqa: E402
+from dataclasses import replace  # noqa: E402
+
+from ems_v2.provenance import Transformacao  # noqa: E402
+from ems_v2.series import validar_serie  # noqa: E402
+
+ALTA_PRECISAO = [(0.12345678912345678, "W"), (1e-300, "W"), (123456789.12345679, "MWh"), (0.1, "W"),
+                 (33.3, "%"), (300.0, "R$/MWh"), (2.2250738585072014e-308, "kW/s"), (1.7976931348623157e+300, "Wh"),
+                 (0.0001234, "kg/s"), (7, "kg/min")]
+
+
+def _cods(c):
+    return {x.codigo for x in c}
+
+
+@pytest.mark.parametrize("bruto,unidade", ALTA_PRECISAO)
+def test_c3a04_conversao_legitima_de_alta_precisao_aceita_e_rastreavel(bruto, unidade):
+    p = Parametro.de_bruto(bruto, unidade, P)
+    assert validar_parametro(p, "p", unidade=p.unidade, dominio="qualquer") == []
+    # rastreabilidade: o bruto e a transformação declarada permanecem no parâmetro
+    t = p.transformacoes[0]
+    assert (p.valor_bruto, p.unidade_bruta) == (float(bruto), unidade)
+    assert (t.unidade_origem, t.unidade_destino) == (unidade, p.unidade)
+    assert Fraction(t.fator) == fator_conversao(unidade, p.unidade)
+    # o normalizado é o float mais próximo do produto racional exato (um único arredondamento)
+    exato_ = exato(bruto) * Fraction(t.fator)
+    assert abs(Fraction(p.valor) - exato_) <= abs(Fraction(math.nextafter(p.valor, math.inf)) - exato_)
+    assert abs(Fraction(p.valor) - exato_) <= abs(Fraction(math.nextafter(p.valor, -math.inf)) - exato_)
+
+
+def test_c3a04_caso_da_auditoria():
+    p = Parametro.de_bruto(0.12345678912345678, "W", P)
+    assert p.valor == 0.00012345678912345677 and p.unidade == "kW"
+    assert validar_parametro(p, "p", unidade="kW", dominio="nao_negativo") == []
+
+
+@pytest.mark.parametrize("bruto,unidade", ALTA_PRECISAO)
+@pytest.mark.parametrize("direcao", [math.inf, -math.inf])
+def test_c3a04_alteracao_de_um_ulp_no_normalizado_rejeitada(bruto, unidade, direcao):
+    p = Parametro.de_bruto(bruto, unidade, P)
+    alterado = replace(p, valor=math.nextafter(p.valor, direcao))
+    assert "cadeia_transformacao_inconsistente" in _cods(validar_parametro(alterado, "p", unidade=p.unidade,
+                                                                          dominio="qualquer"))
+
+
+def test_c3a04_alteracao_do_bruto_ou_do_registro_rejeitada():
+    p = Parametro.de_bruto(0.12345678912345678, "W", P)
+    assert "cadeia_transformacao_inconsistente" in _cods(validar_parametro(
+        replace(p, valor_bruto=0.1234567891234), "p", unidade="kW", dominio="nao_negativo"))
+    errado = Transformacao("conversao_unidade", "W → kW (× 1/100)", "W", "kW", "1/100")
+    assert "transformacao_inconsistente" in _cods(validar_parametro(
+        replace(p, transformacoes=(errado,)), "p", unidade="kW", dominio="nao_negativo"))
+    assert "cadeia_transformacao_inconsistente" in _cods(validar_parametro(
+        replace(p, unidade_bruta="MW"), "p", unidade="kW", dominio="nao_negativo"))
+
+
+def _serie_com_brutos(brutos):
+    s = F.a01()[0].demandas[0].potencia
+    vals = tuple(para_canonica(b, "W")[0] for b in brutos)
+    return replace(s, valores=vals, valores_brutos=tuple(brutos), unidade_bruta="W",
+                   transformacoes=(para_canonica(1, "W")[2],))
+
+
+def test_c3a04_serie_alta_precisao_aceita_e_alteracao_rejeitada():
+    brutos = [0.12345678912345678, 60000.0, 0.1, 1e-300, 59999.999999999993] + [60000.0] * 55
+    s = _serie_com_brutos(brutos)
+    assert validar_serie(s, "s", unidade="kW", grandeza="potencia") == []
+    assert s.valores_brutos == tuple(brutos) and s.unidade_bruta == "W" and s.transformacoes[0].fator == "1/1000"
+    for i in (0, 4, 59):
+        v = list(s.valores)
+        v[i] = math.nextafter(v[i], math.inf)
+        r = _cods(validar_serie(replace(s, valores=tuple(v)), "s", unidade="kW", grandeza="potencia"))
+        assert "cadeia_transformacao_inconsistente" in r, i
+    sem = replace(s, transformacoes=())
+    assert "transformacao_nao_registrada" in _cods(validar_serie(sem, "s", unidade="kW", grandeza="potencia"))
+    curto = replace(s, valores_brutos=tuple(brutos[:-1]))
+    assert "cadeia_transformacao_inconsistente" in _cods(validar_serie(curto, "s", unidade="kW", grandeza="potencia"))

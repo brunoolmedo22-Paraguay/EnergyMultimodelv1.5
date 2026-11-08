@@ -18,7 +18,8 @@ from typing import Sequence
 from .diagnostics import Constatacao, ContratoInvalido, aviso, erro
 from .provenance import Procedencia, Transformacao, validar_procedencia
 from .timegrid import MalhaTemporal, ler_instante_utc
-from .units import UNIDADES_CANONICAS, exato, fator_conversao
+from .parameters import verificar_cadeia
+from .units import UNIDADES_CANONICAS
 
 SEMANTICAS = {
     "media_intervalo": "interval_mean — média do intervalo [t, t+passo)",
@@ -106,17 +107,8 @@ def validar_serie(s: SerieTemporal, caminho: str, *, unidade: str, grandeza: str
     out += validar_procedencia(s.procedencia, caminho + ".procedencia")
     if s.emissao_utc is not None:
         out += ler_instante_utc(s.emissao_utc, caminho + ".emissao_utc")[1]
-    if s.valores_brutos is not None or s.unidade_bruta is not None:
-        try:
-            f = fator_conversao(str(s.unidade_bruta), s.unidade)
-            if s.valores_brutos is None or len(s.valores_brutos) != len(s.valores) or any(
-                    exato(b) * f != exato(v) for b, v in zip(s.valores_brutos, s.valores) if not ruins):
-                out.append(erro("cadeia_transformacao_inconsistente", caminho,
-                                "Valores normalizados não correspondem aos brutos com a conversão declarada."))
-            if f != 1 and not s.transformacoes:
-                out.append(erro("transformacao_nao_registrada", caminho, "Conversão aplicada sem registro."))
-        except Exception as exc:  # noqa: BLE001
-            out.append(erro("cadeia_transformacao_inconsistente", caminho, str(exc)))
+    if (s.valores_brutos is not None or s.unidade_bruta is not None) and not ruins:
+        out += verificar_cadeia(s.valores_brutos, s.unidade_bruta, s.valores, s.unidade, s.transformacoes, caminho)
     return out
 
 

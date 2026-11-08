@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from .diagnostics import Constatacao, erro, pendente
 from .provenance import Procedencia, Transformacao, validar_procedencia
-from .units import UNIDADES_CANONICAS, exato, fator_conversao, para_canonica
+from .units import UNIDADES_CANONICAS, converter, fator_conversao, para_canonica
 
 DOMINIOS = {
     "positivo": "> 0",
@@ -66,17 +66,39 @@ def validar_parametro(p: Parametro | None, caminho: str, *, unidade: str, domini
         out.append(erro("fracao_fora_do_dominio", caminho, f"Fração exige [0, 1]; recebido {v}."))
     out += validar_procedencia(p.procedencia, caminho + ".procedencia")
     if p.valor_bruto is not None or p.unidade_bruta is not None:
-        try:
-            f = fator_conversao(str(p.unidade_bruta), p.unidade)
-            if exato(p.valor_bruto) * f != exato(v):
-                out.append(erro("cadeia_transformacao_inconsistente", caminho,
-                                f"Valor normalizado {v} {p.unidade} não corresponde ao bruto "
-                                f"{p.valor_bruto} {p.unidade_bruta}."))
-            if f != 1 and not p.transformacoes:
-                out.append(erro("transformacao_nao_registrada", caminho, "Conversão aplicada sem registro."))
-        except Exception as exc:  # noqa: BLE001 — qualquer falha da cadeia é rejeição controlada
-            out.append(erro("cadeia_transformacao_inconsistente", caminho, str(exc)))
+        out += verificar_cadeia((p.valor_bruto,), p.unidade_bruta, (v,), p.unidade, p.transformacoes, caminho)
     return out
 
 
-__all__ = ["DOMINIOS", "Parametro", "validar_parametro"]
+def verificar_cadeia(brutos, unidade_bruta, normalizados, unidade: str, transformacoes, caminho: str) -> list[Constatacao]:
+    """Confere a cadeia bruto → normalizado DECLARADA (parâmetros e séries; C-3A-04).
+
+    Aceita exatamente o valor que a conversão declarada produz (``units.converter``: produto racional exato
+    arredondado uma vez ao ``float`` representável) e REJEITA qualquer outro valor normalizado — inclusive uma
+    alteração de 1 ulp. Não é tolerância física: as tolerâncias de ``audit.py`` não intervêm. Também exige que
+    a transformação registrada corresponda à conversão (unidades e fator)."""
+    out: list[Constatacao] = []
+    try:
+        f = fator_conversao(str(unidade_bruta), unidade)
+        if brutos is None or len(brutos) != len(normalizados):
+            return [erro("cadeia_transformacao_inconsistente", caminho, "Valores brutos ausentes ou com outro comprimento.")]
+        ruins = [i for i, (b, v) in enumerate(zip(brutos, normalizados)) if converter(b, f) != v]
+        if ruins:
+            i = ruins[0]
+            out.append(erro("cadeia_transformacao_inconsistente", caminho,
+                            f"{len(ruins)} valor(es) normalizado(s) diferente(s) da conversão declarada (índice {i}: "
+                            f"{normalizados[i]!r} {unidade} ≠ {converter(brutos[i], f)!r} {unidade} = "
+                            f"{brutos[i]!r} {unidade_bruta} × {f})."))
+        if f != 1:
+            if not transformacoes:
+                out.append(erro("transformacao_nao_registrada", caminho, "Conversão aplicada sem registro."))
+            elif not any(t.unidade_origem == unidade_bruta and t.unidade_destino == unidade and t.fator == str(f)
+                         for t in transformacoes):
+                out.append(erro("transformacao_inconsistente", caminho,
+                                f"Nenhuma transformação registrada corresponde a {unidade_bruta} → {unidade} (× {f})."))
+    except Exception as exc:  # noqa: BLE001 — qualquer falha da cadeia é rejeição controlada
+        out.append(erro("cadeia_transformacao_inconsistente", caminho, str(exc)))
+    return out
+
+
+__all__ = ["DOMINIOS", "Parametro", "validar_parametro", "verificar_cadeia"]
