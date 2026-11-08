@@ -1,151 +1,151 @@
-id,latex,tipo,indices,dominio,unidade,fronteira_ou_sinal,opcional,habilitado_se,origem,equacoes,status,variante,implementacao,codigo,id_semente,observacoes
-T,\mathcal T,conjunto,t,0..N-1,intervalo,"intervalos [t, t+Δ) em UTC",nao,sempre,malha temporal,M01,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.inicios_intervalos_utc,T,
-K,\mathcal K,conjunto,k,0..N,fronteira,estados de fronteira em UTC,nao,sempre,malha temporal,M01;M08,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.fronteiras_utc,K,N+1 fronteiras; a última não é intervalo
-N,N,parametro,-,inteiro >= 1,intervalos,número de intervalos da janela,nao,sempre,malha temporal,M01;TEMP-13;TERM-SOFT;TERM-HARD,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.N,,
-Delta,\Delta,parametro,-,> 0; segundos inteiros,min,duração do intervalo,nao,sempre,malha temporal,M01;TEMP-13;M11a;M11b;M11-EXT;M12,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.delta_min,Delta,
-h,h,derivado,-,> 0,h,Δ/60,nao,sempre,malha temporal,M01;B01-KPI;M05;M07;M17;B05-INST;B05-MULTI-H2;M21;M21-v1.1;M21-CURT;M21-MULTI;M22,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.timegrid.MalhaTemporal.h_horas,h,exato (Fraction) na malha e na referência; Δs/3600 no auditor
-I_t,I_t,conjunto,t,"[τ+tΔ, τ+(t+1)Δ)",intervalo,intervalo semiaberto,nao,sempre,malha temporal,M01,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.inicios_intervalos_utc,,
-tau_k,\tau_k,parametro,k,instante UTC,UTC,início da janela,nao,sempre,malha temporal,M01,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.inicio_utc,,fuso explícito obrigatório
-H_f,H_f,parametro,-,>= H_o,min,horizonte de previsão,sim,previsão declarada,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.horizonte_previsao_min,,não declarado = aviso
-H_o,H_o,derivado,-,N Δ,min,horizonte de otimização,nao,sempre,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.horizonte_otimizacao_min,,
-rho,\rho,derivado,-,"m Δ, 1<=m<=N",min,período de reotimização,nao,sempre,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.reotimizacao_min,,
-m_reopt,m,parametro,-,1..N,intervalos,intervalos aplicados por ciclo,nao,sempre,malha temporal,TEMP-13;M23,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.intervalos_reotimizacao,,id único: m é também massa e modo
-T_M,T_M,derivado,-,K_M Δ,min,duração da missão,nao,sempre,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.missao_min,,
-delta_phys,\delta_{phys},parametro,-,> 0,s,passo interno do simulador físico,sim,replay físico,modelo físico,TEMP-13,futuro,comum,,,,"2 s é candidato PEMFC, não garantia (3E)"
-R_set,\mathcal R,conjunto,r,UIDs,-,recursos renováveis por UID,nao,sempre,contrato,CONJ-2;M02,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.renovaveis,,
-B_set,\mathcal B,conjunto,b,UIDs,-,bancos BESS independentes,nao,sempre,contrato,CONJ-2;M02;M06,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.baterias,,
-F_set,\mathcal F,conjunto,f,UIDs,-,unidades PEMFC,nao,sempre,contrato,CONJ-2;M14,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.geradores,,tecnologia = pemfc
-G_set,\mathcal G,conjunto,g,UIDs,-,unidades térmicas,nao,sempre,contrato,CONJ-2;M19,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.geradores,,tecnologia = termica
-U_set,\mathcal U,conjunto,i,F ∪ G,-,unidades com commitment,nao,sempre,contrato,CONJ-2;M02;M09,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.geradores,,
-L_set,\mathcal L,conjunto,l,UIDs,-,classes de demanda,nao,sempre,contrato,CONJ-2;M02,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.demandas,,
-S_f,\mathcal S_f,conjunto,"f,s",segmentos consecutivos,-,segmentos da curva PWL,nao,curva PWL,contrato,CONJ-2;M14;M15;M16,ativo_3A,comum,contrato,ems_v2.contracts.CurvaPWL.vertices,,
-H_set,\mathcal H,conjunto,h,UIDs,-,depósitos de H2,sim,tanque físico com dados,inventário,CONJ-2;M18,futuro,comum,,,,sem dados: suprimento externo declarado (D04)
-u_prev,u_i^{-1},parametro,i,"{0,1}",1,estado ON/OFF antes da janela,nao,unidade,estado inicial por UID,EST-INI;M09,ativo_3A,comum,contrato,ems_v2.contracts.EstadoGerador.ligado,,nunca inferido da potência
-p_prev,p_i^{-1},parametro,i,>= 0,kW_bus,potência líquida antes da janela,nao,unidade,estado inicial por UID,EST-INI;M11a;M11b,ativo_3A,comum,contrato,ems_v2.contracts.EstadoGerador.p_anterior_kW,p_prev,nunca zero por omissão
-P_min,\underline P_{it},parametro,"i,t",>= 0,kW_bus,mínimo operativo líquido,nao,unidade,ficha/inventário,EST-INI;M10,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecGerador.p_min_kW,,
-P_max,\overline P_{it},parametro,"i,t",> 0,kW_bus,máximo operativo líquido,nao,unidade,ficha/inventário,EST-INI;M10,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecGerador.p_max_kW,,
-e_b0,e_b^0,parametro,b,"[C s_min, C s_max]",kWh,energia interna inicial,nao,bateria,estado inicial por UID,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EstadoBateria.energia_kWh,,
-C_b,C_b,parametro,b,> 0,kWh,capacidade de referência,nao,bateria,ficha/inventário,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.capacidade_kWh,C_b,
-s_min,\underline s_b,parametro,b,"[0,1), < s_max",1,SOC mínimo,nao,bateria,ficha/instalação,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.soc_min,,
-s_max,\overline s_b,parametro,b,"(0,1]",1,SOC máximo,nao,bateria,ficha/instalação,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.soc_max,,
-P_R,P^R_{rt},variavel,"r,t",>= 0,kW_bus,injeção renovável usada (+ injeta),nao,renovável,candidata/MILP,M02;M03;M03-v1.1,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.renovaveis,P_R,valor candidato conferido; nenhum otimizador o escolhe no 3A
-p,p_{it},variavel,"i,t",>= 0,kW_bus,potência líquida operativa (+ injeta),nao,unidade,candidata/MILP,M02;M10;M11a;M11b;M15;M19;M20c;B05-MULTI-BAL;M21;M21-v1.1;M21-MULTI;M21-REG,auditado_3A,comum,auditoria,ems_v2.audit.auditar_pwl,p,só domínio ON/OFF do caso A06
-P_d,P^d_{bt},variavel,"b,t",>= 0,kW_bus,descarga (+ injeta no barramento),nao,bateria,candidata/MILP,M02;M06;M07;BND-BESS;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.baterias,P_d,
-P_c,P^c_{bt},variavel,"b,t",>= 0,kW_bus,carga (consome do barramento),nao,bateria,candidata/MILP,M02;M06;M07;BND-BESS;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.baterias,P_c,
-L,L_{lt},parametro,"l,t",>= 0,kW_bus,demanda média do intervalo,nao,demanda,previsão com procedência,M02;M04,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.ClasseDemanda.potencia,L,
-ell,\ell_{lt},variavel,"l,t","[0, χ L]",kW_bus,carga efetivamente desconectada,nao,serviço degradado,candidata/MILP,M02;M04;M21;M21-v1.1;M21-MULTI;M22,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.demandas,ell,serviço duro: ℓ = 0
-P_aux,P^{aux}_t,derivado,t,>= 0,kW_bus,consumo auxiliar não incluído nas curvas,sim,modos/eventos com dados,contrato de eventos,M02;M05,futuro,comum,,,P_aux,auditor rejeita como não suportado
-d,d_t,variavel,t,"[0, D̄]",kW_bus,consumo de descarte físico,sim,dispositivo de descarte,candidata/MILP,M02;M04;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.descarte,d,D̄ = 0 sem dispositivo (D03)
-C_R,C^R_{rt},variavel,"r,t",>= 0,kW_bus,vertimento v1.0 (inclui indisponibilidade),nao,-,especificação v1.0,M03;M21,substituido,comum,,,,substituído por C_oper (adenda B01)
-A_v10,A_{rt},parametro,"r,t",>= 0,kW_bus,potencial v1.0,nao,-,especificação v1.0,M03,substituido,comum,,,,substituído por A_pot (adenda B01)
-a,a_{xt},parametro,"x,t","{0,1} (variante binária)",1,"disponibilidade exógena por UID (renovável, banco, unidade)",nao,sempre,inventário/série,M03;M03-v1.1;B01-KPI;M06;M09,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.Disponibilidade.serie,a_r,resolução C2: um símbolo para R ∪ B ∪ U; fracionária = pendente
-A_usable,A^{util}_{rt},derivado,"r,t",>= 0,kW_bus,a A_pot,nao,renovável,a × A_pot,M03-v1.1,ativo_3A,comum,referencia;auditoria,ems_v2.reference.renovavel_v11,A_usable,
-A_pot,A^{pot}_{rt},parametro,"r,t",>= 0,kW_bus,potencial técnico antes da disponibilidade,nao,renovável,previsão com procedência,M03-v1.1;B01-KPI,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.PotencialRenovavel.potencial,A_pot,ausente nunca vira 0
-C_oper,C^{oper}_{rt},variavel,"r,t",>= 0,kW_bus,vertimento operacional voluntário,nao,renovável,candidata/MILP,M03-v1.1;B01-KPI;M21-CURT,auditado_3A,comum,referencia;auditoria,ems_v2.audit.CandidatoDespacho.renovaveis,C_oper,
-E_indisp,E^{indisp}_{rt},derivado,"r,t",>= 0,kWh,perda por indisponibilidade (KPI),nao,renovável,(1−a) A_pot h,B01-KPI,ativo_3A,comum,referencia;auditoria,ems_v2.reference.ResultadoRenovavel.E_indisp_kWh,E_indisp,nunca cobrada como vertimento
-E_curt_oper,"E^{curt,oper}_{rt}",derivado,"r,t",>= 0,kWh,energia vertida operacional,nao,renovável,h C_oper,B01-KPI,ativo_3A,comum,referencia;auditoria,ems_v2.reference.ResultadoRenovavel.E_curt_oper_kWh,,
-chi,\chi_{lt},parametro,"l,t","[0,1]",1,fração AUTORIZADA de interrupção,nao,demanda interrompível,política de serviço,M04,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.ClasseDemanda.fracao_interrompivel,chi,não é interruptor livre; crítica: χ = 0
-D_max,\overline D_t,parametro,t,>= 0,kW_bus,capacidade de descarte físico,sim,dispositivo de descarte,inventário,M04,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.DispositivoDescarte.p_max_kW,,0 sem dispositivo declarado
-W_SU,W_i^{SU},parametro,i,>= 0,kWh/evento,energia auxiliar de arranque,sim,variante instantânea com dados,modelo físico,M05,futuro,instantanea,,,,excluído na variante multimodo (B05)
-W_SD,W_i^{SD},parametro,i,>= 0,kWh/evento,energia auxiliar de parada,sim,variante instantânea com dados,modelo físico,M05,futuro,instantanea,,,,excluído na variante multimodo (B05)
-P_sb,P_i^{sb},parametro,i,>= 0,kW_bus,consumo em standby,sim,modo standby definido,modelo físico,M05,futuro,instantanea,,,P_sb,não coexistir com autômato que conte o mesmo consumo
-m_sb,m^{sb}_{it},variavel,"i,t","{0,1}",1,modo standby,sim,modo standby definido,MILP,M05,futuro,instantanea,,,m_sb,
-Pc_max,\overline P^c_{bt},parametro,"b,t",> 0,kW_bus,limite de carga,nao,bateria,ficha/validação,M06,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.p_carga_max_kW,,
-Pd_max,\overline P^d_{bt},parametro,"b,t",> 0,kW_bus,limite de descarga,nao,bateria,ficha/validação,M06,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.p_descarga_max_kW,,
-z_b,z^b_{bt},variavel,"b,t","{0,1}",1,modo carga do banco,nao,bateria,MILP,M06,futuro,comum,,,z_b,"no 3A a exclusividade é auditada por min(P^c, P^d)"
-e_b,e_{bk},variavel,"b,k","[C s_min, C s_max]",kWh,energia interna na fronteira k,nao,bateria,candidata/MILP,M07;M08;TERM-SOFT;TERM-HARD,auditado_3A,comum,referencia;auditoria,ems_v2.audit.CandidatoDespacho.baterias,e_b,sem recorte
-alpha_b,\alpha_b,parametro,b,"(0,1]",1,retenção por intervalo,nao,bateria,hipótese declarada ou exp(−λh),M07,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.EspecBateria.hipotese_autodescarga,alpha_b,resolução C1: α = 1 só como hipótese DECLARADA
-lambda_b,\lambda_b,parametro,b,>= 0,1/h,autodescarga,sim,hipótese lambda_declarado,dado com procedência,M07,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.autodescarga_1_h,,
-eta_c,\eta^c_b,parametro,b,"(0,1]",1,barramento → energia interna,nao,bateria,ficha/identificação,M07;BND-BESS,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.EspecBateria.eta_carga,eta_c,
-eta_d,\eta^d_b,parametro,b,"(0,1]",1,energia interna → barramento,nao,bateria,ficha/identificação,M07;BND-BESS,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.EspecBateria.eta_descarga,eta_d,
-SOC,SOC_{bk},derivado,"b,k","[s_min, s_max]",1,e/C,sim,bateria,e_bk / C_b,M08,ativo_3A,comum,contrato,ems_v2.contracts.EstadoBateria.soc,,% exige conversão explícita
-P_term_d,\widetilde P^d,parametro,"b,t",>= 0,kW_terminal,potência nos terminais,sim,caracterização terminal,modelo físico,BND-BESS,futuro,comum,,,,
-P_term_c,\widetilde P^c,parametro,"b,t",>= 0,kW_terminal,potência nos terminais,sim,caracterização terminal,modelo físico,BND-BESS,futuro,comum,,,,
-eta_conv,\eta^{conv},parametro,b,"(0,1]",1,eficiência do conversor,sim,caracterização terminal,ficha,BND-BESS,futuro,comum,,,,
-eta_int_c,\widetilde\eta^c,parametro,b,"(0,1]",1,eficiência interna de carga,sim,caracterização terminal,ficha,BND-BESS,futuro,comum,,,,
-eta_int_d,\widetilde\eta^d,parametro,b,"(0,1]",1,eficiência interna de descarga,sim,caracterização terminal,ficha,BND-BESS,futuro,comum,,,,
-u,u_{it},variavel,"i,t","{0,1}",1,unidade ON,nao,unidade,candidata/MILP,M09;M10;M11a;M11b;M12;M14;M19;M20;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.auditar_pwl,u,só integralidade e domínio (A06)
-y,y_{it},variavel,"i,t","{0,1}",evento,arranque instantâneo,nao,variante instantânea,MILP,M05;M09;M11a;M12;M17;B05-INST;M21;M21-v1.1,futuro,instantanea,,,y,
-z,z_{it},variavel,"i,t","{0,1}",evento,parada instantânea,nao,variante instantânea,MILP,M05;M09;M11b;M12;M17;B05-INST;M21;M21-v1.1,futuro,instantanea,,,z,distinto de z^b
-n_f,n_{ft},derivado,"f,t",inteiro >= 0,unidades,"Σ u (saída, não inferida da potência)",nao,equipamento com várias unidades,MILP,M10,futuro,comum,,,,
-R_up,R_i^+,parametro,i,>= 0,kW/min,modulação de subida,sim,rampas habilitadas,ficha/dado,M11a;M11-EXT,futuro,comum,,,,
-R_down,R_i^-,parametro,i,>= 0,kW/min,modulação de descida,sim,rampas habilitadas,ficha/dado,M11b;M11-EXT,futuro,comum,,,,
-S_up,S_i^+,parametro,i,>= 0,kW_bus,potência máx. no 1º intervalo operativo,sim,rampas habilitadas,ficha/dado,M11a,futuro,instantanea,,,,não substituir por P_max
-S_down,S_i^-,parametro,i,>= 0,kW_bus,potência máx. no último intervalo,sim,rampas habilitadas,ficha/dado,M11b,futuro,instantanea,,,,
-w_end,w_{ik},variavel,"i,k",>= 0,kW_bus,potência de extremo,sim,variante de extremos,MILP,M11-EXT,futuro,comum,,,,
-p_bar,\bar p_{it},derivado,"i,t",>= 0,kW_bus,média dos extremos,sim,variante de extremos,MILP,M11-EXT,futuro,comum,,,,
-T_up,T_i^{up},parametro,i,>= 0,min,permanência mínima ON,sim,permanências,ficha/dado,M12,futuro,instantanea,,,,não estimar a partir de preço
-T_down,T_i^{down},parametro,i,>= 0,min,permanência mínima OFF,sim,permanências,ficha/dado,M12,futuro,instantanea,,,,
-U_i,U_i,derivado,i,⌈T^up/Δ⌉,intervalos,permanência ON em intervalos,sim,permanências,T_up/Δ,M12,futuro,instantanea,,,,
-D_i,D_i,derivado,i,⌈T^down/Δ⌉,intervalos,permanência OFF em intervalos,sim,permanências,T_down/Δ,M12,futuro,instantanea,,,,
-d_on,d_i^{on},parametro,i,>= 0,min,tempo já transcorrido ON,sim,permanências,estado inicial,M12,futuro,instantanea,,,,
-d_off,d_i^{off},parametro,i,>= 0,min,tempo já transcorrido OFF,sim,permanências,estado inicial,M12,futuro,instantanea,,,,
-r_on,r_i^{on},derivado,i,>= 0,intervalos,obrigação ON remanescente,sim,permanências,M12,M12,futuro,instantanea,,,,
-r_off,r_i^{off},derivado,i,>= 0,intervalos,obrigação OFF remanescente,sim,permanências,M12,M12,futuro,instantanea,,,,
-q_I,q_f(I),derivado,f,função,kg/h,vazão suprida (Faraday),sim,modelo PEMFC certificado,modelo físico,M13,futuro,comum,,,,
-N_cell,"N_{cell,f}",parametro,f,inteiro > 0,células,número de células,sim,modelo PEMFC,modelo físico,M13,futuro,comum,,,,
-I_cell,I,variavel,"f,t",>= 0,A,corrente do stack,sim,modelo PEMFC,modelo físico,M13,futuro,comum,,,,
-M_H2,M_{H2},parametro,-,> 0,kg/mol,massa molar,sim,modelo PEMFC,lida do modelo e seu hash,M13,futuro,comum,,,,não fixar valor aqui
-F_const,F,parametro,-,> 0,C/mol,constante de Faraday,sim,modelo PEMFC,lida do modelo e seu hash,M13,futuro,comum,,,,
-U_H2,"U_{H2,f}",parametro,f,"(0,1]",1,utilização de H2,sim,modelo PEMFC,modelo físico,M13,futuro,comum,,,,
-delta_seg,\delta_{fst},variavel,"f,s,t","{0,1}",1,segmento PWL ativo,nao,curva PWL,MILP,M14;M15;M16,futuro,comum,,,delta_seg,
-theta_seg,\theta_{fst},variavel,"f,s,t","[0, δ]",1,posição no segmento,nao,curva PWL,MILP,M14;M15;M16,futuro,comum,,,theta_seg,
-P_vert,P_{fs},parametro,"f,s","crescente, P_0 >= P_min > 0",kW_bus,vértices de potência líquida,nao,curva PWL,curva sintética/certificada,M15,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.CurvaPWL.vertices,,curva real exige certificação estática (B04)
-Q_vert,Q_{fs},parametro,"f,s",>= 0,kg/h,vértices de vazão de H2 SUPRIDO,nao,curva PWL,curva sintética/certificada,M16,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.CurvaPWL.vertices,,
-q,q_{ft},variavel,"f,t",>= 0,kg/h,vazão de H2 suprida em ON,nao,PEMFC,candidata/MILP,M16;M17;B05-INST;B05-MULTI-H2;M21,auditado_3A,comum,referencia;auditoria,ems_v2.audit.auditar_pwl,q,
-m_f,m_{ft},derivado,"f,t",>= 0,kg/intervalo,massa suprida por intervalo (fórmula depende da variante),nao,PEMFC,M17/B05,M17;M18,futuro,comum,,,,A06 confere só a parte h·q
-m_SU,m_f^{SU},parametro,f,>= 0,kg/evento,H2 adicional por arranque,sim,variante instantânea com dados,modelo físico,M17;B05-INST;M21,futuro,instantanea,,,,excluído na variante multimodo (B05)
-m_SD,m_f^{SD},parametro,f,>= 0,kg/evento,H2 adicional por parada,sim,variante instantânea com dados,modelo físico,M17;B05-INST;M21,futuro,instantanea,,,,excluído na variante multimodo (B05)
-m_inst,m^{inst}_{ft},derivado,"f,t",>= 0,kg/intervalo,massa H2 variante instantânea,nao,variante instantânea,B05,B05-INST;M21-v1.1,futuro,instantanea,,,,
-c_H,"c_{H,t}",parametro,t,>= 0,R$/kg,preço do H2,sim,termo combustível,economia declarada,B05-INST;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,
-M_stock,M_{hk},variavel,"h,k","[M_min, M_max]",kg,estoque de H2,sim,tanque físico,MILP,M18,futuro,comum,,,M_stock,
-m_in,m^{in}_{ht},parametro,"h,t",>= 0,kg/intervalo,entrada externa de H2,sim,tanque físico,cronograma do fornecedor,M18,futuro,comum,,,m_in,
-M_min,\underline M_h,parametro,h,>= 0,kg,estoque mínimo,sim,tanque físico,inventário,M18,futuro,comum,,,,
-M_max,\overline M_h,parametro,h,> 0,kg,estoque máximo,sim,tanque físico,inventário,M18,futuro,comum,,,,
-M_0,M_h^0,parametro,h,>= 0,kg,estoque inicial,sim,tanque físico,estado inicial,M18,futuro,comum,,,,
-Cdot_g,\dot C_{gt},derivado,"g,t",>= 0,R$/h,custo horário térmico,sim,térmica,M19,M19;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,
-c_E,c^E_{it},parametro,"i,t",>= 0,R$/kWh,O&M variável/CVU,sim,termo de geração,economia declarada,M19;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,R$/MWh ÷ 1000 (units.CONVERSOES)
-c_on,c_i^{on},parametro,i,>= 0,R$/h,custo fixo por hora ligada,sim,dado disponível,economia declarada,M19;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,
-C_SU,C_i^{SU},parametro,i,>= 0,R$/evento,custo direto de arranque,sim,variante instantânea,economia declarada,M21;M21-v1.1,futuro,instantanea,,,,sem combustível já valorado
-C_SD,C_i^{SD},parametro,i,>= 0,R$/evento,custo direto de parada,sim,variante instantânea,economia declarada,M21;M21-v1.1,futuro,instantanea,,,,
-m_mode,m_{iqt},variavel,"i,q,t","{0,1}",1,modo da unidade,sim,variante multimodo,MILP,M20;M20c;B05-MULTI-BAL;B05-MULTI-H2;M21-MULTI,futuro,multimodo,,,m_mode,
-v_arc,v_{iqq't},variavel,"i,q,q',t","{0,1}",1,transição de modo,sim,variante multimodo,MILP,M20;M20b;M20c;B05-MULTI-BAL,futuro,multimodo,,,v_arc,
-A_arcs,\mathcal A_i,conjunto,i,arcos admitidos,-,arcos do autômato,sim,variante multimodo,dados de transição,M20;M20b,futuro,multimodo,,,,
-Q_modes,\mathcal Q_i,conjunto,i,"OFF,S1..,ON,SB,D1..",-,modos do autômato,sim,variante multimodo,dados de transição,M20,futuro,multimodo,,,,
-y_run,y^{run}_{it},derivado,"i,t","{0,1}",evento,entrada em ON,sim,variante multimodo,M20b,M20b,futuro,multimodo,,,,
-z_run,z^{run}_{it},derivado,"i,t","{0,1}",evento,saída de ON,sim,variante multimodo,M20b,M20b,futuro,multimodo,,,,
-y_start,y^{start}_{it},derivado,"i,t","{0,1}",evento,arco que inicia o arranque,sim,variante multimodo,M20b,M20b;M21-MULTI,futuro,multimodo,,,y_start,contadores de arranque usam y_start
-z_stop,z^{stop}_{it},derivado,"i,t","{0,1}",evento,arco que inicia a parada,sim,variante multimodo,B05,B05-MULTI-BAL;M21-MULTI,futuro,multimodo,,,z_stop,
-pi_net,\pi_{it},derivado,"i,t",real,kW_bus,potência líquida completa com modos,sim,variante multimodo,M20c,M20c,futuro,multimodo,,,,
-B_up_arc,B^+_{iqq'},parametro,"i,q,q'",>= 0,kW_bus,cota física de subida do arco,sim,variante multimodo,dados de transição,M20c,futuro,multimodo,,,,não é Big-M
-B_down_arc,B^-_{iqq'},parametro,"i,q,q'",>= 0,kW_bus,cota física de descida do arco,sim,variante multimodo,dados de transição,M20c,futuro,multimodo,,,,
-g_mode,g^{mode}_{iqt},parametro,"i,q,t",>= 0,kW_bus,geração líquida no modo,sim,variante multimodo,dados físicos,M20c;B05-MULTI-BAL,futuro,multimodo,,,g_mode,
-a_mode,a^{mode}_{iqt},parametro,"i,q,t",>= 0,kW_bus,auxiliar não incluído no modo,sim,variante multimodo,dados físicos,M20c;B05-MULTI-BAL,futuro,multimodo,,,a_mode,
-q_mode,q^{mode}_{fqt},parametro,"f,q,t",>= 0,kg/h,H2 suprido no modo,sim,variante multimodo,dados físicos,B05-MULTI-H2,futuro,multimodo,,,q_mode,só aritmética de referência B05A (reference.massa_modo_kg); autômato não existe
-P_gen_total,"P^{gen,total}_{it}",derivado,"i,t",>= 0,kW_bus,geração total com modos,sim,variante multimodo,B05,B05-MULTI-BAL,futuro,multimodo,,,,
-P_aux_total,"P^{aux,total}_{it}",derivado,"i,t",>= 0,kW_bus,auxiliar total com modos,sim,variante multimodo,B05,B05-MULTI-BAL,futuro,multimodo,,,,
-P_aux_other,"P^{aux,otro}_{it}",parametro,"i,t",>= 0,kW_bus,outros consumos separados rastreáveis,sim,variante multimodo,B05,B05-MULTI-BAL,futuro,multimodo,,,,
-m_multi,m^{multi}_{ft},derivado,"f,t",>= 0,kg/intervalo,massa H2 variante multimodo,sim,variante multimodo,B05,B05-MULTI-H2;M21-MULTI,futuro,multimodo,,,,
-c_mode_nonfuel,"c^{mode,nonfuel}_{iqt}",parametro,"i,q,t",>= 0,R$/h,custo não combustível do modo,sim,variante multimodo,economia declarada,M21-MULTI,futuro,multimodo,,,,
-C_SU_nonenergy,"C^{SU,nonenergy}_i",parametro,i,>= 0,R$/evento,custo de arranque sem energia/combustível,sim,variante multimodo,economia declarada,M21-MULTI,futuro,multimodo,,,,
-C_SD_nonenergy,"C^{SD,nonenergy}_i",parametro,i,>= 0,R$/evento,custo de parada sem energia/combustível,sim,variante multimodo,economia declarada,M21-MULTI,futuro,multimodo,,,,
-J_econ,J_{econ},derivado,-,real,R$,função econômica,nao,objetivo,M21,M21;M21-v1.1;M21-MULTI;M22,futuro,comum,,,,
-J_curt,J_{curt},derivado,-,>= 0,R$,h Σ c^curt C^oper,nao,termo curtailment_operacional,M21-v1.1,M21-v1.1;M21-CURT;M21-MULTI,ativo_3A,comum,referencia;auditoria,ems_v2.reference.ResultadoRenovavel.custo_curt_oper_R,,único termo econômico do 3A
-c_curt,c^{curt}_{rt},parametro,"r,t",>= 0,R$/kWh,custo de vertimento operacional,sim,termo curtailment_operacional,economia declarada,M21;M21-CURT,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.PotencialRenovavel.custo_curtailment,c_curt,"resolução C2: índices (r,t), constante no tempo no 3A"
-c_thr,c^{thr}_b,parametro,b,>= 0,R$/kWh,custo de throughput sobre P^c + P^d,sim,termo throughput_bess,economia declarada,M21;M21-v1.1;M21-MULTI,futuro,comum,contrato,ems_v2.contracts.EspecBateria.custo_throughput,,declarável (A05-OPT); termo do objetivo é do Piso 3B
-V_l,V_{lt},parametro,"l,t",>= 0,R$/kWh,valor da energia não suprida,sim,serviço degradado,economia declarada,M21;M21-v1.1;M21-MULTI,futuro,comum,,,,
-c_dump,c^{dump}_t,parametro,t,>= 0,R$/kWh,custo de descarte físico,sim,dispositivo de descarte,economia declarada,M21;M21-v1.1;M21-MULTI,futuro,comum,,,c_dump,
-gamma,\gamma_i,parametro,i,>= 0,R$/kW,regularizador de mudança de consigna,sim,regularizador,política,M21;M21-v1.1;M21-MULTI;M21-REG,futuro,comum,,,gamma,não é predição de vida útil
-v_abs,v_{it},variavel,"i,t",>= 0,kW,variação absoluta de consigna,sim,regularizador,MILP,M21;M21-v1.1;M21-MULTI;M21-REG,futuro,comum,,,v_abs,
-kappa,\kappa_b,parametro,b,>= 0,R$/kWh,custo de déficit terminal,sim,terminal suave,política (D02),M21;M21-v1.1;M21-MULTI;TERM-SOFT,futuro,comum,,,kappa,não inventar κ
-xi,\xi_b,variavel,b,>= 0,kWh,déficit terminal,sim,terminal suave,MILP,M21;M21-v1.1;M21-MULTI;TERM-SOFT,futuro,comum,,,xi,
-E_ref,E_b^{ref},parametro,b,>= 0,kWh,referência terminal absoluta,sim,terminal suave,política (D02),TERM-SOFT,futuro,comum,,,,não redefinir como SOC corrente
-E_reserve,E_b^{reserve},parametro,b,>= 0,kWh,mínimo terminal duro,sim,terminal duro,política,TERM-HARD,futuro,comum,,,,
-J_serv,J_{serv},derivado,-,>= 0,kWh ponderado,déficit ponderado,sim,lexicográfico,M22,M22,futuro,comum,,,,
-w_priority,w_l,parametro,l,> 0,1,peso relativo de serviço,sim,lexicográfico,política,M22,futuro,comum,,,w_priority,não prova prioridade estrita
-J_serv_star,J^*_{serv},derivado,-,>= 0,kWh ponderado,ótimo/cota do nível 1,sim,lexicográfico,solver,M22,futuro,comum,,,,
-eps_serv,\varepsilon_{serv},parametro,-,>= 0,kWh,folga lexicográfica,sim,lexicográfico,política,M22,futuro,comum,,,,
-x_state,x_k,variavel,k,-,-,estado real/simulado,sim,MPC,simulador/medição,M23,futuro,comum,,,,
-Phi_phys,\Phi_{phys},derivado,-,função,-,avanço físico com memória,sim,MPC físico,modelo físico,M23,futuro,comum,,,,physical_step não existe (C19)
-u_applied,u^{aplicado},variavel,k,-,-,comandos efetivamente aplicados,sim,MPC,controlador,M23,futuro,comum,,,,
-w_dist,w^{real},parametro,k,-,-,perturbações reais,sim,MPC,medição/simulação,M23,futuro,comum,,,,
+id,latex,tipo,indices,dominio,unidade,fronteira_ou_sinal,opcional,habilitado_se,origem,equacoes,status,variante,implementacao,codigo,id_semente,observacoes,status_3BP,codigo_3BP,obs_3BP
+T,\mathcal T,conjunto,t,0..N-1,intervalo,"intervalos [t, t+Δ) em UTC",nao,sempre,malha temporal,M01,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.inicios_intervalos_utc,T,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.inicios_intervalos_utc,
+K,\mathcal K,conjunto,k,0..N,fronteira,estados de fronteira em UTC,nao,sempre,malha temporal,M01;M08,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.fronteiras_utc,K,N+1 fronteiras; a última não é intervalo,ativo_3BP,ems_v2.timegrid.MalhaTemporal.fronteiras_utc,
+N,N,parametro,-,inteiro >= 1,intervalos,número de intervalos da janela,nao,sempre,malha temporal,M01;TEMP-13;TERM-SOFT;TERM-HARD,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.N,,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.N,
+Delta,\Delta,parametro,-,> 0; segundos inteiros,min,duração do intervalo,nao,sempre,malha temporal,M01;TEMP-13;M11a;M11b;M11-EXT;M12,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.delta_min,Delta,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.delta_min,
+h,h,derivado,-,> 0,h,Δ/60,nao,sempre,malha temporal,M01;B01-KPI;M05;M07;M17;B05-INST;B05-MULTI-H2;M21;M21-v1.1;M21-CURT;M21-MULTI;M22,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.timegrid.MalhaTemporal.h_horas,h,exato (Fraction) na malha e na referência; Δs/3600 no auditor,ativo_3BP,ems_v2.timegrid.MalhaTemporal.h_horas,
+I_t,I_t,conjunto,t,"[τ+tΔ, τ+(t+1)Δ)",intervalo,intervalo semiaberto,nao,sempre,malha temporal,M01,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.inicios_intervalos_utc,,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.inicios_intervalos_utc,
+tau_k,\tau_k,parametro,k,instante UTC,UTC,início da janela,nao,sempre,malha temporal,M01,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.inicio_utc,,fuso explícito obrigatório,ativo_3BP,ems_v2.timegrid.MalhaTemporal.inicio_utc,
+H_f,H_f,parametro,-,>= H_o,min,horizonte de previsão,sim,previsão declarada,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.horizonte_previsao_min,,não declarado = aviso,ativo_3BP,ems_v2.timegrid.MalhaTemporal.horizonte_previsao_min,
+H_o,H_o,derivado,-,N Δ,min,horizonte de otimização,nao,sempre,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.horizonte_otimizacao_min,,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.horizonte_otimizacao_min,
+rho,\rho,derivado,-,"m Δ, 1<=m<=N",min,período de reotimização,nao,sempre,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.reotimizacao_min,,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.reotimizacao_min,
+m_reopt,m,parametro,-,1..N,intervalos,intervalos aplicados por ciclo,nao,sempre,malha temporal,TEMP-13;M23,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.intervalos_reotimizacao,,id único: m é também massa e modo,ativo_3BP,ems_v2.timegrid.MalhaTemporal.intervalos_reotimizacao,
+T_M,T_M,derivado,-,K_M Δ,min,duração da missão,nao,sempre,malha temporal,TEMP-13,ativo_3A,comum,contrato,ems_v2.timegrid.MalhaTemporal.missao_min,,,ativo_3BP,ems_v2.timegrid.MalhaTemporal.missao_min,
+delta_phys,\delta_{phys},parametro,-,> 0,s,passo interno do simulador físico,sim,replay físico,modelo físico,TEMP-13,futuro,comum,,,,"2 s é candidato PEMFC, não garantia (3E)",futuro,,
+R_set,\mathcal R,conjunto,r,UIDs,-,recursos renováveis por UID,nao,sempre,contrato,CONJ-2;M02,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.renovaveis,,,ativo_3BP,ems_v2.contracts.EntradaModeloEMS.renovaveis,
+B_set,\mathcal B,conjunto,b,UIDs,-,bancos BESS independentes,nao,sempre,contrato,CONJ-2;M02;M06,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.baterias,,,ativo_3BP,ems_v2.contracts.EntradaModeloEMS.baterias,
+F_set,\mathcal F,conjunto,f,UIDs,-,unidades PEMFC,nao,sempre,contrato,CONJ-2;M14,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.geradores,,tecnologia = pemfc,ativo_3BP,ems_v2.contracts.EntradaModeloEMS.geradores,
+G_set,\mathcal G,conjunto,g,UIDs,-,unidades térmicas,nao,sempre,contrato,CONJ-2;M19,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.geradores,,tecnologia = termica,ativo_3BP,ems_v2.contracts.EntradaModeloEMS.geradores,
+U_set,\mathcal U,conjunto,i,F ∪ G,-,unidades com commitment,nao,sempre,contrato,CONJ-2;M02;M09,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.geradores,,,ativo_3BP,ems_v2.contracts.EntradaModeloEMS.geradores,
+L_set,\mathcal L,conjunto,l,UIDs,-,classes de demanda,nao,sempre,contrato,CONJ-2;M02,ativo_3A,comum,contrato,ems_v2.contracts.EntradaModeloEMS.demandas,,,ativo_3BP,ems_v2.contracts.EntradaModeloEMS.demandas,
+S_f,\mathcal S_f,conjunto,"f,s",segmentos consecutivos,-,segmentos da curva PWL,nao,curva PWL,contrato,CONJ-2;M14;M15;M16,ativo_3A,comum,contrato,ems_v2.contracts.CurvaPWL.vertices,,,ativo_3BP,ems_v2.contracts.CurvaPWL.vertices,
+H_set,\mathcal H,conjunto,h,UIDs,-,depósitos de H2,sim,tanque físico com dados,inventário,CONJ-2;M18,futuro,comum,,,,sem dados: suprimento externo declarado (D04),futuro,,
+u_prev,u_i^{-1},parametro,i,"{0,1}",1,estado ON/OFF antes da janela,nao,unidade,estado inicial por UID,EST-INI;M09,ativo_3A,comum,contrato,ems_v2.contracts.EstadoGerador.ligado,,nunca inferido da potência,ativo_3BP,ems_v2.contracts.EstadoGerador.ligado,
+p_prev,p_i^{-1},parametro,i,>= 0,kW_bus,potência líquida antes da janela,nao,unidade,estado inicial por UID,EST-INI;M11a;M11b,ativo_3A,comum,contrato,ems_v2.contracts.EstadoGerador.p_anterior_kW,p_prev,nunca zero por omissão,ativo_3BP,ems_v2.contracts.EstadoGerador.p_anterior_kW,
+P_min,\underline P_{it},parametro,"i,t",>= 0,kW_bus,mínimo operativo líquido,nao,unidade,ficha/inventário,EST-INI;M10,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecGerador.p_min_kW,,,ativo_3BP,ems_v2.contracts.EspecGerador.p_min_kW,
+P_max,\overline P_{it},parametro,"i,t",> 0,kW_bus,máximo operativo líquido,nao,unidade,ficha/inventário,EST-INI;M10,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecGerador.p_max_kW,,,ativo_3BP,ems_v2.contracts.EspecGerador.p_max_kW,
+e_b0,e_b^0,parametro,b,"[C s_min, C s_max]",kWh,energia interna inicial,nao,bateria,estado inicial por UID,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EstadoBateria.energia_kWh,,,ativo_3BP,ems_v2.contracts.EstadoBateria.energia_kWh,
+C_b,C_b,parametro,b,> 0,kWh,capacidade de referência,nao,bateria,ficha/inventário,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.capacidade_kWh,C_b,,ativo_3BP,ems_v2.contracts.EspecBateria.capacidade_kWh,
+s_min,\underline s_b,parametro,b,"[0,1), < s_max",1,SOC mínimo,nao,bateria,ficha/instalação,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.soc_min,,,ativo_3BP,ems_v2.contracts.EspecBateria.soc_min,
+s_max,\overline s_b,parametro,b,"(0,1]",1,SOC máximo,nao,bateria,ficha/instalação,EST-INI;M08,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.soc_max,,,ativo_3BP,ems_v2.contracts.EspecBateria.soc_max,
+P_R,P^R_{rt},variavel,"r,t",>= 0,kW_bus,injeção renovável usada (+ injeta),nao,renovável,candidata/MILP,M02;M03;M03-v1.1,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.renovaveis,P_R,valor candidato conferido; nenhum otimizador o escolhe no 3A,decidido_3BP,pyomo:P_R,
+p,p_{it},variavel,"i,t",>= 0,kW_bus,potência líquida operativa (+ injeta),nao,unidade,candidata/MILP,M02;M10;M11a;M11b;M15;M19;M20c;B05-MULTI-BAL;M21;M21-v1.1;M21-MULTI;M21-REG,auditado_3A,comum,auditoria,ems_v2.audit.auditar_pwl,p,só domínio ON/OFF do caso A06,decidido_3BP,pyomo:p,
+P_d,P^d_{bt},variavel,"b,t",>= 0,kW_bus,descarga (+ injeta no barramento),nao,bateria,candidata/MILP,M02;M06;M07;BND-BESS;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.baterias,P_d,,decidido_3BP,pyomo:P_d,
+P_c,P^c_{bt},variavel,"b,t",>= 0,kW_bus,carga (consome do barramento),nao,bateria,candidata/MILP,M02;M06;M07;BND-BESS;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.baterias,P_c,,decidido_3BP,pyomo:P_c,
+L,L_{lt},parametro,"l,t",>= 0,kW_bus,demanda média do intervalo,nao,demanda,previsão com procedência,M02;M04,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.ClasseDemanda.potencia,L,,ativo_3BP,ems_v2.contracts.ClasseDemanda.potencia,
+ell,\ell_{lt},variavel,"l,t","[0, χ L]",kW_bus,carga efetivamente desconectada,nao,serviço degradado,candidata/MILP,M02;M04;M21;M21-v1.1;M21-MULTI;M22,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.demandas,ell,serviço duro: ℓ = 0,decidido_3BP,pyomo:ell,
+P_aux,P^{aux}_t,derivado,t,>= 0,kW_bus,consumo auxiliar não incluído nas curvas,sim,modos/eventos com dados,contrato de eventos,M02;M05,futuro,comum,,,P_aux,auditor rejeita como não suportado,futuro,,
+d,d_t,variavel,t,"[0, D̄]",kW_bus,consumo de descarte físico,sim,dispositivo de descarte,candidata/MILP,M02;M04;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.CandidatoDespacho.descarte,d,D̄ = 0 sem dispositivo (D03),decidido_3BP,pyomo:d,
+C_R,C^R_{rt},variavel,"r,t",>= 0,kW_bus,vertimento v1.0 (inclui indisponibilidade),nao,-,especificação v1.0,M03;M21,substituido,comum,,,,substituído por C_oper (adenda B01),substituido,,
+A_v10,A_{rt},parametro,"r,t",>= 0,kW_bus,potencial v1.0,nao,-,especificação v1.0,M03,substituido,comum,,,,substituído por A_pot (adenda B01),substituido,,
+a,a_{xt},parametro,"x,t","{0,1} (variante binária)",1,"disponibilidade exógena por UID (renovável, banco, unidade)",nao,sempre,inventário/série,M03;M03-v1.1;B01-KPI;M06;M09,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.Disponibilidade.serie,a_r,resolução C2: um símbolo para R ∪ B ∪ U; fracionária = pendente,ativo_3BP,ems_v2.contracts.Disponibilidade.serie,
+A_usable,A^{util}_{rt},derivado,"r,t",>= 0,kW_bus,a A_pot,nao,renovável,a × A_pot,M03-v1.1,ativo_3A,comum,referencia;auditoria,ems_v2.reference.renovavel_v11,A_usable,,ativo_3BP,ems_v2.reference.renovavel_v11,
+A_pot,A^{pot}_{rt},parametro,"r,t",>= 0,kW_bus,potencial técnico antes da disponibilidade,nao,renovável,previsão com procedência,M03-v1.1;B01-KPI,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.PotencialRenovavel.potencial,A_pot,ausente nunca vira 0,ativo_3BP,ems_v2.contracts.PotencialRenovavel.potencial,
+C_oper,C^{oper}_{rt},variavel,"r,t",>= 0,kW_bus,vertimento operacional voluntário,nao,renovável,candidata/MILP,M03-v1.1;B01-KPI;M21-CURT,auditado_3A,comum,referencia;auditoria,ems_v2.audit.CandidatoDespacho.renovaveis,C_oper,,decidido_3BP,pyomo:C_oper,
+E_indisp,E^{indisp}_{rt},derivado,"r,t",>= 0,kWh,perda por indisponibilidade (KPI),nao,renovável,(1−a) A_pot h,B01-KPI,ativo_3A,comum,referencia;auditoria,ems_v2.reference.ResultadoRenovavel.E_indisp_kWh,E_indisp,nunca cobrada como vertimento,ativo_3BP,ems_v2.reference.ResultadoRenovavel.E_indisp_kWh,
+E_curt_oper,"E^{curt,oper}_{rt}",derivado,"r,t",>= 0,kWh,energia vertida operacional,nao,renovável,h C_oper,B01-KPI,ativo_3A,comum,referencia;auditoria,ems_v2.reference.ResultadoRenovavel.E_curt_oper_kWh,,,ativo_3BP,ems_v2.reference.ResultadoRenovavel.E_curt_oper_kWh,
+chi,\chi_{lt},parametro,"l,t","[0,1]",1,fração AUTORIZADA de interrupção,nao,demanda interrompível,política de serviço,M04,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.ClasseDemanda.fracao_interrompivel,chi,não é interruptor livre; crítica: χ = 0,ativo_3BP,ems_v2.contracts.ClasseDemanda.fracao_interrompivel,
+D_max,\overline D_t,parametro,t,>= 0,kW_bus,capacidade de descarte físico,sim,dispositivo de descarte,inventário,M04,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.DispositivoDescarte.p_max_kW,,0 sem dispositivo declarado,ativo_3BP,ems_v2.contracts.DispositivoDescarte.p_max_kW,
+W_SU,W_i^{SU},parametro,i,>= 0,kWh/evento,energia auxiliar de arranque,sim,variante instantânea com dados,modelo físico,M05,futuro,instantanea,,,,excluído na variante multimodo (B05),futuro,,
+W_SD,W_i^{SD},parametro,i,>= 0,kWh/evento,energia auxiliar de parada,sim,variante instantânea com dados,modelo físico,M05,futuro,instantanea,,,,excluído na variante multimodo (B05),futuro,,
+P_sb,P_i^{sb},parametro,i,>= 0,kW_bus,consumo em standby,sim,modo standby definido,modelo físico,M05,futuro,instantanea,,,P_sb,não coexistir com autômato que conte o mesmo consumo,futuro,,
+m_sb,m^{sb}_{it},variavel,"i,t","{0,1}",1,modo standby,sim,modo standby definido,MILP,M05,futuro,instantanea,,,m_sb,,futuro,,
+Pc_max,\overline P^c_{bt},parametro,"b,t",> 0,kW_bus,limite de carga,nao,bateria,ficha/validação,M06,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.p_carga_max_kW,,,ativo_3BP,ems_v2.contracts.EspecBateria.p_carga_max_kW,
+Pd_max,\overline P^d_{bt},parametro,"b,t",> 0,kW_bus,limite de descarga,nao,bateria,ficha/validação,M06,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.p_descarga_max_kW,,,ativo_3BP,ems_v2.contracts.EspecBateria.p_descarga_max_kW,
+z_b,z^b_{bt},variavel,"b,t","{0,1}",1,modo carga do banco,nao,bateria,MILP,M06,futuro,comum,,,z_b,"no 3A a exclusividade é auditada por min(P^c, P^d)",decidido_3BP,pyomo:z_b,"binária de exclusividade decidida pelo MILP; o auditor confere min(P^c, P^d)"
+e_b,e_{bk},variavel,"b,k","[C s_min, C s_max]",kWh,energia interna na fronteira k,nao,bateria,candidata/MILP,M07;M08;TERM-SOFT;TERM-HARD,auditado_3A,comum,referencia;auditoria,ems_v2.audit.CandidatoDespacho.baterias,e_b,sem recorte,decidido_3BP,pyomo:e,
+alpha_b,\alpha_b,parametro,b,"(0,1]",1,retenção por intervalo,nao,bateria,hipótese declarada ou exp(−λh),M07,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.EspecBateria.hipotese_autodescarga,alpha_b,resolução C1: α = 1 só como hipótese DECLARADA,ativo_3BP,ems_v2.contracts.EspecBateria.hipotese_autodescarga,
+lambda_b,\lambda_b,parametro,b,>= 0,1/h,autodescarga,sim,hipótese lambda_declarado,dado com procedência,M07,ativo_3A,comum,contrato;auditoria,ems_v2.contracts.EspecBateria.autodescarga_1_h,,,ativo_3BP,ems_v2.contracts.EspecBateria.autodescarga_1_h,
+eta_c,\eta^c_b,parametro,b,"(0,1]",1,barramento → energia interna,nao,bateria,ficha/identificação,M07;BND-BESS,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.EspecBateria.eta_carga,eta_c,,ativo_3BP,ems_v2.contracts.EspecBateria.eta_carga,
+eta_d,\eta^d_b,parametro,b,"(0,1]",1,energia interna → barramento,nao,bateria,ficha/identificação,M07;BND-BESS,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.EspecBateria.eta_descarga,eta_d,,ativo_3BP,ems_v2.contracts.EspecBateria.eta_descarga,
+SOC,SOC_{bk},derivado,"b,k","[s_min, s_max]",1,e/C,sim,bateria,e_bk / C_b,M08,ativo_3A,comum,contrato,ems_v2.contracts.EstadoBateria.soc,,% exige conversão explícita,ativo_3BP,ems_v2.contracts.EstadoBateria.soc,
+P_term_d,\widetilde P^d,parametro,"b,t",>= 0,kW_terminal,potência nos terminais,sim,caracterização terminal,modelo físico,BND-BESS,futuro,comum,,,,,futuro,,
+P_term_c,\widetilde P^c,parametro,"b,t",>= 0,kW_terminal,potência nos terminais,sim,caracterização terminal,modelo físico,BND-BESS,futuro,comum,,,,,futuro,,
+eta_conv,\eta^{conv},parametro,b,"(0,1]",1,eficiência do conversor,sim,caracterização terminal,ficha,BND-BESS,futuro,comum,,,,,futuro,,
+eta_int_c,\widetilde\eta^c,parametro,b,"(0,1]",1,eficiência interna de carga,sim,caracterização terminal,ficha,BND-BESS,futuro,comum,,,,,futuro,,
+eta_int_d,\widetilde\eta^d,parametro,b,"(0,1]",1,eficiência interna de descarga,sim,caracterização terminal,ficha,BND-BESS,futuro,comum,,,,,futuro,,
+u,u_{it},variavel,"i,t","{0,1}",1,unidade ON,nao,unidade,candidata/MILP,M09;M10;M11a;M11b;M12;M14;M19;M20;M21;M21-v1.1;M21-MULTI,auditado_3A,comum,auditoria,ems_v2.audit.auditar_pwl,u,só integralidade e domínio (A06),ativo_3BP,pyomo:u,"programa FIXO explícito, constante e igual ao estado inicial (sem transições)"
+y,y_{it},variavel,"i,t","{0,1}",evento,arranque instantâneo,nao,variante instantânea,MILP,M05;M09;M11a;M12;M17;B05-INST;M21;M21-v1.1,futuro,instantanea,,,y,,futuro,,
+z,z_{it},variavel,"i,t","{0,1}",evento,parada instantânea,nao,variante instantânea,MILP,M05;M09;M11b;M12;M17;B05-INST;M21;M21-v1.1,futuro,instantanea,,,z,distinto de z^b,futuro,,
+n_f,n_{ft},derivado,"f,t",inteiro >= 0,unidades,"Σ u (saída, não inferida da potência)",nao,equipamento com várias unidades,MILP,M10,futuro,comum,,,,,futuro,,
+R_up,R_i^+,parametro,i,>= 0,kW/min,modulação de subida,sim,rampas habilitadas,ficha/dado,M11a;M11-EXT,futuro,comum,,,,,futuro,,
+R_down,R_i^-,parametro,i,>= 0,kW/min,modulação de descida,sim,rampas habilitadas,ficha/dado,M11b;M11-EXT,futuro,comum,,,,,futuro,,
+S_up,S_i^+,parametro,i,>= 0,kW_bus,potência máx. no 1º intervalo operativo,sim,rampas habilitadas,ficha/dado,M11a,futuro,instantanea,,,,não substituir por P_max,futuro,,
+S_down,S_i^-,parametro,i,>= 0,kW_bus,potência máx. no último intervalo,sim,rampas habilitadas,ficha/dado,M11b,futuro,instantanea,,,,,futuro,,
+w_end,w_{ik},variavel,"i,k",>= 0,kW_bus,potência de extremo,sim,variante de extremos,MILP,M11-EXT,futuro,comum,,,,,futuro,,
+p_bar,\bar p_{it},derivado,"i,t",>= 0,kW_bus,média dos extremos,sim,variante de extremos,MILP,M11-EXT,futuro,comum,,,,,futuro,,
+T_up,T_i^{up},parametro,i,>= 0,min,permanência mínima ON,sim,permanências,ficha/dado,M12,futuro,instantanea,,,,não estimar a partir de preço,futuro,,
+T_down,T_i^{down},parametro,i,>= 0,min,permanência mínima OFF,sim,permanências,ficha/dado,M12,futuro,instantanea,,,,,futuro,,
+U_i,U_i,derivado,i,⌈T^up/Δ⌉,intervalos,permanência ON em intervalos,sim,permanências,T_up/Δ,M12,futuro,instantanea,,,,,futuro,,
+D_i,D_i,derivado,i,⌈T^down/Δ⌉,intervalos,permanência OFF em intervalos,sim,permanências,T_down/Δ,M12,futuro,instantanea,,,,,futuro,,
+d_on,d_i^{on},parametro,i,>= 0,min,tempo já transcorrido ON,sim,permanências,estado inicial,M12,futuro,instantanea,,,,,futuro,,
+d_off,d_i^{off},parametro,i,>= 0,min,tempo já transcorrido OFF,sim,permanências,estado inicial,M12,futuro,instantanea,,,,,futuro,,
+r_on,r_i^{on},derivado,i,>= 0,intervalos,obrigação ON remanescente,sim,permanências,M12,M12,futuro,instantanea,,,,,futuro,,
+r_off,r_i^{off},derivado,i,>= 0,intervalos,obrigação OFF remanescente,sim,permanências,M12,M12,futuro,instantanea,,,,,futuro,,
+q_I,q_f(I),derivado,f,função,kg/h,vazão suprida (Faraday),sim,modelo PEMFC certificado,modelo físico,M13,futuro,comum,,,,,futuro,,
+N_cell,"N_{cell,f}",parametro,f,inteiro > 0,células,número de células,sim,modelo PEMFC,modelo físico,M13,futuro,comum,,,,,futuro,,
+I_cell,I,variavel,"f,t",>= 0,A,corrente do stack,sim,modelo PEMFC,modelo físico,M13,futuro,comum,,,,,futuro,,
+M_H2,M_{H2},parametro,-,> 0,kg/mol,massa molar,sim,modelo PEMFC,lida do modelo e seu hash,M13,futuro,comum,,,,não fixar valor aqui,futuro,,
+F_const,F,parametro,-,> 0,C/mol,constante de Faraday,sim,modelo PEMFC,lida do modelo e seu hash,M13,futuro,comum,,,,,futuro,,
+U_H2,"U_{H2,f}",parametro,f,"(0,1]",1,utilização de H2,sim,modelo PEMFC,modelo físico,M13,futuro,comum,,,,,futuro,,
+delta_seg,\delta_{fst},variavel,"f,s,t","{0,1}",1,segmento PWL ativo,nao,curva PWL,MILP,M14;M15;M16,futuro,comum,,,delta_seg,,decidido_3BP,pyomo:delta,
+theta_seg,\theta_{fst},variavel,"f,s,t","[0, δ]",1,posição no segmento,nao,curva PWL,MILP,M14;M15;M16,futuro,comum,,,theta_seg,,decidido_3BP,pyomo:theta,
+P_vert,P_{fs},parametro,"f,s","crescente, P_0 >= P_min > 0",kW_bus,vértices de potência líquida,nao,curva PWL,curva sintética/certificada,M15,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.CurvaPWL.vertices,,curva real exige certificação estática (B04),ativo_3BP,ems_v2.contracts.CurvaPWL.vertices,
+Q_vert,Q_{fs},parametro,"f,s",>= 0,kg/h,vértices de vazão de H2 SUPRIDO,nao,curva PWL,curva sintética/certificada,M16,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.CurvaPWL.vertices,,,ativo_3BP,ems_v2.contracts.CurvaPWL.vertices,
+q,q_{ft},variavel,"f,t",>= 0,kg/h,vazão de H2 suprida em ON,nao,PEMFC,candidata/MILP,M16;M17;B05-INST;B05-MULTI-H2;M21,auditado_3A,comum,referencia;auditoria,ems_v2.audit.auditar_pwl,q,,decidido_3BP,pyomo:q,
+m_f,m_{ft},derivado,"f,t",>= 0,kg/intervalo,massa suprida por intervalo (fórmula depende da variante),nao,PEMFC,M17/B05,M17;M18,futuro,comum,,,,A06 confere só a parte h·q,ativo_3BP,ems_v2.milp.modelo.construir_modelo,só h·q (sem eventos)
+m_SU,m_f^{SU},parametro,f,>= 0,kg/evento,H2 adicional por arranque,sim,variante instantânea com dados,modelo físico,M17;B05-INST;M21,futuro,instantanea,,,,excluído na variante multimodo (B05),futuro,,
+m_SD,m_f^{SD},parametro,f,>= 0,kg/evento,H2 adicional por parada,sim,variante instantânea com dados,modelo físico,M17;B05-INST;M21,futuro,instantanea,,,,excluído na variante multimodo (B05),futuro,,
+m_inst,m^{inst}_{ft},derivado,"f,t",>= 0,kg/intervalo,massa H2 variante instantânea,nao,variante instantânea,B05,B05-INST;M21-v1.1,futuro,instantanea,,,,,ativo_3BP,ems_v2.milp.modelo.construir_modelo,só a parte operacional h·q (sem eventos)
+c_H,"c_{H,t}",parametro,t,>= 0,R$/kg,preço do H2,sim,termo combustível,economia declarada,B05-INST;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,,ativo_3BP,ems_v2.contracts.EspecGerador.preco_h2,
+M_stock,M_{hk},variavel,"h,k","[M_min, M_max]",kg,estoque de H2,sim,tanque físico,MILP,M18,futuro,comum,,,M_stock,,futuro,,
+m_in,m^{in}_{ht},parametro,"h,t",>= 0,kg/intervalo,entrada externa de H2,sim,tanque físico,cronograma do fornecedor,M18,futuro,comum,,,m_in,,futuro,,
+M_min,\underline M_h,parametro,h,>= 0,kg,estoque mínimo,sim,tanque físico,inventário,M18,futuro,comum,,,,,futuro,,
+M_max,\overline M_h,parametro,h,> 0,kg,estoque máximo,sim,tanque físico,inventário,M18,futuro,comum,,,,,futuro,,
+M_0,M_h^0,parametro,h,>= 0,kg,estoque inicial,sim,tanque físico,estado inicial,M18,futuro,comum,,,,,futuro,,
+Cdot_g,\dot C_{gt},derivado,"g,t",>= 0,R$/h,custo horário térmico,sim,térmica,M19,M19;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,,futuro,,
+c_E,c^E_{it},parametro,"i,t",>= 0,R$/kWh,O&M variável/CVU,sim,termo de geração,economia declarada,M19;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,R$/MWh ÷ 1000 (units.CONVERSOES),futuro,,
+c_on,c_i^{on},parametro,i,>= 0,R$/h,custo fixo por hora ligada,sim,dado disponível,economia declarada,M19;M21;M21-v1.1;M21-MULTI,futuro,comum,,,,,futuro,,
+C_SU,C_i^{SU},parametro,i,>= 0,R$/evento,custo direto de arranque,sim,variante instantânea,economia declarada,M21;M21-v1.1,futuro,instantanea,,,,sem combustível já valorado,futuro,,
+C_SD,C_i^{SD},parametro,i,>= 0,R$/evento,custo direto de parada,sim,variante instantânea,economia declarada,M21;M21-v1.1,futuro,instantanea,,,,,futuro,,
+m_mode,m_{iqt},variavel,"i,q,t","{0,1}",1,modo da unidade,sim,variante multimodo,MILP,M20;M20c;B05-MULTI-BAL;B05-MULTI-H2;M21-MULTI,futuro,multimodo,,,m_mode,,futuro,,
+v_arc,v_{iqq't},variavel,"i,q,q',t","{0,1}",1,transição de modo,sim,variante multimodo,MILP,M20;M20b;M20c;B05-MULTI-BAL,futuro,multimodo,,,v_arc,,futuro,,
+A_arcs,\mathcal A_i,conjunto,i,arcos admitidos,-,arcos do autômato,sim,variante multimodo,dados de transição,M20;M20b,futuro,multimodo,,,,,futuro,,
+Q_modes,\mathcal Q_i,conjunto,i,"OFF,S1..,ON,SB,D1..",-,modos do autômato,sim,variante multimodo,dados de transição,M20,futuro,multimodo,,,,,futuro,,
+y_run,y^{run}_{it},derivado,"i,t","{0,1}",evento,entrada em ON,sim,variante multimodo,M20b,M20b,futuro,multimodo,,,,,futuro,,
+z_run,z^{run}_{it},derivado,"i,t","{0,1}",evento,saída de ON,sim,variante multimodo,M20b,M20b,futuro,multimodo,,,,,futuro,,
+y_start,y^{start}_{it},derivado,"i,t","{0,1}",evento,arco que inicia o arranque,sim,variante multimodo,M20b,M20b;M21-MULTI,futuro,multimodo,,,y_start,contadores de arranque usam y_start,futuro,,
+z_stop,z^{stop}_{it},derivado,"i,t","{0,1}",evento,arco que inicia a parada,sim,variante multimodo,B05,B05-MULTI-BAL;M21-MULTI,futuro,multimodo,,,z_stop,,futuro,,
+pi_net,\pi_{it},derivado,"i,t",real,kW_bus,potência líquida completa com modos,sim,variante multimodo,M20c,M20c,futuro,multimodo,,,,,futuro,,
+B_up_arc,B^+_{iqq'},parametro,"i,q,q'",>= 0,kW_bus,cota física de subida do arco,sim,variante multimodo,dados de transição,M20c,futuro,multimodo,,,,não é Big-M,futuro,,
+B_down_arc,B^-_{iqq'},parametro,"i,q,q'",>= 0,kW_bus,cota física de descida do arco,sim,variante multimodo,dados de transição,M20c,futuro,multimodo,,,,,futuro,,
+g_mode,g^{mode}_{iqt},parametro,"i,q,t",>= 0,kW_bus,geração líquida no modo,sim,variante multimodo,dados físicos,M20c;B05-MULTI-BAL,futuro,multimodo,,,g_mode,,futuro,,
+a_mode,a^{mode}_{iqt},parametro,"i,q,t",>= 0,kW_bus,auxiliar não incluído no modo,sim,variante multimodo,dados físicos,M20c;B05-MULTI-BAL,futuro,multimodo,,,a_mode,,futuro,,
+q_mode,q^{mode}_{fqt},parametro,"f,q,t",>= 0,kg/h,H2 suprido no modo,sim,variante multimodo,dados físicos,B05-MULTI-H2,futuro,multimodo,,,q_mode,só aritmética de referência B05A (reference.massa_modo_kg); autômato não existe,futuro,,
+P_gen_total,"P^{gen,total}_{it}",derivado,"i,t",>= 0,kW_bus,geração total com modos,sim,variante multimodo,B05,B05-MULTI-BAL,futuro,multimodo,,,,,futuro,,
+P_aux_total,"P^{aux,total}_{it}",derivado,"i,t",>= 0,kW_bus,auxiliar total com modos,sim,variante multimodo,B05,B05-MULTI-BAL,futuro,multimodo,,,,,futuro,,
+P_aux_other,"P^{aux,otro}_{it}",parametro,"i,t",>= 0,kW_bus,outros consumos separados rastreáveis,sim,variante multimodo,B05,B05-MULTI-BAL,futuro,multimodo,,,,,futuro,,
+m_multi,m^{multi}_{ft},derivado,"f,t",>= 0,kg/intervalo,massa H2 variante multimodo,sim,variante multimodo,B05,B05-MULTI-H2;M21-MULTI,futuro,multimodo,,,,,futuro,,
+c_mode_nonfuel,"c^{mode,nonfuel}_{iqt}",parametro,"i,q,t",>= 0,R$/h,custo não combustível do modo,sim,variante multimodo,economia declarada,M21-MULTI,futuro,multimodo,,,,,futuro,,
+C_SU_nonenergy,"C^{SU,nonenergy}_i",parametro,i,>= 0,R$/evento,custo de arranque sem energia/combustível,sim,variante multimodo,economia declarada,M21-MULTI,futuro,multimodo,,,,,futuro,,
+C_SD_nonenergy,"C^{SD,nonenergy}_i",parametro,i,>= 0,R$/evento,custo de parada sem energia/combustível,sim,variante multimodo,economia declarada,M21-MULTI,futuro,multimodo,,,,,futuro,,
+J_econ,J_{econ},derivado,-,real,R$,função econômica,nao,objetivo,M21,M21;M21-v1.1;M21-MULTI;M22,futuro,comum,,,,,ativo_3BP,pyomo:J,"termos executados: curtailment, throughput, ENS, combustível (h·q)"
+J_curt,J_{curt},derivado,-,>= 0,R$,h Σ c^curt C^oper,nao,termo curtailment_operacional,M21-v1.1,M21-v1.1;M21-CURT;M21-MULTI,ativo_3A,comum,referencia;auditoria,ems_v2.reference.ResultadoRenovavel.custo_curt_oper_R,,único termo econômico do 3A,ativo_3BP,ems_v2.reference.ResultadoRenovavel.custo_curt_oper_R,
+c_curt,c^{curt}_{rt},parametro,"r,t",>= 0,R$/kWh,custo de vertimento operacional,sim,termo curtailment_operacional,economia declarada,M21;M21-CURT,ativo_3A,comum,contrato;referencia;auditoria,ems_v2.contracts.PotencialRenovavel.custo_curtailment,c_curt,"resolução C2: índices (r,t), constante no tempo no 3A",ativo_3BP,ems_v2.contracts.PotencialRenovavel.custo_curtailment,
+c_thr,c^{thr}_b,parametro,b,>= 0,R$/kWh,custo de throughput sobre P^c + P^d,sim,termo throughput_bess,economia declarada,M21;M21-v1.1;M21-MULTI,futuro,comum,contrato,ems_v2.contracts.EspecBateria.custo_throughput,,declarável (A05-OPT); termo do objetivo é do Piso 3B,ativo_3BP,ems_v2.contracts.EspecBateria.custo_throughput,
+V_l,V_{lt},parametro,"l,t",>= 0,R$/kWh,valor da energia não suprida,sim,serviço degradado,economia declarada,M21;M21-v1.1;M21-MULTI,futuro,comum,,,,,ativo_3BP,ems_v2.contracts.ClasseDemanda.custo_energia_nao_suprida,
+c_dump,c^{dump}_t,parametro,t,>= 0,R$/kWh,custo de descarte físico,sim,dispositivo de descarte,economia declarada,M21;M21-v1.1;M21-MULTI,futuro,comum,,,c_dump,,futuro,,
+gamma,\gamma_i,parametro,i,>= 0,R$/kW,regularizador de mudança de consigna,sim,regularizador,política,M21;M21-v1.1;M21-MULTI;M21-REG,futuro,comum,,,gamma,não é predição de vida útil,futuro,,
+v_abs,v_{it},variavel,"i,t",>= 0,kW,variação absoluta de consigna,sim,regularizador,MILP,M21;M21-v1.1;M21-MULTI;M21-REG,futuro,comum,,,v_abs,,futuro,,
+kappa,\kappa_b,parametro,b,>= 0,R$/kWh,custo de déficit terminal,sim,terminal suave,política (D02),M21;M21-v1.1;M21-MULTI;TERM-SOFT,futuro,comum,,,kappa,não inventar κ,futuro,,
+xi,\xi_b,variavel,b,>= 0,kWh,déficit terminal,sim,terminal suave,MILP,M21;M21-v1.1;M21-MULTI;TERM-SOFT,futuro,comum,,,xi,,futuro,,
+E_ref,E_b^{ref},parametro,b,>= 0,kWh,referência terminal absoluta,sim,terminal suave,política (D02),TERM-SOFT,futuro,comum,,,,não redefinir como SOC corrente,futuro,,
+E_reserve,E_b^{reserve},parametro,b,>= 0,kWh,mínimo terminal duro,sim,terminal duro,política,TERM-HARD,futuro,comum,,,,,futuro,,
+J_serv,J_{serv},derivado,-,>= 0,kWh ponderado,déficit ponderado,sim,lexicográfico,M22,M22,futuro,comum,,,,,futuro,,
+w_priority,w_l,parametro,l,> 0,1,peso relativo de serviço,sim,lexicográfico,política,M22,futuro,comum,,,w_priority,não prova prioridade estrita,futuro,,
+J_serv_star,J^*_{serv},derivado,-,>= 0,kWh ponderado,ótimo/cota do nível 1,sim,lexicográfico,solver,M22,futuro,comum,,,,,futuro,,
+eps_serv,\varepsilon_{serv},parametro,-,>= 0,kWh,folga lexicográfica,sim,lexicográfico,política,M22,futuro,comum,,,,,futuro,,
+x_state,x_k,variavel,k,-,-,estado real/simulado,sim,MPC,simulador/medição,M23,futuro,comum,,,,,futuro,,
+Phi_phys,\Phi_{phys},derivado,-,função,-,avanço físico com memória,sim,MPC físico,modelo físico,M23,futuro,comum,,,,physical_step não existe (C19),futuro,,
+u_applied,u^{aplicado},variavel,k,-,-,comandos efetivamente aplicados,sim,MPC,controlador,M23,futuro,comum,,,,,futuro,,
+w_dist,w^{real},parametro,k,-,-,perturbações reais,sim,MPC,medição/simulação,M23,futuro,comum,,,,,futuro,,

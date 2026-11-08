@@ -74,16 +74,17 @@ def bateria(uid: str, N: int, delta_min, caso, *, C=100.0, smin=0.0, smax=1.0, e
 
 
 def entrada(caso: str, m: MalhaTemporal, *, demandas=(), renovaveis=(), baterias=(), estados_baterias=(),
-            geradores=(), estados_geradores=(), termos=()) -> EntradaModeloEMS:
+            geradores=(), estados_geradores=(), termos=(), formulacao: str = FORMULACAO_VERSAO,
+            servico: PoliticaServico | None = None, variante_combustivel: str | None = None) -> EntradaModeloEMS:
     return EntradaModeloEMS(
-        ESQUEMA_VERSAO, MOTOR_ID, FORMULACAO_VERSAO, "syn-microrrede-fixture", f"syn-{caso.lower()}", m,
+        ESQUEMA_VERSAO, MOTOR_ID, formulacao, "syn-microrrede-fixture", f"syn-{caso.lower()}", m,
         FronteiraBarramento("barramento_equivalente_unico", "isolada", CONVENCAO_POTENCIA, proc(caso)),
         tuple(demandas), tuple(renovaveis), tuple(baterias), tuple(estados_baterias), tuple(geradores),
         tuple(estados_geradores),
-        PoliticaServico("duro", proc(caso, "Serviço duro (07_DECISIONES_Y_RIESGOS: D01 regra temporária)")),
+        servico or PoliticaServico("duro", proc(caso, "Serviço duro (07_DECISIONES_Y_RIESGOS: D01 regra temporária)")),
         PoliticaTerminal("nenhuma", f"Caso analítico {caso}: terminal não vinculante (adenda v1.1 'Temporalidad')",
                          proc(caso)),
-        PoliticaObjetivo(tuple(termos), proc(caso)),
+        PoliticaObjetivo(tuple(termos), proc(caso), variante_combustivel),
         proc(caso, "Entrada sintética para teste algébrico; não é estudo físico."))
 
 

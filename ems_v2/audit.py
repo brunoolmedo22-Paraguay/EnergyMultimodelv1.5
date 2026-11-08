@@ -93,6 +93,7 @@ class RelatorioAuditoria:
     custos_reconstruidos: dict[str, float] = field(default_factory=dict)
     kpis_reconstruidos: dict[str, dict[str, float]] = field(default_factory=dict)
     rotulo: str = ROTULO_EVIDENCIA
+    familias_nao_modeladas: tuple[str, ...] = ()   # fora da formulação auditada (declaradas, não certificadas)
 
     def codigos(self) -> set[str]:
         return {c.codigo for c in self.constatacoes}
@@ -172,7 +173,7 @@ def _tol_custo(tol: Tolerancias, J: float) -> float:
     return tol.custo_abs_R + tol.custo_rel * max(1.0, abs(J))
 
 
-def _finalizar(col: _Coletor, nao_suportadas: list[str], custos=None, kpis=None) -> RelatorioAuditoria:
+def _finalizar(col: _Coletor, nao_suportadas: list[str], custos=None, kpis=None, nao_modeladas=()) -> RelatorioAuditoria:
     reprov = tuple(r for r in col.residuos if not r.aprovado)
     maximos: dict[str, tuple[float, str, float]] = {}
     for r in col.residuos:
@@ -184,10 +185,17 @@ def _finalizar(col: _Coletor, nao_suportadas: list[str], custos=None, kpis=None)
                               maximos=maximos, constatacoes=tuple(col.constatacoes),
                               familias_verificadas=tuple(sorted(col.verificadas)),
                               familias_nao_suportadas=tuple(nao_suportadas),
-                              custos_reconstruidos=custos or {}, kpis_reconstruidos=kpis or {})
+                              custos_reconstruidos=custos or {}, kpis_reconstruidos=kpis or {},
+                              familias_nao_modeladas=tuple(nao_modeladas))
 
 
-def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias = Tolerancias()) -> RelatorioAuditoria:
+def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias = Tolerancias(),
+            compromisso_fixo: dict | None = None) -> RelatorioAuditoria:
+    """``compromisso_fixo`` (perfil 3B-P): programa u por gerador, que DEVE ser constante e igual ao estado inicial.
+    Sem ele, geradores continuam ``nao_suportado`` (comportamento 3A). Com ele, o auditor verifica de forma
+    independente: fidelidade ao programa e integralidade de u, domínio ON/OFF (M10), vazão PWL (M15/M16) e a
+    contribuição de p ao balanço. Rampas (M11) e permanências (M12) NÃO são verificadas e são declaradas em
+    ``familias_nao_modeladas``."""
     col = _Coletor()
     ct = validar_tolerancias(tol)
     if ct:
@@ -198,7 +206,7 @@ def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias
     if not rel.aceito:
         return _finalizar(col, [])
     nao_sup: list[str] = []
-    if entrada.geradores or cand.geradores:
+    if (entrada.geradores or cand.geradores) and compromisso_fixo is None:
         nao_sup.append("commitment_M09_M12")
         col.constatacoes.append(pendente("commitment_nao_suportado_3A", "geradores",
                                          "Transições/rampas/permanências (M09–M12) não são auditáveis no Piso 3A; "
@@ -223,7 +231,8 @@ def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias
     aR = {str(r.uid): alinhar_a_malha(r.disponibilidade.serie, m, "")[0] for r in entrada.renovaveis}
     aB = {str(b.uid): alinhar_a_malha(b.disponibilidade.serie, m, "")[0] for b in entrada.baterias}
     P_scale = max([1.0] + [sum(L[k][t] for k in L) for t in range(N)] + [sum(A[k][t] for k in A) for t in range(N)]
-                  + [max(float(b.p_carga_max_kW.valor), float(b.p_descarga_max_kW.valor)) for b in entrada.baterias])
+                  + [max(float(b.p_carga_max_kW.valor), float(b.p_descarga_max_kW.valor)) for b in entrada.baterias]
+                  + [float(g.p_max_kW.valor) for g in entrada.geradores])
     tolP = tol.potencia_abs_kW + tol.potencia_rel_escala * P_scale
 
     # ------------------------------------------------ chaves esperadas × fornecidas (por UID)
@@ -333,6 +342,12 @@ def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias
         for i, x in enumerate(e):
             col.limite_inferior("bess_soc", "M08", k, i, x, Cb * smin, "kWh", tolS)
             col.limite_superior("bess_soc", "M08", k, i, x, Cb * smax, "kWh", tolS)
+    # ------------------------------------------------ geradores com compromisso FIXO (perfil 3B-P)
+    nao_modeladas: tuple[str, ...] = ()
+    vazoes: dict[str, list[float]] = {}
+    if entrada.geradores or cand.geradores:
+        nao_modeladas = ("rampas_M11", "permanencias_M12")
+        _auditar_geradores(entrada, cand, compromisso_fixo or {}, col, N, gen, tolP, tol, vazoes)
     # ------------------------------------------------ balanço M02
     for t in range(N):
         col.r("balanco", "M02", "barramento", t, gen[t] - carga[t], "kW", tolP)
@@ -340,15 +355,20 @@ def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias
     custos: dict[str, float] = {}
     if custo_curt_ok and entrada.renovaveis:
         custos["curtailment_operacional"] = custo_curt
+    custos.update(_custos_3bp(entrada, cand, h, N, vazoes))
+    termos = entrada.politica_objetivo.termos
+    if all(t in custos for t in termos):
+        custos["total"] = sum(custos[t] for t in termos)
     for nome, rep in cand.custos_reportados.items():
-        if nome != "curtailment_operacional":
+        if nome not in RECONSTRUTIVEIS:
             col.constatacoes.append(pendente("custo_nao_reconstruivel_3A", f"custos_reportados[{nome}]",
-                                             "Termo de custo sem reconstrução no Piso 3A."))
-        elif "curtailment_operacional" not in custos:
-            col.constatacoes.append(erro("custo_nao_reconstruivel", "custos_reportados[curtailment_operacional]",
-                                         "c^curt ausente: custo reportado não pode ser conferido."))
+                                             "Termo de custo sem reconstrução independente."))
+        elif nome not in custos:
+            col.constatacoes.append(erro("custo_nao_reconstruivel", f"custos_reportados[{nome}]",
+                                         "Coeficiente ausente: custo reportado não pode ser conferido."))
         else:
-            col.r("custo", "M21-v1.1", "J_curt", None, float(rep) - custos[nome], "R$", _tol_custo(tol, custos[nome]))
+            col.r("custo", RECONSTRUTIVEIS[nome], nome, None, float(rep) - custos[nome], "R$",
+                  _tol_custo(tol, custos[nome]))
     if "curtailment_operacional" in entrada.politica_objetivo.termos and \
             "curtailment_operacional" not in cand.custos_reportados:
         col.constatacoes.append(Constatacao("custo_nao_reportado", "custos_reportados",
@@ -364,7 +384,98 @@ def auditar(entrada: EntradaModeloEMS, cand: CandidatoDespacho, tol: Tolerancias
                 continue
             col.r("kpi_energia", "B01", k, None, float(v) - kpis[nome][k], "kWh",
                   tol.energia_abs_kWh + tol.energia_rel_capacidade * max(1.0, abs(kpis[nome][k])))
-    return _finalizar(col, [], custos, kpis)
+    return _finalizar(col, [], custos, kpis, nao_modeladas)
+
+
+RECONSTRUTIVEIS = {"curtailment_operacional": "M21-v1.1", "throughput_bess": "M21-v1.1",
+                   "energia_nao_suprida": "M21-v1.1", "combustivel_h2": "B05-INST", "total": "M21-v1.1"}
+
+
+def _custos_3bp(entrada, cand, h, N, vazoes) -> dict[str, float]:
+    """Reconstrução independente (R$) dos termos do perfil 3B-P a partir da candidata e dos coeficientes declarados.
+    Um termo só é reconstruído se TODOS os coeficientes necessários existirem (nunca zero presumido)."""
+    out: dict[str, float] = {}
+    if entrada.baterias and all(b.custo_throughput is not None and b.custo_throughput.valor is not None
+                                for b in entrada.baterias):
+        tot = 0.0
+        for b in entrada.baterias:
+            c = cand.baterias.get(str(b.uid), {})
+            if c.get("P_c") is None or c.get("P_d") is None:
+                break
+            tot += float(b.custo_throughput.valor) * h * (sum(c["P_c"]) + sum(c["P_d"]))
+        else:
+            out["throughput_bess"] = tot
+    elif not entrada.baterias:
+        out["throughput_bess"] = 0.0
+    inter = [d for d in entrada.demandas if d.criticidade == "interrompivel"]
+    if all(d.custo_energia_nao_suprida is not None and d.custo_energia_nao_suprida.valor is not None for d in inter):
+        tot = 0.0
+        for d in inter:
+            ell = cand.demandas.get(str(d.uid), {}).get("ell")
+            if ell is None:
+                break
+            tot += float(d.custo_energia_nao_suprida.valor) * h * sum(ell)
+        else:
+            out["energia_nao_suprida"] = tot
+    pem = [g for g in entrada.geradores if g.tecnologia == "pemfc"]
+    if all(g.preco_h2 is not None and g.preco_h2.valor is not None and str(g.uid) in vazoes for g in pem):
+        out["combustivel_h2"] = sum(float(g.preco_h2.valor) * h * sum(vazoes[str(g.uid)]) for g in pem)
+    return out
+
+
+def _auditar_geradores(entrada, cand, prog_all, col, N, gen, tolP, tol, vazoes) -> None:
+    estados = {str(s.uid): s for s in entrada.estados_geradores}
+    m = entrada.malha
+    for k in sorted(set(cand.geradores) - {str(g.uid) for g in entrada.geradores}):
+        col.constatacoes.append(erro("uid_desconhecido_na_candidata", f"geradores[{k}]", "UID inexistente na entrada."))
+    for g in entrada.geradores:
+        k = str(g.uid)
+        prog = prog_all.get(k)
+        if not isinstance(prog, (list, tuple)) or len(prog) != N or any(
+                isinstance(x, bool) or x not in (0, 1) for x in prog):
+            col.constatacoes.append(erro("compromisso_invalido", f"compromisso[{k}]",
+                                         f"Programa ausente ou inválido (exigidos {N} valores em {{0, 1}})."))
+            continue
+        if any(x != int(bool(estados[k].ligado)) for x in prog):
+            col.constatacoes.append(pendente("transicao_nao_modelada_3BP", f"compromisso[{k}]",
+                                             "Programa com transição: M09/M11/M12 não auditáveis no 3B-P."))
+            continue
+        a = alinhar_a_malha(g.disponibilidade.serie, m, "")[0]
+        c = cand.geradores.get(k, {})
+        u = _vetor(c, "u", N, f"geradores[{k}].u", col, N + 1)
+        p = _vetor(c, "p", N, f"geradores[{k}].p", col, N + 1)
+        curva = g.curva_h2
+        q = _vetor(c, "q", N, f"geradores[{k}].q", col, N + 1) if curva is not None else None
+        if curva is None and isinstance(c, dict) and c.get("q") is not None:
+            col.constatacoes.append(erro("vazao_sem_curva", f"geradores[{k}].q", "Vazão informada sem curva PWL."))
+        if u is None or p is None or (curva is not None and q is None):
+            continue
+        pmin, pmax = float(g.p_min_kW.valor), float(g.p_max_kW.valor)
+        Ps = [float(v[0]) for v in curva.vertices] if curva is not None else []
+        Qs = [float(v[1]) for v in curva.vertices] if curva is not None else []
+        tolQ = tol.vazao_abs_kg_h + tol.vazao_rel_qmax * (max(Qs) if Qs else 0.0)
+        for t in range(N):
+            gen[t] += p[t]
+            col.r("integralidade", "M09", k, t, min(abs(u[t]), abs(u[t] - 1.0)), "1", tol.binario)
+            col.r("compromisso_fixo", "M09", k, t, u[t] - prog[t], "1", tol.binario)
+            if prog[t] == 1 and a[t] != 1.0:
+                col.constatacoes.append(erro("on_indisponivel", f"geradores[{k}].u[{t}]", "Unidade ON com a = 0."))
+            if prog[t] == 0:
+                col.r("dominio_on_off", "M10", k, t, p[t], "kW", tolP)
+                if q is not None:
+                    col.r("vazao_pwl", "M16", k, t, q[t], "kg/h", tolQ)
+                continue
+            lo, hi = (max(pmin, Ps[0]), min(pmax, Ps[-1])) if Ps else (pmin, pmax)
+            col.limite_inferior("dominio_on_off", "M10", k, t, p[t], lo, "kW", tolP)
+            col.limite_superior("dominio_on_off", "M10", k, t, p[t], hi, "kW", tolP)
+            if p[t] < lo - tolP or p[t] > hi + tolP:
+                col.constatacoes.append(erro("on_fora_do_dominio", f"geradores[{k}].p[{t}]",
+                                             f"ON em {p[t]} kW fora de [{lo}, {hi}] kW."))
+            elif q is not None:
+                col.r("vazao_pwl", "M16", k, t, q[t] - _interp_bisect(Ps, Qs, min(max(p[t], Ps[0]), Ps[-1])),
+                      "kg/h", tolQ)
+        if q is not None:
+            vazoes[k] = q
 
 
 # =============================================================================== PWL (A06)
