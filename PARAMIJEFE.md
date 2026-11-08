@@ -1864,7 +1864,7 @@ Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas 
 |---|---|
 | Rama | `claude/seeds2-piso3b-milp-highs` (nueva, desde `main`; no reutiliza la rama del PR #11) |
 | Base | `main` `f6d009db169b60a84657f79a7006640e20470b82` (merge del PR #11); árbol idéntico al HEAD auditado del 3A (`37ba4f1`) |
-| PR | abierto contra `main` **sin merge** (número en la descripción) |
+| PR | [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) contra `main` **sin merge** |
 | Pendientes de esta misión | ninguno; integración aguarda auditoría. **No iniciar 3C sin autorización.** |
 
 ### 1. Resumen
@@ -1949,4 +1949,4 @@ sentidos. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
 | 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
-| 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / PR aberto (sem merge) | Implementado e verificado na rama; aguardando auditoria |
+| 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) (sem merge) | Implementado e verificado na rama; aguardando auditoria |

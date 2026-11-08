@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-08 · **rama:** `claude/seeds2-piso3b-milp-highs` · **PR:** abierto contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3B-P — Primer optimizador MILP ejecutable (Pyomo + HiGHS)** implementado y verificado en la rama; **no integrado**.
+**Actualización:** 2026-11-08 · **rama:** `claude/seeds2-piso3b-milp-highs` · **PR:** [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3B-P — Primer optimizador MILP ejecutable (Pyomo + HiGHS)** implementado y verificado en la rama; **no integrado**.
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 7**; formulación y evidencia en [`docs/ems_v2/FORMULACAO_3BP.md`](../ems_v2/FORMULACAO_3BP.md), [`MATRIZ_3BP.md`](../ems_v2/MATRIZ_3BP.md) y [`EVIDENCIA_3BP.md`](../ems_v2/EVIDENCIA_3BP.md).
 
