@@ -1783,7 +1783,7 @@ obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_e
 | Base | `main` `8556b71a76dd13d279a0e0ecd8ad9bd498df72f1` (merge del PR #10) = SHA base auditado por el paquete maestro; **sin diferencias de código** |
 | PR | [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) contra `main` **sin merge** (commits `96c2762`, `3c6aabc` + este registro) |
 | Autorización | Plan 3A aprobado con condiciones A–F (2026-11-08); sólo Piso 3A |
-| Pendientes de esta misión | ninguno; correcciones C-3A-01..03 aplicadas (§5); integración aguarda auditoría final y autorización humana. **No iniciar 3B sin revisión.** |
+| Pendientes de esta misión | ninguno; correcciones C-3A-01..04 aplicadas (§5, §5b); integración aguarda auditoría final y autorización humana. **No iniciar 3B sin revisión.** |
 
 ### 1. Resumen
 
@@ -1837,6 +1837,14 @@ Nuevos tests: 100 casos (`test_c3a01_*`, `test_c3a02_*`, `test_c3a03_*`). Contra
 `python -m pytest tests/ems_v2 -q` → **235 passed**; `python -m pytest tests/ -q` → **689 passed, 7 warnings,
 128 subtests (367 s)** = 454 + 235. Formulación científica, tolerancias provisionales, V1.6, runtime e interfaz
 sin cambios. Detalle: `docs/ems_v2/DECISIONES_3A.md` §8 y `MATRIZ_3A.md` (sección final).
+
+### 5b. Corrección C-3A-04 (segunda fiscalización: C-3A-01..03 aprobados)
+
+| | |
+|---|---|
+| Defecto | La verificación de la cadena bruto → normalizado exigía igualdad RACIONAL con el `float` producido por el conversor: `Parametro.de_bruto(0.12345678912345678, "W")` (→ `0.00012345678912345677 kW`) era rechazado por `validar_parametro` (`cadeia_transformacao_inconsistente`); igual en series con valores brutos. |
+| Corrección | Regla única `units.converter` (racional exacto redondeado una vez al `float` más próximo) usada por el conversor y por `parameters.verificar_cadeia` (parámetros y series). Acepta exactamente ese `float`; rechaza cualquier otro (incluso ±1 ulp) y transformaciones registradas incoherentes (`transformacao_inconsistente`). Tolerancias físicas de `audit.py` intactas. |
+| Evidencia | 33 casos `test_c3a04_*`; contra `7becd42`: 6 fallan / 27 pasan (conversiones exactas en binario y rechazos ±1 ulp ya correctos). Tras la corrección: `tests/ems_v2` **268 passed**; `python -m pytest tests/ -q` **722 passed, 7 warnings, 128 subtests (366 s)** = 454 + 268. Detalle: `docs/ems_v2/DECISIONES_3A.md` §9. |
 
 ### 6. Rollback
 

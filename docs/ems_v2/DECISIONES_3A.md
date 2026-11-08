@@ -104,6 +104,23 @@ Evidencia ejecutable: `tests/ems_v2/test_ems_v2_auditor.py::test_c3a01_*`, `::te
 94 fallan y 6 pasan; los 6 son controles positivos (d = 0, ida y vuelta) o estructuras que ya lanzaban
 `TypeError`, hoy convertido en `ErroSerializacao`. Con la corrección: todos pasan.
 
+## 9. Corrección C-3A-04 — redondeo en transformaciones de unidades (segunda fiscalización, 2026-11-08)
+
+C-3A-01..03 aprobados. Defecto localizado restante:
+
+| | Detalle |
+|---|---|
+| Causa | `parameters.validar_parametro` y `series.validar_serie` exigían `exato(bruto) × fator == exato(normalizado)` (igualdad RACIONAL), pero el conversor (`units.para_canonica`) entrega el `float` más próximo a ese racional. Toda conversión cuyo resultado no es exactamente representable en binario se rechazaba a sí misma. |
+| Contraejemplo antes | `Parametro.de_bruto(0.12345678912345678, "W")` → `0.00012345678912345677 kW` → `validar_parametro` ⇒ `cadeia_transformacao_inconsistente` (rechazo del valor legítimo); lo mismo en una serie con ese valor bruto. |
+| Corrección | Regla ÚNICA `units.converter(bruto, fator) = float(exato(bruto) × fator)`: producto racional exacto redondeado **una sola vez** (redondeo correcto de `Fraction.__float__`), usada por el conversor y por `parameters.verificar_cadeia`, que ahora verifica parámetros y series. Se acepta exactamente ese `float`; cualquier otro valor normalizado (incluso a 1 ulp) se rechaza. Además, la transformación registrada debe corresponder a la conversión (unidades de origen/destino y fator) ⇒ `transformacao_inconsistente` si no. |
+| Lo que NO cambia | Tolerancias físicas de `audit.py` (no intervienen en la cadena de unidades); factores de `CONVERSOES`; valores producidos por el conversor (idénticos a los anteriores). |
+| Después | caso de la auditoría aceptado; alteración de 1 ulp del normalizado (en ambos sentidos) rechazada en parámetros y series; bruto o registro alterados rechazados. |
+
+Evidencia: `tests/ems_v2/test_ems_v2_malha_unidades.py::test_c3a04_*` (33 casos: 10 conversiones de alta precisión
+aceptadas y trazables, caso de la auditoría, 20 alteraciones de ±1 ulp, alteración de bruto/registro, serie). Contra el
+código anterior (`7becd42`): 6 fallan (las conversiones no exactamente representables, el caso de la auditoría, la
+serie y el registro incoherente) y 27 pasan (conversiones exactas en binario y rechazos de 1 ulp ya correctos).
+
 ## 7. Propuesta concreta para el PR 3B-P (no iniciado; requiere revisión)
 
 1. Dependencias fijadas: `pyomo` y `highspy` con versión exacta, licencia y smoke de instalación limpia; decidir

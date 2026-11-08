@@ -1,7 +1,7 @@
 # Piso 3A — Matriz de trazabilidad requisito → ecuación → archivo → test → resultado
 
 Todas las pruebas son **sintéticas/algebraicas** (marcador `synthetic_algebraic`); ninguna es validación física.
-Comando: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q` → **235 passed** (2026-11-08, tras las correcciones C-3A-01..03; antes 135).
+Comando: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ems_v2 -q` → **268 passed** (2026-11-08, tras las correcciones C-3A-01..04; 135 en la primera entrega, 235 tras C-3A-01..03).
 
 Estados: `implemented` (contrato/referencia/auditor + test verde) · `test_spec_only` (resultado teórico registrado,
 sin solver) · `not_applicable` (fuera de 3A, rechazado explícitamente).
@@ -80,3 +80,4 @@ sin solver) · `not_applicable` (fuera de 3A, rechazado explícitamente).
 | C-3A-01 descarte negativo | M04 (`0 <= d <= D̄`), M02 | `ems_v2/audit.py` | `test_c3a01_*` (3) | d = −10 rechazado con y sin dispositivo; d = 0 aceptado | implemented |
 | C-3A-02 tolerancias inválidas | §17, D07 | `ems_v2/audit.py` (`validar_tolerancias`) | `test_c3a02_*` (78) | rechazo explícito `tolerancia_invalida`; valores provisionales intactos | implemented |
 | C-3A-03 serialización con pérdida | R46, R49 (procedencia/integridad) | `ems_v2/contracts.py` (`_construir`, `de_dict`, `entrada_de_json`, `ErroSerializacao`) | `test_c3a03_*` (19) | estructuras incompatibles rechazadas; ida y vuelta idéntica | implemented |
+| C-3A-04 redondeo en transformaciones de unidades | R46 (cadena bruto → normalizado), R02 | `ems_v2/units.py` (`converter`), `ems_v2/parameters.py` (`verificar_cadeia`), `ems_v2/series.py` | `test_c3a04_*` (33) | conversión de alta precisión aceptada y trazable; ±1 ulp, bruto o registro alterados rechazados (parámetros y series) | implemented |
