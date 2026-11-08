@@ -1,0 +1,96 @@
+# Piso 3C-0 — Evidencia de pruebas (entregable E)
+
+Entorno: Python 3.13.18, `requirements.txt` (streamlit 1.66.1, numpy 2.2.6, pandas 2.2.3) + `requirements-ems_v2.txt`
+(pyomo 6.10.1, highspy 1.15.1), contenedor Linux x86_64. Todas las ejecuciones con `PYTHONDONTWRITEBYTECODE=1`.
+
+## 1. Comandos y resultados
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1 | Línea de base en `main` `3c65d98`: `python -m pytest tests/ -q -p no:cacheprovider` | **870 passed**, 7 warnings, 128 subtests (372 s) |
+| 2 | Rama: `python -m pytest tests/ems_v2 -q -p no:cacheprovider` | **495 passed** (416 previos + 79 nuevos) |
+| 3 | Rama sin Pyomo/HiGHS (`sys.modules['pyomo'] = sys.modules['highspy'] = None` antes de `pytest.main(['tests/ems_v2'])`) | **354 passed, 5 skipped** (los módulos MILP se saltan explícitamente) |
+| 4 | Rama, regresión completa: `python -m pytest tests/ -q -p no:cacheprovider` | **949 passed**, 7 warnings, 128 subtests (381 s) = 870 + 79 |
+
+Los 7 avisos son los mismos de la línea de base (SLSQP del V1.6, `clipping to bounds`).
+
+## 2. Tests nuevos (79) — qué comprueban y qué NO
+
+| Archivo | Tests | Comprueba | No valida |
+|---|---|---|---|
+| `test_ems_v2_ponte_3c0.py` | 62 | Inventario (UID, mezcla de microrredes, retirados, padres FV, valores ausentes/NaN/derivados/sintéticos), expansión por unidad, 5 clases de parámetros, valor sugerido bloqueado, conversión de unidades (% → 1, R$/MWh → R$/kWh, unidad incompatible/desconocida), coherencia escenario × microrred (otra microrred, incarnación, deriva, UID inexistente/retirado, condición ausente), horizonte de planeamiento reservado, previsión causal, realización sin emisión y cubriendo la misión, separación previsión × realización (oráculo), entrada independiente de la realización, proyección aceptada por `validar_entrada`, bloqueo por parámetro ausente y por sintético en `operacional`, políticas obligatorias, estado por unidad no inventado, indisponible ⇒ `a = 0`, plan solo de resultado aceptado y de la misma entrada, malla N/N+1 (consignas N, estados N+1, terminal como intervalo, binario), ejecución completa, retomada desde checkpoint serializado = ejecución continua, checkpoint adulterado/incoherente/desincronizado rechazado, ejecutor desincronizado detectado, interrupción sin recorte, memoria `tempo_no_estado_s` transportada, costo realizado × valor futuro (5 violaciones rechazadas), registro sellado/serializado/persistido inmutable/adulterado, serialización determinista de 7 contratos, cronómetro, percentiles, mapa de desenlaces, preflight (ensayo × operacional, referencias, restricciones, estados iniciales fuera de límites), núcleo solo biblioteca estándar | Física; desempeño; MPC |
+| `test_ems_v2_ponte_seeds2.py` | 8 | Con microrredes REALES del catálogo (directorio temporal, fixtures de prueba): aislamiento entre dos inventarios distintos, conservación de UID/procedencia/huella/incarnación, sin agregación (V1.6 agrega `N_fc = 4`, la puente conserva 3 + 1 y 4 unidades identificables), valor sugerido bloqueado, CVU R$/MWh → R$/kWh, **lectura no graba** (bytes del banco, historial y catálogo idénticos), revisión fijada × actual y deriva, escenario real (SOC % → fracción, versiones), escenario de otra microrred rechazado, **microrred real bloqueada con explicación**, microrred excluida no se lee | Instalaciones reales (las microrredes son fixtures de prueba) |
+| `test_ems_v2_ponte_milp.py` | 5 | HiGHS real: cadena preflight → 3A → `resolver` → plan → ejecución → registro (`aceito_otimo`, descarga analítica 10 kW, costo realizado = objetivo = R$ 0,025 con oráculo declarado), reproducibilidad (hash del plan y checkpoint final idénticos), error de predicción interrumpe y el costo cubre solo lo ejecutado, solución inviable no genera plan (`inviavel`), tiempos medidos registrados | Optimalidad de la planta; campaña de tiempos |
+| `test_ems_v2_ponte_isolamento.py` | 4 | Solo `ponte_seeds2/leitor.py` importa `seeds2` y solo módulos de lectura; el lector no invoca APIs de escritura; la puente no importa UI/motor legado/solver; V1.6, aplicación, `seeds2`, requirements y núcleo 3A/3B-P sin diff desde `3c65d98` | — |
+
+Test 3B-P modificado: `test_ems_v2_milp_perfil.py::test_so_o_subpacote_milp_importa_pyomo_ou_highspy` — excepción
+nominal para `ponte_seeds2/leitor.py` respecto de `seeds2` (C-3C0-01); las demás aserciones intactas.
+
+## 3. Evidencia sobre la microrred equivalente al V1.6 (fixture de prueba)
+
+Lectura por `ler_inventario` + escenario recién creado; preflight `operacional` sin previsión:
+
+- dispositivos: 2 `pv_usina`, 2 `pv_arranjo`, 2 `pemfc` (quantidade 3 y 1), 2 `bateria`;
+- matriz: 16 `disponivel_verificavel`, 4 `derivavel`, 6 `opcional`, **26 `faltante_necessario`**;
+- bloqueantes: 18 × `parametro_obrigatorio_ausente` (por banco: η_c, η_d, Pc_max, Pd_max, hipótesis de autodescarga;
+  por bloque PEMFC: P_min, curva q(P)), `previsao_ausente`;
+- advertencias: 12 × `necessario_3C1`, 2 × `disponibilidade_herdada_do_agrupador`, `realizacao_nao_fornecida`;
+- brechas de previsiones del escenario: `previsoes_ausentes`, `demanda_sem_uid_e_criticidade`.
+
+## 4. Limitaciones
+
+- Ninguna prueba es validación física o experimental; el ejecutor es un dublê algébrico.
+- Los tiempos de `test_tempos_medidos_sao_registrados_sem_meta_de_desempenho` (5 repeticiones) solo prueban el
+  registro; no hay campaña ni meta.
+- No se ejecutaron E2E de navegador: la aplicación no cambió (diff vacío verificado).
+
+## 5. Correcciones de la auditoría del PR #13 (H-01..H-04, C-3C0-01)
+
+Base: HEAD del PR `4b77788`. Mismo entorno y `PYTHONDONTWRITEBYTECODE=1`.
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1 | `pytest tests/ems_v2/test_ems_v2_ponte_auditoria_pr13.py` (hallazgos H-01..H-04 + C-3C0-01) | **31 passed** |
+| 2 | Suite 3A: `pytest tests/ems_v2 --ignore-glob='*ponte*' -k "not milp"` | **268 passed** (sin cambios) |
+| 3 | Suite 3B-P: `pytest tests/ems_v2 -k "milp and not ponte"` | **148 passed** (sin cambios) |
+| 4 | Puente completa: `pytest tests/ems_v2 -k ponte` | **110 passed** (79 + 31) |
+| 5 | `pytest tests/ems_v2` | **526 passed**; sin Pyomo/HiGHS: 385 passed, 5 skipped |
+| 6 | Regresión completa `pytest tests/` | **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31 |
+| 7 | `git diff --stat 3c65d98 -- ems_integration models h2_pemfc simulation config reference_models seeds2 orchestrator_runtime.py orchestrator_app.py app.py ems_app.py requirements*.txt ems_v2/milp ems_v2/{contracts,audit,reference,timegrid,series,units,parameters}.py` | vacío (también lo verifica `test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada`) |
+| 8 | Diff de la corrección | Solo `ems_v2/ponte/{cenario,preflight,registro}.py`, `ems_v2/fixtures_3c0.py`, tests de la puente y documentación 3C-0 |
+| 9 | Repetición de los tests H-03 (5 × 8 tests: 15 rondas multiproceso + 5 rondas de hilos) | 5/5 verdes |
+| 10 | El mismo arnés multiproceso (8 procesos, 2 contenidos, mismo UID) contra el `gravar_registro` ANTERIOR (`4b77788`) | **8/10 rondas violaron la inmutabilidad** (ambos contenidos «grabados» y `FileNotFoundError` por temporal compartido); con la corrección, 0 |
+
+### Tabla de hallazgos
+
+| Hallazgo | Estado | Pruebas que sustentan la resolución |
+|---|---|---|
+| H-01 Separación previsión/realización | **Resuelto** | `test_h01_previsao_independente_identica_e_advertencia_nao_bloqueio`, `test_h01_series_constantes_identicas_nao_sao_fuga`, `test_h01_coincidencia_parcial_e_previsao_independente`, `test_h01_oraculo_explicito_coerente_e_inconsistente`, `test_h01_procedencia_compartilhada_e_advertencia_suspeita`, `test_h01_evidencia_de_fuga_bloqueia`, `test_h01_causalidade_por_emissao_continua_bloqueante`, `test_separacao_previsao_realizacao` |
+| H-02 Preflight sin políticas | **Resuelto** | `test_h02_politicas_ausentes_bloqueiam_otimizacao`, `test_h02_diagnostico_parcial_sem_politicas_artificiais`, `test_h02_politicas_incompletas_e_projecao_rejeitada`, `test_h02_preparacao_para_o_solver` |
+| H-03 Inmutabilidad concurrente | **Resuelto** | `test_h03_concorrencia_real_entre_processos[0-2]`, `test_h03_concorrencia_real_entre_threads`, `test_h03_idempotencia_e_conteudo_diferente`, `test_h03_falha_limpa_temporarios_e_nao_deixa_alvo`, `test_h03_falha_durante_escrita_no_fallback_remove_alvo_proprio`, `test_h03_fallback_sem_hard_link_tambem_e_exclusivo` |
+| H-04 Realización incremental | **Resuelto en el contrato** (offline × online implementado); **pendiente para 3C-2** el lazo online completo (brecha K6, bloqueante para 3C-2) | `test_h04_observacao_online_valida_so_ate_o_instante_observado`, `test_h04_rejeicoes_da_observacao_incremental[7 casos]`, `test_h04_offline_continua_exigindo_a_missao_inteira`, `test_h04_execucao_nunca_ultrapassa_o_observado_e_retoma_com_nova_observacao`, `test_h04_preflight_aceita_observacao_online_parcial` |
+| C-3C0-01 Excepción de lectura SEEDS2 | **Aceptada condicionalmente; condiciones verificadas** | `test_c3c001_leitor_nao_muta_armazenamento_e_preserva_identidade`, `test_ems_v2_ponte_isolamento.py` (4), `test_aplicacao_nao_referencia_ems_v2` (3A) |
+
+Portabilidad (H-03): `os.link` crea hard links en POSIX y NTFS y falla si el destino existe; sin soporte de hard link
+se usa reserva `O_CREAT | O_EXCL` + `os.replace` (C-03, §6). Verificado en Linux; **Windows no fue ejecutado** en este
+entorno (la ruta alternativa se probó en Linux simulando la ausencia de hard link).
+
+## 6. Cierre de la segunda auditoría (C-01..C-03; base `d74f883`)
+
+| # | Comando | Resultado |
+|---|---|---|
+| 1 | `pytest tests/ems_v2/test_ems_v2_ponte_auditoria_pr13.py` | **40 passed** (31 → 40: +10 C-01/C-02/C-03, −1 test de un punto de fallo que ya no existe en la ruta alternativa) |
+| 2 | Suite 3A / suite 3B-P | **268** / **148** passed (sin cambios) |
+| 3 | `pytest tests/ems_v2` | **535 passed**; sin Pyomo/HiGHS: 394 passed, 5 skipped |
+| 4 | Regresión completa `pytest tests/` | **989 passed, 7 warnings, 128 subtests** (370 s) = 980 + 9 |
+| 5 | Repetición de los tests de concurrencia/límite (`-k "h03 or c03 or c02 or c01"`, 17 tests × 5) | 5/5 verdes |
+| 6 | Lector concurrente durante la escritura por la ruta alternativa (escritura lenta en trozos de 64 B), código de `d74f883` × corrección | **17 097 de 89 053** lecturas parciales × **0 de 68 418** |
+| 7 | Diff de esta ronda | Solo `ems_v2/ponte/{execucao,preflight,registro}.py` y `tests/ems_v2/test_ems_v2_ponte_auditoria_pr13.py`; barreras de aislamiento, suites 3A/3B-P y V1.6 sin cambios desde `d74f883` |
+
+### Tabla de cierre
+
+| Punto | Estado | Pruebas |
+|---|---|---|
+| C-01 Preflight con k = 0 | **Resuelto** | `test_c01_k0_valido_para_preparar_otimizacao`, `test_c01_k1_exige_series_observadas_coerentes`, `test_c01_cobertura_parcial_e_series_ausentes`, `test_c01_offline_continua_exigindo_series` |
+| C-02 Límite temporal obligatorio | **Resuelto** | `test_c02_limite_observado_pertence_ao_contrato_nao_ao_executor`, `test_c02_pausa_inviabilidade_e_erro_de_dados_sao_distintos`, `test_c02_pausa_retoma_do_checkpoint_sem_falsificar_inviabilidade`, `test_h04_execucao_nunca_ultrapassa_o_observado_e_retoma_com_nova_observacao` (actualizado: pausa, no inviabilidad) |
+| C-03 Publicación sin hard links | **Resuelto en Linux**; Windows sin ejecutar | `test_c03_leitor_concorrente_nunca_ve_registro_parcial_na_rota_alternativa`, `test_c03_escritores_concorrentes_na_rota_alternativa`, `test_c03_reserva_orfa_nunca_e_sobrescrita`, `test_h03_falha_limpa_temporarios_e_nao_deixa_alvo`, `test_h03_fallback_sem_hard_link_tambem_e_exclusivo` |

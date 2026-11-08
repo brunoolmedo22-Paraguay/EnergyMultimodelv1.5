@@ -1962,6 +1962,109 @@ sentidos. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
 
 ---
 
+## Entrega 8 — SEEDS2 Piso 3C-0 · Puente científico entre el EMS MILP y la plataforma de microrredes
+
+> Redactada en español. Detalle: `docs/ems_v2/PONTE_3C0.md` (arquitectura, decisiones, contradicciones),
+> `MATRIZ_INTEGRACAO_3C0.md`, `MATRIZ_PARAMETROS_3C0.md`, `BRECHAS_3C0.md`, `TRANSICAO_3C0_3C1.md` y
+> `EVIDENCIA_3C0.md`. Este apartado resume y remite.
+
+### Punto de continuidad
+
+| Campo | Valor |
+|---|---|
+| Rama | `ccr-0cc9677c-ydyfl7` (desde `main`) |
+| Base | `main` `3c65d980` (merge del PR #12, 3A + 3B-P integrados); verificado idéntico al HEAD de la rama al iniciar |
+| PR | [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) contra `main`, **sin merge** |
+| Pendientes | C-3C0-01 aceptada condicionalmente; correcciones H-01..H-04 aplicadas (§6b); D-3C0-01..09 a revisión; **no iniciar 3C-1 sin autorización** |
+
+### 1. Resumen
+
+Contratos verificables que permiten construir el EMS V2 sobre las microrredes del SEEDS2 sin integrarlo todavía:
+
+- **Inventario por UID** (`ems_v2/ponte/inventario.py`): microrred = UID + incarnación + revisión + huellas; cada
+  dispositivo (`eq-…`, `arr-…`) con su UID de microrred, modelo asociado, papel EMS, `quantidade` y valores con
+  origen/unidad/ruta/procedencia. Sin agregación (el adaptador V1.6 agrega; la puente no).
+- **Matriz de parámetros** (`requisitos.py`): 31 símbolos declarativos, 5 clases (disponible, derivable, faltante,
+  opcional, sintético). Sugerido por el SEEDS2 ⇒ faltante. Conversión de unidades exacta y registrada.
+- **Escenario / previsión / realización / tiempo** (`cenario.py`): tipos separados; la realización nunca llega a la
+  proyección; oráculo solo declarado; malla 3A N/N+1 reutilizada; horizonte de planeamiento reservado.
+- **Proyección** (`projecao.py`) a `EntradaModeloEMS` validada por `validar_entrada` sin relajación.
+- **Plan → ejecución → estado** (`execucao.py`): plan solo de resultado aceptado; ejecución contra la realización;
+  estado con índice global e instante; checkpoints sellados y encadenados; retomada bit a bit; desvíos.
+- **Preflight** (`preflight.py`), **registro sellado** con costo realizado ≠ valor futuro (`registro.py`) e
+  **instrumentación** (`instrumentacao.py`).
+- **Lector real** (`ems_v2/ponte_seeds2/leitor.py`), solo lectura, por el catálogo.
+
+### 2. Hallazgos iniciales relevantes
+
+- El inventario del Piso 1 no registra procedencia por parámetro, η de baterías, potencias en la barra,
+  autodescarga, P_min/curva H₂ de la PEMFC, permanencias ni costos de parada. El V1.6 obtiene η, P_min, curva y rampa
+  de la PEMFC **identificándolos de series simuladas** del propio modelo (no aprobado como fuente del EMS V2).
+- Los límites de SOC 20/80 % y la suciedad 0 % pueden ser solo **valores sugeridos** del SEEDS2.
+- El escenario declara disponibilidad por registro (usina FV), no por arreglo (C-3C0-02, resuelta con herencia
+  explícita).
+- Dos tests 3A/3B-P impedían toda relación `ems_v2 ↔ seeds2` (C-3C0-01).
+
+### 3. Resultado sobre una microrred real
+
+La microrred de prueba equivalente al V1.6 (2 usinas FV con 1 arreglo cada una, 2 bloques PEMFC 3 + 1, 2 bancos)
+se lee como 8 dispositivos; la matriz da 16 disponibles, 4 derivables, 6 opcionales y **26 faltantes**. El preflight
+`operacional` la **bloquea**: 18 `parametro_obrigatorio_ausente` (η, P en barra, autodescarga, P_min y curva PEMFC)
++ previsión ausente; 12 avisos `necessario_3C1`. Conclusión: **ninguna microrred real puede ejecutar el EMS V2 hoy**,
+y el sistema explica por qué (BRECHAS_3C0).
+
+### 4. Cadena de ensayo (sintética, rotulada)
+
+preflight `ensaio` → `EntradaModeloEMS` 3B-P → HiGHS (`aceito_otimo`) → plan (descarga 10 kW en t = 2, valor
+analítico) → ejecución algébrica con oráculo declarado (desvío 0; costo realizado = objetivo = R$ 0,025) → registro
+sellado, grabado y releído. Con realización distinta de la previsión, la ejecución se interrumpe en el primer
+intervalo inexequible (`balanco_realizado_violado`) sin recortar, y el costo realizado cubre solo lo ejecutado.
+
+### 5. Pruebas
+
+Ver `EVIDENCIA_3C0.md` (comandos y resultados). 79 tests nuevos en 4 archivos `tests/ems_v2/test_ems_v2_ponte_*.py`;
+un test 3B-P modificado (excepción nominal C-3C0-01, guardia sustitutiva más estricta).
+
+### 6. Decisiones y contradicciones (requieren conocimiento/aprobación)
+
+D-3C0-01..09 y C-3C0-01/02 en `PONTE_3C0.md` §5 y §8. Destacan: tipo de procedencia aditivo `declarado_seeds2`
+(no altera hashes 3A); sugerido ⇒ faltante; C·E = potencia terminal, no de barra; métodos de identificación del V1.6
+no son fuente; registro en archivo JSON inmutable (no en el banco de la microrred); ejecutor algébrico no es físico.
+
+### 6b. Corrección de la auditoría independiente del PR #13 (favorable con correcciones)
+
+| ID | Antes (`4b77788`) | Después |
+|---|---|---|
+| H-01 | Previsión numéricamente igual a la realización ⇒ **error** aunque no hubiera fuga | Clasificación por serie: coincidencia sin evidencia ⇒ advertencia; procedencia compartida ⇒ advertencia de sospecha; **bloqueo solo con evidencia** (procedencia que apunta al SHA-256 del contenido realizado, mismo objeto, oráculo falso). Emisión causal sigue bloqueante |
+| H-02 | Preflight sin políticas podía terminar «aceptado» | `finalidade` `diagnostico` (parcial, nunca autoriza) × `otimizacao` (por defecto): exige políticas, proyección existente y aceptada, formulación 3B-P y `preflight_3bp`; propiedad `apto_para_otimizacao` |
+| H-03 | `exists()` + temporal fijo + `os.replace()` ⇒ sobrescritura concurrente | Publicación exclusiva por `os.link` de un temporal único completo (fallback `O_EXCL`), limpieza garantizada. Arnés multiproceso contra el código anterior: **8/10 rondas violaron la inmutabilidad**; con la corrección, 0 |
+| H-04 | Realización exigida para toda la misión | `Realizacao.modo` (`completa_offline` / `incremental_online`) + `observado_ate_utc`; cobertura y causalidad solo hasta τ_k; ejecución que nunca pasa de τ_k y se reanuda. Lo que falta para 3C-2: brecha **K6** (bloqueante) |
+| C-3C0-01 | Pendiente | **Aceptada condicionalmente**; no mutación verificada sobre el árbol completo de archivos |
+
+Pruebas: 31 nuevas (`test_ems_v2_ponte_auditoria_pr13.py`); 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **526
+passed**; regresión completa **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31. Tabla de hallazgos → pruebas: `EVIDENCIA_3C0.md` §5. Diff confinado a la
+puente, sus fixtures/tests y documentación; V1.6 y núcleo 3A/3B-P sin cambios.
+
+### 6c. Cierre de la segunda auditoría (base `d74f883`: H-01, H-02 y C-3C0-01 aprobados; H-03 mejorado)
+
+| ID | Antes (`d74f883`) | Después |
+|---|---|---|
+| C-01 | Online con `observado_ate_utc = τ_0` exigía series realizadas inexistentes | k = 0 ⇒ válido para preparar la optimización (advertencia `nenhum_intervalo_observado`); k ≥ 1 y offline siguen exigiendo series coherentes |
+| C-02 | No pasar de τ_k dependía de que faltaran datos en las series (y se rotulaba como inexequible) | Barrera del contrato en `executar` antes de cualquier `ExecutorPasso`; situaciones `pausada_aguardando_observacoes` (reanudable), `interrompida_inexequivel` y `erro_dados` (`PassoAplicado.falha`). Probado con un ejecutor que NO consulta el entorno |
+| C-03 | Ruta sin hard link escribía directamente en el destino (lectura parcial posible) | Reserva `O_EXCL` + `os.replace` del temporal completo; reserva huérfana ⇒ `RegistroReservaOrfaError`. Lector concurrente: 17 097/89 053 lecturas parciales con el código anterior × 0/68 418 con la corrección |
+
+Pruebas: `test_ems_v2_ponte_auditoria_pr13.py` 40 passed; 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **535 passed**;
+regresión completa **989 passed, 7 warnings, 128 subtests** (370 s) = 980 + 9. Limitaciones: Windows no ejecutado; recuperación manual de una reserva huérfana.
+Detalle: `EVIDENCIA_3C0.md` §6, `PONTE_3C0.md` §9b.
+
+### 7. Rollback
+
+Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures_3c0.py`, los tests
+`test_ems_v2_ponte_*`, la documentación 3C-0 y el tipo `declarado_seeds2`; restaura la aserción original del test
+3B-P. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
@@ -1972,4 +2075,5 @@ sentidos. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
 | 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
-| 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) (sem merge) | Implementado e verificado na rama; aguardando auditoria |
+| 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
+| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | H-01..H-04 (§6b) e cierre C-01..C-03 (§6c) aplicados; C-3C0-01 aceita condicionalmente; aguardando autorização de merge |
