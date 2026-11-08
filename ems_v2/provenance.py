@@ -18,6 +18,10 @@ TIPOS_PROCEDENCIA = {
     "referencia": "Conjunto de referência incluído no software (não medido nesta instalação)",
     "identificado": "Identificado/calibrado a partir de dados, com método registrado",
     "decisao_responsavel": "Decisão explícita do responsável científico (política, não medição)",
+    # 3C-0 (extensão aditiva): valor digitado pelo usuário no SEEDS2 (inventário ou cenário de UMA microrrede),
+    # rastreável à revisão/versão e ao caminho no documento, SEM documento de origem registrado (não é ficha técnica
+    # conferida nem medição).
+    "declarado_seeds2": "Declarado no SEEDS2 (inventário/cenário), rastreável à revisão/versão; sem documento de origem",
     "nao_declarado": "Procedência não declarada",
 }
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

@@ -4,7 +4,9 @@ Piso 3A: este pacote contém contratos canônicos, unidades, malha temporal, cá
 auditor algébrico independente, registro declarativo de capacidades, fixtures sintéticas e o catálogo de símbolos
 M01–M23 (+ adenda v1.1). Piso 3B-P: o subpacote ``ems_v2.milp`` (ÚNICO que importa Pyomo/HiGHS) constrói e resolve o primeiro MILP
 a partir desses contratos, com perfil de capacidades explícito (``FORMULACAO_3BP``). Nenhuma integração com a
-interface, o Centro de Operação ou o runtime V1.6.
+interface, o Centro de Operação ou o runtime V1.6. Piso 3C-0: ``ems_v2.ponte`` (contratos da ponte científica, núcleo
+só com a biblioteca padrão) e ``ems_v2.ponte_seeds2`` (ÚNICO subpacote que importa ``seeds2``, somente leitura) — ver
+``docs/ems_v2/PONTE_3C0.md``.
 
 Regras do pacote:
 

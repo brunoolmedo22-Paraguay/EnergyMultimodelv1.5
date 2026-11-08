@@ -137,7 +137,12 @@ def test_so_o_subpacote_milp_importa_pyomo_ou_highspy():
         if rel in ("milp/modelo.py", "milp/solver.py", "milp/ambiente.py"):
             continue
         assert not usa, rel
-        assert not any(x.split(".")[0] in ("streamlit", "seeds2", "ems_integration") for x in nomes), rel
+        assert not any(x.split(".")[0] in ("streamlit", "ems_integration") for x in nomes), rel
+        # 3C-0 (contradição C-3C0-01, ver docs/ems_v2/PONTE_3C0.md §8): ÚNICA exceção nominal para ``seeds2`` é o
+        # adaptador SOMENTE LEITURA ``ponte_seeds2/leitor.py``; whitelist e ausência de escrita verificadas em
+        # tests/ems_v2/test_ems_v2_ponte_isolamento.py.
+        if rel != "ponte_seeds2/leitor.py":
+            assert not any(x.split(".")[0] == "seeds2" for x in nomes), rel
 
 
 # ----------------------------------------------------------------------------- capacidades e catálogo 3B-P
