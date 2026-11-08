@@ -1781,7 +1781,7 @@ obrigatórias), `run_pdf.py`, `figures.py` (barreira; nota), `seeds2/ui/report_e
 |---|---|
 | Rama | `ccr-fb5b5eb8-bvbyw2` (designada por el entorno de la sesión) |
 | Base | `main` `8556b71a76dd13d279a0e0ecd8ad9bd498df72f1` (merge del PR #10) = SHA base auditado por el paquete maestro; **sin diferencias de código** |
-| PR | abierto contra `main` **sin merge** (número y SHA final en la descripción del PR) |
+| PR | [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) contra `main` **sin merge** (commits `96c2762`, `3c6aabc` + este registro) |
 | Autorización | Plan 3A aprobado con condiciones A–F (2026-11-08); sólo Piso 3A |
 | Pendientes de esta misión | ninguno; integración aguarda auditoría y autorización humana. **No iniciar 3B sin revisión.** |
 
@@ -1840,4 +1840,4 @@ Revertir el PR elimina `ems_v2/`, `tests/ems_v2/`, `docs/ems_v2/` y las líneas 
 | 3 | 2026-11-06/07 | Piso 2C — Execução EMS e Persistência Científica (+ correção de auditoria C-02, §17) | `ccr-21b1e00e-u5u64z` / [#8](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/8) | **Integrado** em `main` (merge `34a8b52`), após auditoria favorável e correção C-02 |
 | 4 | 2026-11-07 | Piso 2D-A — Arquivo Científico Portátil (+ correção C-03) | `ccr-dea994b8-wl7tp3` / [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) | **Integrado** em `main` (merge `3b73971`) |
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
-| 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / PR aberto (sem merge) | Implementado e verificado na rama; aguardando auditoria |
+| 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | Implementado e verificado na rama; aguardando auditoria |

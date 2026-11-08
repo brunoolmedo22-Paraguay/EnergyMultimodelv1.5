@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-08 · **rama:** `ccr-fb5b5eb8-bvbyw2` · **PR:** abierto contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3A — Fundaciones del EMS MILP–MPC** implementado y verificado en la rama; **no integrado** en `main` (espera autorización).
+**Actualización:** 2026-11-08 · **rama:** `ccr-fb5b5eb8-bvbyw2` · **PR:** [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3A — Fundaciones del EMS MILP–MPC** implementado y verificado en la rama; **no integrado** en `main` (espera autorización).
 
 > **Informe técnico de la entrega vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 6**; detalle científico en [`docs/ems_v2/`](../ems_v2/README.md). Este HANDOFF es solo el resumen de continuidad.
 
