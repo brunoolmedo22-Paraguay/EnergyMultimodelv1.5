@@ -1,7 +1,7 @@
 # Piso 3C-4 — Matriz de trazabilidad (requisito → código → prueba)
 
 Base `10365c5`. "Prueba" = archivo `tests/ems_v2/test_ems_v2_3c4_<x>.py` (`contrato`, `auditor`, `milp`,
-`planejador`, `mpc`, `isolamento`, `auditoria_pr17`, `b3c4_10`). Todo sintético/algebraico.
+`planejador`, `mpc`, `isolamento`, `auditoria_pr17`, `b3c4_10`, `a03`). Todo sintético/algebraico.
 
 | Requisito de la misión | Código | Prueba |
 |---|---|---|
@@ -24,6 +24,7 @@ Base `10365c5`. "Prueba" = archivo `tests/ems_v2/test_ems_v2_3c4_<x>.py` (`contr
 | **Auditoría PR #17 — A02** inviable solo con certificado; dominio indeterminado; diagnóstico por modo | `milp/solver_3c4.resolver_cobertura_3c4`, `planejador._cobertura/_modo_1d/_modo_2d/_sinal_pwl`, `contrato.ESTADOS_MODO/DiagnosticoModo` | `auditoria_pr17::test_a02_*` (función de factibilidad sintética, dos modos, certificado real MILP, H7/H8) |
 | **Auditoría PR #17 — B3C4-01** proyección numérica auditada | `ponte/execucao.energia_apos_intervalo/projecao_numerica_energia`, `rede/execucao.py`, `auditoria.reconstruir_projecoes_energia` | `auditoria_pr17::test_b01_*` (extremos, capacidades, tolerancias, violaciones reales, continuidad, retomada 3C-3, H9 × 5), `isolamento::test_hotfix_b3c4_01_restrito_a_projecao_numerica` |
 | **2ª auditoría PR #17 — B3C4-10** residuo negativo del solver en P_imp/P_exp normalizado SOLO en la extracción; C-01 intacta; registro sellado; reconstrucción auditada | `rede/execucao.normalizar_residuos_pcc/escala_balanco_pcc/limiar_residuo_pcc/NormalizacaoNumericaPCC`, `milp/solver_3c3.py`, `milp/solver_3c4.py`, `milp/resultado_3c3.py`, `rede/mpc._artefatos_registro`, `hierarquia/auditoria.reconstruir_normalizacoes_pcc` | `b3c4_10::*` (política pura, cotas con límites distintos, P_exp, cero/positivos, NaN/inf/bool, C-01 externa, resolvedores con HiGHS, transformaciones maliciosas, H9 sellado, adulteraciones), `isolamento::test_hotfix_b3c4_10_restrito_e_regra_c01_identica_a_base`, `auditoria_pr17::test_b01_h9_cinco_estrategias` |
+| **Cierre auditoría PR #17 — A03** coherencia de las tres evidencias (código de resolución, avisos, hash); verificador único en el núcleo de red reutilizado por las auditorías integrales 3C-3 y 3C-4; registros históricos sin obligación nueva | `rede/auditoria.reconstruir_normalizacoes_pcc`, `auditar_missao_conectada` (sección `normalizacoes_pcc`), `hierarquia/auditoria.auditar_missao_hierarquica` (espejo) | `a03::*` (H9 3C-3 y 3C-4 válidas, 5 incoherencias × 2 auditorías, código sin registro y normalización injustificada en cadenas selladas consistentes, ventanas legítimas, registro histórico G11 de `10365c5`), `isolamento::test_a03_*` |
 
 | Experimento | Prueba |
 |---|---|
@@ -44,13 +45,14 @@ Base `10365c5`. "Prueba" = archivo `tests/ems_v2/test_ems_v2_3c4_<x>.py` (`contr
 | H17 | `mpc::test_h17_*`, `mpc::test_h9_*`, `milp::test_envoltoria_2d_*` |
 | H18 | suites 3A–3C-3 (incl. `test_ems_v2_3c3_regressao_3c2.py`, pins E1–E8) + `isolamento` |
 
-## Archivos protegidos (SHA-256, prefijo de 16) — base `10365c5` × rama (`8efc927`)
+## Archivos protegidos (SHA-256, prefijo de 16) — base `10365c5` × rama (`8efc927`; `rede/auditoria.py` tras A03)
 
 | Archivo | Base | Rama | Motivo |
 |---|---|---|---|
 | `ems_v2/ponte/execucao.py` | `a3f64678500a51d0` | `cdad389b48ee3d24` | **B3C4-01 (hotfix autorizado, PR #17)**: función compartida de la recurrencia + proyección numérica + aviso |
 | `ems_v2/rede/execucao.py` | `71db8fd2e405e2ad` | `a910853ec3754ea6` | **B3C4-01**: usa la misma función (sin aritmética propia; `507c7ae2de09217a` en `c964a2e`) + **B3C4-10 (hotfix autorizado, 2ª auditoría)**: bloque `residuo_numerico_pcc_v1`; C-01 (`valor_intercambio_valido`, `programa_valido`, `validar_programa`, `plano_de_resultado_3c3`) idéntica a la base |
 | `ems_v2/mpc/orquestrador.py` | `b6bdf9283a341ec8` | `b6bdf9283a341ec8` | idéntico |
+| `ems_v2/rede/auditoria.py` | `b37b6aaaf12db1c7` | `2ac647f028964278` | **A03**: verificador único `reconstruir_normalizacoes_pcc` + sección `normalizacoes_pcc` de la auditoría integral 3C-3 (solo adición) |
 | `ems_v2/rede/mpc.py` | `a7d9ae9f1c4032aa` | `3b3f0be105ce8b99` | **B3C4-10**: aviso + hash `normalizacoes_pcc_b3c4_10` en el registro 3C-0 (solo si hubo normalización) |
 | `ems_v2/rede/contrato.py` | `15ce7e94794a25b9` | `15ce7e94794a25b9` | idéntico |
 | `ems_v2/milp/modelo_3c3.py` | `8f219d85de898755` | `8f219d85de898755` | idéntico |
@@ -61,6 +63,7 @@ Base `10365c5`. "Prueba" = archivo `tests/ems_v2/test_ems_v2_3c4_<x>.py` (`contr
 | `ems_v2/ponte/registro.py` | `e28bea61bb9f122f` | `e28bea61bb9f122f` | idéntico |
 
 Archivos existentes modificados: los dos de B3C4-01, los cuatro de B3C4-10 (`rede/execucao.py` es común a ambos:
-`ponte/execucao.py`, `rede/execucao.py`, `milp/solver_3c3.py`, `milp/resultado_3c3.py`, `rede/mpc.py`) + guardias de tests
+`ponte/execucao.py`, `rede/execucao.py`, `milp/solver_3c3.py`, `milp/resultado_3c3.py`, `rede/mpc.py`), el de A03
+(`rede/auditoria.py`) + guardias de tests
 ajustadas nominalmente `tests/ems_v2/test_ems_v2_{3c2_isolamento,3c3_isolamento,ponte_isolamento,milp_perfil}.py`
 (C-3C4-02 y B3C4-01); las listas `HOTFIX_B3C4_10`/`REMOVIDAS_B3C4_10` están en `test_ems_v2_3c4_isolamento.py`.

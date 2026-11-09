@@ -2566,6 +2566,31 @@ R$ 0,2 comparable; la brecha R$ 2,0 frente al horizonte completo es común a los
 | `tests/ems_v2` sin Pyomo/HiGHS | **859 passed, 83 skipped** |
 | Suite completa `tests/` | **1741 passed, 7 warnings, 128 subtests (451,8 s) = 1674 + 67** |
 
+### 4d. Último cierre de la auditoría del PR #17 (HEAD auditado `8dd8edb`): C-3C4-A03
+
+Dictamen: B3C4-10 y H9 favorables; dos omisiones DOCUMENTALES, ambas **reproducidas antes de corregir** con cadenas
+selladas consistentes (`docs/ems_v2/EVIDENCIA_3C4_EJECUCION.md` §4.5). Corrección en `322ffa6`; detalle en
+`FORMULACAO_3C4.md` §10d.
+
+| ID | Antes | Después |
+|---|---|---|
+| **A03-1** | Ventana con código `normalizacao_numerica_pcc` en la resolución sellada pero sin aviso ni hash en el registro 3C-0: omitida por la reconstrucción ⇒ aceptada | Tres evidencias (código, avisos, hash) todas presentes y coherentes o todas ausentes; cualquier otra combinación rechazada (`normalizacao_pcc_declarada_sem_registro`, `…_sem_origem_no_solver`, `…_nao_comprometida`) |
+| **A03-2** | La auditoría integral 3C-3 no reconstruía las normalizaciones: normalización injustificada (bruto −1e-3) aceptada | Verificador ÚNICO en `ems_v2/rede/auditoria.py` (sin dependencia de `hierarquia`); sección `normalizacoes_pcc` en la auditoría integral 3C-3; la 3C-4 la reutiliza y espeja sin duplicar |
+
+Sin cambios en C-01, la política B3C4-10, los resolvedores ni el ejecutor (guardia contra `8dd8edb`). Registro
+histórico: una misión G11 ejecutada por el código de `10365c5` se relee y es ACEPTADA sin obligación nueva. Los sellos
+SHA-256 no son firma ni prueban la procedencia auténtica del solver (B3C4-08). Archivo protegido modificado:
+`ems_v2/rede/auditoria.py` (solo adición; guardia).
+
+| Ejecución (tras `322ffa6`) | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c4_a03.py` (nueva) | **18 passed** |
+| `tests/ems_v2 -k 3c4` | **228 passed** |
+| Guardias | **56 passed** |
+| E1–E8 (huellas) + G1–G15 + auditorías PR #16 + 3C-2 MILP | **252 passed** |
+| `tests/ems_v2` con / sin Pyomo-HiGHS | **1308 passed** / **862 passed, 101 skipped** |
+| Suite completa `tests/` | **1762 passed, 7 warnings, 128 subtests (458,3 s) = 1741 + 21** |
+
 ### 5. Límites
 
 Interpolante (no función de valor exacta) fuera de los puntos; 2D solo convexo; ≤ 2 bancos; valor determinista bajo
@@ -2589,4 +2614,4 @@ nada integrado a catálogo/UI/runtime; EMS V1.6 sigue siendo el único motor ope
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
 | 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) | **Integrado** em `main` (merge `10365c5`), após correções C-01/C-02 (§4b) e C-03 (§4c) |
-| 12 | 2026-11-09 | Piso 3C-4 — EMS hierárquico MILP–MPC: planejador de longo prazo, custo de continuação e valor futuro (algébrico, sintético) | `ccr-50f8fad7-s073ob` / [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) (sem merge) | Auditoria: arquitetura favorável; correções A01, A02 e hotfix B3C4-01 aplicadas (§4b); hotfix autorizado B3C4-10 aplicado na 2ª auditoria (§4c); sem merge |
+| 12 | 2026-11-09 | Piso 3C-4 — EMS hierárquico MILP–MPC: planejador de longo prazo, custo de continuação e valor futuro (algébrico, sintético) | `ccr-50f8fad7-s073ob` / [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) (sem merge) | Auditoria: arquitetura favorável; correções A01, A02 e hotfix B3C4-01 aplicadas (§4b); hotfix autorizado B3C4-10 aplicado na 2ª auditoria (§4c); fecho documental A03 (§4d); sem merge |

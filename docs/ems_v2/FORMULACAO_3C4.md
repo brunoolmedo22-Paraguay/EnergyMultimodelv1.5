@@ -284,8 +284,8 @@ auditor 3C-3 ACEPTA (pcc_dominio 8,88e-16 ≤ tolP 1,5e-5); la primera función 
 5. **Revalidación:** el despacho normalizado pasa por el auditor independiente 3C-3/3C-4 (balance, dominio,
    exclusividad, sentido, costos contra el modelo) y por la integridad del testigo: una "normalización" que rompa el
    balance (anular una importación real) o la economía (importar y exportar a la vez) es RECHAZADA.
-6. **Auditoría:** `hierarquia/auditoria.reconstruir_normalizacoes_pcc` (sección `normalizacoes_pcc` de
-   `auditar_missao_hierarquica`) reconstruye cada normalización desde artefactos SELLADOS: aviso ↔ hash comprometido
+6. **Auditoría:** `rede/auditoria.reconstruir_normalizacoes_pcc` (verificador ÚNICO desde A03, §10d; sección
+   `normalizacoes_pcc` de las auditorías integrales 3C-3 y 3C-4) reconstruye cada normalización desde artefactos SELLADOS: aviso ↔ hash comprometido
    (`normalizacao_pcc_nao_comprometida`); código en la resolución sellada (`normalizacao_pcc_sem_origem_no_solver`:
    el valor bruto proviene del solver, no de una consigna externa — éstas nunca pasan por la política);
    programa del anexo 3C-3 = 0,0; bruto < 0; diferencia = −bruto; |bruto| ≤ umbral; motivo = política; S_t y umbral
@@ -305,6 +305,30 @@ entrada externa; solo residuos del solver por debajo de la menor de las toleranc
 normalizan, con registro reconstruible; comparación H9 contra la línea de base 3C-3 con condiciones terminales
 idénticas. **No se sostiene:** que el umbral sea una cota de error hacia atrás del HiGHS (es una política declarada);
 que el hash sea firma (B3C4-08).
+
+## 10d. Último cierre de la auditoría del PR #17 (HEAD auditado `8dd8edb`) — C-3C4-A03
+
+Coherencia DOCUMENTAL de B3C4-10. No cambia la física, la matemática, la política numérica ni C-01 (guardia
+`test_a03_politica_b3c4_10_e_c01_inalteradas_desde_o_head_auditado`: `rede/execucao.py`, `ponte/execucao.py`,
+`milp/solver_3c3.py`, `milp/solver_3c4.py`, `milp/resultado_3c3.py` y `rede/mpc.py` idénticos a `8dd8edb`).
+
+| ID | Antes (`8dd8edb`, reproducido con cadenas selladas CONSISTENTES: el propio resolvedor fabrica las evidencias) | Después |
+|---|---|---|
+| **A03-1** | `reconstruir_normalizacoes_pcc` omitía la ventana si el registro 3C-0 no tenía aviso NI hash (`if not avs and not tem_hash: continue`) aunque el resumen sellado de la resolución declarara `normalizacao_numerica_pcc` ⇒ aceptado | Las TRES evidencias (código en la resolución sellada; avisos; hash comprometido en el registro 3C-0) están todas presentes y coherentes o todas ausentes. Ausentes las tres = ventana sin normalización (incluye todo registro anterior a B3C4-10: ninguna obligación nueva). Código sin aviso ni hash ⇒ `normalizacao_pcc_declarada_sem_registro`; aviso/hash sin código ⇒ `normalizacao_pcc_sem_origem_no_solver`; aviso sin hash, hash sin aviso o hash alterado ⇒ `normalizacao_pcc_nao_comprometida` |
+| **A03-2** | La auditoría INTEGRAL 3C-3 (`auditar_missao_conectada`) no reconstruía las normalizaciones: una normalización injustificada (bruto −1e-3 ≫ umbral) registrada en una cadena consistente era ACEPTADA (sellos, documental, balance y costos aprobados) | El verificador ÚNICO vive en el núcleo de red (`ems_v2/rede/auditoria.py`: `reconstruir_normalizacoes_pcc`, sin dependencia de `ems_v2.hierarquia`, guardia AST) y la auditoría integral 3C-3 añade la sección `normalizacoes_pcc` (+ `RelatorioAuditoriaMissaoConectada.normalizacoes_pcc = ()`). La auditoría 3C-4 lo reutiliza a través de la 3C-3: su sección `normalizacoes_pcc` ESPEJA la de la 3C-3 sin re-ejecutar ni duplicar constataciones; `hierarquia.auditoria.reconstruir_normalizacoes_pcc` sigue disponible (re-exportación del MISMO objeto). El escopo analítico parcial no cambia (no tiene artefactos documentales) |
+
+**Archivos modificados (A03):** `ems_v2/rede/auditoria.py` (protegido; solo adición: verificador, sección
+`normalizacoes_pcc` en la auditoría integral, campo del informe, `__all__`; `_balanco_3c3`, `custo_rede_independente`,
+`_analitica`, `auditar_missao_conectada_analitica` y `_documental` idénticos a la base — guardia
+`test_a03_auditoria_3c3_so_acrescenta_a_secao_de_normalizacoes`) y `ems_v2/hierarquia/auditoria.py` (implementación
+local retirada; reutilización). Tests: `test_ems_v2_3c4_a03.py` (nueva), `test_ems_v2_3c4_isolamento.py` (3 guardias,
+`HOTFIX_A03`), `test_ems_v2_3c4_b3c4_10.py` (importación de la expresión regular desde el nuevo módulo).
+
+**Registros históricos:** una misión G11 ejecutada por el CÓDIGO de `10365c5` (artefactos escritos en disco por ese
+código) se relee y la auditoría integral actual la ACEPTA sin exigir evidencias nuevas; su huella determinista es igual
+a la del código actual. **Límite:** los sellos SHA-256 detectan alteración frente al artefato sellado; no son firma
+ni prueban la procedencia auténtica del solver (B3C4-08): un conjunto re-sellado en bloque que contenga una
+normalización DENTRO de la política no es distinguible de uno legítimo.
 
 ## 11. Experimentos (detalle y tablas: `EVIDENCIA_3C4_EJECUCION.md`)
 

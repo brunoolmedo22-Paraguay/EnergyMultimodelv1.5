@@ -41,6 +41,18 @@
 | `python -m pytest tests/ -q` (suite completa) | **1741 passed, 7 warnings, 128 subtests (451,8 s) = 1674 + 67** |
 | `python -m ems_v2.milp.evidencia_3c4` | salida literal en §2 (84,5 s) |
 
+### 1d. Último cierre de la auditoría del PR #17 (C-3C4-A03, `322ffa6`)
+
+| Comando | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c4_a03.py` (nueva suite A03) | **18 passed** |
+| `tests/ems_v2 -k 3c4` (H1–H18 + auditorías + B3C4-10 + A03) | **228 passed** (207 + 18 + 3 guardias) |
+| `tests/ems_v2 -k "isolamento or perfil"` (incl. `test_a03_*`) | **56 passed** |
+| E1–E8 (huellas) + G1–G15 (MILP, MPC, auditorías PR #16 C-01/C-02/C-03) + 3C-2 MILP | **252 passed** |
+| `tests/ems_v2` con Pyomo/HiGHS | **1308 passed (= 1287 + 21)** |
+| `tests/ems_v2` con Pyomo/HiGHS **bloqueados** | **862 passed, 101 skipped** |
+| `python -m pytest tests/ -q` (suite completa) | **1762 passed, 7 warnings, 128 subtests (458,3 s) = 1741 + 21** |
+
 Todas con `PYTHONDONTWRITEBYTECODE=1`, Python 3.13.18, Pyomo 6.10.1, HiGHS 1.15.1 (`CONFIG_ANALITICA`: 1 hilo, gap 0,
 semilla 0).
 
@@ -261,7 +273,7 @@ _Tempo total da evidência: 84.2 s (só este ambiente)._
   condición de commitment, no a la aproximación del valor futuro. Reoptimización = 0. Ningún otro costo cambió.
 * Una instancia sintética no establece superioridad general. Tiempos solo indicativos (4 CPU compartidas).
 
-## 4. Auditoría del PR #17 — defectos reproducidos ANTES (`9630e73`, `8f48aed`) y DESPUÉS (`c964a2e`, `8efc927`)
+## 4. Auditoría del PR #17 — defectos reproducidos ANTES (`9630e73`, `8f48aed`, `8dd8edb`) y DESPUÉS (`c964a2e`, `8efc927`, `322ffa6`)
 
 Scripts de reproducción fuera del repositorio (scratchpad de la sesión); su lógica está fijada en
 `tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py`.
@@ -411,3 +423,39 @@ extracción, el auditor independiente revalida la solución (balance 0,0) y el p
 queda en el resultado, en el resumen sellado de la resolución, en el registro 3C-0 (aviso + hash) y se reconstruye en la
 auditoría. La regla C-01 sigue rechazando el MISMO valor si llega como consigna o programa externo
 (`test_c01_consigna_externa_minima_negativa_recusada_pelo_executor`).
+
+### 4.5 C-3C4-A03 — coherencia de las evidencias B3C4-10 y auditoría integral 3C-3
+
+Cadenas selladas CONSISTENTES: el normalizador del resolvedor 3C-3 se sustituye durante la misión H9 (perfil 3C-3)
+para fabricar (a) una normalización injustificada (bruto −1e-3) y (b) el código en la resolución sin aviso ni hash en el
+registro 3C-0; ningún sello diverge. Antes (HEAD auditado `8dd8edb`):
+```
+commit 8dd8edbd8a1f6533285108a7b9d45d52076b2194
+--- A03-2 normalização injustificada (cadeia selada consistente): situação=encerrada k=12
+    k=10: códigos da resolução=('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela') | hash no 3C-0=True | avisos no 3C-0=['normalizacao_numerica_pcc']
+    reconstrução: normalizações=0 constatações=['normalizacao_pcc_fora_da_politica']
+    auditoria integral 3C-3: aceito=True verificações={'cadeia_registros': True, 'livro_observacoes': True, 'temporal': True, 'causal': True, 'estado_e_permanencias': True, 'balanco': True, 'custos': True, 'aceitacao': True, 'separacao_previsao_realizacao': True, 'documental': True}
+--- A03-1 código sem aviso nem hash (cadeia selada consistente): situação=encerrada k=12
+    k=10: códigos da resolução=('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela') | hash no 3C-0=False | avisos no 3C-0=[]
+    reconstrução: normalizações=0 constatações=[]
+    auditoria integral 3C-3: aceito=True verificações={'cadeia_registros': True, 'livro_observacoes': True, 'temporal': True, 'causal': True, 'estado_e_permanencias': True, 'balanco': True, 'custos': True, 'aceitacao': True, 'separacao_previsao_realizacao': True, 'documental': True}
+--- válida: situação=encerrada k=12
+    k=10: códigos da resolução=('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela') | hash no 3C-0=True | avisos no 3C-0=['normalizacao_numerica_pcc']
+    reconstrução: normalizações=1 constatações=[]
+    auditoria integral 3C-3: aceito=True verificações={'cadeia_registros': True, 'livro_observacoes': True, 'temporal': True, 'causal': True, 'estado_e_permanencias': True, 'balanco': True, 'custos': True, 'aceitacao': True, 'separacao_previsao_realizacao': True, 'documental': True}
+```
+Después (`322ffa6`; la sección `normalizacoes_pcc` de la auditoría integral 3C-3 es la única que reprueba):
+```
+--- A03-2 normalização injustificada (cadeia selada consistente): situação=encerrada k=12
+    k=10: códigos da resolução=('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela') | hash no 3C-0=True | avisos no 3C-0=['normalizacao_numerica_pcc']
+    reconstrução: normalizações=0 constatações=['normalizacao_pcc_fora_da_politica']
+    auditoria integral 3C-3: aceito=False verificações={'cadeia_registros': True, 'livro_observacoes': True, 'temporal': True, 'causal': True, 'estado_e_permanencias': True, 'balanco': True, 'custos': True, 'aceitacao': True, 'separacao_previsao_realizacao': True, 'documental': True, 'normalizacoes_pcc': False}
+--- A03-1 código sem aviso nem hash (cadeia selada consistente): situação=encerrada k=12
+    k=10: códigos da resolução=('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela') | hash no 3C-0=False | avisos no 3C-0=[]
+    reconstrução: normalizações=0 constatações=['normalizacao_pcc_declarada_sem_registro']
+    auditoria integral 3C-3: aceito=False verificações={'cadeia_registros': True, 'livro_observacoes': True, 'temporal': True, 'causal': True, 'estado_e_permanencias': True, 'balanco': True, 'custos': True, 'aceitacao': True, 'separacao_previsao_realizacao': True, 'documental': True, 'normalizacoes_pcc': False}
+--- válida: situação=encerrada k=12
+    k=10: códigos da resolução=('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela') | hash no 3C-0=True | avisos no 3C-0=['normalizacao_numerica_pcc']
+    reconstrução: normalizações=1 constatações=[]
+    auditoria integral 3C-3: aceito=True verificações={'cadeia_registros': True, 'livro_observacoes': True, 'temporal': True, 'causal': True, 'estado_e_permanencias': True, 'balanco': True, 'custos': True, 'aceitacao': True, 'separacao_previsao_realizacao': True, 'documental': True, 'normalizacoes_pcc': True}
+```
