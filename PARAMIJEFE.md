@@ -2366,7 +2366,7 @@ Perfil **`v1.1-3C-3`** (embrulho `EntradaRede3C3` sobre el núcleo 3C-1 validado
 | `tests/ems_v2/test_ems_v2_3c3_*.py` (6 archivos) | **79 passed** (contrato 15, ejecución 15, MILP 15, MPC 18, G15 13, aislamiento 3) |
 | `tests/ems_v2` con Pyomo/HiGHS | **903 passed** (= 824 anteriores + 79) |
 | `tests/ems_v2` con Pyomo/HiGHS bloqueados | **620 passed, 22 skipped** |
-| Suite completa `tests/` | __SUITE__ |
+| Suite completa `tests/` | **1357 passed, 7 warnings, 128 subtests** (370,8 s) = 1278 de `main` + 79 |
 
 Hashes de los perfiles protegidos y conteo de módulos idénticos: `MATRIZ_3C3.md`.
 
