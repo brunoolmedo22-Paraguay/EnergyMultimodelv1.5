@@ -6,8 +6,26 @@ RECEPÇÃO, identificador de evento, número de sequência por fonte e, quando h
 
 Dois tempos distintos: **tempo físico** (o intervalo observado) e **tempo de disponibilidade** (``recebido_utc``). O
 instantâneo informacional num corte τ contém exatamente as entradas RECEBIDAS em ou antes de τ (corte inclusivo,
-convenção declarada). Como o livro registra em ordem de recepção e recusa recepções retroativas, o instantâneo em τ é um
-PREFIXO do livro, comprometido pelo hash da cadeia nesse prefixo: um corte selado (decisão) nunca muda depois.
+convenção declarada).
+
+**Ordem temporal do livro (C-01, auditoria do PR #15).** O livro tem duas seções append-only, cada uma com cadeia SHA-256
+própria:
+
+* **livro principal** — TODA recepção cujo ``recebido_utc`` é legível e não retroativa, QUALQUER que seja a
+  classificação (aceita, rejeitada, duplicata…). A marca d'água de recepção considera todas essas entradas; logo as
+  recepções declaradas do livro principal são NÃO DECRESCENTES e cada uma é estritamente posterior ao último corte
+  selado no momento do registro. Um corte τ só pode ser selado se nenhuma entrada do livro principal tiver recepção
+  declarada posterior a τ. O instantâneo em τ é o PREFIXO das entradas com recepção <= τ, comprometido pelo hash da
+  cadeia nesse prefixo: um instantâneo nunca depende de um evento recebido depois de τ, e um corte selado nunca muda;
+* **quarentena** — recepções que NÃO podem ser ordenadas causalmente: ``recebido_utc`` ausente/ilegível/sem fuso
+  (``quarentena_recepcao_invalida``; nenhuma hora de chegada é inventada) ou retroativas — anteriores à marca d'água ou
+  em/antes de um corte selado (``quarentena_recepcao_retroativa``). Ficam registradas (rastreabilidade, com a posição
+  do livro principal e o número de cortes no instante do registro) mas NUNCA entram num prefixo causal, não definem
+  identidade de evento nem consomem sequência.
+
+Limite de confiança: ``recebido_utc`` é DECLARADO pela fonte/canal. O livro garante a coerência causal das recepções
+declaradas (ordem, cortes, prefixos); não certifica que o relógio da fonte é verdadeiro (um tempo de ingestão confiável
+exigiria um relógio do próprio controlador — não implementado; brecha B3C2-13).
 
 Regras explícitas (classificação gravada em cada entrada; nada é sobrescrito):
 
@@ -20,8 +38,9 @@ Regras explícitas (classificação gravada em cada entrada; nada é sobrescrito
 * **sequência** (por fonte): lacuna ⇒ aceita com nota (possível perda); número menor que o máximo visto com evento novo
   ⇒ ``aceita_fora_de_sequencia`` (disponível só a partir da SUA recepção); número já usado por outro evento ⇒
   ``rejeitada_conflito_sequencia``;
-* **recepção retroativa** (antes da última recepção registrada ou em/antes de um corte selado) ⇒
-  ``rejeitada_recepcao_retroativa`` — ninguém altera um conjunto de informação já usado numa decisão;
+* **recepção retroativa** (antes da última recepção registrada ou em/antes de um corte selado) ⇒ QUARENTENA
+  ``quarentena_recepcao_retroativa`` — ninguém altera um conjunto de informação já usado numa decisão;
+  ``recebido_utc`` ilegível ⇒ QUARENTENA ``quarentena_recepcao_invalida``;
 * **revisões** chegam como eventos NOVOS (``revisao`` = r, ``revisa_evento_uid`` = original): r deve ser exatamente a
   próxima revisão da chave; revisão sem original aceito ⇒ ``rejeitada_revisao_sem_original``; número repetido/salto ⇒
   ``rejeitada_conflito_revisao``. O valor efetivo de uma chave num corte é o da maior revisão recebida até o corte;
@@ -48,7 +67,7 @@ from ..provenance import Procedencia, validar_procedencia
 from ..series import SerieTemporal
 from ..timegrid import ler_instante_utc
 
-ESQUEMA_LIVRO = 1
+ESQUEMA_LIVRO = 2                      # 2 = livro principal + quarentena (C-01)
 GRANDEZAS_OBSERVAVEIS = {"potencia": "kW", "disponibilidade": "1", "fracao_interrompivel": "1"}
 CLASSIFICACOES = {
     "aceita": "Observação original aceita",
@@ -62,7 +81,8 @@ CLASSIFICACOES = {
     "rejeitada_recurso_desconhecido": "Recurso/grandeza não declarados para esta missão",
     "rejeitada_conflito_evento_uid": "Mesmo evento_uid com conteúdo diferente",
     "rejeitada_conflito_sequencia": "Número de sequência já usado por outro evento da mesma fonte",
-    "rejeitada_recepcao_retroativa": "Recepção anterior à última registrada ou a um corte selado",
+    "quarentena_recepcao_retroativa": "QUARENTENA: recepção anterior à última registrada ou em/antes de um corte selado",
+    "quarentena_recepcao_invalida": "QUARENTENA: instante de recepção ausente/ilegível/sem fuso (nenhuma hora inventada)",
     "rejeitada_revisao_sem_original": "Revisão de evento inexistente/rejeitado ou de outra chave",
     "rejeitada_conflito_revisao": "Número de revisão repetido ou fora de ordem",
 }
@@ -96,6 +116,20 @@ class EntradaLivro:
     detalhe: str
     atraso_s: int | None
     tardia_apos_corte: str | None
+    hash_anterior: str
+    hash_cadeia: str
+
+
+@dataclass(frozen=True)
+class EntradaQuarentena:
+    """Recepção que não pode ser ordenada causalmente (C-01): registrada, nunca usada num instantâneo."""
+    posicao: int                            # posição na quarentena
+    observacao: Observacao
+    hash_evento: str
+    classificacao: str                      # quarentena_recepcao_retroativa | quarentena_recepcao_invalida
+    detalhe: str
+    apos_entradas: int                      # tamanho do livro principal no registro
+    apos_cortes: int                        # número de cortes selados no registro
     hash_anterior: str
     hash_cadeia: str
 
@@ -138,8 +172,9 @@ class DocumentoLivro:
     missao_uid: str
     microrrede_uid: str
     recursos: dict[str, tuple[str, ...]]
-    cortes: tuple[tuple[int, str], ...]     # (tamanho do livro no selo, instante do corte)
+    cortes: tuple[tuple[int, str], ...]     # (tamanho do livro principal no selo, instante do corte)
     entradas: tuple[EntradaLivro, ...]
+    quarentena: tuple[EntradaQuarentena, ...] = ()
 
 
 def _ts(texto: str):
@@ -163,8 +198,9 @@ class LivroObservacoes:
         self.recursos = {k: tuple(sorted(v)) for k, v in sorted(recursos.items())}
         self._entradas: list[EntradaLivro] = []
         self._cortes: list[tuple[int, str]] = []
-        self._gen = _h(json_canonico({"livro_observacoes": ESQUEMA_LIVRO, "missao": missao_uid,
-                                      "microrrede": microrrede_uid}))
+        self._gen = genese_livro(missao_uid, microrrede_uid)
+        self._gen_q = genese_quarentena(missao_uid, microrrede_uid)
+        self._quarentena: list[EntradaQuarentena] = []
         self._por_evento: dict[str, EntradaLivro] = {}
         self._seqs: dict[str, dict[int, str]] = {}
         self._rev: dict[tuple, int] = {}             # chave física → maior revisão aceita
@@ -180,8 +216,15 @@ class LivroObservacoes:
     def cortes(self) -> tuple[tuple[int, str], ...]:
         return tuple(self._cortes)
 
+    @property
+    def quarentena(self) -> tuple[EntradaQuarentena, ...]:
+        return tuple(self._quarentena)
+
     def hash_cadeia(self) -> str:
         return self._entradas[-1].hash_cadeia if self._entradas else self._gen
+
+    def hash_cadeia_quarentena(self) -> str:
+        return self._quarentena[-1].hash_cadeia if self._quarentena else self._gen_q
 
     # -------------------------------------------------------------------------------- escrita
     def selar_corte(self, instante_utc: str) -> None:
@@ -193,7 +236,9 @@ class LivroObservacoes:
                                          f"Corte {instante_utc} anterior ao último selado {self._cortes[-1][1]}.")])
         if self._ult_rec is not None and t < self._ult_rec:
             raise ContratoInvalido([erro("corte_antes_de_recepcao_registrada", "livro.corte",
-                                         "Corte anterior a uma recepção já registrada (o prefixo não seria estável).")])
+                                         f"Corte {instante_utc} anterior a uma recepção já registrada no livro principal "
+                                         f"({self._ult_rec.isoformat()}, qualquer classificação): o instantâneo dependeria "
+                                         "de um evento recebido depois do corte.")])
         self._cortes.append((len(self._entradas), t.isoformat()))
 
     def _chave(self, o: Observacao) -> tuple:
@@ -253,11 +298,6 @@ class LivroObservacoes:
             if ant.hash_evento == he:
                 return "duplicata_identica", f"evento já registrado na posição {ant.posicao}"
             return "rejeitada_conflito_evento_uid", f"evento {o.evento_uid!r} já registrado com outro conteúdo"
-        tr = _ts(o.recebido_utc)
-        if self._ult_rec is not None and tr < self._ult_rec:
-            return "rejeitada_recepcao_retroativa", f"recebido {o.recebido_utc} < última recepção {self._ult_rec.isoformat()}"
-        if self._cortes and tr <= _ts(self._cortes[-1][1]):
-            return "rejeitada_recepcao_retroativa", f"recebido {o.recebido_utc} <= corte selado {self._cortes[-1][1]}"
         seqs = self._seqs.get(o.fonte, {})
         if o.sequencia in seqs:
             return "rejeitada_conflito_sequencia", f"sequência {o.sequencia} já usada por {seqs[o.sequencia]!r}"
@@ -282,20 +322,43 @@ class LivroObservacoes:
             return "aceita_original_conflitante", "valor difere da(s) original(is) já recebida(s): chave conflitante"
         return ("aceita_fora_de_sequencia" if nota.startswith("fora") else "aceita"), nota
 
-    def registrar(self, o: Observacao) -> EntradaLivro:
-        """Registra a recepção (aceita ou rejeitada — toda recepção fica no livro). Nunca altera entradas anteriores.
-        Um valor não finito/não numérico é registrado como ``None`` (o JSON canônico proíbe NaN/Inf) e rejeitado."""
-        if isinstance(o, Observacao) and (isinstance(o.valor, bool) or not isinstance(o.valor, (int, float))
-                                          or not math.isfinite(o.valor)):
+    def _quarentena_motivo(self, o: Observacao) -> tuple[str, str] | None:
+        """C-01: recepção que não pode ser ordenada causalmente ⇒ quarentena (classificação e detalhe)."""
+        tr, c = ler_instante_utc(o.recebido_utc, "recebido")
+        if c:
+            return "quarentena_recepcao_invalida", "instante de recepção ausente/ilegível/sem fuso: nenhuma hora inventada"
+        if self._ult_rec is not None and tr < self._ult_rec:
+            return ("quarentena_recepcao_retroativa",
+                    f"recebido {o.recebido_utc} < última recepção do livro principal {self._ult_rec.isoformat()}")
+        if self._cortes and tr <= _ts(self._cortes[-1][1]):
+            return "quarentena_recepcao_retroativa", f"recebido {o.recebido_utc} <= corte selado {self._cortes[-1][1]}"
+        return None
+
+    def registrar(self, o: Observacao) -> EntradaLivro | EntradaQuarentena:
+        """Registra a recepção (toda recepção fica registrada; nada anterior é alterado). Recepção ordenável ⇒ livro
+        principal (qualquer classificação; atualiza a marca d'água); não ordenável ⇒ quarentena (C-01). Um valor não
+        finito/não numérico é registrado como ``None`` (o JSON canônico proíbe NaN/Inf) e rejeitado."""
+        if not isinstance(o, Observacao):
+            raise ContratoInvalido([erro("observacao_tipo_invalido", "livro.registrar",
+                                         f"Esperada Observacao; recebido {type(o).__name__}.")])
+        if isinstance(o.valor, bool) or not isinstance(o.valor, (int, float)) or not math.isfinite(o.valor):
             o = replace(o, valor=None)
         try:
             he = sha256(o)
         except Exception as exc:  # noqa: BLE001 — conteúdo não serializável: rejeição controlada
             he = _h(f"nao_serializavel:{type(exc).__name__}")
+        q = self._quarentena_motivo(o)
+        if q is not None:
+            pos, ant = len(self._quarentena), self.hash_cadeia_quarentena()
+            ent_q = EntradaQuarentena(pos, o, he, q[0], q[1], len(self._entradas), len(self._cortes), ant,
+                                      _h(f"q|{ant}|{he}|{q[0]}|{pos}|{len(self._entradas)}|{len(self._cortes)}"))
+            self._quarentena.append(ent_q)
+            return ent_q
         cl, det = self._classificar(o, he)
+        tr = _ts(o.recebido_utc)
         atraso, tardia = None, None
         if cl in ACEITAS or cl.startswith("duplicata"):
-            tr, tf = _ts(o.recebido_utc), _ts(o.fim_utc)
+            tf = _ts(o.fim_utc)
             atraso = int((tr - tf).total_seconds())
             cob = [c for _, c in self._cortes if tf <= _ts(c) < tr]
             tardia = cob[0] if cob else None
@@ -304,15 +367,13 @@ class LivroObservacoes:
         cad = _h(f"{ant}|{he}|{cl}|{pos}")
         ent = EntradaLivro(pos, o, he, cl, det, atraso, tardia, ant, cad)
         self._entradas.append(ent)
+        self._ult_rec = tr if self._ult_rec is None else max(self._ult_rec, tr)     # marca d'água: TODA entrada
         if cl not in ("rejeitada_invalida", "rejeitada_outra_microrrede", "rejeitada_recurso_desconhecido",
-                      "rejeitada_conflito_evento_uid", "duplicata_identica", "rejeitada_recepcao_retroativa",
-                      "rejeitada_conflito_sequencia"):
+                      "rejeitada_conflito_evento_uid", "duplicata_identica", "rejeitada_conflito_sequencia"):
             self._seqs.setdefault(o.fonte, {})[o.sequencia] = o.evento_uid
-        if isinstance(o, Observacao) and isinstance(o.evento_uid, str):
+        if isinstance(o.evento_uid, str):
             self._por_evento.setdefault(o.evento_uid, ent)       # a 1ª recepção de um evento define a sua identidade
         if cl in ACEITAS or cl == "duplicata_semantica":
-            tr = _ts(o.recebido_utc)
-            self._ult_rec = tr if self._ult_rec is None else max(self._ult_rec, tr)
             ch = self._chave(o)
             if cl == "aceita_revisao":
                 self._rev[ch] = o.revisao
@@ -329,8 +390,8 @@ class LivroObservacoes:
         if c:
             raise ContratoInvalido(c)
         n = 0
-        for e in self._entradas:                    # prefixo: recepções aceitas em ordem não decrescente
-            if (e.classificacao in ACEITAS or e.classificacao == "duplicata_semantica") and _recebido_depois(e, tc):
+        for e in self._entradas:                    # prefixo: TODA entrada principal com recepção <= corte (C-01)
+            if _recebido_depois(e, tc):
                 break
             n += 1
         return instantaneo_de_prefixo(self.missao_uid, self.microrrede_uid, tc.isoformat(), self._entradas[:n],
@@ -339,7 +400,7 @@ class LivroObservacoes:
     # -------------------------------------------------------------------------------- serialização
     def exportar(self) -> DocumentoLivro:
         return DocumentoLivro(ESQUEMA_LIVRO, self.missao_uid, self.microrrede_uid, dict(self.recursos),
-                              tuple(self._cortes), tuple(self._entradas))
+                              tuple(self._cortes), tuple(self._entradas), tuple(self._quarentena))
 
     @classmethod
     def importar(cls, doc: DocumentoLivro) -> "LivroObservacoes":
@@ -348,16 +409,27 @@ class LivroObservacoes:
         if doc.esquema != ESQUEMA_LIVRO:
             raise ContratoInvalido([erro("esquema_livro_incompativel", "livro.esquema", f"{doc.esquema!r}.")])
         lv = cls(doc.missao_uid, doc.microrrede_uid, {k: tuple(v) for k, v in doc.recursos.items()})
-        cortes = list(doc.cortes)
-        for i, e in enumerate(doc.entradas):
-            while cortes and cortes[0][0] == i:
-                lv.selar_corte(cortes.pop(0)[1])
-            r = lv.registrar(e.observacao)
-            if r != e:
-                raise ContratoInvalido([erro("livro_adulterado", f"livro.entradas[{i}]",
-                                             "Entrada não reproduz a recepção registrada (classificação/hash/cadeia).")])
-        for _, t in cortes:
-            lv.selar_corte(t)
+        E, C, Q = list(doc.entradas), list(doc.cortes), list(doc.quarentena)
+        i = j = q = 0
+        while i < len(E) or j < len(C) or q < len(Q):          # mesma ordem de operações da gravação
+            if q < len(Q) and (Q[q].apos_entradas, Q[q].apos_cortes) == (i, j):
+                r = lv.registrar(Q[q].observacao)
+                if r != Q[q]:
+                    raise ContratoInvalido([erro("livro_adulterado", f"livro.quarentena[{q}]",
+                                                 "Entrada da quarentena não reproduz a recepção registrada.")])
+                q += 1
+            elif j < len(C) and C[j][0] == i:
+                lv.selar_corte(C[j][1])
+                j += 1
+            elif i < len(E):
+                r = lv.registrar(E[i].observacao)
+                if r != E[i]:
+                    raise ContratoInvalido([erro("livro_adulterado", f"livro.entradas[{i}]",
+                                                 "Entrada não reproduz a recepção registrada (classificação/hash/cadeia/"
+                                                 "seção).")])
+                i += 1
+            else:
+                raise ContratoInvalido([erro("livro_adulterado", "livro", "Ordem de cortes/quarentena irreproduzível.")])
         if [(p, _ts(t)) for p, t in lv.cortes] != [(p, _ts(t)) for p, t in doc.cortes]:
             raise ContratoInvalido([erro("livro_adulterado", "livro.cortes", "Cortes selados divergentes.")])
         return lv
@@ -474,22 +546,63 @@ def resumo_classificacoes(entradas) -> dict[str, int]:
     return dict(sorted(out.items()))
 
 
+def genese_livro(missao_uid: str, microrrede_uid: str) -> str:
+    return _h(json_canonico({"livro_observacoes": ESQUEMA_LIVRO, "missao": missao_uid, "microrrede": microrrede_uid}))
+
+
+def genese_quarentena(missao_uid: str, microrrede_uid: str) -> str:
+    return _h(json_canonico({"quarentena_observacoes": ESQUEMA_LIVRO, "missao": missao_uid,
+                             "microrrede": microrrede_uid}))
+
+
 def verificar_cadeia_livro(doc: DocumentoLivro) -> list[Constatacao]:
-    """Verificação independente da cadeia (sem reproduzir classificações): posições, hashes e encadeamento."""
+    """Verificação INDEPENDENTE (sem reproduzir classificações): posições, hashes e encadeamento das duas seções, e a
+    PROPRIEDADE TEMPORAL do livro principal (C-01): toda entrada tem recepção legível, as recepções são não decrescentes
+    e cada corte selado (p, τ) separa exatamente as entradas com recepção <= τ (antes de p) das com recepção > τ."""
     out: list[Constatacao] = []
-    gen = _h(json_canonico({"livro_observacoes": ESQUEMA_LIVRO, "missao": doc.missao_uid,
-                            "microrrede": doc.microrrede_uid}))
-    ant = gen
+    if doc.esquema != ESQUEMA_LIVRO:
+        return [erro("esquema_livro_incompativel", "livro.esquema", f"{doc.esquema!r}.")]
+    ant = genese_livro(doc.missao_uid, doc.microrrede_uid)
+    trs = []
     for i, e in enumerate(doc.entradas):
         if e.posicao != i or e.hash_anterior != ant or e.hash_evento != sha256(e.observacao) or \
                 e.hash_cadeia != _h(f"{ant}|{e.hash_evento}|{e.classificacao}|{i}"):
             out.append(erro("livro_cadeia_quebrada", f"livro.entradas[{i}]", "Posição/hash/encadeamento não conferem."))
-            break
+            return out
+        tr, c = ler_instante_utc(e.observacao.recebido_utc, "r")
+        if c or e.classificacao.startswith("quarentena"):
+            out.append(erro("recepcao_nao_ordenavel_no_livro_principal", f"livro.entradas[{i}]",
+                            "Entrada sem recepção legível (ou de quarentena) no livro principal."))
+            return out
+        if trs and tr < trs[-1]:
+            out.append(erro("recepcao_fora_de_ordem_no_livro_principal", f"livro.entradas[{i}]",
+                            "Recepção declarada anterior à de uma entrada anterior."))
+        trs.append(tr)
+        ant = e.hash_cadeia
+    ultimo = None
+    for k, (p, t) in enumerate(doc.cortes):
+        tc, c = ler_instante_utc(t, "corte")
+        if c or not 0 <= p <= len(trs) or (ultimo is not None and (p < ultimo[0] or tc < ultimo[1])):
+            out.append(erro("corte_incoerente", f"livro.cortes[{k}]", "Corte ilegível ou fora de ordem."))
+            continue
+        if any(x > tc for x in trs[:p]) or any(x <= tc for x in trs[p:]):
+            out.append(erro("corte_inclui_recepcao_posterior", f"livro.cortes[{k}]",
+                            f"O prefixo do corte {t} contém recepção posterior ao corte (ou omite recepção anterior)."))
+        ultimo = (p, tc)
+    ant = genese_quarentena(doc.missao_uid, doc.microrrede_uid)
+    for i, e in enumerate(doc.quarentena):
+        if e.posicao != i or e.hash_anterior != ant or e.hash_evento != sha256(e.observacao) or \
+                not e.classificacao.startswith("quarentena") or e.hash_cadeia != _h(
+                    f"q|{ant}|{e.hash_evento}|{e.classificacao}|{i}|{e.apos_entradas}|{e.apos_cortes}") or \
+                not 0 <= e.apos_entradas <= len(doc.entradas) or not 0 <= e.apos_cortes <= len(doc.cortes):
+            out.append(erro("quarentena_cadeia_quebrada", f"livro.quarentena[{i}]", "Posição/hash/encadeamento."))
+            return out
         ant = e.hash_cadeia
     return out
 
 
-__all__ = ["ACEITAS", "CLASSIFICACOES", "DocumentoLivro", "ESQUEMA_LIVRO", "EntradaLivro", "Faltante",
+__all__ = ["ACEITAS", "CLASSIFICACOES", "DocumentoLivro", "ESQUEMA_LIVRO", "EntradaLivro", "EntradaQuarentena",
+           "Faltante", "genese_livro", "genese_quarentena",
            "GRANDEZAS_OBSERVAVEIS", "InstantaneoInformacional", "LivroObservacoes", "Observacao", "RealizacaoObservada",
            "ValorEfetivo", "hash_instantaneo", "instantaneo_de_prefixo", "realizacao_de_instantaneo",
            "resumo_classificacoes", "verificar_cadeia_livro"]

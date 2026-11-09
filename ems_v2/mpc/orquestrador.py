@@ -588,7 +588,8 @@ class ControladorMPC:
             hash_plano_commitment(ab.pc), tuple(hash_comando(x) for x in ab.comandos), tuple(ab.confirmacoes),
             len(ab.comandos), n, tuple(ab.conciliacoes), tuple(ab.passos), tuple(traj.estados), self._cp_origem(),
             cp_final.selo if cp_final else None, traj.situacao, custos, dict(contab.indicadores),
-            tuple(self._revisoes_pendentes), desf, classe, tuple(x for x in c if isinstance(x, Constatacao)))
+            tuple(self._revisoes_pendentes), desf, classe, tuple(x for x in c if isinstance(x, Constatacao)),
+            execucao_uid=ab.execucao_uid)
         ab.tempos["fechamento_s"] = self._clock() - t0
         self._revisoes_pendentes = [] if self.cfg.politica_revisao_tardia == "registrar_sem_reconciliar" \
             else self._revisoes_pendentes
@@ -653,7 +654,8 @@ class ControladorMPC:
             self.cfg.malha.intervalos_missao, sum(r.conteudo.intervalos_aplicados for r in self.registros),
             tuple((r.conteudo.posicao, r.conteudo.janela.indice_janela, r.hash_conteudo) for r in self.registros),
             self.registros[-1].cadeia_conteudo if self.registros else genese_cadeia(self.cfg.identidade.missao_uid),
-            self.livro.hash_cadeia(), len(self.livro.entradas), desf, self.classe_falha, e0, self.estado, acc, plan,
+            self.livro.hash_cadeia(), len(self.livro.entradas), self.livro.hash_cadeia_quarentena(),
+            len(self.livro.quarentena), desf, self.classe_falha, e0, self.estado, acc, plan,
             {k: math.fsum(v) for k, v in sorted(ind.items())}, obr, valor_futuro_nao_implementado(self.k),
             tuple(self._constatacoes_missao + c))
         amb = {**ambiente_execucao(self.registros), **(ambiente or {})}

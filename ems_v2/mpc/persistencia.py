@@ -25,6 +25,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from ..diagnostics import ContratoInvalido, erro
+from ..timegrid import ler_instante_utc
 from ..ponte.canonico import de_json, json_canonico, sha256
 from ..ponte.execucao import EstadoMicrorrede
 from ..ponte.registro import _fsync_diretorio, _ja_existente, _publicar_sem_hard_link, gravar_registro
@@ -129,19 +130,113 @@ def ler_missao(diretorio, missao_uid: str) -> tuple[RegistroMissaoMPC, tuple[Reg
     return rm, ler_janelas(diretorio, missao_uid), LivroObservacoes.importar(doc)
 
 
+def _ler(cls, caminho: Path, cod: str):
+    """Lê um artefato persistido; ausência/JSON inválido/estrutura incompatível ⇒ ``ContratoInvalido`` estruturado."""
+    if not caminho.exists():
+        raise ContratoInvalido([erro(f"{cod}_ausente", caminho.name, "Artefato persistido ausente.")])
+    try:
+        return de_json(cls, caminho.read_text(encoding="utf-8"))
+    except ContratoInvalido:
+        raise
+    except Exception as exc:  # noqa: BLE001 — conteúdo ilegível/adulterado: rejeição controlada
+        raise ContratoInvalido([erro(f"{cod}_ilegivel", caminho.name, f"{type(exc).__name__}: {str(exc)[:200]}")]) from None
+
+
+def verificar_artefatos_janela(diretorio, cfg, r: RegistroJanelaMPC):
+    """C-02: verificação INTEGRAL dos artefatos históricos de UMA janela. Janela que executou plano ⇒ registro 3C-0
+    ``<execucao_uid>.ems3c0.json`` (selo e validade, ``verificar_registro``) + anexo ``<execucao_uid>.ems3c1.json``
+    (``verificar_anexo_3c1`` CONJUNTA com o registro) + coerência com o ``RegistroJanelaMPC`` (selos referenciados,
+    execução, missão/posição, identidade de origem, janela, plano, estados, checkpoint, previsão, instantâneo, entrada,
+    intervalos aplicados e custo realizado). Janela SEM plano: nenhum artefato é exigido (e nenhum selo pode ser
+    referenciado). Devolve ``(registro_3c0, anexo)`` ou ``(None, None)``; qualquer divergência ⇒ ``ContratoInvalido``."""
+    from ..ponte.execucao import hash_plano
+    from ..ponte.registro import RegistroExecucaoEMS, verificar_registro
+    from ..ponte.registro_3c1 import AnexoExecucao3C1, verificar_anexo_3c1
+    c = r.conteudo
+    cam = f"janelas[{c.posicao}]"
+    if c.hash_plano is None:
+        if r.selo_registro_3c0 is not None or r.selo_anexo_3c1 is not None or c.passos:
+            raise ContratoInvalido([erro("artefato_referenciado_sem_plano", cam,
+                                         "Janela sem plano não pode referenciar registro 3C-0/anexo 3C-1 nem ter passos.")])
+        return None, None
+    m = cfg.identidade.missao_uid
+    uid = c.execucao_uid
+    esperado = sha256({"missao": m, "posicao": c.posicao})[:32]
+    if uid != esperado or r.selo_registro_3c0 is None or r.selo_anexo_3c1 is None:
+        raise ContratoInvalido([erro("execucao_da_janela_indeterminada", cam,
+                                     "Janela com plano sem execucao_uid determinístico ou sem selos 3C-0/3C-1.")])
+    d = Path(diretorio)
+    reg = _ler(RegistroExecucaoEMS, d / f"{uid}.ems3c0.json", "registro_3c0")
+    out = [erro("registro_3c0_adulterado", f"{cam}.registro_3c0", f"[{x.codigo}] {x.mensagem}")
+           for x in verificar_registro(reg)]
+    anexo = _ler(AnexoExecucao3C1, d / f"{uid}.ems3c1.json", "anexo_3c1")
+    out += [erro("anexo_3c1_invalido", f"{cam}.anexo_3c1", f"[{x.codigo}] {x.mensagem}")
+            for x in verificar_anexo_3c1(anexo, reg)]
+    e = lambda cod, msg: out.append(erro(cod, cam, msg))  # noqa: E731
+    if reg.selo != r.selo_registro_3c0:
+        e("selo_registro_3c0_divergente", "Selo do registro 3C-0 ≠ referenciado pelo RegistroJanelaMPC.")
+    if anexo.selo != r.selo_anexo_3c1:
+        e("selo_anexo_3c1_divergente", "Selo do anexo 3C-1 ≠ referenciado pelo RegistroJanelaMPC.")
+    if reg.execucao_uid != uid or anexo.conteudo.execucao_uid != uid:
+        e("artefato_de_outra_execucao", "Registro/anexo de outra execução.")
+    if reg.origem != cfg.identidade.referencia_origem() or reg.reproducao.get("missao_uid") != m or \
+            reg.reproducao.get("posicao") != str(c.posicao) or reg.reproducao.get("indice_janela") != str(
+                c.janela.indice_janela):
+        e("artefato_de_outra_missao", "Identidade de origem/missão/posição do registro 3C-0 divergente.")
+    p = reg.plano
+    if p is None or hash_plano(p) != c.hash_plano or p.indice_fronteira_inicial != c.janela.k or \
+            p.hash_entrada != c.hash_entrada_3c1 or anexo.conteudo.hash_entrada_3c1 != c.hash_entrada_3c1:
+        e("plano_divergente", "Plano/entrada do registro 3C-0 ≠ janela.")
+    if reg.estado_inicial != c.estados[0] or reg.estado_final != c.estados[-1]:
+        e("estados_divergentes", "Estados inicial/final do registro 3C-0 ≠ estados executados da janela.")
+    di = reg.discretizacao
+    if (di.N, di.m, di.K_M, di.delta_s) != (c.janela.N_k, c.janela.m_k, cfg.malha.intervalos_missao, cfg.malha.delta_s):
+        e("janela_divergente", "Discretização do registro 3C-0 ≠ janela.")
+    if (reg.checkpoint_final.selo if reg.checkpoint_final else None) != c.selo_checkpoint_final:
+        e("checkpoint_divergente", "Checkpoint final do registro 3C-0 ≠ referenciado pela janela.")
+    if reg.hashes.get("previsao") != c.hash_previsao or reg.hashes.get("instantaneo_decisao") != c.hash_instantaneo:
+        e("informacao_divergente", "Previsão/instantâneo comprometidos no registro 3C-0 ≠ janela.")
+    if reg.custo_realizado != c.custos.realizado or (reg.custo_realizado is not None and
+                                                    reg.custo_realizado.intervalos != c.intervalos_aplicados):
+        e("custo_divergente", "Custo realizado/intervalos aplicados do registro 3C-0 ≠ janela.")
+    if out:
+        raise ContratoInvalido(out)
+    return reg, anexo
+
+
+def _verificar_livro_contra_janelas(livro: LivroObservacoes, regs) -> list:
+    """O livro restaurado deve reproduzir os instantâneos (decisão e conciliações) comprometidos por TODAS as janelas."""
+    from .observacoes import genese_livro, instantaneo_de_prefixo
+    ent = livro.entradas
+    out = []
+    for r in regs:
+        c = r.conteudo
+        for corte, h, n in ((c.instante_decisao_utc, c.hash_instantaneo, c.n_entradas_instantaneo),) + c.conciliacoes:
+            if n > len(ent) or instantaneo_de_prefixo(livro.missao_uid, livro.microrrede_uid, ler_instante_utc(
+                    corte, "c")[0].isoformat(), ent[:n], ent[n - 1].hash_cadeia if n else genese_livro(
+                    livro.missao_uid, livro.microrrede_uid)).hash != h:
+                out.append(erro("livro_incoerente_com_janelas", f"janelas[{c.posicao}]",
+                                f"Instantâneo em {corte} não reproduzido pelo livro do ponto de retomada."))
+    return out
+
+
 def retomar_controlador(diretorio, cfg, modelo, provedor, resolvedor, fontes, **kw):
-    """Reconstrói o controlador no último ponto de retomada VERIFICADO. A planta (modo 1) é responsabilidade do
-    chamador (``EntornoSimuladoAlgebrico.reconstituir`` com ``PontoRetomada.comandos`` aplicados)."""
+    """Reconstrói o controlador no último ponto de retomada VERIFICADO (C-02: cadeia MPC + artefatos 3C-0/3C-1 de TODAS
+    as janelas executadas + livro × instantâneos comprometidos + ponto de retomada). Restaura os históricos
+    ``registros_3c0``/``anexos_3c1``. A planta (modo 1) é responsabilidade do chamador
+    (``EntornoSimuladoAlgebrico.reconstituir`` com ``comandos_aplicados(ponto)``)."""
     from .orquestrador import ControladorMPC
     m = cfg.identidade.missao_uid
-    regs = ler_janelas(diretorio, m)
+    try:
+        regs = ler_janelas(diretorio, m)
+    except Exception as exc:  # noqa: BLE001
+        raise ContratoInvalido([erro("registro_janela_ilegivel", "retomada", f"{type(exc).__name__}: {exc}")]) from None
     if not regs:
         raise ContratoInvalido([erro("sem_registros", "retomada", "Nenhum registro de janela no diretório.")])
     c = verificar_cadeia_janelas(regs, cfg)
-    caminho = Path(diretorio) / nome_retomada(m, len(regs) - 1)
-    pt = de_json(PontoRetomada, caminho.read_text(encoding="utf-8"))
+    pt = _ler(PontoRetomada, Path(diretorio) / nome_retomada(m, len(regs) - 1), "ponto_retomada")
     if not selo_confere(pt):
-        c.append(erro("ponto_retomada_adulterado", caminho.name, "Selo não confere."))
+        c.append(erro("ponto_retomada_adulterado", nome_retomada(m, len(regs) - 1), "Selo não confere."))
     ult = regs[-1]
     if pt.missao_uid != m or pt.hash_configuracao != hash_configuracao(cfg):
         c.append(erro("identidade_divergente", "retomada", "Ponto de retomada de outra missão/configuração."))
@@ -153,17 +248,31 @@ def retomar_controlador(diretorio, cfg, modelo, provedor, resolvedor, fontes, **
         c.append(erro("retomada_incoerente", "retomada.k", "Contador ≠ k + aplicados do último registro."))
     if pt.situacao not in ("em_andamento", "suspensa"):
         c.append(erro("missao_nao_retomavel", "retomada.situacao", f"{pt.situacao!r}: só em andamento/suspensa."))
+    hist0, hist1 = [], []
+    for r in regs:
+        try:
+            r0, a1 = verificar_artefatos_janela(diretorio, cfg, r)
+        except ContratoInvalido as exc:
+            c += list(exc.constatacoes)
+            continue
+        if r0 is not None:
+            hist0.append(r0)
+            hist1.append(a1)
     if c:
         raise ContratoInvalido(c)
     livro = LivroObservacoes.importar(pt.livro)
+    cl = _verificar_livro_contra_janelas(livro, regs)
+    if cl:
+        raise ContratoInvalido(cl)
     ctrl = ControladorMPC(cfg, modelo, provedor, resolvedor, fontes, livro=livro, estado_inicial=pt.estado,
                           diretorio=diretorio, _registros=regs, _confirmacoes=pt.confirmacoes, _comandos=pt.comandos,
                           _k=pt.k, _j=pt.indice_janela, **kw)
     ctrl._g_conciliado = pt.k
+    ctrl.registros_3c0, ctrl.anexos_3c1 = hist0, hist1          # históricos restaurados (nenhuma evidência perdida)
     if pt.situacao == "suspensa":
         ctrl.situacao, ctrl.classe_falha = "suspensa", pt.classe_falha
     return ctrl, pt
 
 
-__all__ = ["PontoRetomada", "comandos_aplicados", "gravar_exclusivo", "gravar_janela_e_retomada", "gravar_missao", "ler_janelas", "ler_missao",
+__all__ = ["PontoRetomada", "comandos_aplicados", "verificar_artefatos_janela", "gravar_exclusivo", "gravar_janela_e_retomada", "gravar_missao", "ler_janelas", "ler_missao",
            "nome_janela", "nome_retomada", "retomar_controlador"]

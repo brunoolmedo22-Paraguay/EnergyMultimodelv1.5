@@ -134,6 +134,7 @@ class ConteudoJanelaMPC:
     desfecho: str
     classe_falha: str | None
     constatacoes: tuple[Constatacao, ...]
+    execucao_uid: str | None = None          # C-02: localiza SEM ambiguidade o registro 3C-0/anexo 3C-1 da janela
 
 
 @dataclass(frozen=True)
@@ -166,6 +167,8 @@ class ConteudoMissaoMPC:
     cadeia_conteudo_final: str
     hash_cadeia_livro: str
     n_entradas_livro: int
+    hash_cadeia_quarentena: str                     # C-01: cadeia própria das recepções não ordenáveis
+    n_quarentena: int
     desfecho: str
     classe_falha: str | None
     estado_inicial: EstadoMicrorrede

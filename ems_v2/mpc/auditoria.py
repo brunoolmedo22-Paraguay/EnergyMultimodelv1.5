@@ -34,7 +34,7 @@ from ..diagnostics import Constatacao, aviso, erro
 from ..ponte.cenario import DefinicaoTemporal, Realizacao, validar_separacao
 from ..timegrid import ler_instante_utc
 from .contrato import ConfiguracaoMPC
-from .observacoes import ACEITAS, DocumentoLivro, LivroObservacoes, instantaneo_de_prefixo, verificar_cadeia_livro
+from .observacoes import DocumentoLivro, LivroObservacoes, genese_livro, genese_quarentena, instantaneo_de_prefixo, verificar_cadeia_livro
 from .registro import RegistroMissaoMPC, verificar_cadeia_janelas, verificar_registro_missao
 
 
@@ -136,9 +136,14 @@ def auditar_missao(registro_missao: RegistroMissaoMPC, registros, livro: Documen
         LivroObservacoes.importar(doc)
     except Exception as exc:  # noqa: BLE001
         cl.append(erro("livro_nao_reproduzivel", "livro", str(exc)[:300]))
-    if registro_missao.conteudo.hash_cadeia_livro != (doc.entradas[-1].hash_cadeia if doc.entradas else None) and \
-            doc.entradas:
-        cl.append(erro("livro_divergente_da_missao", "livro", "Cabeça da cadeia ≠ registrada na missão."))
+    cm = registro_missao.conteudo
+    if cm.hash_cadeia_livro != (doc.entradas[-1].hash_cadeia if doc.entradas else _genese(doc)) or \
+            cm.n_entradas_livro != len(doc.entradas):
+        cl.append(erro("livro_divergente_da_missao", "livro", "Cabeça da cadeia/tamanho ≠ registrados na missão."))
+    if cm.hash_cadeia_quarentena != (doc.quarentena[-1].hash_cadeia if doc.quarentena else
+                                     genese_quarentena(doc.missao_uid, doc.microrrede_uid)) or \
+            cm.n_quarentena != len(doc.quarentena):
+        cl.append(erro("quarentena_divergente_da_missao", "livro.quarentena", "Cabeça/tamanho ≠ registrados na missão."))
     secao("livro_observacoes", cl)
     secao("temporal", _temporal(cfg, registros))
     secao("causal", _causal(cfg, registros, doc))
@@ -189,8 +194,8 @@ def _causal(cfg, registros, doc: DocumentoLivro) -> list[Constatacao]:
         return instantaneo_de_prefixo(m_uid, mg, _t(corte).isoformat(), ent[:n],
                                       ent[n - 1].hash_cadeia if n else _genese(doc))
 
-    def aceito_e_tr(e):
-        return (e.classificacao in ACEITAS or e.classificacao == "duplicata_semantica"), _t(e.observacao.recebido_utc)
+    def tr(e):
+        return ler_instante_utc(e.observacao.recebido_utc, "r")
     for p, r in enumerate(registros):
         c = r.conteudo
         cam = f"janelas[{p}]"
@@ -201,14 +206,7 @@ def _causal(cfg, registros, doc: DocumentoLivro) -> list[Constatacao]:
         s = snap(c.instante_decisao_utc, c.n_entradas_instantaneo)
         if s.hash != c.hash_instantaneo:
             out.append(erro("instantaneo_nao_reproduzido", cam, "Hash do instantâneo ≠ recalculado do prefixo do livro."))
-        for e in ent[:c.n_entradas_instantaneo]:
-            ok, tr = aceito_e_tr(e)
-            if ok and tr > tk:
-                out.append(erro("informacao_futura_no_instantaneo", cam, f"Entrada {e.posicao} recebida depois de τ_k."))
-        for e in ent[c.n_entradas_instantaneo:]:
-            ok, tr = aceito_e_tr(e)
-            if ok and tr <= tk:
-                out.append(erro("informacao_disponivel_omitida", cam, f"Entrada {e.posicao} disponível em τ_k fora do prefixo."))
+        out += _propriedade_temporal(ent, c.n_entradas_instantaneo, tk, cam, tr)
         pv = c.previsao
         if pv is not None:
             if pv.procedencia is None or pv.procedencia.sha256 != c.hash_instantaneo:
@@ -223,6 +221,7 @@ def _causal(cfg, registros, doc: DocumentoLivro) -> list[Constatacao]:
             if n > len(ent):
                 out.append(erro("instantaneo_alem_do_livro", cam, "Conciliação além do livro."))
                 continue
+            out += _propriedade_temporal(ent, n, _t(corte), f"{cam}.conciliacao[{corte}]", tr)
             sc = snap(corte, n)
             if sc.hash != hs:
                 out.append(erro("instantaneo_nao_reproduzido", cam, f"Instantâneo de conciliação em {corte} divergente."))
@@ -252,7 +251,24 @@ def _causal(cfg, registros, doc: DocumentoLivro) -> list[Constatacao]:
 
 
 def _genese(doc: DocumentoLivro) -> str:
-    return LivroObservacoes(doc.missao_uid, doc.microrrede_uid, {}).hash_cadeia()
+    return genese_livro(doc.missao_uid, doc.microrrede_uid)
+
+
+def _propriedade_temporal(ent, n: int, tk, cam: str, tr) -> list[Constatacao]:
+    """C-01: TODA entrada do prefixo (qualquer classificação) tem recepção legível <= τ; toda entrada fora dele, > τ."""
+    out = []
+    for e in ent[:n]:
+        t, c = tr(e)
+        if c or t > tk:
+            out.append(erro("informacao_futura_no_instantaneo", cam,
+                            f"Entrada {e.posicao} ({e.classificacao}) com recepção {'ilegível' if c else 'posterior a τ'} "
+                            "no prefixo do instantâneo."))
+    for e in ent[n:]:
+        t, c = tr(e)
+        if c or t <= tk:
+            out.append(erro("informacao_disponivel_omitida", cam,
+                            f"Entrada {e.posicao} ({e.classificacao}) recebida até τ fora do prefixo (ou ilegível)."))
+    return out
 
 
 def _estado(cfg, modelo: EntradaCommitment3C1, registros, tol: Tolerancias) -> list[Constatacao]:

@@ -57,12 +57,12 @@ def test_invalidas_outra_microrrede_recurso_e_informacao_futura():
     lv = livro()
     c = [lv.registrar(x).classificacao for x in (
         obs(0, valor=float("nan")), obs(0, valor=-1.0), obs(0, uid=F.FV, gr="disponibilidade", valor=0.5),
-        obs(0, un="W"), obs(0, mg="syn-outra"), obs(0, uid="syn-desconhecido"),
-        dataclasses.replace(obs(0), recebido_utc=t(0, 60)))]          # recebida ANTES do fim do intervalo
-    assert c == ["rejeitada_invalida"] * 4 + ["rejeitada_outra_microrrede", "rejeitada_recurso_desconhecido",
-                                              "rejeitada_invalida"]
+        obs(0, un="W"), obs(0, mg="syn-outra"), obs(0, uid="syn-desconhecido"))]
+    assert c == ["rejeitada_invalida"] * 4 + ["rejeitada_outra_microrrede", "rejeitada_recurso_desconhecido"]
     assert lv.instantaneo(t(5)).valores == ()                  # nada rejeitado entra no conjunto de informação
-    assert "informação futura" in lv.entradas[-1].detalhe
+    lv2 = livro()                                              # recebida ANTES do fim do intervalo (livro novo)
+    e = lv2.registrar(dataclasses.replace(obs(1), recebido_utc=t(1, 60)))
+    assert e.classificacao == "rejeitada_invalida" and "informação futura" in e.detalhe
 
 
 def test_duplicatas_conflito_de_evento_e_sequencia():
@@ -114,7 +114,7 @@ def test_corte_selado_e_recepcao_retroativa_recusada():
     lv.selar_corte(t(2))
     i = lv.instantaneo(t(2))
     tardia = obs(1, rec=0, ev="e-tardia")                     # recebida exatamente em τ_2 (= corte já selado)
-    assert lv.registrar(tardia).classificacao == "rejeitada_recepcao_retroativa"
+    assert lv.registrar(tardia).classificacao == "quarentena_recepcao_retroativa"            # C-01: quarentena
     assert lv.instantaneo(t(2)).valores == i.valores           # o conjunto da decisão não muda
     ok = obs(1, rec=60, ev="e-ok")
     e = lv.registrar(ok)
