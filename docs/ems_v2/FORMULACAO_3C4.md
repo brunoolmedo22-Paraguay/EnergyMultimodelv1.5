@@ -103,7 +103,7 @@ P_max − P_min ≤ min(R⁺Δ, R⁻Δ) y (parada no representable o S⁻ ≥ P_
 | 1. Referencia terminal energética del plan largo | `referencia_energia_dura` (E(N) ≥ E_ref) | barata (1 MILP) | no es valor económico; el plan largo con previsión puntual puede ser frágil; restricción dura puede volver inviable | **ablación experimental** |
 | Condición blanda | `referencia_energia_branda` ρ·max(0, E_ref − E) | siempre factible | ρ es heurística DECLARADA (rotulada), no derivada | **ablación experimental** |
 | 2. Valor marginal por reoptimización paramétrica | `valor_marginal_local`: λ = −(V(E⁺) − V(E⁻))/(E⁺ − E⁻) con E± = E_ref ± δ factibles; dominio [E⁻, E⁺] | interpretación económica directa (R$/kWh) | **local**; falla en quiebres/discontinuidades (UC) y en umbrales de factibilidad; no separable para varios bancos | alternativa; **indisponible** cuando el error en los extremos supera la tolerancia (H10: en τ_6 de H2 la diferencia central 0,99 cae sobre el quiebre 1,49/0,49 ⇒ rechazada) |
-| 3. Función costo-a-futuro lineal por tramos | `custo_futuro_pwl`: V^tail evaluado en una grilla de energías por modo; refinamiento adaptativo 1D por bisección hasta tolerancia; frontera de factibilidad por bisección (conservadora); 2D por envolvente convexa **verificada** | valor económico global en el dominio muestreado; captura umbrales de factibilidad (dominio) y no convexidad 1D; exacta en los puntos (MILP auditado) | costo computacional (N_modos × N_puntos MILP por ventana); 2D solo convexo; interpolante, no identidad | **método PRINCIPAL** |
+| 3. Función costo-a-futuro lineal por tramos | `custo_futuro_pwl`: V^tail evaluado en una grilla de energías por modo; refinamiento adaptativo 1D por bisección hasta tolerancia; frontera de factibilidad por bisección (conservadora); 2D por envolvente convexa **verificada en la muestra** (no prueba global) | valor económico global en el dominio muestreado; captura umbrales de factibilidad (dominio) y no convexidad 1D; exacta en los puntos (MILP auditado) | costo computacional (N_modos × N_puntos MILP por ventana); 2D solo convexo; interpolante, no identidad | **método PRINCIPAL** |
 | Multiplicadores duales del MILP | — | — | **prohibido**: con variables enteras no son precios sombra económicamente válidos | descartado |
 
 Para una batería con valor útil, λ_E = −∂V/∂E y la aproximación local es V̂(E) = V(E_ref) − λ_E (E − E_ref): **aproximación
@@ -136,14 +136,15 @@ Campos: identidad (misión, microrred, escenario), ventana y k de aplicación, i
 índice de frontera global, fin del planeamiento y cola, UIDs de bancos (orden de las dimensiones) y generadores,
 unidades (`R$`, `kWh`) y convención de signos (texto exacto `CONVENCAO_SINAIS`), modos con representación, puntos
 (valor + límite inferior dual + clasificación), energías inviables muestreadas, dominio por banco, convexidad
-verificada, referencia, sensibilidad local, ρ (solo branda), Φ_L, calidad, hashes de procedencia, procedencia y
+verificada en la muestra, referencia, sensibilidad local, ρ (solo branda), Φ_L, calidad, hashes de procedencia, procedencia,
+diagnóstico de TODOS los modos terminales (`diagnostico_modos`, A02) y
 **sello SHA-256**.
 
 El MPC **rechaza** (`validar_sinal_para_entrada` + `validar_sinal_para_janela`): sello adulterado, esquema/perfil,
 unidades/convención, no finito, otra microrred/escenario, otra misión, **otra ventana (caducidad)**, otra frontera,
 emisión posterior a τ_k, **instantáneo de emisión ≠ corte K6 sellado** (causalidad verificada contra el libro),
 modelo de red/configuración del planificador distintos, recursos distintos, dominio fuera de los límites físicos,
-puntos fuera del dominio/no crecientes/sin cobertura, 2D sin convexidad verificada, modos × memoria incompatibles,
+puntos fuera del dominio/no crecientes/sin cobertura, 2D sin convexidad verificada en la muestra, señal válida que omite un modo no resuelto, modos × memoria incompatibles,
 señal indisponible.
 
 ## 8. MILP corto 3C-4 (`milp/modelo_3c4.py`, `solver_3c4.py`)
@@ -155,7 +156,7 @@ Composición sobre `construir_modelo_3c3` (inalterado). Objetivo `J = J_S + θ`,
 * 1D: segmentos consecutivos con binarias explícitas (sin SOS, como M14–M16): `Σ_j δ_ij = s_i`, `φ_ij ≤ δ_ij`,
   `e_{b,N} = Σ[E_j δ + (E_{j+1} − E_j) φ]`, `θ = Σ[V_j δ + (V_{j+1} − V_j) φ]` — representación EXACTA del interpolante
   (convexo o no) y del dominio;
-* 2D: `λ_ij ≥ 0`, `Σ_j λ_ij = s_i`, `e = Σ λ x_j`, `θ = Σ λ V_j` (envolvente convexa; solo con convexidad verificada);
+* 2D: `λ_ij ≥ 0`, `Σ_j λ_ij = s_i`, `e = Σ λ x_j`, `θ = Σ λ V_j` (envolvente convexa; solo con convexidad verificada EN LA MUESTRA — grilla y centros —, no prueba global);
 * local: modo fijo, `E_lo ≤ e_{b,N} ≤ E_hi`, `θ = V_ref − Σ λ_b (e_{b,N} − E_ref,b)`;
 * referencias: `e_{b,N} ≥ E_ref` (dura) o `σ ≥ E_ref − e`, `θ = ρ Σ σ` (branda); Φ declarados (lineal, energía mínima).
 
@@ -212,8 +213,37 @@ causalidad contra el libro, compromisos, ausencia de valor futuro en el costo re
 |---|---|---|
 | **C-3C4-01** | El orquestrador compara `res.hash_entrada` con `_hash_entrada(e)` y `plano_de_resultado_3c3` exige perfil 3C-3; la evidencia 3C-3 (registro 3C-0, anexo 3C-3, auditoría integral) exige plan con la entrada NÚCLEO | `ResultadoNucleo3C3De3C4` = **visión** del despacho 3C-4 sobre la entrada núcleo (mismas variables, aprobado por el auditor 3C-3), con `perfil_resolucao = v1.1-3C-4`, `resultado_3c4` adjunto y `custos_modelo` con `custo_futuro_estimado` SEPARADO; `plano_de_resultado_3c4` verifica perfil, hashes 3C-4/núcleo, identidad del despacho y auditoría terminal antes de crear el plan; el registro 3C-0 declara `formulacao = v1.1-3C-4` y compromete `entrada_3c4`. El óptimo es del problema 3C-4 (documentado), no del 3C-3 |
 | **C-3C4-02** | Cuatro guardias anteriores impedían por construcción añadir el 3C-4 (lista nominal de módulos con Pyomo; `ADICOES_*`; prefijos admitidos por las guardias 3C-2/3C-3) | Ajuste **nominal mínimo**: `milp/modelo_3c4.py`, `milp/solver_3c4.py` en la lista; `ADICOES_3C4` (4 archivos, solo adición); prefijos `ems_v2/hierarquia/`, `fixtures_3c4.py`, `tests/ems_v2/test_ems_v2_3c4_`. Nueva guardia desde `10365c5`: solo esas 4 guardias cambian; ningún otro archivo modificado |
-| **C-3C4-03** | **Defecto heredado (3C-0/3C-2/3C-3)**: la energía ejecutada acumula deriva de coma flotante (p. ej. 10,000000000000002 kWh con C = 10) y la validación SIN recorte de la ventana siguiente la bloquea (`energia_maior_que_capacidade`) | **No corregido** (exigiría tocar contratos protegidos): reproducido en `test_h9_linha_de_base_interrompida_por_deriva_numerica_herdada_B3C4_01`; la comparación H9 se declara NO comparable; propuesta en `BRECHAS_3C4.md` (B3C4-01) para autorización |
+| **C-3C4-03** | **Defecto heredado (3C-0/3C-2/3C-3)**: la energía ejecutada acumulaba deriva de coma flotante (10,000000000000002 kWh con C = 10) y la validación SIN recorte de la ventana siguiente la bloqueaba | **Corregido por hotfix AUTORIZADO** en la auditoría del PR #17 (§10b, B3C4-01); un segundo artefacto (C-01, B3C4-10) queda documentado sin corregir |
 | C-3C4-04 | El campo 3C-0 `valor_futuro` sigue `nao_implementado_3C0` aunque el 3C-4 estime V̂ | Esquema 3C-0 intacto; la estimación vive en la coordinación 3C-4 y en `custo_objetivo_planejado` separada; `contabilizado_como_custo = False` auditado |
+
+## 10b. Auditoría independiente del PR #17 (commit auditado `9630e73`) — correcciones
+
+Los tres defectos se **reprodujeron sobre `9630e73` antes de corregir** (salida literal en
+`EVIDENCIA_3C4_EJECUCION.md` §4). Correcciones en `c964a2e`.
+
+| ID | Antes (`9630e73`, reproducido) | Después |
+|---|---|---|
+| **C-3C4-A01** | Un `RegistroMissaoHierarquica3C4` alterado y RE-SELADO pasaba la auditoría integral (`aceito = True`) con `contagens`, `energias_finais_kWh`, `valoracao_terminal_declarada_R`, `hash_configuracao_rede`, `missao_uid` o `tempos_planejador_s` (negativo o inflado) falsos | `verificar_registro_hierarquico` confronta CADA campo con su fuente: contagens = `contagens_de(coordenações)`; energías = estado final EJECUTADO del registro de misión; valoración = Φ_L declarado (`termo_longo` de la configuración suministrada) en ese estado; `hash_modelo_rede`/`hash_configuracao_rede`/`hash_configuracao_planejador` = hashes de los objetos SUMINISTRADOS (obligatorios); `missao_uid` = identidad del registro de misión y de cada coordinación; tiempos: claves conocidas, reales finitos ≥ 0, total ≥ componentes y **igualdad con la suma de las mediciones selladas en las coordinaciones** (coherencia con la fuente registrada; NO reproducción determinista — son medidas de reloj). El registro final se construye con las mismas funciones (`contagens_de`, `tempos_planejador_de`, `valor_termo_declarado`), y la retomada reconstruye los tiempos desde las coordinaciones. El SELLO solo detecta alteración del contenido sellado; no identifica una fuente confiable (B3C4-08) |
+| **C-3C4-A02** | `_modo_1d` clasificaba un modo `inviavel` cuando la grilla inicial no tenía ningún punto factible; con dos modos, el más barato (región factible estrecha [7,1; 7,9] kWh fuera de la grilla 0/5/10/15/20) era **omitido** y la señal salía `valido` | Estados de modo (`ESTADOS_MODO`): `valido`, `inviavel` (solo con **certificado de cobertura**: el MISMO MILP 3C-4 con la energía inicial LIBRE en toda la faixa — `resolver_cobertura_3c4`; prueba del B&B del HiGHS, no certificado independiente de Farkas), `dominio_indeterminado` (sin certificado o inconcluso ⇒ el modo no puede excluirse ⇒ **señal indisponible**), `indisponivel` (dominio no conexo certificado, tolerancia no alcanzada, 2D no convexo en la muestra). Un certificado factible propone E* fuera de la grilla, que se **re-evalúa** por la resolución auditada normal. Tras la bisección, las regiones excluidas a cada lado se certifican; el dominio declarado es una **aproximación INTERNA conservadora** (margen ≤ `tolerancia_dominio_kWh`). `SinalValorFuturo.diagnostico_modos` registra TODOS los estados terminales con sus certificados; una señal `valido` con un modo no resuelto es rechazada (`sinal_valido_com_modo_nao_resolvido`). 2D: `convexidade_verificada_na_amostra` (grilla + centros), descrita como verificación sobre la muestra, no prueba global. No se afirma exhaustividad más allá del certificado del solver |
+| **B3C4-01** (hotfix autorizado) | `P_d = −1,7763568394002505e-15` kW (residuo primal del HiGHS) ⇒ `e = 10,000000000000002` = C + 1 ulp, aceptado por el ejecutor (≤ C + tolE D07) y transportado; la validación 3A de la ventana siguiente (`e0 > C`) interrumpía la misión 3C-3 original (H9) | Política `projecao_numerica_limite_energia_v1` (función única `energia_apos_intervalo` + `projecao_numerica_energia` en `ponte/execucao.py`, usada por los ejecutores 3C-0/3C-1 y 3C-3): un exceso sobre un límite DECLARADO [s_min C, s_max C] ≤ ε_num = min(tolE_D07, 16·u·S) (u = 2⁻⁵³; S = \|α e0\| + h(η_c\|P_c\| + \|P_d\|/η_d) + max\|lim\|) se proyecta al límite con aviso `projecao_numerica_limite_energia` (bruto, límite, corrección, ε_num). Excesos mayores: tratamiento D07 inalterado (aceptados hasta tolE y transportados SIN cambio; > tolE ⇒ inexequible). La auditoría reconstruye **bit a bit** cada proyección desde datos sellados (`reconstruir_projecoes_energia`; sección `projecoes_numericas`). El mismo valor (10,0) aparece en la trayectoria, el registro 3C-0, el checkpoint, la ventana siguiente y el punto de retomada |
+
+**Archivos protegidos modificados (solo B3C4-01):** `ems_v2/ponte/execucao.py` (SHA-256₁₆ `a3f64678500a51d0` → `cdad389b48ee3d24`)
+y `ems_v2/rede/execucao.py` (`71db8fd2e405e2ad` → `507c7ae2de09217a`): 62 líneas añadidas, 13 eliminadas — la recurrencia
+M07 pasa a la función compartida (misma aritmética, mismos resultados bit a bit fuera de la política), la proyección y
+el aviso. Guardias ajustadas nominalmente y una nueva (`test_hotfix_b3c4_01_restrito_a_projecao_numerica`) que admite
+solo esas líneas eliminadas y prohíbe `min(max(` / `clip(`. Regresiones 3C-0, 3C-1, 3C-2 (E1–E8 con huellas), 3C-3
+(G1–G15) y 3C-4 sin cambios.
+
+**Detenido y documentado (fuera de la autorización): B3C4-10.** Con la energía corregida, la misión 3C-3 original de H9
+avanza hasta k = 10 y se detiene por un SEGUNDO artefacto heredado: `P_imp = −8,881784197001252e-16` kW rechazado por la
+regla C-01 del 3C-3 (programa real ≥ 0, sin recorte), aprobada en la auditoría del PR #16. Corregirlo reinterpretaría
+una regla de contrato auditada ⇒ requiere decisión del responsable (`BRECHAS_3C4.md`).
+
+**Afirmaciones que se sostienen después de las correcciones:** el registro final de misión es verificable contra sus
+fuentes (salvo re-sellado en bloque de TODOS los artefactos, B3C4-08); un modo terminal solo se excluye con certificado
+de cobertura del solver; los dominios son aproximaciones internas conservadoras; la deriva de energía de 1 ulp ya no
+interrumpe misiones y su corrección es auditable; H2/H6/H7/H8/H10/H17 reproducen los mismos costos. **No se sostiene:**
+exhaustividad independiente del solver, convexidad global en 2D, ni comparaciones H9 con la línea de base 3C-3 (B3C4-10).
 
 ## 11. Experimentos (detalle y tablas: `EVIDENCIA_3C4_EJECUCION.md`)
 
@@ -226,14 +256,14 @@ causalidad contra el libro, compromisos, ausencia de valor futuro en el costo re
 | H5 | demanda realizada ≠ prevista (misma verdad): ambos concluyen, jerárquico más barato con condiciones terminales iguales; auditoría con separación previsión × realización aprobada |
 | H6/H10 | V(0, 5, 10, 15, 20) = 25; 17,55; 10,1; 7,65; 5,2 exactos ⇒ λ = 1,49 en [0, 10] y 0,49 en [10, 20]; local unilateral λ = 0,51 en τ_0; local INDISPONIBLE en τ_6 (quiebre) |
 | H7/H8 | límite de importación 0 / PCC indisponible previsto en h8–9 con tarifa PLANA: MPC sin señal **inviable** (misión interrumpida), jerárquico PWL concluye (R$ 50,2) con dominio E ≥ reserva — valor por restricción FÍSICA; local también falla (limitación) |
-| H9 | PEMFC + banco: dos modos por señal (valor de estar ENCENDIDO separado del de la energía), obligación residual planificada 0 en todas las ventanas, sin obligaciones pendientes, auditoría aprobada. Jerárquico R$ 129,6 × información perfecta/open-loop/encolhido R$ 127,6: la brecha de R$ 2,0 es el costo de la condición `cumprir_na_janela` con N = U = 3 (arranque solo en t = 0 de cada ventana; B3C4-02), no de la previsión. Línea de base sin señal y `hier_ref_dura` interrumpidas por la deriva heredada C-3C4-03 (no comparables) |
+| H9 | PEMFC + banco: dos modos por señal (valor de estar ENCENDIDO separado del de la energía), obligación residual planificada 0, sin obligaciones pendientes, auditoría aprobada. Jerárquico PWL y referencia blanda R$ 129,6 (PEMFC encendida 25 200 s al final) × horizonte completo/open-loop/oráculo R$ 127,6 (18 000 s): brecha de R$ 2,0 atribuible a `cumprir_na_janela` con N = U = 3 (B3C4-02). Tras el hotfix B3C4-01, la línea de base 3C-3 sin señal y la referencia dura avanzan hasta k = 10 (proyección de 1 ulp en k = 8) y se detienen por B3C4-10 (no comparables) |
 | H11 | dominio inalcanzable ⇒ MILP inviable (sin recorte); señales caducadas/otra frontera/no causales rechazadas; local no defendible ⇒ degradación |
 | H12 | intervención en la verdad desde h6: coordinaciones y planos idénticos para k ≤ 6, distintos después |
 | H13 | N × H_L (H2): costo no creciente en H_L (N = 3: 55,5 / 50,6 / 50,4 / 50,2 / 50,2 con H_L = 4 / 6 / 8 / 10 / 12); MPC sin señal 65,3 / 60,4 / 55,5 con N = 2 / 3 / 4; con H_L ≥ 10 el jerárquico alcanza el óptimo de información perfecta para todo N ∈ {2, 3, 4} |
 | H14 | open-loop, MPC sin señal, encolhido, PWL, local, referencias y oráculo con condiciones idénticas (tabla) |
 | H15 | interrupción tras 5 ventanas (política periódica P = 2, lote pendiente) + reanudación: impresiones idénticas |
 | H16 | θ/E(N)/total post-solver, coordinación alterada (resellada o no), señal alterada, configuración sustituida, registro de misión adulterado, vínculo/lote alterado ⇒ rechazo |
-| H17 | dos bancos: envolvente convexa 2D verificada; MPC sin señal R$ 55,5 × jerárquico R$ 50,2 |
+| H17 | dos bancos: envolvente convexa 2D verificada en la muestra; MPC sin señal R$ 55,5 × jerárquico R$ 50,2 |
 | H18 | regresión: suites 3A–3C-3 (incl. G1–G15, E1–E8 con pins) sin cambios |
 
 ## 12. Diseño experimental (artículo)
@@ -250,7 +280,10 @@ causalidad contra el libro, compromisos, ausencia de valor futuro en el costo re
 
 ## 13. Límites metodológicos
 
-Aproximación interpolante (no función de valor exacta) fuera de los puntos; 2D solo convexo; >2 bancos no soportados;
+Aproximación interpolante (no función de valor exacta) fuera de los puntos; dominio = aproximación INTERNA
+conservadora (margen ≤ tolerancia de dominio) y exclusiones justificadas solo por el certificado de cobertura del
+solver (prueba del B&B del HiGHS, sin certificado independiente para MILP; sin certificado ⇒ `dominio_indeterminado` y
+señal indisponible — el método no afirma exhaustividad); 2D solo convexo EN LA MUESTRA; >2 bancos no soportados;
 modos limitados (`max_modos`); valor determinista bajo previsión puntual (sin incertidumbre estocástica — familia no
 modelada `incerteza_estocastica_do_valor_futuro`); costo computacional O(modos × puntos) MILP por ventana (sin promesa de
 tiempo real; tiempos solo indicativos); tarifas y equipos sintéticos; misma malla temporal; ninguna microrred del

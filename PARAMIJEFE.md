@@ -2499,6 +2499,33 @@ Perfil **`v1.1-3C-4`**: EMS jerárquico de dos niveles con la MISMA malla Δ.
 | `tests/ems_v2` con Pyomo/HiGHS bloqueados | **794 passed, 42 skipped** |
 | Suite completa `tests/` | **1635 passed, 7 warnings, 128 subtests** (445,4 s) = 1534 + 101 |
 
+### 4b. Auditoría independiente del PR #17 (commit auditado `9630e73`): A01, A02 y hotfix B3C4-01
+
+Dictamen: arquitectura favorable; tres puntos a cerrar. Los tres defectos se **reprodujeron sobre `9630e73` antes de
+corregir** (salida literal en `docs/ems_v2/EVIDENCIA_3C4_EJECUCION.md` §4). Correcciones en `c964a2e`.
+
+| ID | Antes (reproducido) | Después |
+|---|---|---|
+| **C-3C4-A01** | `RegistroMissaoHierarquica3C4` alterado y RE-SELADO aceptado por la auditoría integral con contagens, energías finales, valoración terminal, `hash_configuracao_rede`, `missao_uid` y tiempos (negativo, inflado) falsos | Cada campo confrontado con su fuente (contagens recalculadas, estado final EJECUTADO, Φ_L declarado, hashes de los objetos suministrados — obligatorios —, identidad, tiempos finitos ≥ 0 = suma de las mediciones selladas en las coordinaciones; los tiempos NO se presentan como reproducibles). 11 alteraciones re-selladas rechazadas con balances/costos intactos |
+| **C-3C4-A02** | Grilla sin punto factible ⇒ modo `inviavel`; con dos modos, el más barato (región estrecha [7,1; 7,9] kWh) omitido y señal `valido` | `inviavel` solo con **certificado de cobertura** (MILP con energía inicial libre en toda la faixa; prueba del B&B del HiGHS); sin él ⇒ `dominio_indeterminado` ⇒ señal indisponible; E* propuesto fuera de la grilla re-evaluado por la resolución auditada; exclusiones laterales certificadas; dominio = aproximación INTERNA conservadora; `diagnostico_modos` en la señal; 2D "verificada en la muestra". Sin afirmación de exhaustividad |
+| **B3C4-01** | `P_d = −1,78e-15` (solver) ⇒ `e = C + 1 ulp` aceptado y transportado ⇒ la ventana siguiente rechazaba `e0 > C` (perfil 3C-3 original, H9) | Hotfix AUTORIZADO: proyección al límite SOLO si exceso ≤ min(tolE D07, 16·u·S), aviso y **reconstrucción bit a bit** en la auditoría (`reconstruir_projecoes_energia`). Archivos protegidos modificados: `ems_v2/ponte/execucao.py` y `ems_v2/rede/execucao.py` (62+/13−, hashes en `MATRIZ_3C4.md`); guardia que restringe el diff. E1–E8 (huellas), G1–G15, 3C-0/3C-1 idénticos |
+
+**Detenido y documentado: B3C4-10.** Tras el hotfix, H9 3C-3 (sin señal) y la referencia dura avanzan a k = 10 y se
+detienen por `P_imp = −8,881784197001252e-16` rechazado por la regla C-01 del 3C-3 (aprobada en el PR #16). Corregirlo
+reinterpretaría una regla de contrato auditada: requiere decisión.
+
+**H9 tras el hotfix (resultados obtenidos, sin forzar conclusiones):** PWL y referencia blanda R$ 129,6 (concluidas);
+horizonte completo / open-loop / oráculo R$ 127,6; sin señal y referencia dura interrumpidas en k = 10 (B3C4-10). Todas
+las concluidas: E final 0 kWh, PEMFC encendida, sin obligaciones pendientes.
+
+| Ejecución (tras `c964a2e`) | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py` | **38 passed** |
+| `tests/ems_v2/test_ems_v2_3c4_*.py` | **139 passed** |
+| `tests/ems_v2` con Pyomo/HiGHS | **1220 passed (= 1181 + 38 + 1 guardia del hotfix)** |
+| `tests/ems_v2` sin Pyomo/HiGHS | **812 passed, 63 skipped** |
+| Suite completa `tests/` | **1674 passed, 7 warnings, 128 subtests (449,9 s) = 1635 + 39** |
+
 ### 5. Límites
 
 Interpolante (no función de valor exacta) fuera de los puntos; 2D solo convexo; ≤ 2 bancos; valor determinista bajo
@@ -2522,4 +2549,4 @@ nada integrado a catálogo/UI/runtime; EMS V1.6 sigue siendo el único motor ope
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
 | 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) | **Integrado** em `main` (merge `10365c5`), após correções C-01/C-02 (§4b) e C-03 (§4c) |
-| 12 | 2026-11-09 | Piso 3C-4 — EMS hierárquico MILP–MPC: planejador de longo prazo, custo de continuação e valor futuro (algébrico, sintético) | `ccr-50f8fad7-s073ob` (PR contra `main`, sem merge) | Entregue para auditoria independente; B3C4-01 (deriva numérica herdada) aguarda decisão |
+| 12 | 2026-11-09 | Piso 3C-4 — EMS hierárquico MILP–MPC: planejador de longo prazo, custo de continuação e valor futuro (algébrico, sintético) | `ccr-50f8fad7-s073ob` / [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) (sem merge) | Auditoria: arquitetura favorável; correções A01, A02 e hotfix B3C4-01 aplicadas (§4b); B3C4-10 aguarda decisão |

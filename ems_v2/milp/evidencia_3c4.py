@@ -41,15 +41,48 @@ def campanha(cenarios=CENARIOS, estrategias=X.ESTRATEGIAS) -> dict:
     return out
 
 
+def _projecoes(x) -> int:
+    from ..hierarquia.auditoria import reconstruir_projecoes_energia
+    pj, c = reconstruir_projecoes_energia(x.modelo, x.resultado.registros, x.controlador.cfg.malha.delta_s)
+    return len(pj) if not c else -1
+
+
+def _certificados(x) -> str:
+    coords = getattr(x.controlador, "coordenacoes", ())
+    cs = [c for co in coords if co.sinal is not None for d in co.sinal.diagnostico_modos for c in d.certificados
+          if c.startswith("cobertura")]
+    return f"{sum(1 for c in cs if ':inviavel' in c)}/{len(cs)}" if coords else "—"
+
+
 def tabela_campanha(res: dict) -> str:
-    ln = ["| Cenário | Estratégia | Situação | Custo realizado [R$] | E final [kWh] | Degradadas | Avaliações planejador "
-          "| Tempo planejador [s] | Tempo total [s] |", "|---|---|---|---|---|---|---|---|---|"]
+    ln = ["| Cenário | Estratégia | Situação | k final | Custo realizado [R$] | E final [kWh] | Degradadas | Avaliações "
+          "planejador | Certificados A02 (inviável/total) | Projeções B3C4-01 | Tempo planejador [s] | Tempo total [s] |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for nome, (ex, cmp) in res.items():
         for e, l in cmp["linhas"].items():
             ln.append(f"| {nome} | {e} | {l.situacao}{'' if l.classe_falha is None else '/' + l.classe_falha} | "
-                      f"{_f(l.custo_realizado_R, 2)} | {json.dumps({k: round(v, 6) for k, v in l.energias_finais_kWh.items()})} "
-                      f"| {l.janelas_degradadas} | {l.avaliacoes_planejador} | {_f(l.tempo_planejador_s, 3)} | "
-                      f"{_f(ex[e].tempo_parede_s, 2)} |")
+                      f"{l.intervalos_aplicados} | {_f(l.custo_realizado_R, 2)} | "
+                      f"{json.dumps({k: round(v, 6) for k, v in l.energias_finais_kWh.items()})} "
+                      f"| {l.janelas_degradadas} | {l.avaliacoes_planejador} | {_certificados(ex[e])} | "
+                      f"{_projecoes(ex[e])} | {_f(l.tempo_planejador_s, 3)} | {_f(ex[e].tempo_parede_s, 2)} |")
+    return "\n".join(ln)
+
+
+def tabela_h9(res: dict) -> str:
+    from ..hierarquia.auditoria import reconstruir_projecoes_energia
+    ex = res["h9_pemfc"][0]
+    ln = ["| Estratégia | Situação | k final | Custo [R$] | E final [kWh] | PEMFC ligada / p [kW] / tempo no estado [s] "
+          "| Obrigações pendentes | Projeções B3C4-01 (k, limite, correção kWh) | Falha |", "|---|---|---|---|---|---|---|---|---|"]
+    for e in ("mpc_sem_sinal", "hier_pwl", "hier_ref_dura", "hier_ref_branda", "mpc_encolhido", "open_loop", "oraculo"):
+        x = ex[e]
+        c, r = x.controlador, x.resultado
+        g = c.estado.geracao[0]
+        pj, _ = reconstruir_projecoes_energia(x.modelo, r.registros, c.cfg.malha.delta_s)
+        f = [k.mensagem[:90] for k in r.registros[-1].conteudo.constatacoes if k.severidade == "erro"][:1]
+        ln.append(f"| {e} | {r.situacao} | {c.k} | {r.registro_missao.conteudo.custo_realizado_acumulado.total_R!r} | "
+                  f"{[b.energia_kWh for b in c.estado.armazenamento]} | {g.ligado} / {g.potencia_kW} / "
+                  f"{g.tempo_no_estado_s} | {c.obrigacoes_pendentes()[0]} | "
+                  f"{[(p.indice_global, p.limite, p.correcao_kWh) for p in pj]} | {f[0] if f else '—'} |")
     return "\n".join(ln)
 
 
@@ -132,6 +165,8 @@ def main(argv=None) -> int:
     print("## Ambiente\n\n```json\n" + ambiente() + "\n```\n")
     print("## Campanha (estratégias × cenários)\n\n" + tabela_campanha(res) + "\n")
     print("## Efeitos separados\n\n" + tabela_efeitos(res) + "\n")
+    if "h9_pemfc" in res:
+        print("## H9 — PEMFC: estados finais, memória e obrigações\n\n" + tabela_h9(res) + "\n")
     if "--rapida" not in argv:
         print("## H13 — horizonte curto × longo (H2)\n\n" + sensibilidade_horizontes() + "\n")
         print("## H6/H10 — λ(E) na fronteira b = 9 (τ_6, H2)\n\n" + lambda_por_energia() + "\n")

@@ -20,6 +20,9 @@ Base `10365c5`. "Prueba" = archivo `tests/ems_v2/test_ems_v2_3c4_<x>.py` (`contr
 | §12 efectos separados, condiciones terminales | `hierarquia/comparadores.py` | `mpc::test_h2_h14_*`, `mpc::test_h7_h8_*`, `mpc::test_h9_linha_de_base_*` |
 | §13 tiempos, gaps, tolerancias, determinismo | `ResultadoPlanejamento.tempos_s`, `QualidadeSinal`, `impressao_coordenacao` | `planejador::test_custo_computacional_registrado`, `mpc::test_reproducao_deterministica` |
 | §14 compatibilidad | guardias | `isolamento::*` + suites 3A–3C-3 |
+| **Auditoría PR #17 — A01** registro final confrontado con sus fuentes | `mpc.verificar_registro_hierarquico`, `contagens_de`, `tempos_planejador_de`, `energias_executadas` | `auditoria_pr17::test_a01_*` (11 alteraciones re-selladas, ∞ sin re-sellar, objetos obligatorios, tiempos tras retomada) |
+| **Auditoría PR #17 — A02** inviable solo con certificado; dominio indeterminado; diagnóstico por modo | `milp/solver_3c4.resolver_cobertura_3c4`, `planejador._cobertura/_modo_1d/_modo_2d/_sinal_pwl`, `contrato.ESTADOS_MODO/DiagnosticoModo` | `auditoria_pr17::test_a02_*` (función de factibilidad sintética, dos modos, certificado real MILP, H7/H8) |
+| **Auditoría PR #17 — B3C4-01** proyección numérica auditada | `ponte/execucao.energia_apos_intervalo/projecao_numerica_energia`, `rede/execucao.py`, `auditoria.reconstruir_projecoes_energia` | `auditoria_pr17::test_b01_*` (extremos, capacidades, tolerancias, violaciones reales, continuidad, retomada 3C-3, H9 × 5), `isolamento::test_hotfix_b3c4_01_restrito_a_projecao_numerica` |
 
 | Experimento | Prueba |
 |---|---|
@@ -40,18 +43,20 @@ Base `10365c5`. "Prueba" = archivo `tests/ems_v2/test_ems_v2_3c4_<x>.py` (`contr
 | H17 | `mpc::test_h17_*`, `mpc::test_h9_*`, `milp::test_envoltoria_2d_*` |
 | H18 | suites 3A–3C-3 (incl. `test_ems_v2_3c3_regressao_3c2.py`, pins E1–E8) + `isolamento` |
 
-## Archivos protegidos (SHA-256, prefijo de 16) — idénticos a la base `10365c5`
+## Archivos protegidos (SHA-256, prefijo de 16) — base `10365c5` × rama
 
-| Archivo | Base | Rama |
-|---|---|---|
-| `ems_v2/mpc/orquestrador.py` | `b6bdf9283a341ec8` | `b6bdf9283a341ec8` |
-| `ems_v2/rede/mpc.py` | `a7d9ae9f1c4032aa` | `a7d9ae9f1c4032aa` |
-| `ems_v2/rede/contrato.py` | `15ce7e94794a25b9` | `15ce7e94794a25b9` |
-| `ems_v2/milp/modelo_3c3.py` | `8f219d85de898755` | `8f219d85de898755` |
-| `ems_v2/milp/solver_3c3.py` | `2424316383c96aab` | `2424316383c96aab` |
-| `ems_v2/compromisso/contrato.py` | `d1c6b0c90b095909` | `d1c6b0c90b095909` |
-| `ems_v2/contracts.py` | `0c9366f6c015208d` | `0c9366f6c015208d` |
-| `ems_v2/ponte/registro.py` | `e28bea61bb9f122f` | `e28bea61bb9f122f` |
+| Archivo | Base | Rama | Motivo |
+|---|---|---|---|
+| `ems_v2/ponte/execucao.py` | `a3f64678500a51d0` | `cdad389b48ee3d24` | **B3C4-01 (hotfix autorizado, PR #17)**: función compartida de la recurrencia + proyección numérica + aviso |
+| `ems_v2/rede/execucao.py` | `71db8fd2e405e2ad` | `507c7ae2de09217a` | **B3C4-01**: usa la misma función (sin aritmética propia) |
+| `ems_v2/mpc/orquestrador.py` | `b6bdf9283a341ec8` | `b6bdf9283a341ec8` | idéntico |
+| `ems_v2/rede/mpc.py` | `a7d9ae9f1c4032aa` | `a7d9ae9f1c4032aa` | idéntico |
+| `ems_v2/rede/contrato.py` | `15ce7e94794a25b9` | `15ce7e94794a25b9` | idéntico |
+| `ems_v2/milp/modelo_3c3.py` | `8f219d85de898755` | `8f219d85de898755` | idéntico |
+| `ems_v2/milp/solver_3c3.py` | `2424316383c96aab` | `2424316383c96aab` | idéntico |
+| `ems_v2/compromisso/contrato.py` | `d1c6b0c90b095909` | `d1c6b0c90b095909` | idéntico |
+| `ems_v2/contracts.py` | `0c9366f6c015208d` | `0c9366f6c015208d` | idéntico (validación 3A `e0 > C` sin cambios) |
+| `ems_v2/ponte/registro.py` | `e28bea61bb9f122f` | `e28bea61bb9f122f` | idéntico |
 
-Únicos archivos existentes modificados (nominales, C-3C4-02): `tests/ems_v2/test_ems_v2_{3c2_isolamento,3c3_isolamento,
-ponte_isolamento,milp_perfil}.py`.
+Archivos existentes modificados: los dos de B3C4-01 + guardias de tests ajustadas nominalmente
+`tests/ems_v2/test_ems_v2_{3c2_isolamento,3c3_isolamento,ponte_isolamento,milp_perfil}.py` (C-3C4-02 y B3C4-01).

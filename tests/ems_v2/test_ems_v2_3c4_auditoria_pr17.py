@@ -1,7 +1,7 @@
 """Auditoria independente do PR #17 (commit auditado ``9630e73``): C-3C4-A01, C-3C4-A02 e B3C4-01.
 
 Sintético/algébrico. Cada defeito foi REPRODUZIDO sobre o commit auditado antes da correção (saída literal em
-``docs/ems_v2/EVIDENCIA_3C4_EJECUCION.md`` §5). Testes que exigem HiGHS são pulados sem Pyomo.
+``docs/ems_v2/EVIDENCIA_3C4_EJECUCION.md`` §4). Testes que exigem HiGHS são pulados sem Pyomo.
 
 * **A01** — o ``RegistroMissaoHierarquica3C4`` alterado e RE-SELADO (contagens, energias finais, valoração terminal,
   hash da configuração de rede, ``missao_uid``, tempos) era aceito pela auditoria integral; agora cada campo é
