@@ -2257,7 +2257,7 @@ solo biblioteca estándar; el solver se alcanza solo por el adaptador explícito
 | `tests/ems_v2/test_ems_v2_3c2_*.py` (6 archivos) | **83 passed** (contrato 19, observaciones 8, previsión 7, lazo sin solver 16, MILP 29, aislamiento 4) |
 | `tests/ems_v2` con Pyomo/HiGHS | **800 passed** (= 717 anteriores + 83) |
 | `tests/ems_v2` con Pyomo/HiGHS bloqueados | **563 passed, 19 skipped** (solo el archivo MILP 3C-2 se salta; el lazo sin solver corre) |
-| Suite completa `tests/` | {FULL} |
+| Suite completa `tests/` | **1254 passed, 7 warnings, 128 subtests** (378,9 s) = 1171 de `main` + 83 |
 
 Comandos, entorno y tiempos: `EVIDENCIA_3C2.md`.
 

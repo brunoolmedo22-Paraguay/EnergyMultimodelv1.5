@@ -1,6 +1,6 @@
 # Evidência executada — Piso 3C-2 (gerada por `python -m ems_v2.mpc.evidencia`)
 
-- Data (UTC): 2026-11-09T12:04:16+00:00 · commit: `2088de3151026489dcc51f7c4f45709ae632a89d`
+- Data (UTC): 2026-11-09T12:10:46+00:00 · commit: `a7b2a4622f78b30c5111ebca5cc257c48eb83a24`
 - Python 3.13.18 · Linux-6.18.44-fc-v310-x86_64-with-glibc2.39 · 4 CPUs · x86_64
 - Pyomo 6.10.1 · highspy 1.15.1 · HiGHS 1.15.1 · interface `pyomo.contrib.solver:highs` · configuração `CONFIG_ANALITICA` (gaps nulos, 1 thread, semente 0)
 
@@ -92,6 +92,6 @@ Cada missão executada 5 vez(es) nesta máquina; estatísticas por PERCENTIL DE 
 
 | Missão | K/N/m | n resoluções | Var. / bin. / restr. (máx.) | solver p50 / p95 / p99 / máx. (s) | total resolução p50 / p95 / p99 / máx. (s) |
 |---|---|---|---|---|---|
-| E2 (K = 8, N = 4, m = 2) | 8/4/2 | 20 | 53 / 20 / 73 | 0.0108 / 0.0132 / 0.0145 / 0.0145 | 0.0165 / 0.0247 / 0.0493 / 0.0493 |
-| K = 32, N = 8, m = 2 | 32/8/2 | 80 | 105 / 40 / 147 | 0.0218 / 0.0659 / 0.0891 / 0.0891 | 0.0303 / 0.0729 / 0.0993 / 0.0993 |
-| K = 32, N = 16, m = 4 | 32/16/4 | 40 | 209 / 80 / 289 | 0.0277 / 0.4692 / 0.5197 / 0.5197 | 0.0435 / 0.4811 / 0.5286 / 0.5286 |
+| E2 (K = 8, N = 4, m = 2) | 8/4/2 | 20 | 53 / 20 / 73 | 0.0109 / 0.0117 / 0.0129 / 0.0129 | 0.0168 / 0.0264 / 0.0514 / 0.0514 |
+| K = 32, N = 8, m = 2 | 32/8/2 | 80 | 105 / 40 / 147 | 0.0208 / 0.0679 / 0.0739 / 0.0739 | 0.0304 / 0.0759 / 0.0816 / 0.0816 |
+| K = 32, N = 16, m = 4 | 32/16/4 | 40 | 209 / 80 / 289 | 0.0315 / 0.4729 / 0.4966 / 0.4966 | 0.0447 / 0.4821 / 0.5053 / 0.5053 |

@@ -32,7 +32,7 @@ de equipos, ni prueba de tiempo real.
 | `python -m pytest tests/ems_v2/test_ems_v2_3c2_*.py -q` | **83 passed** (≈ 6 s) |
 | `python -m pytest tests/ems_v2 -q` | **800 passed** (≈ 19 s) = 717 + 83 |
 | `PYTHONPATH=<bloqueador> python -m pytest tests/ems_v2 -q -rs` con Pyomo/HiGHS **bloqueados** (`sitecustomize` que hace fallar `import pyomo/highspy`) | **563 passed, 19 skipped** (los saltos dicen `could not import 'pyomo'`; el único archivo 3C-2 saltado es `test_ems_v2_3c2_milp.py`; el lazo sin solver corre) |
-| `python -m pytest tests/ -q` (suite completa) | {FULL} |
+| `python -m pytest tests/ -q` (suite completa) | **1254 passed, 7 warnings, 128 subtests** (378,9 s) = 1171 de `main` + 83 |
 | `python -m ems_v2.mpc.evidencia docs/ems_v2/EVIDENCIA_3C2_EJECUCION.md 5` | ver [`EVIDENCIA_3C2_EJECUCION.md`](EVIDENCIA_3C2_EJECUCION.md) (E1–E8 auditados, comparaciones, intervención, campaña de tiempos con n declarado) |
 
 Las aserciones de los 717 tests anteriores no fueron modificadas. Las guardias históricas (3A, 3B-P, 3C-0 con
