@@ -24,6 +24,7 @@ lo ejecutado en 3C-3 usa fixtures, tarifas y PCC **sintéticos**; ninguna micror
 | B3C3-08 | Banda de desvío contractual (límite del desvío respecto del programado más allá del límite físico) | Solo límites contratados absolutos | Parámetro contractual declarado |
 | B3C3-09 | Seguridad/permiso de conexión–desconexión (isla intencional, resincronización) | El modo es fijo en la misión; no hay transición conectado ↔ isla | Especificación de operación (3D) |
 | B3C3-10 | Persistencia en el `MicrogridStore` y UI | Evidencia en directorio de archivos exclusivos | 3D |
+| B3C3-11 | La auditoría integral verifica la coherencia de los artefactos ENTRE SÍ y con los objetos suministrados; un conjunto (registros + anexos + registro de red + modelo + configuración) re-sellado en bloque por quien controle todos los archivos sigue siendo coherente | SHA-256 no es firma (K10 heredada): la certificación es relativa a una referencia confiable conservada | Firma digital / almacenamiento de confianza (fuera de alcance) |
 
 ## 3. Hipótesis aceptadas provisionalmente (requieren aprobación)
 

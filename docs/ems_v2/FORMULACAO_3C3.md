@@ -133,7 +133,8 @@ consigna × efectiva, medido, ajuste aplicado — **recalculada** paso a paso po
 idéntica a la trayectoria conciliada), liquidación por paso, desvíos, H₂ y eventos. El registro compromete
 `entrada_3c3`, `plano_rede_3c3`, `politica_ajuste_3c3`, `fontes_disponibilidade_3c3`, `anexo_3c3_conteudo` antes del
 sello. Una ejecución 3C-3 **no** produce anexo 3C-1. Por punto de retomada: `VinculoRede3C3` sellado (hash del modelo
-3C-3 y de la configuración de red). Al final: `RegistroMissaoRede3C3` sellado ligado al `RegistroMissaoMPC` (totales
+3C-3 y de la configuración de red). La auditoría de misión distingue escopo **integral** (certificación documental
+obligatoria) y **analítico parcial** (solo reproducción numérica) — §10b, C-02. Al final: `RegistroMissaoRede3C3` sellado ligado al `RegistroMissaoMPC` (totales
 de intercambio, desvíos y liquidación = Σ de las ventanas). SHA-256 no es firma (K10 heredada).
 
 ## 8. Integración con el MPC 3C-2 — auditoría del punto de extensión (entregable H)
@@ -186,6 +187,22 @@ vínculo de rede rechaza otro modelo/configuración en la retomada; observacione
 | **C-3C3-03** | El campo `ConteudoJanelaMPC.hash_entrada_3c1` y `RegistroJanelaMPC.selo_anexo_3c1` tienen nombre 3C-1 | En misiones conectadas guardan, respectivamente, el hash de la entrada **de la ventana** (perfil 3C-3, coincide con `plano.hash_entrada` de `v1.1-3C-3`) y el sello del anexo **3C-3**; el perfil queda inequívoco por el plan y el anexo. Esquemas 3C-2 sin cambios |
 | **C-3C3-04** | Con exportación prohibida y excedente realizado (demanda < prevista), ni el PCC ni ningún recurso declarado puede absorberlo (la FV no se recorta por política) | Falla clasificada `consigna_inexequivel` (G6 con `somente_importacao`); requiere una política de curtailment en tiempo real declarada (brecha B3C3-04) |
 | C-3C3-05 | La liquidación usa un único perfil por magnitud; revisiones posteriores del precio de liquidación no re-liquidan intervalos ya cerrados | Brecha B3C3-06 (re-liquidación) |
+
+## 10b. Correcciones de la auditoría independiente del PR #16 (commit auditado `d7da6c5`)
+
+Dictamen: MILP del PCC, exclusividad, integración MPC por puntos de extensión, contabilidad y aislamiento de los pisos
+anteriores aprobados estructuralmente; dos correcciones de integridad. Ambas se **reprodujeron sobre `d7da6c5` antes
+de corregir** (salida literal en `EVIDENCIA_3C3_EJECUCION.md` §7).
+
+| ID | Antes (`d7da6c5`, reproducido) | Después |
+|---|---|---|
+| C-01 | Consigna `P_imp = NaN` ⇒ `PassoAplicado` **exequible** (en `sem_ajuste` con `NaN` aplicado; la comparación `abs(a − b) > tol` no detecta NaN); consigna PARCIAL (solo `P_imp`) ignorada en silencio cuando había programa; `plano_de_resultado_3c3` recortaba `max(0, v)` (−3 ⇒ 0, NaN ⇒ 0) y completaba con ceros un intercambio ausente | `valor_intercambio_valido`: cada valor programado = `int`/`float` estricto, finito y ≥ 0 (bool, texto, NaN, ±Inf, negativos ⇒ inválidos, nunca recortados ni convertidos). `ExecutorAlgebricoConectado3C3.avancar` valida el programado **antes** de cualquier operación física o económica: las dos consignas del PCC o ninguna (`intercambio_programado_incompleto`), valores válidos (`intercambio_programado_invalido`), comando = programa cuando ambos existen (igualdad exacta; `programa_pcc_contraditorio`), ninguna fuente ⇒ `programa_pcc_ausente`; todo ⇒ falla de **DATOS** (`erro_dados`; nada aplicado). El programa explícito se valida en la construcción (`programa_pcc_invalido`). Caso legítimo preservado: en la conciliación el programado viene SOLO del programa (el plan 3C-0 tiene solo recursos internos). `plano_de_resultado_3c3` exige N valores válidos por sentido en modo conectado (sin recorte ni defecto) ⇒ `ContratoInvalido` ⇒ falla de **integridad** en el MPC; isolado con intercambio ⇒ rechazado. Consignas internas no numéricas ⇒ `consigna_invalida` (datos). NaN/Inf ni siquiera son representables en un comando (JSON canónico del hash) |
+| C-02 | `auditar_missao_conectada(..., anexos=None, registros_3c0=None)` devolvía `aceito = True` sin validar ningún documento; el `RegistroMissaoRede3C3` no se exigía; un modelo PCC con límites más amplios o una política económica sustituida eran aceptados | Dos **escopos explícitos**: `auditar_missao_conectada` = **INTEGRAL** (registros 3C-0, anexos 3C-3 y registro de misión de red como argumentos keyword **obligatorios**; `None` ⇒ `auditoria_integral_incompleta`, `aceito = False`); `auditar_missao_conectada_analitica` = **analítica parcial** rotulada (`escopo = "analitica_parcial"`, `integridade_documental_certificada = False` siempre). La sección `documental` verifica, POR POSICIÓN, cada ventana ejecutada con `rede.persistencia.verificar_artefatos_carregados_3c3` (la misma verificación pura de la retomada: `verificar_registro`, `verificar_anexo_3c3`, sellos comprometidos en el `RegistroJanelaMPC`, `execucao_uid` determinista, identidad/misión/posición, plan, plan de red, estados, discretización, checkpoint, información y costo), ventanas sin plan sin artefactos, número exacto de artefactos, PCC/modo del plan de red, `verificar_registro_rede` (sello, vínculo con el `RegistroMissaoMPC`, secuencia de anexos, totales), `hash_modelo_3c3` y `hash_configuracao_rede` contra los objetos **concretos** suministrados (`modelo_3c3_divergente`, `configuracao_rede_divergente`), configuración de red válida y misión/modo. `aceito` exige además todas las secciones analíticas. Esquemas 3C-0/3C-1/3C-2 sin cambios |
+
+Pruebas: `tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py` (**132**: C-01 ×120 parametrizadas para ambas políticas con y
+sin programa, C-02 ×12 con misiones conectadas reales). Las pruebas C-02 demuestran que la auditoría integral falla
+aunque balance y costos sigan correctos (`reprovada_so_documental`). El modelo físico, el MILP, las políticas
+económicas y los resultados G1–G15 no cambian (impresiones y costos idénticos).
 
 ## 11. Experimentos (detalle en `EVIDENCIA_3C3_EJECUCION.md`)
 

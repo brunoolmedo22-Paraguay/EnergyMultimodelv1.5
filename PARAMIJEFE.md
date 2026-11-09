@@ -2304,7 +2304,7 @@ documentos 3C-2. Ningún archivo existente de `ems_v2`, V1.6, `seeds2`, aplicaci
 | Rama | `ccr-a53cad36-86uep6` (desde `main`) |
 | Base | `main` `a4c6b1c1a5e9be86b7b20556f91ec3a753dfb225` (merge del PR #15, 3C-2 integrado) |
 | PR | [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) contra `main`, **sin merge** (entregado para auditoría independiente) |
-| Pendientes | Auditoría; decisiones D-3C3-01..12 y contradicciones C-3C3-01..05 a revisión; **no iniciar 3C-4 sin autorización** |
+| Pendientes | Correcciones C-01/C-02 de la auditoría del PR #16 aplicadas (§4b); cierre de la auditoría; **no iniciar 3C-4 sin autorización** |
 
 ### 1. Resumen
 
@@ -2370,6 +2370,32 @@ Perfil **`v1.1-3C-3`** (embrulho `EntradaRede3C3` sobre el núcleo 3C-1 validado
 
 Hashes de los perfiles protegidos y conteo de módulos idénticos: `MATRIZ_3C3.md`.
 
+### 4b. Auditoría independiente del PR #16 (commit auditado `d7da6c5`): correcciones C-01 y C-02
+
+Aprobados estructuralmente el MILP del PCC, la exclusividad, la integración MPC por puntos de extensión, la contabilidad
+y el aislamiento. Ambos defectos fueron **reproducidos sobre `d7da6c5` antes de corregir** (salida literal en
+`EVIDENCIA_3C3_EJECUCION.md` §7):
+
+| ID | Antes (reproducido) | Después |
+|---|---|---|
+| C-01 | `P_imp = NaN` ⇒ `PassoAplicado` exequible (NaN aplicado en `sem_ajuste`; `abs(a − b) > tol` no detecta NaN); consigna parcial ignorada con programa; `plano_de_resultado_3c3` recortaba `max(0, v)` (−3 ⇒ 0; NaN ⇒ 0) | Programado validado ANTES de toda operación física/económica: real finito ≥ 0 (sin bool/texto/NaN/Inf/negativos, sin recorte ni conversión); ambas consignas o ninguna; comando = programa (igualdad exacta); programa explícito validado al construir; caso legítimo "solo programa" (conciliación) preservado; defecto ⇒ falla de **datos** (`erro_dados`) en el ejecutor y de **integridad** en el plan; nunca `PassoAplicado` exitoso |
+| C-02 | `auditar_missao_conectada` sin anexos/registros 3C-0/registro de red ⇒ `aceito = True`; modelo PCC con límites más amplios y política económica sustituida ⇒ aceptados | Escopos explícitos: **integral** (artefactos obligatorios; verificación por posición de registro 3C-0 + anexo 3C-3 de cada ventana ejecutada con el verificador puro compartido con la retomada; `RegistroMissaoRede3C3` y su vínculo; `hash_modelo_3c3`/`hash_configuracao_rede` contra los objetos suministrados) × **analítica parcial** rotulada (`integridade_documental_certificada = False`) |
+
+Evidencia adversarial después (auditoría integral sobre G11): válida ⇒ aceptada; sin anexos / sin registros 3C-0 /
+sin registro de red / registro de otra ventana / anexo alterado y resellado / sello de ventana distinto / evidencias de
+dos ventanas intercambiadas / PCC con P̄_imp + 10 kW (mismo núcleo) / configuración de red sustituida con los mismos
+costos ⇒ **rechazadas con balance y costos numéricamente correctos**; ventana sin plan ⇒ aceptada sin artefactos.
+
+| Ejecución | Resultado |
+|---|---|
+| `test_ems_v2_3c3_auditoria_pr16.py` | **132 passed** (C-01: 120; C-02: 12) |
+| 79 tests 3C-3 originales (incl. G15 13) | **79 passed** |
+| `tests/ems_v2` | **1035 passed** (= 903 + 132); sin Pyomo/HiGHS: **736 passed, 38 skipped** |
+| Suite completa `tests/` | **1489 passed, 7 warnings, 128 subtests** (375,0 s) = 1357 + 132 |
+| Perfiles protegidos | 65/66 módulos `ems_v2` de `a4c6b1c` idénticos (git blob); solo `mpc/orquestrador.py` (refactorización ya auditada); V1.6/`seeds2`/aplicación/requirements sin diff |
+
+G1–G15 regenerados (`EVIDENCIA_3C3_EJECUCION.md`) con los mismos valores; E1–E8 idénticos a la base.
+
 ### 5. Rollback
 
 Revertir el PR elimina `ems_v2/rede/`, `ems_v2/fixtures_3c3.py`, `ems_v2/milp/*_3c3.py`, los tests
@@ -2392,4 +2418,4 @@ guardias. V1.6, `seeds2`, aplicación y requirements no fueron tocados.
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
-| 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) (sem merge) | Entregue para auditoria independente |
+| 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) (sem merge) | Auditoria: aprovação estrutural; correções C-01/C-02 aplicadas (§4b); aguardando fechamento |

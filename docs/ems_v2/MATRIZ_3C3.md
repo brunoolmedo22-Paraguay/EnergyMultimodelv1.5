@@ -1,7 +1,7 @@
 # Piso 3C-3 — Matriz de trazabilidad, resultados y reproducción (entregable L)
 
-Requisito de la misión → implementación → verificación. Tests en `tests/ems_v2/test_ems_v2_3c3_*.py` (79 tests:
-contrato 15, ejecución 15, MILP 15, MPC 18, regresión G15 13, aislamiento 3). "HiGHS" = test que ejecuta el solver real
+Requisito de la misión → implementación → verificación. Tests en `tests/ems_v2/test_ems_v2_3c3_*.py` (211 tests:
+contrato 15, ejecución 15, MILP 15, MPC 18, regresión G15 13, aislamiento 3 + auditoría del PR #16: 132). "HiGHS" = test que ejecuta el solver real
 (se salta explícitamente sin Pyomo/HiGHS).
 
 | § misión | Requisito | Implementación | Verificación |
@@ -32,6 +32,8 @@ contrato 15, ejecución 15, MILP 15, MPC 18, regresión G15 13, aislamiento 3). 
 | 12 | G1–G15 | `fixtures_3c3`, `rede/experimentos.py` | tests G* + `EVIDENCIA_3C3_EJECUCION.md` |
 | 13 | Open-loop × MPC con igualdad de condiciones; E_final y obligaciones | `rede/comparadores.py` | `test_comparacao_open_loop_vs_mpc…`, `test_comparador_recusa_tarifas_ou_pcc_diferentes` |
 | 14 | Pisos anteriores intactos | guardias nominales (C-3C3-02) | `test_pisos_anteriores…pr15`, guardias 3B-P/3C-0/3C-2, G15 |
+| Aud. #16 C-01 | Intercambio programado validado (finito ≥ 0; ambas consignas; comando = programa; sin recorte); defecto ⇒ datos/integridad; nunca `PassoAplicado` exitoso | `valor_intercambio_valido`, `ExecutorAlgebricoConectado3C3.programado/avancar`, `validar_programa`, `plano_de_resultado_3c3` | `test_c01_*` (120 casos, ambas políticas, con y sin programa) |
+| Aud. #16 C-02 | Auditoría integral × analítica parcial; artefatos por ventana; registro de misión de red; vínculo modelo/configuración | `rede/auditoria.py` (`auditar_missao_conectada`, `auditar_missao_conectada_analitica`), `rede/persistencia.verificar_artefatos_carregados_3c3` | `test_c02_*` (12 casos adversariales) |
 | 16.10 | Misión verificable y recuperable | anexos, vínculos, `retomar_controlador_conectado` | `test_g13_retomada…` |
 
 ## Hashes de los perfiles protegidos (base `a4c6b1c` → rama)

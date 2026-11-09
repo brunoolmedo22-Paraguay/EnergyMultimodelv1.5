@@ -1,6 +1,6 @@
 # Evidência executada — Piso 3C-3 (gerada por `python -m ems_v2.milp.evidencia_3c3`)
 
-- Data (UTC): 2026-11-09T16:42:37+00:00 · commit: `fa43a09edaed0be7cd78053f1bf692fabb639627`
+- Data (UTC): 2026-11-09T17:12:30+00:00 · commit: `24534c1357f0fe1b5ab868e4214e72fe2c4ab401`
 - Python 3.13.18 · Linux-6.18.44-fc-v310-x86_64-with-glibc2.39 · 4 CPUs · x86_64
 - Pyomo 6.10.1 · highspy 1.15.1 · HiGHS 1.15.1 · configuração `CONFIG_ANALITICA` (gaps nulos, 1 thread, semente 0)
 
@@ -77,14 +77,64 @@ G12 isolado × conectado: tipo `contraste_de_topologia` (contraste de factibilid
 
 ## 5. G13 — interrupção após 2 janelas e retomada verificada
 
-- Impressão determinística da missão retomada = contínua: **True** (`924b3b810dfd0fba…`); totais de rede iguais: True; anexos 3C-3 iguais: True
+- Impressão determinística da missão retomada = contínua: **True** (`76a59f2a3a2df073…`); totais de rede iguais: True; anexos 3C-3 iguais: True
 - Tipos de artefato gravados: ['ems3c0.json', 'ems3c3.json', 'livro.mpc3c2.json', 'missao.mpc3c2.json', 'p0000.janela.mpc3c2.json', 'p0000.rede.mpc3c3.json', 'p0000.retomada.mpc3c2.json', 'p0001.janela.mpc3c2.json', 'p0001.rede.mpc3c3.json', 'p0001.retomada.mpc3c2.json', 'p0002.janela.mpc3c2.json', 'p0002.rede.mpc3c3.json', 'p0002.retomada.mpc3c2.json', 'p0003.janela.mpc3c2.json', 'p0003.rede.mpc3c3.json', 'p0003.retomada.mpc3c2.json', 'rede.missao.mpc3c3.json']
 
 ## 6. G15 — retrocompatibilidade 3C-2
 
 - E2: impressão atual `e880fa159d3512db…` = base `e880fa159d3512db…`: True; anexos 3C-1: True. Os 12 conjuntos E1–E8 são comparados por igualdade exata em `tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py`.
 
-## 7. Campanha de tempos (indicativa)
+## 7. Auditoria independente do PR #16 (commit auditado `d7da6c5`) — C-01 e C-02
 
-Missão G11 completa (4 janelas, MILP 3C-3 + auditorias + registros), n = 5: {"definicao": "percentil de posto mais pr\u00f3ximo: valor de ordem ceil(p\u00b7n) (1-indexado), sem interpola\u00e7\u00e3o", "maximo": 0.1229, "media": 0.1187, "n": 5, "p50": 0.1194, "p95": 0.1229, "p99": 0.1229} s. Uma máquina, sem restrição operacional: nenhuma afirmação de tempo real.
+**Antes (reproduzido sobre `d7da6c5`, ANTES de qualquer correção; saída literal do script de reprodução):**
+
+```
+== C-01 (commit d7da6c5 )
+sem_ajuste               programa=False NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': nan} cod=[]
+sem_ajuste               programa=False parcial  exequivel=False aplicado_pcc={} cod=['programa_pcc_ausente']
+sem_ajuste               programa=True  NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': nan} cod=[]
+sem_ajuste               programa=True  parcial  exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+ajuste_local_algebrico   programa=False NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+ajuste_local_algebrico   programa=False parcial  exequivel=False aplicado_pcc={} cod=['programa_pcc_ausente']
+ajuste_local_algebrico   programa=True  NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+ajuste_local_algebrico   programa=True  parcial  exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+plano com imp (-3, NaN) aceito? (0.0, 0.0)
+plano com imp (-3, 20) => RECORTADO para (0.0, 20.0)
+== C-02
+sem anexos/registros_3c0/registro de rede: aceito = True ['aceitacao', 'balanco', 'cadeia_registros', 'causal', 'custos', 'estado_e_permanencias', 'livro_observacoes', 'separacao_previsao_realizacao', 'temporal']
+modelo PCC substituido (P_imp_max 60): aceito = True
+politica economica substituida: aceito = True
+```
+
+**Depois (esta execução):**
+
+| Ensaio | Política | Programa explícito | Resultado |
+|---|---|---|---|
+| P_imp = NaN | `sem_ajuste` | False | exequível = False, falha `dados`, ['intercambio_programado_invalido'] |
+| só P_imp (parcial) | `sem_ajuste` | False | exequível = False, falha `dados`, ['intercambio_programado_incompleto'] |
+| P_imp = NaN | `sem_ajuste` | True | exequível = False, falha `dados`, ['intercambio_programado_invalido'] |
+| só P_imp (parcial) | `sem_ajuste` | True | exequível = False, falha `dados`, ['intercambio_programado_incompleto'] |
+| P_imp = NaN | `ajuste_local_algebrico` | False | exequível = False, falha `dados`, ['intercambio_programado_invalido'] |
+| só P_imp (parcial) | `ajuste_local_algebrico` | False | exequível = False, falha `dados`, ['intercambio_programado_incompleto'] |
+| P_imp = NaN | `ajuste_local_algebrico` | True | exequível = False, falha `dados`, ['intercambio_programado_invalido'] |
+| só P_imp (parcial) | `ajuste_local_algebrico` | True | exequível = False, falha `dados`, ['intercambio_programado_incompleto'] |
+| plano com P_imp = (-3.0, 20.0) | — | — | recusado: ['intercambio_programado_invalido'] (sem recorte) |
+| plano com P_imp = (nan, 20.0) | — | — | recusado: ['intercambio_programado_invalido'] (sem recorte) |
+
+| Auditoria INTEGRAL — caso | aceito | integridade certificada | balanço / custos | Constatações (erro) |
+|---|---|---|---|---|
+| missão G11 válida | True | True | True / True | [] |
+| sem anexos | False | False | True / True | ['anexos_3c3_divergentes', 'auditoria_integral_incompleta'] |
+| sem registros 3C-0 | False | False | True / True | ['auditoria_integral_incompleta'] |
+| sem registro de missão de rede | False | False | True / True | ['auditoria_integral_incompleta'] |
+| registro 3C-0 de outra janela | False | False | True / True | ['anexo_3c3_invalido', 'artefato_de_outra_execucao', 'artefato_de_outra_missao', 'checkpoint_divergente', 'custo_divergente'] |
+| evidências de duas janelas trocadas | False | False | True / True | ['anexos_3c3_divergentes', 'artefato_de_outra_execucao', 'artefato_de_outra_missao', 'checkpoint_divergente', 'custo_divergente'] |
+| modelo PCC com P̄_imp + 10 kW (mesmo núcleo) | False | False | True / True | ['modelo_3c3_divergente'] |
+| configuração de rede sem a revisão r1 (mesmos custos realizados) | False | False | True / True | ['configuracao_rede_divergente'] |
+
+Auditoria ANALÍTICA PARCIAL com o modelo de limites mais amplos: aceito = True, escopo `analitica_parcial`, integridade documental certificada = False — reproduz os números, mas nunca certifica integridade.
+
+## 8. Campanha de tempos (indicativa)
+
+Missão G11 completa (4 janelas, MILP 3C-3 + auditorias + registros), n = 5: {"definicao": "percentil de posto mais pr\u00f3ximo: valor de ordem ceil(p\u00b7n) (1-indexado), sem interpola\u00e7\u00e3o", "maximo": 0.1314, "media": 0.1262, "n": 5, "p50": 0.1275, "p95": 0.1314, "p99": 0.1314} s. Uma máquina, sem restrição operacional: nenhuma afirmação de tempo real.
 
