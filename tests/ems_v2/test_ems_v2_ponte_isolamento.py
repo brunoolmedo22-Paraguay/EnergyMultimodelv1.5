@@ -61,6 +61,10 @@ def test_ponte_sem_ui_motor_legado_ou_solver():
 # ADIÇÕES nominais abaixo — nunca em V1.6, modelos, runtime, ``seeds2``, aplicação ou requirements.
 ADICOES_3C1 = {"ems_v2/milp/modelo_3c1.py", "ems_v2/milp/solver_3c1.py", "ems_v2/milp/resultado_3c1.py",
                "ems_v2/milp/evidencia_3c1.py"}
+# 3C-3 (contradição C-3C3-02, docs/ems_v2/FORMULACAO_3C3.md §10): o MILP do PCC também precisa ACRESCENTAR módulos ao
+# subpacote ``ems_v2/milp``. Mesma regra: só ADIÇÕES nominais; nenhum arquivo da base modificado.
+ADICOES_3C3 = {"ems_v2/milp/modelo_3c3.py", "ems_v2/milp/solver_3c3.py", "ems_v2/milp/resultado_3c3.py",
+               "ems_v2/milp/evidencia_3c3.py"}
 
 
 def test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada():
@@ -77,7 +81,7 @@ def test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada():
     modificados = [ln for ln in linhas if ln[0] != "A"]
     adicionados = {ln[1] for ln in linhas if ln[0] == "A"}
     assert modificados == [], modificados                    # nenhum arquivo da base alterado ou removido
-    assert adicionados <= ADICOES_3C1, adicionados - ADICOES_3C1
+    assert adicionados <= ADICOES_3C1 | ADICOES_3C3, adicionados - ADICOES_3C1 - ADICOES_3C3
     nao_rastreados = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", *alvos], cwd=RAIZ,
                                     capture_output=True, text=True, check=True).stdout.split()
-    assert set(nao_rastreados) <= ADICOES_3C1, set(nao_rastreados) - ADICOES_3C1
+    assert set(nao_rastreados) <= ADICOES_3C1 | ADICOES_3C3, set(nao_rastreados) - ADICOES_3C1 - ADICOES_3C3

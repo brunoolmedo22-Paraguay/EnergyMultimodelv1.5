@@ -347,7 +347,7 @@ class ControladorMPC:
                                           f"Estado conciliado em k = {self.estado.indice_fronteira}; decisão em k = {jan.k}.")
         malha_j = jan.malha(self.cfg.malha)
         pedido = PedidoPrevisao(self.cfg.identidade.missao_uid, self.cfg.identidade.microrrede_uid, jan.indice_janela,
-                                jan.k, tk, self.cfg.malha.delta_s, jan.N_k, chaves_de_previsao(self.modelo), inst)
+                                jan.k, tk, self.cfg.malha.delta_s, jan.N_k, self._chaves_previsao(), inst)
         t0 = self._clock()
         try:
             prev = self.provedor.emitir(pedido)
@@ -365,17 +365,17 @@ class ControladorMPC:
                            f"janela {jan.indice_janela}", observacoes="estado EXECUTADO e conciliado (não o planejado)")
         t0 = self._clock()
         try:
-            e3 = montar_entrada_janela(self.modelo, self.cfg, jan, prev, self.estado, hash_instantaneo=inst.hash,
-                                       procedencia=proc)
+            e3 = self._montar_entrada_janela(jan, prev, inst.hash, proc)
         except ContratoInvalido as exc:
             cl = "identidade_divergente" if any("identidade" in x or "outra_microrrede" in x for x in exc.codigos) \
                 else "bloqueado_validacao"
             return self._falhar_sem_plano(jan, tk, inst, cl, str(exc), prev=prev, constat=list(exc.constatacoes))
-        rel = validar_entrada_3c1(e3)
+        rel = self._validar_entrada_janela(e3)
         if not rel.aceito:
-            return self._falhar_sem_plano(jan, tk, inst, "bloqueado_validacao", "Entrada 3C-1 da janela recusada.",
+            return self._falhar_sem_plano(jan, tk, inst, "bloqueado_validacao",
+                                          f"Entrada {self._PERFIL_JANELA} da janela recusada.",
                                           prev=prev, constat=list(rel.bloqueantes()))
-        he = hash_entrada_3c1(e3)
+        he = self._hash_entrada(e3)
         t_ent = self._t("entrada", t0)
         t0 = self._clock()
         try:
@@ -392,7 +392,7 @@ class ControladorMPC:
         if not dec.aceito:
             return self._falhar_sem_plano(jan, tk, inst, dec.categoria, dec.justificativa, prev=prev, he=he, res=res)
         try:
-            plano, pc = plano_de_resultado_3c1(res, e3, indice_fronteira_inicial=jan.k)
+            plano, pc = self._plano_de_resultado(res, e3, jan.k)
         except ContratoInvalido as exc:
             return self._falhar_sem_plano(jan, tk, inst, "integridade", str(exc), prev=prev, he=he, res=res)
         hp = hash_plano(plano)
@@ -400,7 +400,7 @@ class ControladorMPC:
         d = timedelta(seconds=self.cfg.malha.delta_s)
         cmds = tuple(ComandoIntervalo(self.cfg.identidade.missao_uid, jan.indice_janela, jan.k + i,
                                       (t0g + i * d).isoformat(), hp, i,
-                                      {f"{x.uid}|{x.grandeza}": float(x.valores[i]) for x in plano.consignas}, tk)
+                                      self._consignas_comando(plano, pc, i), tk)
                      for i in range(jan.m_k))
         self._comandos += list(cmds)
         pos = len(self.registros)
@@ -445,7 +445,7 @@ class ControladorMPC:
         ro = realizacao_de_instantaneo(inst, self.chaves_conc, ab.jan.inicio_utc, n_conf, self.cfg.malha.delta_s)
         n_exec = n_conf - ab.cursor
         if n_exec > 0:
-            ex = ExecutorAlgebricoCommitment3C1(ab.e3, self.fontes, identificador=f"conciliacao-{ab.execucao_uid[:8]}")
+            ex = self._executor_conciliacao(ab, f"conciliacao-{ab.execucao_uid[:8]}", conciliacao=True)
             try:
                 traj = executar(ab.plano, ab.estado_atual, ex, ro.realizacao, execucao_uid=ab.execucao_uid,
                                 intervalos=n_exec, cursor=ab.cursor, checkpoint_anterior=ab.ultimo_cp)
@@ -532,16 +532,16 @@ class ControladorMPC:
                            observacoes="valores efetivos usados em cada conciliação (sem imputação)")
         real = _realizacao_de_valores([p.entorno_observado for p in ab.passos], self.chaves_conc, ab.jan.inicio_utc,
                                       self.cfg.malha.delta_s, proc, f"conc-{ab.execucao_uid[:16]}")
-        contab = contabilidade_realizada_3c1(ab.e3, ab.plano, traj, real)
+        contab = self._contabilidade(ab, traj, real)
         planejado = None
         if n:
             try:
                 rp = _realizacao_da_previsao(ab.prev)
-                tp = executar(ab.plano, ab.estado_inicial, ExecutorAlgebricoCommitment3C1(
-                    ab.e3, self.fontes, identificador="plano-x-previsao"), rp, execucao_uid=ab.execucao_uid + "-plan",
+                tp = executar(ab.plano, ab.estado_inicial, self._executor_conciliacao(
+                    ab, "plano-x-previsao", conciliacao=False), rp, execucao_uid=ab.execucao_uid + "-plan",
                     intervalos=n)
                 if tp.situacao == "concluida":
-                    planejado = _com_base(contabilidade_realizada_3c1(ab.e3, ab.plano, tp, rp).custo, "planejado_previsao")
+                    planejado = _com_base(self._contabilidade(ab, tp, rp, planejado=True).custo, "planejado_previsao")
                 else:
                     ab.constatacoes.append(aviso("custo_planejado_prefixo_indisponivel", "custos", tp.situacao))
             except ContratoInvalido as exc:
@@ -551,7 +551,7 @@ class ControladorMPC:
         dif = None if planejado is None else contab.custo.total_R - planejado.total_R
         custos = CustosJanela({k: float(v) for k, v in ab.res.custos_modelo.items()}, planejado, contab.custo, dif)
         # registros históricos (3C-0 + anexo 3C-1): esquemas inalterados
-        conteudo_3c1 = preparar_conteudo_anexo_3c1(ab.e3, ab.plano, traj, real, self.fontes, contabilidade=contab)
+        hashes_extra, fechar_anexo = self._artefatos_registro(ab, traj, real, contab)
         r = ab.res
         rs = ResumoSolver(r.classificacao, r.estado_despacho, r.terminacao, r.objetivo, r.limite_dual, r.gap_abs,
                           r.gap_rel, json.dumps(getattr(r, "configuracao", {}) or {}, sort_keys=True, default=str),
@@ -559,8 +559,7 @@ class ControladorMPC:
         des, just = classificar_desfecho(r)
         cp_final = traj.checkpoints[-1] if traj.checkpoints else None
         hashes = {"previsao": hash_previsao(ab.prev), "instantaneo_decisao": ab.inst_hash, "plano": hash_plano(ab.plano),
-                  "plano_commitment_3c1": hash_plano_commitment(ab.pc), "realizacao_conciliada": sha256(real),
-                  **hashes_para_registro_3c1(conteudo_3c1)}
+                  "realizacao_conciliada": sha256(real), **hashes_extra}
         reg0 = selar_registro(RegistroExecucaoEMS(
             CONTRATO_VERSAO, ab.execucao_uid, _agora_utc(), self.cfg.identidade.referencia_origem(),
             {"mpc": MPC_VERSAO, "formulacao": ab.e3.versao_formulacao, "motor": r.motor_id},
@@ -573,9 +572,9 @@ class ControladorMPC:
             tuple(x for x in ab.constatacoes if isinstance(x, Constatacao)),
             {"missao_uid": self.cfg.identidade.missao_uid, "indice_janela": str(ab.jan.indice_janela),
              "posicao": str(len(self.registros))}))
-        anexo = montar_anexo_3c1(reg0, conteudo_3c1)
+        anexo = fechar_anexo(reg0)
         self.registros_3c0.append(reg0)
-        self.anexos_3c1.append(anexo)
+        self._registrar_anexo(anexo)
         self.trajetorias.append(traj)
         desf = "executada" if (classe is None and n == ab.jan.m_k) else "executada_parcial"
         c = list(ab.constatacoes)
@@ -584,8 +583,8 @@ class ControladorMPC:
         conteudo = ConteudoJanelaMPC(
             ESQUEMA_MPC, self.cfg.identidade.missao_uid, len(self.registros), ab.jan, ab.t_decisao, ab.inst_hash,
             ab.inst_n, f"{self.provedor.identificador}:{self.provedor.natureza}", ab.prev, hash_previsao(ab.prev),
-            hash_entrada_3c1(ab.e3), _resumo(r, self.resolvedor), ab.categoria, ab.just, hash_plano(ab.plano),
-            hash_plano_commitment(ab.pc), tuple(hash_comando(x) for x in ab.comandos), tuple(ab.confirmacoes),
+            self._hash_entrada(ab.e3), _resumo(r, self.resolvedor), ab.categoria, ab.just, hash_plano(ab.plano),
+            self._hash_plano_complementar(ab.pc), tuple(hash_comando(x) for x in ab.comandos), tuple(ab.confirmacoes),
             len(ab.comandos), n, tuple(ab.conciliacoes), tuple(ab.passos), tuple(traj.estados), self._cp_origem(),
             cp_final.selo if cp_final else None, traj.situacao, custos, dict(contab.indicadores),
             tuple(self._revisoes_pendentes), desf, classe, tuple(x for x in c if isinstance(x, Constatacao)),
@@ -618,6 +617,50 @@ class ControladorMPC:
         if self.diretorio is not None:
             from .persistencia import gravar_janela_e_retomada
             gravar_janela_e_retomada(self.diretorio, self, r, reg0, anexo)
+
+    # ------------------------------------------------------------------------------------------- pontos de extensão
+    # Piso 3C-3: pontos de extensão EXPLÍCITOS do perfil da janela. As implementações abaixo são EXATAMENTE as
+    # chamadas do 3C-2 (perfil v1.1-3C-1): o comportamento, os registros e os hashes do 3C-2 não mudam (regressão
+    # ``test_ems_v2_3c3_regressao_3c2.py`` compara as impressões de E1–E8 com as da base ``a4c6b1c``). Uma subclasse
+    # (``ems_v2.rede.mpc.ControladorMPCConectado``) substitui SÓ estes métodos.
+    _PERFIL_JANELA = "3C-1"         # rótulo das mensagens (texto 3C-2 inalterado)
+
+    def _chaves_previsao(self):
+        return chaves_de_previsao(self.modelo)
+
+    def _montar_entrada_janela(self, jan, prev, hash_instantaneo: str, proc: Procedencia):
+        return montar_entrada_janela(self.modelo, self.cfg, jan, prev, self.estado, hash_instantaneo=hash_instantaneo,
+                                     procedencia=proc)
+
+    def _validar_entrada_janela(self, e):
+        return validar_entrada_3c1(e)
+
+    def _hash_entrada(self, e) -> str:
+        return hash_entrada_3c1(e)
+
+    def _plano_de_resultado(self, res, e, k: int):
+        return plano_de_resultado_3c1(res, e, indice_fronteira_inicial=k)
+
+    def _consignas_comando(self, plano, pc, i: int) -> dict[str, float]:
+        return {f"{x.uid}|{x.grandeza}": float(x.valores[i]) for x in plano.consignas}
+
+    def _executor_conciliacao(self, ab, identificador: str, *, conciliacao: bool):
+        return ExecutorAlgebricoCommitment3C1(ab.e3, self.fontes, identificador=identificador)
+
+    def _contabilidade(self, ab, traj, real, *, planejado: bool = False):
+        return contabilidade_realizada_3c1(ab.e3, ab.plano, traj, real)
+
+    def _hash_plano_complementar(self, pc) -> str:
+        return hash_plano_commitment(pc)
+
+    def _artefatos_registro(self, ab, traj, real, contab):
+        """(hashes a comprometer no registro 3C-0 ANTES do selo, função registro_selado → anexo selado)."""
+        conteudo_3c1 = preparar_conteudo_anexo_3c1(ab.e3, ab.plano, traj, real, self.fontes, contabilidade=contab)
+        hashes = {"plano_commitment_3c1": hash_plano_commitment(ab.pc), **hashes_para_registro_3c1(conteudo_3c1)}
+        return hashes, (lambda reg0: montar_anexo_3c1(reg0, conteudo_3c1))
+
+    def _registrar_anexo(self, anexo) -> None:
+        self.anexos_3c1.append(anexo)
 
     # ------------------------------------------------------------------------------------------- missão
     def obrigacoes_pendentes(self) -> tuple[dict[str, int], list[Constatacao]]:
