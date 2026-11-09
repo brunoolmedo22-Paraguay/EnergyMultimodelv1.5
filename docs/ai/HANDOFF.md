@@ -2,34 +2,33 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-09 · **rama:** `ccr-a53cad36-86uep6` · **PR:** [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) contra `main`, sin merge (pendiente de auditoría independiente) · **estado:** **Piso 3C-3 — Red eléctrica, intercambio económico y recurso explícito de equilibrio** implementado y verificado en la rama; auditoría del PR #16 con correcciones C-01/C-02 y C-03 **aplicadas** (listo para aprobación final); **no integrado** (sin UI/runtime; modelo **algebraico agregado** del PCC, tarifas sintéticas, simulación causal de lazo cerrado no física).
+**Actualización:** 2026-11-09 · **rama:** `ccr-50f8fad7-s073ob` · **PR:** contra `main`, sin merge (pendiente de auditoría independiente) · **estado:** **Piso 3C-4 — EMS jerárquico MILP–MPC (planificador de largo plazo, costo de continuación y valor futuro)** implementado y verificado en la rama; **no integrado** (sin UI/runtime/catálogo; algebraico, fixtures y tarifas sintéticas). **No iniciar 3D.**
 
-> **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 11**; formulación, ejecución programado × realizado, decisiones D-3C3-* y contradicciones C-3C3-* en [`docs/ems_v2/FORMULACAO_3C3.md`](../ems_v2/FORMULACAO_3C3.md); trazabilidad y hashes protegidos en [`MATRIZ_3C3.md`](../ems_v2/MATRIZ_3C3.md); evidencia en [`EVIDENCIA_3C3_EJECUCION.md`](../ems_v2/EVIDENCIA_3C3_EJECUCION.md); brechas en [`BRECHAS_3C3.md`](../ems_v2/BRECHAS_3C3.md); transición en [`TRANSICAO_3C3_3C4.md`](../ems_v2/TRANSICAO_3C3_3C4.md).
+> **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 12**; formulación, método, decisiones D-3C4-* y contradicciones C-3C4-* en [`docs/ems_v2/FORMULACAO_3C4.md`](../ems_v2/FORMULACAO_3C4.md); trazabilidad y hashes protegidos en [`MATRIZ_3C4.md`](../ems_v2/MATRIZ_3C4.md); evidencia en [`EVIDENCIA_3C4_EJECUCION.md`](../ems_v2/EVIDENCIA_3C4_EJECUCION.md); brechas en [`BRECHAS_3C4.md`](../ems_v2/BRECHAS_3C4.md); transición en [`TRANSICAO_3C4_3D.md`](../ems_v2/TRANSICAO_3C4_3D.md).
 
 ## 1. Estado actual
 
-- `main` (`a4c6b1c`): V1.6 + PR #1–#15 (3A, 3B-P, 3C-0, 3C-1 y 3C-2 integrados). Línea de base `tests/ems_v2` medida en esta sesión antes de cambiar nada: **824 passed**.
-- Rama `ccr-a53cad36-86uep6` desde `main`: **Piso 3C-3** (sección 2).
-- Desde `a4c6b1c`, el ÚNICO archivo existente de `ems_v2` modificado es `ems_v2/mpc/orquestrador.py` (refactorización controlada: puntos de extensión con la implementación 3C-2 por defecto; impresiones E1–E8 idénticas a las de la base, pins en `tests/ems_v2/dados/`). Guardias anteriores ajustadas solo nominalmente (C-3C3-02). V1.6, `seeds2`, aplicación y `requirements*.txt` intactos; la aplicación sigue sin referenciar `ems_v2`.
+- `main` (`10365c5`): V1.6 + PR #1–#16 (3A, 3B-P, 3C-0, 3C-1, 3C-2 y 3C-3 integrados). Línea de base `tests/ems_v2` medida en esta sesión antes de cambiar nada: **1080 passed** (con `requirements.txt` + `requirements-ems_v2.txt` instalados).
+- Rama `ccr-50f8fad7-s073ob` desde `main`: **Piso 3C-4** (sección 2). Desde `10365c5` NINGÚN archivo existente de `ems_v2` fue modificado; solo 4 guardias de tests ajustadas nominalmente (C-3C4-02). V1.6, `seeds2`, aplicación y `requirements*.txt` intactos; la aplicación no referencia `ems_v2`.
 
-## 2. Última entrega — Piso 3C-3 (esta rama)
+## 2. Última entrega — Piso 3C-4 (esta rama)
 
-- **Implementado:** `ems_v2/rede/` (núcleo solo biblioteca estándar): `contrato` (PCC, tarifas por bloques, política económica, selección causal de revisiones, embrulho `EntradaRede3C3`), `preflight`, `auditor` (compone `auditar_3c1`; sustituye solo el balance), `execucao` (política de ajuste del PCC, inyección renovable limitada, executor conectado, plan de red, desvíos, liquidación), `registro` (anexo 3C-3 sellado), `mpc` (`ControladorMPCConectado`, `EntornoSimuladoConectado`, `ResolvedorMILP3C3`, vínculo y registro de misión de red), `persistencia` (retomada verificada), `auditoria` (misión conectada), `comparadores`, `experimentos` (G5–G8, G11–G13, §13); `ems_v2/milp/{modelo,solver,resultado,evidencia}_3c3.py`; `ems_v2/fixtures_3c3.py`.
-- **Verificado (2026-11-09):** 79 tests nuevos (`tests/ems_v2/test_ems_v2_3c3_*.py`); `tests/ems_v2` **903 passed** (sin Pyomo: 620 passed, 22 skipped); suite completa **1357 passed, 7 warnings, 128 subtests** (370,8 s) = 1278 + 79. Evidencia: `python -m ems_v2.milp.evidencia_3c3`.
-- **Auditoría del PR #16 (commit `d7da6c5`): aprobación estructural; correcciones C-01/C-02 aplicadas** (ambas reproducidas antes de corregir):
-  - **C-01:** intercambio programado validado estrictamente antes de cualquier operación (real finito ≥ 0; ambas consignas o ninguna; comando = programa; programa explícito validado; sin `max(0, v)`); defecto ⇒ `erro_dados` (ejecutor) / integridad (plan); nunca `PassoAplicado` exitoso.
-  - **C-02:** auditoría **integral** (`auditar_missao_conectada`: registros 3C-0, anexos 3C-3 y `RegistroMissaoRede3C3` obligatorios, verificación por ventana con `verificar_artefatos_carregados_3c3`, vínculo de `hash_modelo_3c3`/`hash_configuracao_rede` con los objetos suministrados) × **analítica parcial** rotulada (`auditar_missao_conectada_analitica`, nunca certifica).
-  - Verificado: `test_ems_v2_3c3_auditoria_pr16.py` 132 passed; `tests/ems_v2` **1035 passed** (sin Pyomo 736 passed, 38 skipped); suite completa **1489 passed, 7 warnings, 128 subtests** (375,0 s) = 1357 + 132; G1–G15 y E1–E8 idénticos; 65/66 módulos protegidos idénticos. Nueva brecha B3C3-11 (SHA-256 no es firma).
-- **C-03 (commit auditado `7b8da5d`; C-01/C-02 aprobados):** `verificar_registro_rede` exige esquema/perfil/rótulo exactos, las 9 métricas (`METRICAS_REDE`; ausentes/inesperadas rechazadas), valores reales finitos e iguales a `totais_rede_esperados` (ausencia nunca es cero); `finalizar` sin `get(k, 0.0)`. Reproducido antes de corregir. Verificado: 45 tests C-03; 3C-3 total 256; `tests/ems_v2` **1080 passed** (sin Pyomo 736 passed, 39 skipped); suite completa **1534 passed, 7 warnings, 128 subtests** (375,1 s); E1–E8 idénticos.
-- **Hallazgos:** C-3C3-01 (topología "isolada" de la base = bus interno), C-3C3-02 (guardias nominales), C-3C3-03 (campos con nombre 3C-1 en registros MPC guardan hash/sello del perfil 3C-3), C-3C3-04 (exportación prohibida + excedente ⇒ falla clasificada), C-3C3-05 (sin re-liquidación). B3C2-01 cerrada para errores absorbibles por el PCC.
-- **Decisiones:** D-3C3-01..12 (FORMULACAO_3C3 §9).
-- **No implementado (fuera de alcance):** valor futuro/planificador (3C-4), flujo AC/física de red, tarifas reales, curtailment en tiempo real como acción de equilibrio, transición conectado ↔ isla, UI/selector, sustitución del V1.6.
+- **Implementado:** `ems_v2/hierarquia/` (solo biblioteca estándar): `contrato` (TermoTerminal3C4, SinalValorFuturo sellado, EntradaHierarquica3C4, ConfiguracaoPlanejador3C4, validaciones de señal × entrada × ventana), `valor` (evaluación exacta: interpolante 1D, envolvente 2D, lineal local), `auditor` (auditor terminal independiente), `planejador` (plan largo + V^tail por reoptimización paramétrica auditada, PWL con refinamiento y dominio de factibilidad, 2D convexo verificado, sensibilidad local, referencias), `mpc` (`ControladorMPCHierarquico`, `ResolvedorMILP3C4`, registros de coordinación/vínculo/misión), `auditoria` (auditoría integral + retomada verificada), `comparadores` (reoptimización × anticipación × información perfecta con condiciones terminales), `experimentos`; `ems_v2/milp/{modelo,solver,resultado,evidencia}_3c4.py`; `ems_v2/fixtures_3c4.py`.
+- **Verificado (2026-11-09):** 101 tests nuevos (`tests/ems_v2/test_ems_v2_3c4_*.py`); `tests/ems_v2` **1181 passed** (sin Pyomo: 794 passed, 42 skipped); suite completa **1635 passed, 7 warnings, 128 subtests** (445,4 s) = 1534 + 101. Evidencia: `python -m ems_v2.milp.evidencia_3c4` (salida en `EVIDENCIA_3C4_EJECUCION.md`).
+- **Resultados clave (sintéticos):** H2 anticipación R$ 10,2 con condiciones terminales iguales (60,4 × 50,2); H1/H3 ⇒ 0; H7/H8 (tarifa plana, límite/indisponibilidad del PCC) MPC sin señal INVIABLE × jerárquico concluye; H17 dos bancos R$ 5,3; reoptimización 0 en todas las instancias; local indisponible en quiebres.
+- **Hallazgos:** C-3C4-01 (visión núcleo `ResultadoNucleo3C3De3C4`), C-3C4-02 (guardias nominales), **C-3C4-03 / B3C4-01: deriva numérica HEREDADA de la energía ejecutada (C + 2 ulp) que la validación sin recorte convierte en interrupción — NO corregida, requiere autorización** (reproducida en `test_h9_linha_de_base_*`), C-3C4-04 (campo 3C-0 `valor_futuro` intacto). B3C4-02: `cumprir_na_janela` cuesta R$ 2,0 en H9.
+- **Decisiones:** D-3C4-01..08 (FORMULACAO_3C4 §10).
+- **No implementado (fuera de alcance):** >2 bancos o 2D no convexo, incertidumbre estocástica del valor futuro, segunda resolución temporal, modos con obligación residual elegible, integración (3D).
 
 ## 3. Próxima misión propuesta
 
-3C-4 (planificador jerárquico y valor futuro) — **no autorizado**; requiere auditoría del 3C-3 y decisiones D-3C3-*. Interfaces en `TRANSICAO_3C3_3C4.md`.
+Auditoría del 3C-4; decisión del responsable sobre B3C4-01 (proyección/tolerancia de energía en los pisos protegidos). 3D (integración con catálogo/UI/runtime) **no autorizado**; interfaces en `TRANSICAO_3C4_3D.md`.
 
 ---
+
+## Histórico — entrega anterior: Piso 3C-3 · Red eléctrica e intercambio (PR #16, integrado en `10365c5`)
+
+- `ems_v2/rede/` (PCC, tarifas, auditor, ejecución programado × realizado, anexo 3C-3, MPC conectado, retomada, auditoría integral/analítica) + `ems_v2/milp/*_3c3.py` + `ems_v2/fixtures_3c3.py`; correcciones C-01/C-02/C-03 de la auditoría aplicadas. Verificado entonces: `tests/ems_v2` 1080 passed; suite 1534 passed. Informe: `PARAMIJEFE.md` Entrega 11.
 
 ## Histórico — entrega anterior: Piso 3C-2 · MPC recedente (PR #15, integrado en `a4c6b1c`)
 
