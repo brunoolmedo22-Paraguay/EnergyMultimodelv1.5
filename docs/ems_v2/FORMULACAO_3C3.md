@@ -204,6 +204,25 @@ sin programa, C-02 ×12 con misiones conectadas reales). Las pruebas C-02 demues
 aunque balance y costos sigan correctos (`reprovada_so_documental`). El modelo físico, el MILP, las políticas
 económicas y los resultados G1–G15 no cambian (impresiones y costos idénticos).
 
+### 10c. Corrección C-03 (commit auditado `7b8da5d`: C-01 y C-02 aprobados)
+
+Reproducido sobre `7b8da5d` antes de corregir (`EVIDENCIA_3C3_EJECUCION.md` §7b): un `RegistroMissaoRede3C3`
+re-sellado con `totais = {}`, con esquema 99, con perfil `v1.1-3C-1` o sin una métrica pasaba
+`verificar_registro_rede` **y** la auditoría integral (`aceito = True`); una métrica extra solo fallaba si su valor ≠ 0;
+`finalizar()` leía una métrica ausente como 0 (`ind.get(k, 0.0)`).
+
+| Aspecto | Después (`rede/mpc.py`) |
+|---|---|
+| Esquema / perfil / rótulo | `esquema` = `ESQUEMA_3C3` (int estricto), `perfil` = `v1.1-3C-3`, `rotulo` = `ROTULO_REDE`; otro valor ⇒ `registro_rede_esquema_incompativel` / `registro_rede_perfil_incompativel` / `registro_rede_rotulo_alterado` (sin migración implícita) |
+| Métricas | `METRICAS_REDE` = las 9 que genera `finalizar`; cada ausente ⇒ `totais_rede_metrica_ausente` (nunca leída como cero); cualquier otra ⇒ `totais_rede_metrica_inesperada` (aunque valga 0) |
+| Valores | real finito (`int`/`float` estricto; NaN, ±Inf, bool, texto ⇒ `totais_rede_valor_invalido`) e **igual** (igualdad exacta: copia determinista) al valor impuesto por el registro de misión (`totais_rede_divergentes`, 1 ulp detectado) |
+| Valor impuesto | `totais_rede_esperados(rm)`: `indicadores_acumulados` (Σ de las ventanas); ausente con intervalos aplicados ⇒ `indicador_rede_ausente_no_registro_missao`; con `intervalos_aplicados = 0` cada métrica es 0 por HECHO (ninguna ventana ejecutó ni liquidó), no por defecto. `finalizar` usa la misma función y se niega a sellar si hay inconsistencia |
+| Robustez | NaN/Inf en memoria (no serializables en el JSON canónico) ⇒ `registro_rede_nao_serializavel` + `registro_rede_adulterado`, nunca excepción |
+
+Ceros exactos válidos (misión isolada: 9 métricas presentes = 0) y misión sin intervalos aplicados siguen aceptados.
+Esquemas históricos sin cambios; EMS, MILP, ejecutor y contabilidad sin cambios. Pruebas:
+`test_ems_v2_3c3_auditoria_pr16_c03.py` (**45**).
+
 ## 11. Experimentos (detalle en `EVIDENCIA_3C3_EJECUCION.md`)
 
 | Exp. | Resultado (sintético) |

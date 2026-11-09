@@ -1,6 +1,6 @@
 # Evidência executada — Piso 3C-3 (gerada por `python -m ems_v2.milp.evidencia_3c3`)
 
-- Data (UTC): 2026-11-09T17:12:30+00:00 · commit: `24534c1357f0fe1b5ab868e4214e72fe2c4ab401`
+- Data (UTC): 2026-11-09T17:29:50+00:00 · commit: `2923a4c5b18d20b404c55d03affbad17df9f1317`
 - Python 3.13.18 · Linux-6.18.44-fc-v310-x86_64-with-glibc2.39 · 4 CPUs · x86_64
 - Pyomo 6.10.1 · highspy 1.15.1 · HiGHS 1.15.1 · configuração `CONFIG_ANALITICA` (gaps nulos, 1 thread, semente 0)
 
@@ -134,7 +134,35 @@ politica economica substituida: aceito = True
 
 Auditoria ANALÍTICA PARCIAL com o modelo de limites mais amplos: aceito = True, escopo `analitica_parcial`, integridade documental certificada = False — reproduz os números, mas nunca certifica integridade.
 
+## 7b. Correção C-03 (commit auditado `7b8da5d`) — `verificar_registro_rede`
+
+**Antes (reproduzido sobre `7b8da5d`; saída literal):**
+
+```
+== C-03 (commit 7b8da5d )
+original: [] (True, [])
+totais={}                        verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+esquema=99                       verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+perfil='v1.1-3C-1'               verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+totais sem gasto_importacao_R    verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+totais + metrica_extra           verificar_registro_rede=['totais_rede_divergentes'] auditoria_integral(aceito, erros)=(False, ['totais_rede_divergentes'])
+```
+
+**Depois (esta execução, missão G11):**
+
+| Registro de rede re-selado | `verificar_registro_rede` | Auditoria integral aceita | balanço / custos |
+|---|---|---|---|
+| original | aprovado | True | True / True |
+| totais = {} | ['totais_rede_metrica_ausente'] | False | True / True |
+| esquema = 99 | ['registro_rede_esquema_incompativel'] | False | True / True |
+| perfil = 'v1.1-3C-1' | ['registro_rede_perfil_incompativel'] | False | True / True |
+| sem gasto_importacao_R | ['totais_rede_metrica_ausente'] | False | True / True |
+| métrica extra = 0.0 | ['totais_rede_metrica_inesperada'] | False | True / True |
+| E_exportada_kWh + 1 ulp | ['totais_rede_divergentes'] | False | True / True |
+
+Métricas obrigatórias do esquema 1 (9): ['E_importada_kWh', 'E_exportada_kWh', 'E_importada_programada_kWh', 'E_exportada_programada_kWh', 'E_desvio_positivo_kWh', 'E_desvio_negativo_kWh', 'gasto_importacao_R', 'receita_exportacao_R', 'custo_desvio_rede_R'].
+
 ## 8. Campanha de tempos (indicativa)
 
-Missão G11 completa (4 janelas, MILP 3C-3 + auditorias + registros), n = 5: {"definicao": "percentil de posto mais pr\u00f3ximo: valor de ordem ceil(p\u00b7n) (1-indexado), sem interpola\u00e7\u00e3o", "maximo": 0.1314, "media": 0.1262, "n": 5, "p50": 0.1275, "p95": 0.1314, "p99": 0.1314} s. Uma máquina, sem restrição operacional: nenhuma afirmação de tempo real.
+Missão G11 completa (4 janelas, MILP 3C-3 + auditorias + registros), n = 5: {"definicao": "percentil de posto mais pr\u00f3ximo: valor de ordem ceil(p\u00b7n) (1-indexado), sem interpola\u00e7\u00e3o", "maximo": 0.1269, "media": 0.1238, "n": 5, "p50": 0.1246, "p95": 0.1269, "p99": 0.1269} s. Uma máquina, sem restrição operacional: nenhuma afirmação de tempo real.
 

@@ -2304,7 +2304,7 @@ documentos 3C-2. Ningún archivo existente de `ems_v2`, V1.6, `seeds2`, aplicaci
 | Rama | `ccr-a53cad36-86uep6` (desde `main`) |
 | Base | `main` `a4c6b1c1a5e9be86b7b20556f91ec3a753dfb225` (merge del PR #15, 3C-2 integrado) |
 | PR | [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) contra `main`, **sin merge** (entregado para auditoría independiente) |
-| Pendientes | Correcciones C-01/C-02 de la auditoría del PR #16 aplicadas (§4b); cierre de la auditoría; **no iniciar 3C-4 sin autorización** |
+| Pendientes | Correcciones C-01/C-02 (§4b) y C-03 (§4c) de la auditoría del PR #16 aplicadas; aprobación final; **no iniciar 3C-4 sin autorización** |
 
 ### 1. Resumen
 
@@ -2396,6 +2396,28 @@ costos ⇒ **rechazadas con balance y costos numéricamente correctos**; ventana
 
 G1–G15 regenerados (`EVIDENCIA_3C3_EJECUCION.md`) con los mismos valores; E1–E8 idénticos a la base.
 
+### 4c. Corrección final C-03 (commit auditado `7b8da5d`: C-01 y C-02 aprobados)
+
+**Antes (reproducido sobre `7b8da5d`):** un `RegistroMissaoRede3C3` re-sellado con `totais = {}`, esquema 99, perfil
+`v1.1-3C-1` o sin una métrica pasaba `verificar_registro_rede` **y** la auditoría integral (`aceito = True`); una
+métrica extra solo fallaba con valor ≠ 0; `finalizar()` leía métrica ausente como 0.
+
+**Después:** esquema/perfil/rótulo exactos; las 9 métricas de `METRICAS_REDE` obligatorias (ausente ⇒ rechazo, nunca
+cero), métricas inesperadas rechazadas aun valiendo 0, valores reales finitos e iguales (exactos) a los impuestos por
+el registro de misión (`totais_rede_esperados`: ausencia con intervalos aplicados ⇒ inconsistencia; 0 solo derivado de
+`intervalos_aplicados = 0`); `finalizar` usa la misma regla; NaN/Inf en memoria ⇒ rechazo, no excepción. Ceros exactos
+válidos (misión isolada) y misión sin intervalos aplicados siguen aceptados. Detalle: `FORMULACAO_3C3.md` §10c;
+antes × después: `EVIDENCIA_3C3_EJECUCION.md` §7b.
+
+| Ejecución | Resultado |
+|---|---|
+| `test_ems_v2_3c3_auditoria_pr16_c03.py` | **45 passed** |
+| Todos los tests 3C-3 (79 + 132 + 45) | **256 passed** |
+| E1–E8 (G15) | **13 passed**, impresiones idénticas a la base |
+| `tests/ems_v2` | **1080 passed** (= 1035 + 45); sin Pyomo/HiGHS: **736 passed, 39 skipped** |
+| Suite completa `tests/` | **1534 passed, 7 warnings, 128 subtests** (375,1 s) = 1489 + 45 |
+| Perfiles protegidos | 65/66 módulos `ems_v2` de `a4c6b1c` idénticos (solo `mpc/orquestrador.py`, ya auditado); V1.6/`seeds2`/aplicación/requirements sin diff |
+
 ### 5. Rollback
 
 Revertir el PR elimina `ems_v2/rede/`, `ems_v2/fixtures_3c3.py`, `ems_v2/milp/*_3c3.py`, los tests
@@ -2418,4 +2440,4 @@ guardias. V1.6, `seeds2`, aplicación y requirements no fueron tocados.
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
-| 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) (sem merge) | Auditoria: aprovação estrutural; correções C-01/C-02 aplicadas (§4b); aguardando fechamento |
+| 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) (sem merge) | Auditoria: aprovação estrutural; correções C-01/C-02 (§4b) e C-03 (§4c) aplicadas; aguardando aprovação final |
