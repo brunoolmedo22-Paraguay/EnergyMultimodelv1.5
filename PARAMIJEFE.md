@@ -2065,6 +2065,119 @@ Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures
 
 ---
 
+## Entrega 9 — SEEDS2 Piso 3C-1 · EMS MILP V2: Unit Commitment dinámico, rampas, permanencias y memoria operativa
+
+> Redactada en español. Detalle: `docs/ems_v2/FORMULACAO_3C1.md` (formulación, pruebas matemáticas, decisiones y
+> contradicciones), `MATRIZ_3C1.md`, `EVIDENCIA_3C1.md`, `BRECHAS_3C1.md` y `TRANSICAO_3C1_3C2.md`.
+
+### Punto de continuidad
+
+| Campo | Valor |
+|---|---|
+| Rama | `claude/sweet-heisenberg-v0opgu` (desde `main`) |
+| Base | `main` `81aa09cfb5ee4bd7ff66ec6eec8fa4ccc049fc44` (merge del PR #13); verificada idéntica a `origin/main` al iniciar |
+| PR | [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) contra `main`, **sin merge** |
+| Pendientes | Auditoría del PR #14: A-01..A-03 (§5b), B-01/B-02 (§5c) y B-03 (§5d) corregidas; listo para la aprobación final de integración; hipótesis aceptadas provisionalmente para ensayos; **no iniciar 3C-2 sin autorización** |
+
+### 1. Resumen
+
+El MILP decide, **por unidad física** (`eq-…#k`), arranque, parada, permanencia, potencia y rampas con restricciones
+temporales explícitas y verificables por un auditor independiente:
+
+- **Perfil nuevo `v1.1-3C-1`** como contrato EMBRULHO (`ems_v2/compromisso/contrato.py`): base = `EntradaModeloEMS`
+  3B-P intacta + rampas R⁺/R⁻, T_on/T_off, límites de arranque/parada (declarados o `R·Δ`), abstracción de transición,
+  memoria (tiempo en el estado + obligación residual), política terminal de permanencia y término `eventos`.
+  `contracts.py`, `audit.py`, `reference.py` y los archivos 3B-P de `ems_v2/milp/` **sin cambios byte a byte**;
+  hashes 3A/3B-P idénticos; una `EntradaModeloEMS` no puede declarar 3C-1.
+- **MILP** (`milp/modelo_3c1.py`, `solver_3c1.py`): reutiliza el constructor 3B-P, libera u y agrega M09 (y/z,
+  y + z ≤ 1, u ≤ a), M11a/b con p_{−1} (tabla de exactitud por transición, sin Big-M), M12 con U/D = ⌈T/Δ⌉,
+  obligaciones heredadas, política terminal y costos de evento (R$/evento, sin h). Lineal, sin SOS, sin holguras.
+- **Auditor independiente** (`compromisso/auditor.py`, sin Pyomo ni `discretizar`): núcleo 3B-P reimplementado +
+  M09–M12 (M12 en dos formas: sumas en ventana y longitud de corridas) + costos; rechaza soluciones adulteradas
+  después de HiGHS; un resultado rechazado nunca se convierte en plan 3C-0.
+- **Memoria y continuidad** (`ponte/compromisso.py`): plan 3C-1, ejecutor algébrico que rechaza transiciones contra
+  la memoria, transporte de estado/memoria a la ventana siguiente, costo de eventos incurrido ≠ planificado.
+
+### 2. Hallazgos relevantes
+
+- Dos guardias de pisos anteriores impedían por construcción agregar el MILP 3C-1 (C-3C1-01): ajustadas
+  nominalmente (solo **adiciones** en `ems_v2/milp`; todo archivo de la base sigue verificado sin cambios).
+- Defecto latente del 3C-0 (C-3C1-02): la reinterpretación "Custo de partida" R$ ≡ R$/evento no pasa el verificador
+  de cadena 3A al primer uso real; tratado solo en la proyección 3C-1 (3C-0/3A intactos).
+- En la UI del Piso 1, "Rampa máxima" vacía significa "sin límite": el EMS V2 la trata como **faltante** (bloqueante).
+- Caso D: el óptimo real (apagar en t = 0 y religar tras exactamente D = 3) era mejor que la expectativa inicial de la
+  docstring; se corrigió la docstring (el modelo y el auditor coinciden con la enumeración manual de alternativas).
+
+### 3. Validación (casos A–L) — ver `MATRIZ_3C1.md`
+
+A transiciones · B rampa · C T_on · D T_off · E obligación heredada · F borde (dos políticas) · G unidades del mismo
+bloque · **H óptimo idéntico a la enumeración exhaustiva independiente** (2⁸ programas × simplex racional exacto:
+R$ 12,7, mismos u/y/z/p, segundo mejor R$ 14,7) · I inviabilidad verdadera sin holguras · J continuidad (ejecución
+continua = partida por checkpoint; la memoria transportada admite exactamente la continuación del plan continuo) ·
+K auditoría adversarial (14 adulteraciones sin solver + 4 tras HiGHS + constructor saboteado) · L retrocompatibilidad
+(API 3B-P intacta; 3C-1 con estado mantenido reproduce el 3B-P en 6 fixtures).
+
+### 4. Pruebas
+
+| Ejecución | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c1_*.py` (6 archivos) | **110 passed** (contrato 30, auditor 28, MILP 32, continuidad 7, puente 7, perfil 6) |
+| `tests/ems_v2` con Pyomo/HiGHS | **645 passed** (= 535 anteriores + 110) |
+| `tests/ems_v2` con Pyomo/HiGHS bloqueados | **463 passed, 9 skipped** (omitidos explícitamente) |
+| Suite completa `tests/` | **1099 passed, 7 warnings, 128 subtests** (503 s) = 989 de `main` + 110 |
+
+Comandos, entorno, tiempos (indicativos) y tabla de evidencia: `EVIDENCIA_3C1.md`.
+
+### 5. Decisiones y contradicciones
+
+D-3C1-01..10, C-3C1-01 y C-3C1-02 en `FORMULACAO_3C1.md` §9. Requieren conocimiento del auditor en especial:
+D-3C1-02 (S := R·Δ cuando solo hay rampa), D-3C1-03 (transición no representable ⇒ bloqueada), D-3C1-05 (obligación =
+derivada), D-3C1-06 (dos políticas terminales sin defecto), D-3C1-08 (PEMFC instantánea solo como abstracción) y
+D-3C1-09 (rampa única ⇒ R⁺ = R⁻).
+
+### 5b. Cierre de la auditoría independiente del PR #14 (base `540ac1b`: arquitectura, M09–M12 y auditor aprobados)
+
+| ID | Antes (`540ac1b`, reproducido) | Después |
+|---|---|---|
+| A-01 | El ejecutor 3C-1 omitía la verificación de disponibilidad del generador si la observación no existía (ON ejecutado); 0,5 se rotulaba como inviabilidad física | `FonteDisponibilidadeExecucao` obligatoria por unidad (`observada` × `estatica_declarada` con procedencia y justificativa); ausente/inválida/contradictoria/de otro recurso ⇒ `erro_dados`; efectiva 0 con ON ⇒ `inexequivel`; sin defecto 1 |
+| A-02 | El H₂ de arranque/parada estaba en el objetivo pero no en la contabilidad realizada (R$ 0,30 en vez de R$ 0,33) | `contabilidade_realizada_3c1`: 3C-0 sin cambios (base + H₂ continuo) + c_H·(m_SU·partidas + m_SD·paradas) y C_SU/C_SD de las transiciones APLICADAS; parcial/interrumpida solo lo aplicado; sin doble conteo; sellable en el registro; valor futuro separado |
+| A-03 | Declaraciones por unidad indexadas antes de validar: duplicata contradictoria sobrescribía en silencio; UID desconocido ignorado | Validación previa: duplicatas (aun idénticas), UID ajenos (otra microrred, inexistente, `#k` fuera de rango, registro de bloque), procedencia/unidad/dominio; declaración vinculada a microrred y escenario; origen de la condición en la procedencia |
+
+Pruebas: `test_ems_v2_3c1_auditoria_pr14.py` **36 passed**; casos A–L (110) sin cambios de aserciones; `tests/ems_v2`
+**681 passed** (sin Pyomo: 494 passed, 14 skipped); suite completa **1135 passed, 7 warnings, 128 subtests** (435 s) = 1099 + 36. Guardias C-3C1-01, hashes 3A/3B-P y
+ausencia de cambios en V1.6/3A/3B-P/3C-0 verificados de nuevo (mismos tests). Detalle: `FORMULACAO_3C1.md` §9b,
+`EVIDENCIA_3C1.md` §2 y §6, `MATRIZ_3C1.md`.
+
+### 5c. Segunda auditoría del PR #14 (base `20243aa`: A-01, A-02 y el rechazo de duplicados/UID de A-03 aprobados)
+
+| ID | Antes (`20243aa`, reproducido) | Después |
+|---|---|---|
+| B-01 | Bloque q = 2 con `unidades_ligadas = 1` y dos unidades ON declaradas, o potencia del registro 10 kW con Σ por unidad 25 kW: **aceptados** | `coerencia_agregado_unidades` antes de proyectar: cantidad ON, estado discreto y potencia del registro (tolerancia D07); `unidades_ligadas_incoerente`, `estado_agregado_incoerente`, `potencia_agregada_incoerente`; agregado no declarado no se infiere; nada se reparte |
+| B-02 | Declaración de la versión 1 aplicada a la versión 2 del mismo escenario, o a otra revisión del inventario: **aceptada**; la fuente de disponibilidad estática no quedaba en la evidencia | `VinculoDeclaracao3C1` (reutiliza `ReferenciaInventario` + versión/impresión del escenario) con igualdad exacta; `hash_declaracao` en la procedencia de la entrada; `ponte/registro_3c1.py`: hashes 3C-1 en `RegistroExecucaoEMS.hashes` (esquema 3C-0 intacto) + `AnexoExecucao3C1` sellado con el CONTENIDO (fuentes, declaración, disponibilidad efectiva por paso, H₂ por unidad), verificable contra el registro |
+
+Pruebas: `test_ems_v2_3c1_auditoria_pr14_b.py` **18 passed**; A-01/A-02/A-03 (36) y casos A–L conservados;
+`tests/ems_v2` **699 passed** (sin Pyomo: 509 passed, 17 skipped); suite completa **1153 passed, 7 warnings, 128 subtests** (429 s) = 1135 + 18. Detalle:
+`FORMULACAO_3C1.md` §9c, `EVIDENCIA_3C1.md` §2 y §7, `MATRIZ_3C1.md`.
+
+### 5d. Corrección final B-03 (base `1b953db`: B-01 y vinculación de revisiones B-02 aprobadas)
+
+| Antes (`1b953db`, reproducido) | Después |
+|---|---|
+| El registro solo comprometía fuentes, declaración y entrada: un anexo con `disponibilidade_efetiva`, `detalhe_h2` o `eventos_aplicados` alterados y re-sellado era **aceptado** | `ConteudoAnexo3C1` (payload verificable, sin vinculación ni sellos) con `anexo_3c1_conteudo = SHA-256` en `RegistroExecucaoEMS.hashes` antes de sellar el registro (esquema 3C-0 intacto); tres fases para resolver la dependencia circular; verificación conjunta con `verificar_registro`, compromiso recalculado, hashes B-02 y coherencia con los metadatos del registro (ejecución, entrada, unidades, pasos, paridad de eventos, H₂ del costo realizado, origen de la declaración). SHA-256 declarado como detección de alteración frente a una referencia confiable, **no** firma |
+
+Pruebas: `test_ems_v2_3c1_auditoria_pr14_c.py` **18 passed** (13 adulteraciones re-selladas rechazadas); A-01..A-03,
+B-01/B-02 y casos A–L conservados (182 tests 3C-1); `tests/ems_v2` **717 passed** (sin Pyomo: 509 passed, 18 skipped);
+suite completa **1171 passed, 7 warnings, 128 subtests** (432 s) = 1153 + 18. Detalle: `FORMULACAO_3C1.md` §9d, `EVIDENCIA_3C1.md` §2 y §8, `MATRIZ_3C1.md`.
+
+### 6. Rollback
+
+Revertir el PR elimina `ems_v2/compromisso/`, `ems_v2/milp/*_3c1.py`, `ems_v2/ponte/compromisso.py`,
+`ems_v2/fixtures_3c1.py`, los tests `test_ems_v2_3c1_*` y `enumeracao_3c1.py`, las columnas 3C-1 del catálogo,
+`CAPACIDADES_3C1`, los parámetros aditivos de `requisitos`/`projecao`/`preflight` (por defecto inactivos) y restaura
+las dos guardias. Nada en V1.6, en la aplicación ni en los bancos depende de ello.
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
@@ -2076,4 +2189,5 @@ Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures
 | 5 | 2026-11-07 | Piso 2D-B — Relatórios Científicos, Excel e Figuras (+ correção de auditoria C-04, §21) | `claude/seeds2-piso2db-relatorios-9k1qph` / [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) | **Integrado** em `main` (merge `8556b71`) |
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
-| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) (sem merge) | H-01..H-04 (§6b) e cierre C-01..C-03 (§6c) aplicados; C-3C0-01 aceita condicionalmente; aguardando autorização de merge |
+| 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
+| 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) (sem merge) | Auditorias favoráveis com correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d), aplicadas; aguardando autorização final de merge |

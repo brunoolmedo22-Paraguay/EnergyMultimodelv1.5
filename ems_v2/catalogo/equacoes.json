@@ -19,7 +19,8 @@
     "I_t",
     "tau_k"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "TEMP-13",
@@ -40,7 +41,9 @@
     "delta_phys"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "δ_phys (passo do simulador físico) não modelado; H_o/ρ/T_M/H_f validados (uma janela, sem MPC)"
+   "obs_3BP": "δ_phys (passo do simulador físico) não modelado; H_o/ρ/T_M/H_f validados (uma janela, sem MPC)",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "δ_phys (passo do simulador físico) não modelado; H_o/ρ/T_M/H_f validados (uma janela, sem MPC)"
   },
   {
    "id": "CONJ-2",
@@ -61,7 +64,9 @@
     "H_set"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "𝓗 (depósitos de H2) não modelado"
+   "obs_3BP": "𝓗 (depósitos de H2) não modelado",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "𝓗 (depósitos de H2) não modelado"
   },
   {
    "id": "EST-INI",
@@ -81,7 +86,8 @@
     "s_min",
     "s_max"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M02",
@@ -106,7 +112,9 @@
     "L_set"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "P_aux (M05) não modelado: auxiliares não suportados no 3B-P"
+   "obs_3BP": "P_aux (M05) não modelado: auxiliares não suportados no 3B-P",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "P_aux (M05) não modelado: auxiliares não suportados no 3B-P"
   },
   {
    "id": "M03",
@@ -123,7 +131,8 @@
     "A_v10",
     "a"
    ],
-   "status_3BP": "substituida"
+   "status_3BP": "substituida",
+   "status_3C1": "substituida"
   },
   {
    "id": "M03-v1.1",
@@ -140,7 +149,8 @@
     "P_R",
     "C_oper"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "B01-KPI",
@@ -158,7 +168,8 @@
     "A_pot",
     "C_oper"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M04",
@@ -175,7 +186,8 @@
     "d",
     "D_max"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M05",
@@ -195,7 +207,8 @@
     "P_sb",
     "m_sb"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M06",
@@ -214,7 +227,8 @@
     "z_b",
     "B_set"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M07",
@@ -234,7 +248,8 @@
     "P_c",
     "P_d"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M08",
@@ -253,7 +268,8 @@
     "SOC",
     "K"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "BND-BESS",
@@ -274,7 +290,8 @@
     "eta_c",
     "eta_d"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M09",
@@ -292,7 +309,8 @@
     "u_prev",
     "U_set"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M10",
@@ -310,7 +328,9 @@
     "n_f"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "u FIXADO por programa constante igual ao estado inicial; n_f não reportado"
+   "obs_3BP": "u FIXADO por programa constante igual ao estado inicial; n_f não reportado",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "u DECIDIDO (M09) com disponibilidade; n_f = Σ u por bloco não é reportado como agregado"
   },
   {
    "id": "M11a",
@@ -329,7 +349,8 @@
     "S_up",
     "y"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M11b",
@@ -348,7 +369,8 @@
     "S_down",
     "z"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M11-EXT",
@@ -365,7 +387,8 @@
     "R_down",
     "Delta"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M12",
@@ -389,7 +412,8 @@
     "r_off",
     "Delta"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M13",
@@ -407,7 +431,8 @@
     "F_const",
     "U_H2"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M14",
@@ -424,7 +449,8 @@
     "S_f",
     "F_set"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M15",
@@ -441,7 +467,8 @@
     "theta_seg",
     "S_f"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M16",
@@ -458,7 +485,8 @@
     "theta_seg",
     "S_f"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M17",
@@ -478,7 +506,9 @@
     "z"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "só a parte operacional h·q; eventos excluídos porque transições são bloqueadas"
+   "obs_3BP": "só a parte operacional h·q; eventos excluídos porque transições são bloqueadas",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "h·q + m^SU y + m^SD z com massas declaradas; m_f não é exportado como série própria"
   },
   {
    "id": "B05-INST",
@@ -499,7 +529,9 @@
     "c_H"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "só h·q^ON; m^SU/m^SD não existem no contrato e transições são bloqueadas"
+   "obs_3BP": "só h·q^ON; m^SU/m^SD não existem no contrato e transições são bloqueadas",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "h·q + m^SU y + m^SD z (massas declaradas, exigidas p/ PEMFC com transições); W^SU/W^SD não modelados"
   },
   {
    "id": "M18",
@@ -518,7 +550,8 @@
     "M_0",
     "H_set"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M19",
@@ -536,7 +569,8 @@
     "u",
     "G_set"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M20",
@@ -553,7 +587,8 @@
     "Q_modes",
     "u"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M20b",
@@ -570,7 +605,8 @@
     "v_arc",
     "A_arcs"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M20c",
@@ -590,7 +626,8 @@
     "B_down_arc",
     "v_arc"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "B05-MULTI-BAL",
@@ -611,7 +648,8 @@
     "z_stop",
     "v_arc"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "B05-MULTI-H2",
@@ -628,7 +666,8 @@
     "q_mode",
     "m_mode"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M21",
@@ -669,7 +708,8 @@
     "gamma",
     "v_abs"
    ],
-   "status_3BP": "substituida"
+   "status_3BP": "substituida",
+   "status_3C1": "substituida"
   },
   {
    "id": "M21-v1.1",
@@ -707,7 +747,9 @@
     "v_abs"
    ],
    "status_3BP": "parcial_3BP",
-   "obs_3BP": "termos executados: curtailment_operacional, throughput_bess, energia_nao_suprida, combustivel_h2 (parte h·q)"
+   "obs_3BP": "termos executados: curtailment_operacional, throughput_bess, energia_nao_suprida, combustivel_h2 (parte h·q)",
+   "status_3C1": "parcial_3C1",
+   "obs_3C1": "termos 3B-P + 'eventos' Σ(C_SU y + C_SD z) [R$/evento, sem h]; M19/descarte/terminal/regularizador futuros"
   },
   {
    "id": "M21-CURT",
@@ -723,7 +765,8 @@
     "c_curt",
     "C_oper"
    ],
-   "status_3BP": "implementado_3BP"
+   "status_3BP": "implementado_3BP",
+   "status_3C1": "implementado_3C1"
   },
   {
    "id": "M21-MULTI",
@@ -762,7 +805,8 @@
     "gamma",
     "v_abs"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M21-REG",
@@ -777,7 +821,8 @@
     "p",
     "gamma"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M22",
@@ -796,7 +841,8 @@
     "eps_serv",
     "J_econ"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "TERM-SOFT",
@@ -813,7 +859,8 @@
     "kappa",
     "N"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "TERM-HARD",
@@ -828,7 +875,8 @@
     "E_reserve",
     "N"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   },
   {
    "id": "M23",
@@ -845,8 +893,10 @@
     "w_dist",
     "m_reopt"
    ],
-   "status_3BP": "futuro"
+   "status_3BP": "futuro",
+   "status_3C1": "futuro"
   }
  ],
- "nota_3BP": "status_3BP (Piso 3B-P, formulação v1.1-3B-P): implementado_3BP = construído no MILP Pyomo/HiGHS E verificado pelo auditor independente; parcial_3BP = parte da equação (ver obs_3BP); os campos 'status' do 3A permanecem como registro histórico."
+ "nota_3BP": "status_3BP (Piso 3B-P, formulação v1.1-3B-P): implementado_3BP = construído no MILP Pyomo/HiGHS E verificado pelo auditor independente; parcial_3BP = parte da equação (ver obs_3BP); os campos 'status' do 3A permanecem como registro histórico.",
+ "nota_3C1": "status_3C1/obs_3C1: perfil v1.1-3C-1 (contrato embrulho ems_v2.compromisso; MILP ems_v2.milp.solver_3c1; auditor ems_v2.compromisso.auditor). Colunas 3A e 3B-P preservadas como histórico."
 }
