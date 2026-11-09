@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-09 · **rama:** `ccr-50f8fad7-s073ob` · **PR:** [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) contra `main`, sin merge · **auditoría del PR #17 (commit `9630e73`): A01, A02 y hotfix B3C4-01 aplicados en `c964a2e`; B3C4-10 pendiente de decisión** · **estado:** **Piso 3C-4 — EMS jerárquico MILP–MPC (planificador de largo plazo, costo de continuación y valor futuro)** implementado y verificado en la rama; **no integrado** (sin UI/runtime/catálogo; algebraico, fixtures y tarifas sintéticas). **No iniciar 3D.**
+**Actualización:** 2026-11-09 · **rama:** `ccr-50f8fad7-s073ob` · **PR:** [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) contra `main`, sin merge · **auditoría del PR #17 (commit `9630e73`): A01, A02 y hotfix B3C4-01 aplicados en `c964a2e`; 2ª auditoría (HEAD `8f48aed`): hotfix autorizado B3C4-10 aplicado en `8efc927`** · **estado:** **Piso 3C-4 — EMS jerárquico MILP–MPC (planificador de largo plazo, costo de continuación y valor futuro)** implementado y verificado en la rama; **no integrado** (sin UI/runtime/catálogo; algebraico, fixtures y tarifas sintéticas). **No iniciar 3D.**
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 12**; formulación, método, decisiones D-3C4-* y contradicciones C-3C4-* en [`docs/ems_v2/FORMULACAO_3C4.md`](../ems_v2/FORMULACAO_3C4.md); trazabilidad y hashes protegidos en [`MATRIZ_3C4.md`](../ems_v2/MATRIZ_3C4.md); evidencia en [`EVIDENCIA_3C4_EJECUCION.md`](../ems_v2/EVIDENCIA_3C4_EJECUCION.md); brechas en [`BRECHAS_3C4.md`](../ems_v2/BRECHAS_3C4.md); transición en [`TRANSICAO_3C4_3D.md`](../ems_v2/TRANSICAO_3C4_3D.md).
 
@@ -21,14 +21,15 @@
   - **A01:** el registro final de misión re-sellado con contagens/energías/valoración/hash de red/`missao_uid`/tiempos falsos pasaba la auditoría integral; ahora cada campo se confronta con su fuente (objetos de configuración obligatorios; tiempos = suma de mediciones selladas, no reproducibles).
   - **A02:** `inviavel` solo con certificado de cobertura (MILP con energía inicial libre, `resolver_cobertura_3c4`); sin él `dominio_indeterminado` ⇒ señal indisponible; `diagnostico_modos`; dominio = aproximación interna; convexidad 2D "en la muestra".
   - **B3C4-01 (hotfix AUTORIZADO):** proyección numérica de la energía al límite si exceso ≤ min(tolE, 16·u·S), reconstruible bit a bit; archivos protegidos modificados: `ems_v2/ponte/execucao.py`, `ems_v2/rede/execucao.py` (guardia de diff). E1–E8/G1–G15/3C-0/3C-1 idénticos.
-  - **B3C4-10 (NO corregido, requiere decisión):** `P_imp = −8,88e-16` del solver rechazado por la regla C-01 del 3C-3 ⇒ H9 3C-3 sin señal y referencia dura se detienen en k = 10.
+  - **B3C4-10:** `P_imp = −8,88e-16` del solver rechazado por la regla C-01 del 3C-3 ⇒ H9 3C-3 sin señal y referencia dura se detenían en k = 10 (corregido en la 2ª auditoría, abajo).
   - Verificado: suite `test_ems_v2_3c4_auditoria_pr17.py` 38 passed; 3C-4 139 passed; `tests/ems_v2` **1220 passed (= 1181 + 38 + 1 guardia del hotfix)** (sin Pyomo 812 passed, 63 skipped); suite completa **1674 passed, 7 warnings, 128 subtests (449,9 s) = 1635 + 39**.
+- **2ª auditoría del PR #17 (HEAD `8f48aed`) — hotfix AUTORIZADO B3C4-10 (`8efc927`):** política `residuo_numerico_pcc_v1` SOLO en la extracción de `resolver_3c3`/`resolver_3c4`: v < 0 del SOLVER con |v| ≤ min(16·u·S_t, 1e-7, tolP D07) ⇒ 0,0 con registro (resultado, resolución sellada, registro 3C-0 aviso + hash) y reconstrucción en la auditoría (`reconstruir_normalizacoes_pcc`); mayores ⇒ solución rechazada. **C-01 idéntica a la base** (guardia AST): consignas/programas externos negativos/NaN/Inf/bool/incompletos siguen rechazados. Protegidos modificados: `rede/execucao.py`, `milp/solver_3c3.py`, `milp/resultado_3c3.py`, `rede/mpc.py` (FORMULACAO_3C4 §10c). H9 × 5: todas concluyen con E = 0, PEMFC encendida, sin obligaciones; sin señal 129,8; PWL/dura/blanda 129,6; horizonte completo 127,6 (brecha 2,0 = B3C4-02). Verificado: nueva suite 66 passed; `tests/ems_v2` **1287 passed** (sin Pyomo 859 passed, 83 skipped); suite completa **1741 passed, 7 warnings, 128 subtests (451,8 s)**.
 - **Decisiones:** D-3C4-01..08 (FORMULACAO_3C4 §10).
 - **No implementado (fuera de alcance):** >2 bancos o 2D no convexo, incertidumbre estocástica del valor futuro, segunda resolución temporal, modos con obligación residual elegible, integración (3D).
 
 ## 3. Próxima misión propuesta
 
-Re-auditoría del PR #17 tras las correcciones; decisión del responsable sobre B3C4-10 (residuos del solver en el programa del PCC × regla C-01). 3D (integración con catálogo/UI/runtime) **no autorizado**; interfaces en `TRANSICAO_3C4_3D.md`.
+Re-auditoría del PR #17 tras el hotfix B3C4-10 y decisión de integración por el responsable (sin merge automático). 3D (integración con catálogo/UI/runtime) **no autorizado**; interfaces en `TRANSICAO_3C4_3D.md`.
 
 ---
 

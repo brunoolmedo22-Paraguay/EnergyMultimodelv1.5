@@ -27,10 +27,24 @@
 | `python -m pytest tests/ -q` (suite completa) | **1674 passed, 7 warnings, 128 subtests (449,9 s) = 1635 + 39** |
 | `python -m ems_v2.milp.evidencia_3c4` | salida literal en §2 (78,4 s) |
 
+### 1c. Tras la 2ª auditoría del PR #17 (hotfix B3C4-10 en `8efc927`)
+
+| Comando | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c4_b3c4_10.py` (nueva suite B3C4-10) | **66 passed** |
+| `tests/ems_v2/test_ems_v2_3c4_b3c4_10.py` + `test_ems_v2_3c4_auditoria_pr17.py` | **104 passed** (66 + 38; 1 prueba de H9 actualizada) |
+| `tests/ems_v2 -k 3c4` (H1–H18 + auditorías) | **207 passed** |
+| `tests/ems_v2 -k "isolamento or perfil"` (guardias, incl. `test_hotfix_b3c4_10_restrito_e_regra_c01_identica_a_base`) | **53 passed** |
+| `test_ems_v2_3c3_regressao_3c2.py` (E1–E8 con huellas) + `test_ems_v2_3c3_milp.py` (G1–G4, G9, G10, G14) + `test_ems_v2_3c3_mpc.py` + `test_ems_v2_3c2_milp.py` | **75 passed** |
+| `tests/ems_v2` con Pyomo/HiGHS (G1–G15, E1–E8, 3C-0, 3C-1, 3C-4) | **1287 passed (= 1220 + 66 + 1 guardia)** |
+| `tests/ems_v2` con Pyomo/HiGHS **bloqueados** | **859 passed, 83 skipped** |
+| `python -m pytest tests/ -q` (suite completa) | **1741 passed, 7 warnings, 128 subtests (451,8 s) = 1674 + 67** |
+| `python -m ems_v2.milp.evidencia_3c4` | salida literal en §2 (84,5 s) |
+
 Todas con `PYTHONDONTWRITEBYTECODE=1`, Python 3.13.18, Pyomo 6.10.1, HiGHS 1.15.1 (`CONFIG_ANALITICA`: 1 hilo, gap 0,
 semilla 0).
 
-## 2. Salida literal de `python -m ems_v2.milp.evidencia_3c4` (código corregido de `c964a2e`; script ampliado commiteado en `0c2d753`)
+## 2. Salida literal de `python -m ems_v2.milp.evidencia_3c4` (código del hotfix B3C4-10, `8efc927`; columna de normalizaciones B3C4-10 añadida a H9)
 
 ### Ambiente
 
@@ -42,69 +56,69 @@ semilla 0).
 
 | Cenário | Estratégia | Situação | k final | Custo realizado [R$] | E final [kWh] | Degradadas | Avaliações planejador | Certificados A02 (inviável/total) | Projeções B3C4-01 | Tempo planejador [s] | Tempo total [s] |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| h1_tarifa_plana | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.28 |
-| h1_tarifa_plana | mpc_sem_sinal | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.22 |
-| h1_tarifa_plana | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.23 |
-| h1_tarifa_plana | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.327 | 1.61 |
-| h1_tarifa_plana | hier_local | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 30 | 0/0 | 0 | 0.438 | 0.73 |
-| h1_tarifa_plana | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.187 | 0.46 |
-| h1_tarifa_plana | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.188 | 0.47 |
+| h1_tarifa_plana | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.30 |
+| h1_tarifa_plana | mpc_sem_sinal | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.25 |
+| h1_tarifa_plana | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.26 |
+| h1_tarifa_plana | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.632 | 1.97 |
+| h1_tarifa_plana | hier_local | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 30 | 0/0 | 0 | 0.558 | 0.91 |
+| h1_tarifa_plana | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.205 | 0.50 |
+| h1_tarifa_plana | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.218 | 0.56 |
 | h1_tarifa_plana | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h2_pico_futuro | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h2_pico_futuro | mpc_sem_sinal | encerrada | 12 | 60.40 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.23 |
-| h2_pico_futuro | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.29 |
-| h2_pico_futuro | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.384 | 1.68 |
-| h2_pico_futuro | hier_local | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 1 | 31 | 0/0 | 0 | 0.472 | 0.76 |
-| h2_pico_futuro | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.236 | 0.49 |
-| h2_pico_futuro | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.182 | 0.45 |
-| h2_pico_futuro | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h3_pico_no_horizonte_curto | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h3_pico_no_horizonte_curto | mpc_sem_sinal | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.23 |
-| h3_pico_no_horizonte_curto | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.26 |
-| h3_pico_no_horizonte_curto | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.374 | 1.66 |
-| h3_pico_no_horizonte_curto | hier_local | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 30 | 0/0 | 0 | 0.486 | 0.80 |
-| h3_pico_no_horizonte_curto | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.189 | 0.46 |
-| h3_pico_no_horizonte_curto | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.181 | 0.46 |
+| h2_pico_futuro | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
+| h2_pico_futuro | mpc_sem_sinal | encerrada | 12 | 60.40 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.24 |
+| h2_pico_futuro | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.36 |
+| h2_pico_futuro | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.653 | 1.99 |
+| h2_pico_futuro | hier_local | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 1 | 31 | 0/0 | 0 | 0.512 | 0.83 |
+| h2_pico_futuro | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.270 | 0.55 |
+| h2_pico_futuro | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.210 | 0.51 |
+| h2_pico_futuro | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
+| h3_pico_no_horizonte_curto | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
+| h3_pico_no_horizonte_curto | mpc_sem_sinal | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.28 |
+| h3_pico_no_horizonte_curto | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.30 |
+| h3_pico_no_horizonte_curto | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.579 | 1.89 |
+| h3_pico_no_horizonte_curto | hier_local | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 30 | 0/0 | 0 | 0.467 | 0.78 |
+| h3_pico_no_horizonte_curto | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.194 | 0.48 |
+| h3_pico_no_horizonte_curto | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.201 | 0.50 |
 | h3_pico_no_horizonte_curto | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h5_erro_previsao | open_loop | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
+| h5_erro_previsao | open_loop | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
 | h5_erro_previsao | mpc_sem_sinal | encerrada | 12 | 71.40 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.23 |
 | h5_erro_previsao | mpc_encolhido | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.25 |
-| h5_erro_previsao | hier_pwl | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.427 | 1.72 |
-| h5_erro_previsao | hier_local | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 1 | 31 | 0/0 | 0 | 0.471 | 0.76 |
-| h5_erro_previsao | hier_ref_dura | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.186 | 0.44 |
-| h5_erro_previsao | hier_ref_branda | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.187 | 0.51 |
-| h5_erro_previsao | oraculo | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
-| h7_limite_importacao | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h7_limite_importacao | mpc_sem_sinal | interrompida/inviavel | 7 | 27.75 | {"syn-bess": 5.0} | 0 | 0 | — | 0 | — | 0.14 |
-| h7_limite_importacao | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.23 |
-| h7_limite_importacao | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 106 | 5/5 | 0 | 1.269 | 1.54 |
-| h7_limite_importacao | hier_local | interrompida/inviavel | 7 | 30.10 | {"syn-bess": 10.0} | 3 | 23 | 0/0 | 0 | 0.374 | 0.56 |
-| h7_limite_importacao | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.181 | 0.43 |
-| h7_limite_importacao | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.171 | 0.42 |
+| h5_erro_previsao | hier_pwl | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 93 | 0/0 | 0 | 1.590 | 1.90 |
+| h5_erro_previsao | hier_local | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 1 | 31 | 0/0 | 0 | 0.529 | 0.84 |
+| h5_erro_previsao | hier_ref_dura | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.194 | 0.48 |
+| h5_erro_previsao | hier_ref_branda | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.200 | 0.55 |
+| h5_erro_previsao | oraculo | encerrada | 12 | 61.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
+| h7_limite_importacao | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
+| h7_limite_importacao | mpc_sem_sinal | interrompida/inviavel | 7 | 27.75 | {"syn-bess": 5.0} | 0 | 0 | — | 0 | — | 0.16 |
+| h7_limite_importacao | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.24 |
+| h7_limite_importacao | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 106 | 5/5 | 0 | 1.382 | 1.67 |
+| h7_limite_importacao | hier_local | interrompida/inviavel | 7 | 30.10 | {"syn-bess": 10.0} | 3 | 23 | 0/0 | 0 | 0.374 | 0.66 |
+| h7_limite_importacao | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.187 | 0.44 |
+| h7_limite_importacao | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.193 | 0.45 |
 | h7_limite_importacao | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h8_indisponibilidade_pcc | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h8_indisponibilidade_pcc | mpc_sem_sinal | interrompida/inviavel | 7 | 27.75 | {"syn-bess": 5.0} | 0 | 0 | — | 0 | — | 0.14 |
-| h8_indisponibilidade_pcc | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.21 |
-| h8_indisponibilidade_pcc | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 106 | 5/5 | 0 | 1.380 | 1.65 |
-| h8_indisponibilidade_pcc | hier_local | interrompida/inviavel | 7 | 30.10 | {"syn-bess": 10.0} | 3 | 23 | 0/0 | 0 | 0.314 | 0.51 |
-| h8_indisponibilidade_pcc | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.160 | 0.40 |
-| h8_indisponibilidade_pcc | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.164 | 0.42 |
+| h8_indisponibilidade_pcc | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
+| h8_indisponibilidade_pcc | mpc_sem_sinal | interrompida/inviavel | 7 | 27.75 | {"syn-bess": 5.0} | 0 | 0 | — | 0 | — | 0.15 |
+| h8_indisponibilidade_pcc | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.24 |
+| h8_indisponibilidade_pcc | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 106 | 5/5 | 0 | 1.406 | 1.70 |
+| h8_indisponibilidade_pcc | hier_local | interrompida/inviavel | 7 | 30.10 | {"syn-bess": 10.0} | 3 | 23 | 0/0 | 0 | 0.361 | 0.57 |
+| h8_indisponibilidade_pcc | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.201 | 0.47 |
+| h8_indisponibilidade_pcc | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.175 | 0.44 |
 | h8_indisponibilidade_pcc | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.03 |
-| h9_pemfc | open_loop | encerrada | 12 | 127.60 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.05 |
-| h9_pemfc | mpc_sem_sinal | interrompida/integridade | 10 | 109.75 | {"syn-bess": 5.0} | 0 | 0 | — | 1 | — | 0.25 |
-| h9_pemfc | mpc_encolhido | encerrada | 12 | 127.60 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.42 |
-| h9_pemfc | hier_pwl | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 0 | 174 | 0/0 | 0 | 3.447 | 3.85 |
-| h9_pemfc | hier_local | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 1 | 33 | 0/0 | 0 | 0.742 | 1.11 |
-| h9_pemfc | hier_ref_dura | interrompida/integridade | 10 | 109.55 | {"syn-bess": 5.0} | 0 | 11 | 0/0 | 1 | 0.245 | 0.59 |
-| h9_pemfc | hier_ref_branda | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.269 | 0.63 |
+| h9_pemfc | open_loop | encerrada | 12 | 127.60 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.06 |
+| h9_pemfc | mpc_sem_sinal | encerrada | 12 | 129.80 | {"syn-bess": 0.0} | 0 | 0 | — | 1 | — | 0.29 |
+| h9_pemfc | mpc_encolhido | encerrada | 12 | 127.60 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.45 |
+| h9_pemfc | hier_pwl | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 0 | 174 | 0/0 | 0 | 3.792 | 4.20 |
+| h9_pemfc | hier_local | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 1 | 33 | 0/0 | 0 | 0.717 | 1.18 |
+| h9_pemfc | hier_ref_dura | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 1 | 0.278 | 0.65 |
+| h9_pemfc | hier_ref_branda | encerrada | 12 | 129.60 | {"syn-bess": 0.0} | 0 | 12 | 0/0 | 0 | 0.304 | 0.67 |
 | h9_pemfc | oraculo | encerrada | 12 | 127.60 | {"syn-bess": 0.0} | 0 | 0 | — | 0 | — | 0.05 |
-| h17_dois_bancos | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.05 |
-| h17_dois_bancos | mpc_sem_sinal | encerrada | 12 | 55.50 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.25 |
-| h17_dois_bancos | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.29 |
-| h17_dois_bancos | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 129 | 0/0 | 0 | 2.325 | 2.66 |
-| h17_dois_bancos | hier_local | encerrada | 12 | 50.30 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 1 | 41 | 0/0 | 0 | 0.792 | 1.13 |
-| h17_dois_bancos | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 12 | 0/0 | 0 | 0.215 | 0.51 |
-| h17_dois_bancos | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 12 | 0/0 | 0 | 0.238 | 0.54 |
+| h17_dois_bancos | open_loop | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
+| h17_dois_bancos | mpc_sem_sinal | encerrada | 12 | 55.50 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.27 |
+| h17_dois_bancos | mpc_encolhido | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.30 |
+| h17_dois_bancos | hier_pwl | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 129 | 0/0 | 0 | 2.396 | 2.74 |
+| h17_dois_bancos | hier_local | encerrada | 12 | 50.30 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 1 | 41 | 0/0 | 0 | 0.752 | 1.21 |
+| h17_dois_bancos | hier_ref_dura | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 12 | 0/0 | 0 | 0.225 | 0.53 |
+| h17_dois_bancos | hier_ref_branda | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 12 | 0/0 | 0 | 0.226 | 0.55 |
 | h17_dois_bancos | oraculo | encerrada | 12 | 50.20 | {"syn-bess": 0.0, "syn-bess-2": 0.0} | 0 | 0 | — | 0 | — | 0.04 |
 
 ### Efeitos separados
@@ -154,11 +168,11 @@ semilla 0).
 | h8_indisponibilidade_pcc | informacao_perfeita_mpc_sem_sinal | mpc_sem_sinal − oraculo | — | NÃO | missão não concluída (mpc_sem_sinal: interrompida/inviavel; oraculo: encerrada/None): custos acumulados NÃO co |
 | h8_indisponibilidade_pcc | informacao_perfeita_hier_pwl | hier_pwl − oraculo | 0.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
 | h9_pemfc | reotimizacao | open_loop − mpc_encolhido | -0.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
-| h9_pemfc | antecipacao | mpc_sem_sinal − hier_pwl | — | NÃO | missão não concluída (mpc_sem_sinal: interrompida/integridade; hier_pwl: encerrada/None): custos acumulados NÃ |
+| h9_pemfc | antecipacao | mpc_sem_sinal − hier_pwl | 0.20 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
 | h9_pemfc | metodo_hier_local_vs_pwl | hier_local − hier_pwl | 0.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
-| h9_pemfc | metodo_hier_ref_dura_vs_pwl | hier_ref_dura − hier_pwl | — | NÃO | missão não concluída (hier_ref_dura: interrompida/integridade; hier_pwl: encerrada/None): custos acumulados NÃ |
+| h9_pemfc | metodo_hier_ref_dura_vs_pwl | hier_ref_dura − hier_pwl | 0.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
 | h9_pemfc | metodo_hier_ref_branda_vs_pwl | hier_ref_branda − hier_pwl | 0.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
-| h9_pemfc | informacao_perfeita_mpc_sem_sinal | mpc_sem_sinal − oraculo | — | NÃO | missão não concluída (mpc_sem_sinal: interrompida/integridade; oraculo: encerrada/None): custos acumulados NÃO |
+| h9_pemfc | informacao_perfeita_mpc_sem_sinal | mpc_sem_sinal − oraculo | 2.20 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
 | h9_pemfc | informacao_perfeita_hier_pwl | hier_pwl − oraculo | 2.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
 | h17_dois_bancos | reotimizacao | open_loop − mpc_encolhido | 0.00 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
 | h17_dois_bancos | antecipacao | mpc_sem_sinal − hier_pwl | 5.30 | sim | condições terminais iguais (energia, ON/OFF, obrigações): diferença de custo comparável |
@@ -170,35 +184,35 @@ semilla 0).
 
 ### H9 — PEMFC: estados finais, memória e obrigações
 
-| Estratégia | Situação | k final | Custo [R$] | E final [kWh] | PEMFC ligada / p [kW] / tempo no estado [s] | Obrigações pendentes | Projeções B3C4-01 (k, limite, correção kWh) | Falha |
-|---|---|---|---|---|---|---|---|---|
-| mpc_sem_sinal | interrompida | 10 | 109.75 | [5.000000000000001] | True / 20.0 / 18000 | {} | [(8, 'superior', 1.7763568394002505e-15)] | [intercambio_programado_invalido] resultado.intercambio[P_imp]: Exigidos 2 valores reais f |
-| hier_pwl | encerrada | 12 | 129.6 | [0.0] | True / 5.0 / 25200 | {} | [] | — |
-| hier_ref_dura | interrompida | 10 | 109.55 | [5.000000000000001] | True / 20.0 / 18000 | {} | [(8, 'superior', 1.7763568394002505e-15)] | [intercambio_programado_invalido] resultado.intercambio[P_imp]: Exigidos 2 valores reais f |
-| hier_ref_branda | encerrada | 12 | 129.6 | [0.0] | True / 5.0 / 25200 | {} | [] | — |
-| mpc_encolhido | encerrada | 12 | 127.60000000000001 | [0.0] | True / 5.0 / 18000 | {} | [] | — |
-| open_loop | encerrada | 12 | 127.6 | [0.0] | True / 5.0 / 18000 | {} | [] | — |
-| oraculo | encerrada | 12 | 127.6 | [0.0] | True / 5.0 / 18000 | {} | [] | — |
+| Estratégia | Situação | k final | Custo [R$] | E final [kWh] | PEMFC ligada / p [kW] / tempo no estado [s] | Obrigações pendentes | Projeções B3C4-01 (k, limite, correção kWh) | Normalizações B3C4-10 (k, grandeza, bruto kW, limiar kW) | Falha |
+|---|---|---|---|---|---|---|---|---|---|
+| mpc_sem_sinal | encerrada | 12 | 129.8 | [0.0] | True / 5.0 / 25200 | {} | [(8, 'superior', 1.7763568394002505e-15)] | [(10, 'P_imp', -8.881784197001252e-16, 1.3500311979441904e-13)] | — |
+| hier_pwl | encerrada | 12 | 129.6 | [0.0] | True / 5.0 / 25200 | {} | [] | [] | — |
+| hier_ref_dura | encerrada | 12 | 129.6 | [0.0] | True / 5.0 / 25200 | {} | [(8, 'superior', 1.7763568394002505e-15)] | [(10, 'P_imp', -8.881784197001252e-16, 1.3500311979441904e-13)] | — |
+| hier_ref_branda | encerrada | 12 | 129.6 | [0.0] | True / 5.0 / 25200 | {} | [] | [] | — |
+| mpc_encolhido | encerrada | 12 | 127.60000000000001 | [0.0] | True / 5.0 / 18000 | {} | [] | [] | — |
+| open_loop | encerrada | 12 | 127.6 | [0.0] | True / 5.0 / 18000 | {} | [] | [] | — |
+| oraculo | encerrada | 12 | 127.6 | [0.0] | True / 5.0 / 18000 | {} | [] | [] | — |
 
 ### H13 — horizonte curto × longo (H2)
 
 | N | H_L | MPC sem sinal [R$] | Hierárquico PWL [R$] | Avaliações | Tempo planejador [s] |
 |---|---|---|---|---|---|
-| 2 | 3 | 65.30 | 60.40 | 102 | 1.039 |
-| 2 | 6 | 65.30 | 50.60 | 102 | 1.526 |
-| 2 | 8 | 65.30 | 50.40 | 102 | 1.525 |
-| 2 | 10 | 65.30 | 50.20 | 102 | 1.691 |
-| 2 | 12 | 65.30 | 50.20 | 102 | 1.721 |
-| 3 | 4 | 60.40 | 55.50 | 93 | 0.917 |
-| 3 | 6 | 60.40 | 50.60 | 93 | 1.337 |
-| 3 | 8 | 60.40 | 50.40 | 93 | 1.498 |
-| 3 | 10 | 60.40 | 50.20 | 93 | 1.386 |
-| 3 | 12 | 60.40 | 50.20 | 93 | 1.493 |
-| 4 | 5 | 55.50 | 50.60 | 84 | 0.840 |
-| 4 | 6 | 55.50 | 50.60 | 84 | 1.182 |
-| 4 | 8 | 55.50 | 50.40 | 84 | 1.190 |
-| 4 | 10 | 55.50 | 50.20 | 84 | 1.223 |
-| 4 | 12 | 55.50 | 50.20 | 84 | 1.242 |
+| 2 | 3 | 65.30 | 60.40 | 102 | 1.129 |
+| 2 | 6 | 65.30 | 50.60 | 102 | 1.496 |
+| 2 | 8 | 65.30 | 50.40 | 102 | 1.599 |
+| 2 | 10 | 65.30 | 50.20 | 102 | 1.616 |
+| 2 | 12 | 65.30 | 50.20 | 102 | 1.541 |
+| 3 | 4 | 60.40 | 55.50 | 93 | 0.875 |
+| 3 | 6 | 60.40 | 50.60 | 93 | 1.514 |
+| 3 | 8 | 60.40 | 50.40 | 93 | 1.394 |
+| 3 | 10 | 60.40 | 50.20 | 93 | 1.613 |
+| 3 | 12 | 60.40 | 50.20 | 93 | 1.545 |
+| 4 | 5 | 55.50 | 50.60 | 84 | 1.001 |
+| 4 | 6 | 55.50 | 50.60 | 84 | 1.197 |
+| 4 | 8 | 55.50 | 50.40 | 84 | 1.244 |
+| 4 | 10 | 55.50 | 50.20 | 84 | 1.409 |
+| 4 | 12 | 55.50 | 50.20 | 84 | 1.393 |
 
 ### H6/H10 — λ(E) na fronteira b = 9 (τ_6, H2)
 
@@ -222,14 +236,14 @@ semilla 0).
 
 | Configuração | Custo [R$] | Janelas válidas/degradadas | Avaliações | Planejador [s] | Erro máx. [R$] |
 |---|---|---|---|---|---|
-| PWL pontos=3, máx 9 | 50.20 | 12/0 | 61 | 0.909 | 3.55e-15 |
-| PWL pontos=5, máx 9 | 50.20 | 12/0 | 93 | 1.497 | 3.55e-15 |
-| PWL pontos=4, máx 4 (sem refinamento) | 55.50 | 7/5 | 75 | 1.154 | 1.67 |
-| periódica P=2 | 50.20 | 12/0 | 87 | 1.305 | 3.55e-15 |
-| periódica P=3 | 50.20 | 12/0 | 85 | 1.359 | 3.55e-15 |
-| periódica P=4 | 50.20 | 12/0 | 84 | 1.226 | 3.55e-15 |
+| PWL pontos=3, máx 9 | 50.20 | 12/0 | 61 | 0.965 | 3.55e-15 |
+| PWL pontos=5, máx 9 | 50.20 | 12/0 | 93 | 1.539 | 3.55e-15 |
+| PWL pontos=4, máx 4 (sem refinamento) | 55.50 | 7/5 | 75 | 1.357 | 1.67 |
+| periódica P=2 | 50.20 | 12/0 | 87 | 1.465 | 3.55e-15 |
+| periódica P=3 | 50.20 | 12/0 | 85 | 1.469 | 3.55e-15 |
+| periódica P=4 | 50.20 | 12/0 | 84 | 1.308 | 3.55e-15 |
 
-_Tempo total da evidência: 78.4 s (só este ambiente)._
+_Tempo total da evidência: 84.2 s (só este ambiente)._
 
 ## 3. Lectura (sin extrapolación)
 
@@ -239,13 +253,15 @@ _Tempo total da evidência: 78.4 s (só este ambiente)._
 * **Anticipación** (MPC sin señal − jerárquico, misma N = 3, m = 1): H2 R$ 10,2, H5 R$ 10,2, H17 R$ 5,3 con condiciones
   terminales iguales; H1/H3 ⇒ 0. **Reoptimización** (open-loop − encolhido) = 0 en todas las instancias.
 * **H7/H8**: MPC sin señal INVIABLE; jerárquico concluye — valor de reserva por restricción física. Local también falla.
-* **H9 (tras B3C4-01)**: PWL y referencia blanda R$ 129,6; horizonte completo/open-loop/oráculo R$ 127,6 (brecha R$ 2,0
-  atribuible a `cumprir_na_janela`, B3C4-02); E final 0 kWh, PEMFC encendida y sin obligaciones pendientes en todas las
-  concluidas. La línea de base 3C-3 sin señal y la referencia dura avanzan ahora hasta k = 10 (proyección de 1 ulp en
-  k = 8) y se detienen por B3C4-10 (C-01, `P_imp = −8,88e-16`): NO comparables. No se afirma superioridad.
+* **H9 (tras B3C4-01 y B3C4-10)**: las cinco estrategias pedidas concluyen en k = 12 con condiciones terminales
+  idénticas (E final 0 kWh, PEMFC encendida 5 kW, sin obligaciones pendientes): MPC 3C-3 sin señal R$ 129,8; PWL,
+  referencia dura y blanda R$ 129,6 ⇒ **anticipación R$ 0,2 comparable**; horizonte completo/open-loop/oráculo
+  R$ 127,6 (PEMFC 18 000 s en el estado). La brecha R$ 2,0 del jerárquico frente al óptimo de información perfecta (y
+  R$ 2,2 del MPC sin señal) es COMÚN a ambos MPC cortos con `cumprir_na_janela` y N = U = 3 (B3C4-02): se atribuye a la
+  condición de commitment, no a la aproximación del valor futuro. Reoptimización = 0. Ningún otro costo cambió.
 * Una instancia sintética no establece superioridad general. Tiempos solo indicativos (4 CPU compartidas).
 
-## 4. Auditoría del PR #17 — defectos reproducidos ANTES (`9630e73`) y DESPUÉS (`c964a2e`)
+## 4. Auditoría del PR #17 — defectos reproducidos ANTES (`9630e73`, `8f48aed`) y DESPUÉS (`c964a2e`, `8efc927`)
 
 Scripts de reproducción fuera del repositorio (scratchpad de la sesión); su lógica está fijada en
 `tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py`.
@@ -350,3 +366,48 @@ mpc_encolhido    encerrada   None                 k=12 custo=127.60000000000001 
 open_loop        encerrada   None                 k=12 custo=127.6                E=[0.0] FC(ligado=True, p=5.0, tempo=18000) obrig={} projecoes=[] desvios_politica=0 []
 oraculo          encerrada   None                 k=12 custo=127.6                E=[0.0] FC(ligado=True, p=5.0, tempo=18000) obrig={} projecoes=[] desvios_politica=0 []
 ```
+
+### 4.4 B3C4-10 — residuo negativo del solver en P_imp × C-01 (2ª auditoría, H9, `ControladorMPCConectado`)
+
+Antes (HEAD auditado `8f48aed`; script con resolvedor de captura y espía sobre `plano_de_resultado_3c3`):
+```
+commit 8f48aede78fb240a2bfd0c5208f12bb1395c999e
+missão: interrompida/integridade, k final = 10
+janela: índice 10, k = 10, N_k = 2, m_k = 1, início 2026-01-01T10:00:00+00:00
+P_imp bruto = ['-8.881784197001252e-16', '5.0'] | P_exp bruto = ['0.0', '0.0']
+intervalo(s) global(is) com P_imp < 0: [(10, '-8.881784197001252e-16')]
+HiGHS: classificação=otimo terminação=convergenceCriteriaSatisfied status=optimal estado=aceito_otimo aceito=True objetivo=20.049999999999997 gap_rel=0.0
+auditor 3C-3 aceito: True | máximo PCC dominio/capacidade: {'pcc_dominio': (8.881784197001252e-16, 'kW', 1.5e-05), 'pcc_capacidade': (0.0, 'kW', 1.5e-05), 'pcc_exclusividade': (0.0, 'kW', 1.5e-05), 'balanco': (0.0, 'kW', 1.5e-05)}
+PCC: modo=conectado sentidos=somente_importacao limite_imp=[50.0, 50.0] limite_exp=[0.0, 0.0] a=[1.0, 1.0]
+tolerâncias: HiGHS primal_feasibility=1e-07, mip_feasibility=1e-06 (padrão; ConfiguracaoSolver não as altera); auditor D07 potência = 1e-05 + 1e-07·escala
+variável P_imp: domínio NonNegativeReals (cota inferior 0) — o valor está ABAIXO da cota, dentro da tolerância do solver
+primeira função que recusa: [('plano_de_resultado_3c3', '[intercambio_programado_invalido] resultado.intercambio[P_imp]: Exigidos 2 valores reais finitos >= 0 (sem recorte); recebido (-8.881784197001252e-16, 5.0).')]
+efeito: [('falha_integridade', '[intercambio_programado_invalido] resultado.intercambio[P_imp]: Exigidos 2 valores reais finitos >= 0 (sem recorte); rec')]
+```
+Después (`8efc927`; la misma ventana k = 10):
+```
+commit 8efc927af4cdddc282d8eb729c46cfe505b17bee
+missão: encerrada/None, k final = 12
+resolução nº 10 (janela k = 10): estado=aceito_otimo aceito=True auditor=True
+  bruto=-8.881784197001252e-16 normalizado=0.0 diferença=8.881784197001252e-16 limiar=1.3500311979441904e-13 escala=76.0
+  intercâmbio programado: P_imp=(0.0, 5.0) P_exp=(0.0, 0.0)
+  máximos do auditor: {'pcc_dominio': (0.0, 'kW', 1.5e-05), 'pcc_capacidade': (0.0, 'kW', 1.5e-05), 'pcc_exclusividade': (0.0, 'kW', 1.5e-05), 'balanco': (0.0, 'kW', 1.5e-05)}
+  constatações: [('pemfc_abstracao_instantanea', 'aviso', 'compromisso.unidades[syn-fc].abstracao_transicao'), ('permanencia_maior_que_janela', 'aviso', 'compromisso.unidades[syn-fc]'), ('normalizacao_numerica_pcc', 'aviso', 'pcc[syn-pcc].P_imp[0]')]
+resumo da resolução selado (códigos): ('normalizacao_numerica_pcc', 'pemfc_abstracao_instantanea', 'permanencia_maior_que_janela')
+registro 3C-0: hash normalizacoes_pcc_b3c4_10 = 8db6d4bc00ba58b3 …; ['bruto=-8.881784197001252e-16 normalizado=0.0 diferenca=8.881784197001252e-16 limiar=1.3500311979441904e-13 esc']
+anexo 3C-3 plano_rede.importacao_programada_kW = (0.0, 5.0)
+```
+H9 × 5 estrategias después (normalizaciones y proyecciones RECONSTRUIDAS de los artefactos sellados; `desvios` = constataciones de
+`reconstruir_normalizacoes_pcc`; `aud3C3` = `auditar_missao_conectada`):
+```
+mpc_sem_sinal    encerrada  k=12 custo=129.8 E=[0.0] FC(lig=True,p=5.0,t=25200) obrig={} normalizacoes=[('P_imp', 0, -8.881784197001252e-16, 1.3500311979441904e-13)] desvios=0 projecoes=[(8, 1.7763568394002505e-15)] aud3C3=True
+hier_pwl         encerrada  k=12 custo=129.6 E=[0.0] FC(lig=True,p=5.0,t=25200) obrig={} normalizacoes=[] desvios=0 projecoes=[] aud3C3=True
+hier_ref_dura    encerrada  k=12 custo=129.6 E=[0.0] FC(lig=True,p=5.0,t=25200) obrig={} normalizacoes=[('P_imp', 0, -8.881784197001252e-16, 1.3500311979441904e-13)] desvios=0 projecoes=[(8, 1.7763568394002505e-15)] aud3C3=True
+hier_ref_branda  encerrada  k=12 custo=129.6 E=[0.0] FC(lig=True,p=5.0,t=25200) obrig={} normalizacoes=[] desvios=0 projecoes=[] aud3C3=True
+mpc_encolhido    encerrada  k=12 custo=127.60000000000001 E=[0.0] FC(lig=True,p=5.0,t=18000) obrig={} normalizacoes=[] desvios=0 projecoes=[] aud3C3=True
+```
+Lectura: el único residuo de H9 (−8,881784197001252e-16 kW ≤ ε_pcc = 1,35e-13 kW con S = 76) se normaliza en la
+extracción, el auditor independiente revalida la solución (balance 0,0) y el plano de red programa 0,0; la normalización
+queda en el resultado, en el resumen sellado de la resolución, en el registro 3C-0 (aviso + hash) y se reconstruye en la
+auditoría. La regla C-01 sigue rechazando el MISMO valor si llega como consigna o programa externo
+(`test_c01_consigna_externa_minima_negativa_recusada_pelo_executor`).

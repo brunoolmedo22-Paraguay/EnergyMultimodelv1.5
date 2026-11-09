@@ -213,7 +213,7 @@ causalidad contra el libro, compromisos, ausencia de valor futuro en el costo re
 |---|---|---|
 | **C-3C4-01** | El orquestrador compara `res.hash_entrada` con `_hash_entrada(e)` y `plano_de_resultado_3c3` exige perfil 3C-3; la evidencia 3C-3 (registro 3C-0, anexo 3C-3, auditoría integral) exige plan con la entrada NÚCLEO | `ResultadoNucleo3C3De3C4` = **visión** del despacho 3C-4 sobre la entrada núcleo (mismas variables, aprobado por el auditor 3C-3), con `perfil_resolucao = v1.1-3C-4`, `resultado_3c4` adjunto y `custos_modelo` con `custo_futuro_estimado` SEPARADO; `plano_de_resultado_3c4` verifica perfil, hashes 3C-4/núcleo, identidad del despacho y auditoría terminal antes de crear el plan; el registro 3C-0 declara `formulacao = v1.1-3C-4` y compromete `entrada_3c4`. El óptimo es del problema 3C-4 (documentado), no del 3C-3 |
 | **C-3C4-02** | Cuatro guardias anteriores impedían por construcción añadir el 3C-4 (lista nominal de módulos con Pyomo; `ADICOES_*`; prefijos admitidos por las guardias 3C-2/3C-3) | Ajuste **nominal mínimo**: `milp/modelo_3c4.py`, `milp/solver_3c4.py` en la lista; `ADICOES_3C4` (4 archivos, solo adición); prefijos `ems_v2/hierarquia/`, `fixtures_3c4.py`, `tests/ems_v2/test_ems_v2_3c4_`. Nueva guardia desde `10365c5`: solo esas 4 guardias cambian; ningún otro archivo modificado |
-| **C-3C4-03** | **Defecto heredado (3C-0/3C-2/3C-3)**: la energía ejecutada acumulaba deriva de coma flotante (10,000000000000002 kWh con C = 10) y la validación SIN recorte de la ventana siguiente la bloqueaba | **Corregido por hotfix AUTORIZADO** en la auditoría del PR #17 (§10b, B3C4-01); un segundo artefacto (C-01, B3C4-10) queda documentado sin corregir |
+| **C-3C4-03** | **Defecto heredado (3C-0/3C-2/3C-3)**: la energía ejecutada acumulaba deriva de coma flotante (10,000000000000002 kWh con C = 10) y la validación SIN recorte de la ventana siguiente la bloqueaba | **Corregido por hotfix AUTORIZADO** en la auditoría del PR #17 (§10b, B3C4-01); el segundo artefacto (residuo negativo del solver en P_imp × C-01, B3C4-10) fue corregido por el hotfix AUTORIZADO de la 2ª auditoría (§10c) |
 | C-3C4-04 | El campo 3C-0 `valor_futuro` sigue `nao_implementado_3C0` aunque el 3C-4 estime V̂ | Esquema 3C-0 intacto; la estimación vive en la coordinación 3C-4 y en `custo_objetivo_planejado` separada; `contabilizado_como_custo = False` auditado |
 
 ## 10b. Auditoría independiente del PR #17 (commit auditado `9630e73`) — correcciones
@@ -245,6 +245,67 @@ de cobertura del solver; los dominios son aproximaciones internas conservadoras;
 interrumpe misiones y su corrección es auditable; H2/H6/H7/H8/H10/H17 reproducen los mismos costos. **No se sostiene:**
 exhaustividad independiente del solver, convexidad global en 2D, ni comparaciones H9 con la línea de base 3C-3 (B3C4-10).
 
+## 10c. Segunda auditoría del PR #17 (HEAD auditado `8f48aed`) — hotfix AUTORIZADO B3C4-10
+
+**Autorización:** corregir el residuo numérico negativo del solver en las variables de intercambio del PCC. **No** se
+autoriza relajar ni eliminar la regla C-01 del 3C-3: `valor_intercambio_valido`, `programa_valido`, `validar_programa`
+y `plano_de_resultado_3c3` son **idénticos (AST) a la base `10365c5`** (guardia
+`test_hotfix_b3c4_10_restrito_e_regra_c01_identica_a_base`); toda consigna o programa EXTERNO con negativo (incluso
+−8,88e-16 o −5e-324), NaN, ±Inf, booleano o incompleto sigue rechazado.
+
+**Reproducción antes de corregir (`8f48aed`, `EVIDENCIA_3C4_EJECUCION.md` §4.4):** H9, `ControladorMPCConectado`
+(perfil 3C-3 original), ventana k = 10 (N_k = 2, m_k = 1, inicio 2026-01-01T10:00Z); HiGHS 1.15.1 `optimal`
+(`convergenceCriteriaSatisfied`, gap 0, objetivo 20,05) devuelve `P_imp = (−8,881784197001252e-16, 5,0)`,
+`P_exp = (0, 0)`; PCC `somente_importacao`, P̄_imp = 50 kW; la variable es `NonNegativeReals` (valor por DEBAJO de la
+cota 0, dentro de la `primal_feasibility_tolerance` = 1e-7 del HiGHS, no alterada por `ConfiguracaoSolver`); el
+auditor 3C-3 ACEPTA (pcc_dominio 8,88e-16 ≤ tolP 1,5e-5); la primera función que rechaza es `plano_de_resultado_3c3`
+(`intercambio_programado_invalido`) ⇒ `falha_integridade`, misión interrumpida en k = 10.
+
+**Política `residuo_numerico_pcc_v1`** (`ems_v2/rede/execucao.py`: `normalizar_residuos_pcc`, `escala_balanco_pcc`,
+`limiar_residuo_pcc`, `NormalizacaoNumericaPCC`, `aviso_normalizacao_pcc`):
+
+1. **Dónde:** SOLO en la frontera de EXTRACCIÓN de los resolvedores (`resolver_3c3`, `resolver_3c4`), sobre los valores
+   que el PROPIO solver devolvió para P_imp/P_exp, ANTES del auditor independiente y del plan. Ningún otro código la
+   llama (el ejecutor, la planta, los programas y `plano_de_resultado_3c3` siguen aplicando C-01 sin excepción).
+2. **Cota:** v < 0 se normaliza a 0,0 solo si |v| ≤ ε_pcc,t = min(κ·u·S_t, tol_fact_solver, tolP_D07,t), con κ = 16,
+   u = 2⁻⁵³, tol_fact_solver = 1e-7 (factibilidad primal del HiGHS), tolP_D07,t = 1e-5 + 1e-7·S_t y
+   S_t = 1 + Σ|P_R| + Σ(|P_c| + |P_d|) + Σ|p| + Σ|ℓ| + |d| + P̄_imp,t + P̄_exp,t (escala del balance M02 del intervalo;
+   la carga queda acotada por el balance; reconstruible del plan y del modelo). Así la cota depende de la precisión
+   numérica Y de las tolerancias de factibilidad: nunca supera la del solver ni la del auditor.
+3. **Fuera de la cota:** NO se normaliza ni se recorta: el resolvedor rechaza la solución
+   (`intercambio_negativo_fora_da_politica_numerica`, `rejeitado_auditoria`); valores extraídos no finitos/no reales ⇒
+   `intercambio_extraido_invalido`. Valores 0 (incl. −0,0) y positivos: intactos (mismos objetos).
+4. **Registro:** `NormalizacaoNumericaPCC` (PCC, grandeza, intervalo de la ventana, bruto, normalizado, diferencia,
+   umbral, escala, motivo) en `ResultadoResolucao3C3/3C4.normalizacoes_numericas` + aviso `normalizacao_numerica_pcc`
+   (`repr` exacto de cada número) en el resultado ⇒ código en el `ResumoResolucaoJanela` sellado de la ventana; en el
+   registro 3C-0 de la ventana, el aviso y el hash `normalizacoes_pcc_b3c4_10` = SHA-256 de las normalizaciones,
+   comprometidos ANTES del sello (`ControladorMPCConectado._artefatos_registro`). Sin normalización: ningún aviso,
+   ninguna clave nueva ⇒ registros, hashes y huellas históricas idénticos (E1–E8, G1–G15 sin cambios).
+5. **Revalidación:** el despacho normalizado pasa por el auditor independiente 3C-3/3C-4 (balance, dominio,
+   exclusividad, sentido, costos contra el modelo) y por la integridad del testigo: una "normalización" que rompa el
+   balance (anular una importación real) o la economía (importar y exportar a la vez) es RECHAZADA.
+6. **Auditoría:** `hierarquia/auditoria.reconstruir_normalizacoes_pcc` (sección `normalizacoes_pcc` de
+   `auditar_missao_hierarquica`) reconstruye cada normalización desde artefactos SELLADOS: aviso ↔ hash comprometido
+   (`normalizacao_pcc_nao_comprometida`); código en la resolución sellada (`normalizacao_pcc_sem_origem_no_solver`:
+   el valor bruto proviene del solver, no de una consigna externa — éstas nunca pasan por la política);
+   programa del anexo 3C-3 = 0,0; bruto < 0; diferencia = −bruto; |bruto| ≤ umbral; motivo = política; S_t y umbral
+   RECALCULADOS desde el plan 3C-0 y los límites del modelo suministrado (`normalizacao_pcc_fora_da_politica`);
+   ilegible ⇒ `normalizacao_pcc_ilegivel`.
+
+**Archivos protegidos modificados (solo B3C4-10):** `ems_v2/rede/execucao.py` (bloque nuevo + 2 importaciones; C-01 sin
+cambios), `ems_v2/milp/solver_3c3.py` (llamada a la política en la extracción), `ems_v2/milp/resultado_3c3.py` (campo
+`normalizacoes_numericas = ()`), `ems_v2/rede/mpc.py` (aviso + hash en el registro 3C-0). Además (no protegidos):
+`ems_v2/milp/solver_3c4.py`, `ems_v2/hierarquia/auditoria.py`. Guardias: `HOTFIX_B3C4_10` y `REMOVIDAS_B3C4_10`
+(solo líneas de importación/`__all__`/argumento final reescritas) en `test_ems_v2_3c4_isolamento.py`.
+
+**Después:** H9 con las cinco estrategias concluye (tabla en §11 y `EVIDENCIA_3C4_EJECUCION.md` §4.4); la normalización
+única de H9 (k = 10, P_imp, bruto −8,881784197001252e-16, umbral 1,35e-13, S = 76) aparece en el resultado, la
+resolución sellada, el registro 3C-0 y la reconstrucción de la auditoría. **Se sostiene:** C-01 intacta para toda
+entrada externa; solo residuos del solver por debajo de la menor de las tolerancias de precisión/factibilidad se
+normalizan, con registro reconstruible; comparación H9 contra la línea de base 3C-3 con condiciones terminales
+idénticas. **No se sostiene:** que el umbral sea una cota de error hacia atrás del HiGHS (es una política declarada);
+que el hash sea firma (B3C4-08).
+
 ## 11. Experimentos (detalle y tablas: `EVIDENCIA_3C4_EJECUCION.md`)
 
 | Exp. | Resultado (sintético, Δ = 1 h, K_M = 12, N = 3, m = 1, H_L = 10, Φ_L = 0 declarado común) |
@@ -256,7 +317,7 @@ exhaustividad independiente del solver, convexidad global en 2D, ni comparacione
 | H5 | demanda realizada ≠ prevista (misma verdad): ambos concluyen, jerárquico más barato con condiciones terminales iguales; auditoría con separación previsión × realización aprobada |
 | H6/H10 | V(0, 5, 10, 15, 20) = 25; 17,55; 10,1; 7,65; 5,2 exactos ⇒ λ = 1,49 en [0, 10] y 0,49 en [10, 20]; local unilateral λ = 0,51 en τ_0; local INDISPONIBLE en τ_6 (quiebre) |
 | H7/H8 | límite de importación 0 / PCC indisponible previsto en h8–9 con tarifa PLANA: MPC sin señal **inviable** (misión interrumpida), jerárquico PWL concluye (R$ 50,2) con dominio E ≥ reserva — valor por restricción FÍSICA; local también falla (limitación) |
-| H9 | PEMFC + banco: dos modos por señal (valor de estar ENCENDIDO separado del de la energía), obligación residual planificada 0, sin obligaciones pendientes, auditoría aprobada. Jerárquico PWL y referencia blanda R$ 129,6 (PEMFC encendida 25 200 s al final) × horizonte completo/open-loop/oráculo R$ 127,6 (18 000 s): brecha de R$ 2,0 atribuible a `cumprir_na_janela` con N = U = 3 (B3C4-02). Tras el hotfix B3C4-01, la línea de base 3C-3 sin señal y la referencia dura avanzan hasta k = 10 (proyección de 1 ulp en k = 8) y se detienen por B3C4-10 (no comparables) |
+| H9 | PEMFC + banco: dos modos por señal (valor de estar ENCENDIDO separado del de la energía), obligación residual planificada 0, sin obligaciones pendientes, auditoría aprobada. Jerárquico PWL y referencia blanda R$ 129,6 (PEMFC encendida 25 200 s al final) × horizonte completo/open-loop/oráculo R$ 127,6 (18 000 s): brecha de R$ 2,0 atribuible a `cumprir_na_janela` con N = U = 3 (B3C4-02). Tras los hotfixes B3C4-01 (proyección de 1 ulp en k = 8) y B3C4-10 (residuo P_imp = −8,88e-16 normalizado en k = 10), las CINCO estrategias concluyen con condiciones terminales idénticas (E = 0, PEMFC encendida, sin obligaciones): MPC 3C-3 sin señal R$ 129,8; PWL, referencia dura y blanda R$ 129,6 ⇒ anticipación R$ 0,2 comparable; horizonte completo R$ 127,6 (brecha R$ 2,0 = B3C4-02, no atribuida a la aproximación del valor futuro) |
 | H11 | dominio inalcanzable ⇒ MILP inviable (sin recorte); señales caducadas/otra frontera/no causales rechazadas; local no defendible ⇒ degradación |
 | H12 | intervención en la verdad desde h6: coordinaciones y planos idénticos para k ≤ 6, distintos después |
 | H13 | N × H_L (H2): costo no creciente en H_L (N = 3: 55,5 / 50,6 / 50,4 / 50,2 / 50,2 con H_L = 4 / 6 / 8 / 10 / 12); MPC sin señal 65,3 / 60,4 / 55,5 con N = 2 / 3 / 4; con H_L ≥ 10 el jerárquico alcanza el óptimo de información perfecta para todo N ∈ {2, 3, 4} |

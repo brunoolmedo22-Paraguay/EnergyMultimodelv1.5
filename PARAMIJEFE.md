@@ -2526,6 +2526,46 @@ las concluidas: E final 0 kWh, PEMFC encendida, sin obligaciones pendientes.
 | `tests/ems_v2` sin Pyomo/HiGHS | **812 passed, 63 skipped** |
 | Suite completa `tests/` | **1674 passed, 7 warnings, 128 subtests (449,9 s) = 1635 + 39** |
 
+### 4c. Segunda auditoría del PR #17 (HEAD auditado `8f48aed`): hotfix AUTORIZADO B3C4-10
+
+**Autorizado:** corregir el residuo numérico negativo del solver en las variables de intercambio del PCC. **No
+autorizado (y no hecho):** relajar o eliminar la regla C-01 del 3C-3.
+
+**Reproducido antes de corregir** (`EVIDENCIA_3C4_EJECUCION.md` §4.4): H9, perfil 3C-3 original, ventana k = 10
+(N_k = 2); HiGHS `optimal`/gap 0 devuelve `P_imp = (−8,881784197001252e-16, 5,0)` (variable ≥ 0; residuo dentro de la
+factibilidad primal 1e-7); PCC `somente_importacao`, P̄_imp = 50 kW; el auditor 3C-3 aceptaba; `plano_de_resultado_3c3`
+(C-01) rechazaba ⇒ misión interrumpida por integridad.
+
+**Corrección (`8efc927`)**, política `residuo_numerico_pcc_v1`, SOLO en la extracción de `resolver_3c3`/`resolver_3c4`
+y SOLO sobre valores devueltos por el solver: v < 0 con |v| ≤ min(16·u·S_t, 1e-7, tolP D07) ⇒ 0,0 con registro
+(bruto, normalizado, diferencia, umbral, escala S_t, motivo); mayor ⇒ solución rechazada (sin recorte); no finito ⇒
+rechazada. La solución normalizada es revalidada por el auditor independiente. Registro: resultado + resumen sellado de
+la resolución + registro 3C-0 (aviso + hash `normalizacoes_pcc_b3c4_10`, antes del sello); sin normalización nada cambia
+(hashes/huellas históricos idénticos). Auditoría: `reconstruir_normalizacoes_pcc` (sección `normalizacoes_pcc`)
+reconstruye cada corrección desde artefactos sellados, plan y modelo. C-01: `valor_intercambio_valido`,
+`programa_valido`, `validar_programa`, `plano_de_resultado_3c3` idénticos (AST) a `10365c5`; consignas/programas
+externos negativos (incl. −8,88e-16), NaN, ±Inf, bool o incompletos siguen rechazados.
+
+**Archivos protegidos modificados (B3C4-10):** `ems_v2/rede/execucao.py`, `ems_v2/milp/solver_3c3.py`,
+`ems_v2/milp/resultado_3c3.py`, `ems_v2/rede/mpc.py` (hashes en `MATRIZ_3C4.md`); además `milp/solver_3c4.py`,
+`hierarquia/auditoria.py`, `milp/evidencia_3c4.py` (columna H9). Detalle: `FORMULACAO_3C4.md` §10c.
+
+**H9 × 5 estrategias después (condiciones terminales verificadas antes de comparar):** todas `encerrada` en k = 12,
+E final 0 kWh, PEMFC encendida (5 kW), sin obligaciones pendientes; MPC 3C-3 sin señal R$ 129,8 (PEMFC 25 200 s en el
+estado); PWL, referencia dura y blanda R$ 129,6 (25 200 s); horizonte completo R$ 127,6 (18 000 s). Anticipación
+R$ 0,2 comparable; la brecha R$ 2,0 frente al horizonte completo es común a los MPC cortos con `cumprir_na_janela`
+(B3C4-02) y NO se atribuye a la aproximación del valor futuro. Ningún otro costo de la campaña cambió.
+
+| Ejecución (tras `8efc927`) | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c4_b3c4_10.py` (nueva) | **66 passed** |
+| `tests/ems_v2 -k 3c4` | **207 passed** |
+| Guardias `tests/ems_v2 -k "isolamento or perfil"` | **53 passed** |
+| E1–E8 (huellas) + G1–G15 MILP/MPC 3C-3 + 3C-2 MILP | **75 passed** |
+| `tests/ems_v2` con Pyomo/HiGHS | **1287 passed (= 1220 + 66 + 1 guardia)** |
+| `tests/ems_v2` sin Pyomo/HiGHS | **859 passed, 83 skipped** |
+| Suite completa `tests/` | **1741 passed, 7 warnings, 128 subtests (451,8 s) = 1674 + 67** |
+
 ### 5. Límites
 
 Interpolante (no función de valor exacta) fuera de los puntos; 2D solo convexo; ≤ 2 bancos; valor determinista bajo
@@ -2549,4 +2589,4 @@ nada integrado a catálogo/UI/runtime; EMS V1.6 sigue siendo el único motor ope
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
 | 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) | **Integrado** em `main` (merge `10365c5`), após correções C-01/C-02 (§4b) e C-03 (§4c) |
-| 12 | 2026-11-09 | Piso 3C-4 — EMS hierárquico MILP–MPC: planejador de longo prazo, custo de continuação e valor futuro (algébrico, sintético) | `ccr-50f8fad7-s073ob` / [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) (sem merge) | Auditoria: arquitetura favorável; correções A01, A02 e hotfix B3C4-01 aplicadas (§4b); B3C4-10 aguarda decisão |
+| 12 | 2026-11-09 | Piso 3C-4 — EMS hierárquico MILP–MPC: planejador de longo prazo, custo de continuação e valor futuro (algébrico, sintético) | `ccr-50f8fad7-s073ob` / [#17](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/17) (sem merge) | Auditoria: arquitetura favorável; correções A01, A02 e hotfix B3C4-01 aplicadas (§4b); hotfix autorizado B3C4-10 aplicado na 2ª auditoria (§4c); sem merge |
