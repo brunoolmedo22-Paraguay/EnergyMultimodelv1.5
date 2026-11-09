@@ -2303,7 +2303,7 @@ documentos 3C-2. Ningún archivo existente de `ems_v2`, V1.6, `seeds2`, aplicaci
 |---|---|
 | Rama | `ccr-a53cad36-86uep6` (desde `main`) |
 | Base | `main` `a4c6b1c1a5e9be86b7b20556f91ec3a753dfb225` (merge del PR #15, 3C-2 integrado) |
-| PR | contra `main`, **sin merge** (entregado para auditoría independiente) |
+| PR | [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) contra `main`, **sin merge** (entregado para auditoría independiente) |
 | Pendientes | Auditoría; decisiones D-3C3-01..12 y contradicciones C-3C3-01..05 a revisión; **no iniciar 3C-4 sin autorización** |
 
 ### 1. Resumen
@@ -2392,4 +2392,4 @@ guardias. V1.6, `seeds2`, aplicación y requirements no fueron tocados.
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
-| 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / PR (sem merge) | Entregue para auditoria independente |
+| 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) (sem merge) | Entregue para auditoria independente |

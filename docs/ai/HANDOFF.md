@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-09 · **rama:** `ccr-a53cad36-86uep6` · **PR:** contra `main`, sin merge (pendiente de auditoría independiente) · **estado:** **Piso 3C-3 — Red eléctrica, intercambio económico y recurso explícito de equilibrio** implementado y verificado en la rama; **no integrado** (sin UI/runtime; modelo **algebraico agregado** del PCC, tarifas sintéticas, simulación causal de lazo cerrado no física).
+**Actualización:** 2026-11-09 · **rama:** `ccr-a53cad36-86uep6` · **PR:** [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) contra `main`, sin merge (pendiente de auditoría independiente) · **estado:** **Piso 3C-3 — Red eléctrica, intercambio económico y recurso explícito de equilibrio** implementado y verificado en la rama; **no integrado** (sin UI/runtime; modelo **algebraico agregado** del PCC, tarifas sintéticas, simulación causal de lazo cerrado no física).
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 11**; formulación, ejecución programado × realizado, decisiones D-3C3-* y contradicciones C-3C3-* en [`docs/ems_v2/FORMULACAO_3C3.md`](../ems_v2/FORMULACAO_3C3.md); trazabilidad y hashes protegidos en [`MATRIZ_3C3.md`](../ems_v2/MATRIZ_3C3.md); evidencia en [`EVIDENCIA_3C3_EJECUCION.md`](../ems_v2/EVIDENCIA_3C3_EJECUCION.md); brechas en [`BRECHAS_3C3.md`](../ems_v2/BRECHAS_3C3.md); transición en [`TRANSICAO_3C3_3C4.md`](../ems_v2/TRANSICAO_3C3_3C4.md).
 
