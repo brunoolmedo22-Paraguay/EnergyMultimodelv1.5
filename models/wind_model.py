@@ -17,7 +17,7 @@ from typing import BinaryIO, Iterable, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from config.wind_turbine_database import DEFAULT_REFERENCE_AIR_DENSITY, get_turbine
+from config.wind_turbine_database import DEFAULT_REFERENCE_AIR_DENSITY, get_turbine, validate_turbine_entry
 
 RD = 287.058  # J/(kg K), aire seco
 RV = 461.495  # J/(kg K), vapor de agua
@@ -284,6 +284,91 @@ def _power_from_manufacturer_density_table(entry: Mapping, wind: np.ndarray, rho
     return result
 
 
+def evaluate_documented_curve(entry: Mapping, wind_speed: np.ndarray) -> np.ndarray:
+    """Raw electrical curve coordinates, NOT a hub-wind/density simulation.
+
+    Negative observations remain signed; cut-in/out are controller states, not
+    edits to original bins. No extrapolation, smoothing or nominal clipping.
+    """
+    errors = validate_turbine_entry(entry)
+    if errors:
+        raise ValueError("; ".join(errors))
+    wind = np.asarray(wind_speed, dtype=float)
+    lo, hi = entry["curve"]["curve_valid_wind_range_mps"]
+    if wind.ndim != 1 or not len(wind) or not np.isfinite(wind).all():
+        raise ValueError("Velocidades de curva devem ser finitas e não vazias")
+    if ((wind < lo) | (wind > hi)).any():
+        raise ValueError(f"Condição não modelada: fora do domínio documentado [{lo}, {hi}] m/s")
+    points = np.asarray(entry["curve"]["points"], dtype=float)
+    return np.interp(wind, points[:, 0], points[:, 1])
+
+
+def analyze_wind_curve(turbine_key: str, wind_speed: np.ndarray, *, timestep_hours: float,
+                       turbine_count: int = 1, apply_generic_grid_loss: bool = False) -> tuple[pd.DataFrame, dict]:
+    """Accounting of archived curve bins; never injected into a microgrid balance.
+
+    G=max(Pcurve,0), A=max(-Pcurve,0), N=G-A. A is the observed net
+    import attributed to auxiliaries, not an estimate of hidden internal loads.
+    The optional external discount acts once on exported generation only;
+    imported power is not reduced by a generation-loss discount.
+    """
+    if isinstance(turbine_count, bool) or not isinstance(turbine_count, (int, np.integer)) or turbine_count < 1:
+        raise ValueError("Quantidade deve ser um inteiro positivo")
+    if not np.isfinite(timestep_hours) or timestep_hours <= 0:
+        raise ValueError("Passo temporal deve ser finito e positivo")
+    entry = get_turbine(turbine_key)
+    unit = evaluate_documented_curve(entry, wind_speed)
+    generation = np.maximum(unit, 0.0) * turbine_count
+    auxiliary = np.maximum(-unit, 0.0) * turbine_count
+    factor = 1 - GENERATOR_TO_GRID_GENERIC_LOSS if apply_generic_grid_loss else 1.0
+    net = generation * factor - auxiliary
+    frame = pd.DataFrame({"curve_wind_speed_mps": wind_speed, "curve_net_power_unit_kw": unit,
+                          "generation_power_kw": generation, "observed_auxiliary_import_kw": auxiliary,
+                          "net_exchange_before_external_loss_kw": generation - auxiliary,
+                          "external_generation_loss_kw": generation * (1-factor), "net_exchange_kw": net})
+    duration = timestep_hours * len(frame)
+    ref = entry["spec"]["rated_power_kw"] * turbine_count
+    generated = float(generation.sum() * timestep_hours)
+    consumed = float(auxiliary.sum() * timestep_hours)
+    kpis = {"analysis_only": True, "integration_status": entry["integration_status"],
+            "energy_generated_kwh": generated, "energy_consumed_kwh": consumed,
+            "energy_net_kwh": float(net.sum() * timestep_hours),
+            "installed_reference_power_kw": ref,
+            "curve_peak_power_kw": entry["spec"]["curve_peak_power_kw"] * turbine_count,
+            "capacity_factor_generated": generated / (ref * duration),
+            "capacity_factor_denominator": "rated_power_kw × count × duration_hours (archive/manufacturer basis)",
+            "generating_hours": float(np.count_nonzero(generation > 0) * timestep_hours),
+            "reference_power_hours": float(np.count_nonzero(generation >= ref * 0.99) * timestep_hours),
+            "energy_external_loss_kwh": float((generation * (1-factor)).sum() * timestep_hours),
+            "power_rating_basis": entry["spec"]["power_rating_basis"],
+            "scope": "Interpolação das coordenadas de curva; sem densidade, altura ou controle; não é previsão física do sítio."}
+    return frame, kpis
+
+
+def _strict_power(entry: Mapping, wind: np.ndarray, rho: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    errors = validate_turbine_entry(entry)
+    if errors:
+        raise ValueError("; ".join(errors))
+    if not np.isfinite(wind).all() or (wind < 0).any() or not np.isfinite(rho).all() or (rho <= 0).any():
+        raise ValueError("Vento e densidade devem ser finitos, vento >= 0 e densidade > 0")
+    spec, curve = entry["spec"], entry["curve"]
+    ref = curve["reference_density_kg_m3"]
+    veq = wind * np.power(rho / ref, 1 / 3)
+    stopped = np.zeros(len(wind), dtype=bool)
+    if spec.get("cut_in_mps") is not None:
+        stopped |= wind < spec["cut_in_mps"]
+    if spec.get("cut_out_mps") is not None:
+        stopped |= wind >= spec["cut_out_mps"]
+    lo, hi = curve["curve_valid_wind_range_mps"]
+    unknown = ~stopped & ((wind < lo) | (wind > hi) | (veq < lo) | (veq > hi))
+    if unknown.any():
+        raise ValueError(f"Condição não modelada: vento real ou equivalente fora do domínio [{lo}, {hi}] m/s")
+    power = np.zeros(len(wind))
+    if (~stopped).any():
+        power[~stopped] = evaluate_documented_curve(entry, veq[~stopped])
+    return power, veq
+
+
 def run_wind_model(
     profile: pd.DataFrame,
     turbine_key: str,
@@ -294,15 +379,38 @@ def run_wind_model(
         raise ValueError("Quantidade de aerogeradores deve ser >= 1")
 
     entry = get_turbine(turbine_key)
+    if entry.get("integration_status") == "curve_analysis_only":
+        raise ValueError(entry["integration_limitation"] + " Consulte o catálogo para análise dos pontos.")
+    strict = entry.get("schema_version") == 2
+    if strict:
+        if isinstance(turbine_count, bool) or not isinstance(turbine_count, (int, np.integer)):
+            raise ValueError("Quantidade deve ser inteira")
+        step = float(profile.attrs.get("timestep_hours", 1 / 6))
+        if profile.empty or not np.isfinite(step) or step <= 0:
+            raise ValueError("Perfil vazio ou passo temporal inválido")
+        # Missing atmosphere retains the documented historical reference fallback;
+        # supplied invalid measurements must not silently become standard air.
+        for col, lower, upper in (("temperature_c", -100, 80), ("pressure_hpa", 100, 1200), ("humidity_pct", 0, 100)):
+            values = profile[col].to_numpy(dtype=float)
+            supplied = ~np.isnan(values)
+            if (supplied & (~np.isfinite(values) | (values < lower) | (values > upper))).any():
+                raise ValueError(f"{col}: medição atmosférica inválida")
     spec = entry["spec"]
     curve = entry["curve"]
     rated_kw = float(spec["rated_power_kw"])
 
     rho_s, density_mode_s, density_summary = calculate_air_density(profile)
     rho = rho_s.to_numpy(dtype=float)
+    if strict:
+        provided_pt = profile["temperature_c"].notna() & profile["pressure_hpa"].notna()
+        if (provided_pt & (density_mode_s == "reference")).any():
+            raise ValueError("Densidade calculada inválida: não substituir por referência silenciosamente")
     wind = profile["wind_speed_mps"].to_numpy(dtype=float)
 
-    if curve.get("density_correction") == "manufacturer_density_table" and curve.get("density_curves"):
+    if strict:
+        p_unit_kw, veq = _strict_power(entry, wind, rho)
+        density_method = "Velocidade equivalente por densidade · domínio real e equivalente validado"
+    elif curve.get("density_correction") == "manufacturer_density_table" and curve.get("density_curves"):
         p_unit_kw = _power_from_manufacturer_density_table(entry, wind, rho)
         veq = wind.copy()  # a tabela já usa vhub diretamente
         density_method = "Tabela do fabricante por densidade"
@@ -320,7 +428,9 @@ def run_wind_model(
     if cut_out is not None:
         p_unit_kw = np.where(wind >= float(cut_out), 0.0, p_unit_kw)
 
-    p_unit_kw = np.clip(p_unit_kw, 0.0, rated_kw)
+    # V1 remains bit-for-bit compatible; v2 is bounded by its documented peak.
+    limit_kw = float(spec["operating_power_limit_kw"]) if strict else rated_kw
+    p_unit_kw = np.clip(p_unit_kw, 0.0, limit_kw)
     p_gross_kw = p_unit_kw * turbine_count
     loss_factor = 1.0 - GENERATOR_TO_GRID_GENERIC_LOSS if apply_generic_grid_loss else 1.0
     p_net_kw = p_gross_kw * loss_factor
@@ -385,6 +495,14 @@ def run_wind_model(
         "density_correction_method": density_method,
         "cut_out_is_known": cut_out is not None,
     }
+    if strict:
+        kpis.update(curve_peak_power_unit_kw=spec["curve_peak_power_kw"],
+                    installed_curve_peak_power_kw=spec["curve_peak_power_kw"] * turbine_count,
+                    operating_power_limit_kw=limit_kw * turbine_count,
+                    power_rating_basis=spec["power_rating_basis"],
+                    capacity_factor_denominator="rated_power_kw × turbine_count × duration_h",
+                    curve_valid_wind_range_mps=curve["curve_valid_wind_range_mps"],
+                    energy_consumed_kwh=0.0)
     result.attrs.update(profile.attrs)
     result.attrs["turbine_key"] = turbine_key
     result.attrs["turbine_count"] = turbine_count
@@ -411,6 +529,8 @@ __all__ = [
     "read_wind_csv",
     "prepare_wind_profile",
     "calculate_air_density",
+    "evaluate_documented_curve",
+    "analyze_wind_curve",
     "run_wind_model",
     "export_wind_dataframe",
 ]

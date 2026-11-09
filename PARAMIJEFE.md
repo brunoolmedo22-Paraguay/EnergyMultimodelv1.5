@@ -2441,3 +2441,14 @@ guardias. V1.6, `seeds2`, aplicación y requirements no fueron tocados.
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
 | 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | **Integrado** em `main` (merge `a4c6b1c`), após correções C-01/C-02 (§5b) |
 | 11 | 2026-11-09 | Piso 3C-3 — Red eléctrica, intercâmbio econômico e recurso explícito de equilíbrio (PCC, tarifas, MPC conectado algébrico) | `ccr-a53cad36-86uep6` / [#16](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/16) (sem merge) | Auditoria: aprovação estrutural; correções C-01/C-02 (§4b) e C-03 (§4c) aplicadas; aguardando aprovação final |
+
+
+## Missão eólica Codex — catálogo de sete equipamentos e potência de referência × pico
+
+Base verificada `10365c5478b4dd137906b58819cd7f71d8de9cea`, rama exclusiva `codex/eolica-siete-curvas-potencias`. Autorização explícita do usuário para ciência eólica; não é parte do Piso 3C-4 de Claude. Nenhum arquivo EMS alterado nesta implementação. Sem merge.
+
+Catálogo único com 13 entradas: três tabelas de fabricante (Vergnet C275, V47 de um gerador, V52 OptiSpeed 104,2 dB(A)) simuláveis em domínio restrito; quatro tabelas secundárias (Excel 10/15, e400nb, SWIFT) disponíveis para análise fiel, mas integração energética bloqueada até cotejo primário/densidade/variantes e contabilidade no balanço. Não se recortam os picos à referência e não se apagam negativos. Domínio real/equivalente explícito, sem extrapolação nova. Os seis registros e saídas históricas são exatamente iguais nos perfis fixados antes da implementação.
+
+Dossier: [formulação](docs/eolica/FORMULACAO_POTENCIA_REFERENCIA_MAXIMA.md), [rastreabilidade](docs/eolica/RASTREABILIDAD_7_EQUIPOS.md), [validação](docs/eolica/VALIDACION_7_EQUIPOS.md), [resultados](docs/eolica/RESULTADOS_REGRESION.md). Para HANDOFF os caminhos são relativos à raiz do repositório. Pacote Work original preservado com sete CSV e fontes; validador `python -m tools.validate_wind_catalog` não transforma integridade numérica em certificação.
+
+110 testes novos passaram. Duas provas históricas foram delimitadas aos seis originais com autorização expressa, preservando asserções. Três guardias antigas que proíbem qualquer edição eólica foram identificadas; o resultado integral e o eventual ajuste autorizado estão em RESULTADOS_REGRESION.md. Pendência de rede para informes primários/API GitHub. Não sobrescrever nem reinterpretar entregas EMS anteriores com esta seção.

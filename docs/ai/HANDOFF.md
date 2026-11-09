@@ -139,3 +139,14 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - Piso 3C-2 — MPC de horizonte recedente (rama `ccr-2529baa8-16lz1j`; PR [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15), pendiente de auditoría): Entrega 10.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.
+
+
+## Missão eólica Codex — catálogo de sete equipamentos e potência de referência × pico
+
+Base verificada `10365c5478b4dd137906b58819cd7f71d8de9cea`, rama exclusiva `codex/eolica-siete-curvas-potencias`. Autorização explícita do usuário para ciência eólica; não é parte do Piso 3C-4 de Claude. Nenhum arquivo EMS alterado nesta implementação. Sem merge.
+
+Catálogo único com 13 entradas: três tabelas de fabricante (Vergnet C275, V47 de um gerador, V52 OptiSpeed 104,2 dB(A)) simuláveis em domínio restrito; quatro tabelas secundárias (Excel 10/15, e400nb, SWIFT) disponíveis para análise fiel, mas integração energética bloqueada até cotejo primário/densidade/variantes e contabilidade no balanço. Não se recortam os picos à referência e não se apagam negativos. Domínio real/equivalente explícito, sem extrapolação nova. Os seis registros e saídas históricas são exatamente iguais nos perfis fixados antes da implementação.
+
+Dossier: [formulação](../eolica/FORMULACAO_POTENCIA_REFERENCIA_MAXIMA.md), [rastreabilidade](../eolica/RASTREABILIDAD_7_EQUIPOS.md), [validação](../eolica/VALIDACION_7_EQUIPOS.md), [resultados](../eolica/RESULTADOS_REGRESION.md). Pacote Work original preservado com sete CSV e fontes; validador `python -m tools.validate_wind_catalog` não transforma integridade numérica em certificação.
+
+110 testes novos passaram. Duas provas históricas foram delimitadas aos seis originais com autorização expressa, preservando asserções. Três guardias antigas que proíbem qualquer edição eólica foram identificadas; o resultado integral e o eventual ajuste autorizado estão em RESULTADOS_REGRESION.md. Pendência de rede para informes primários/API GitHub. Não sobrescrever nem reinterpretar entregas EMS anteriores com esta seção.

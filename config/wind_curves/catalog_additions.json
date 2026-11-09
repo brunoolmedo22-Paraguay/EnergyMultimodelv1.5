@@ -1,0 +1,589 @@
+{
+  "Vergnet GEV MP C 275 kW": {
+    "spec": {
+      "manufacturer": "Vergnet",
+      "model": "GEV MP C 275 kW",
+      "rated_power_kw": 275,
+      "rotor_diameter_m": 32,
+      "swept_area_m2": 804.0,
+      "hub_height_m": null,
+      "hub_height_options_m": [
+        55,
+        60
+      ],
+      "wind_class_iec": "II a IV según configuración",
+      "cut_in_mps": 3.5,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 12.0,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": 25,
+      "recut_in_mps": null,
+      "reference_air_density_kg_m3": 1.225,
+      "power_regulation": "Pitch hidráulico",
+      "generator": "Asíncrono jaula de ardilla, dos velocidades, ABB",
+      "frequency_hz": [
+        50,
+        60
+      ],
+      "design_lifetime_years": null,
+      "notes": "LISTO PARA INCORPORACIÓN. Tabla oficial eléctrica a 1.225 kg/m³, dominio hasta 25 m/s y meseta 12..25 explícita. V nominal se deriva a 12 m/s; no se atribuye al fabricante como especificación publicada. No se asigna una clase individual entre II y IV: debe elegirse la configuración de sitio. Tabla: 275 kW a 12 m/s y hasta 25 m/s. El punto 25,275 representa la rama operativa, antes del disparo; SEEDS2 pone cero para v>=25. Frontera: tabla de potencia eléctrica del aerogenerador, medición exacta no explicitada. No deducir de la mención de transformador en gabinete que sus pérdidas están incluidas.",
+      "curve_peak_power_kw": 275,
+      "power_rating_basis": {
+        "kind": "manufacturer_nominal",
+        "relative_tolerance": 0.01
+      },
+      "operating_power_limit_kw": 275
+    },
+    "curve": {
+      "source_type": "manufacturer_table",
+      "reference_density_kg_m3": 1.225,
+      "min_wind_mps": 2.5,
+      "max_wind_mps": 25.0,
+      "density_correction": "equivalent_wind_speed",
+      "notes": "Sólo dominio publicado. No extrapolar. Tabla oficial eléctrica a 1.225 kg/m³, dominio hasta 25 m/s y meseta 12..25 explícita. V nominal se deriva a 12 m/s; no se atribuye al fabricante como especificación publicada.",
+      "csv": "vergnet275.csv",
+      "csv_sha256": "0b0a1665ade82a117fbaa496eaecb041f8643b01c50170116aa5f74a69b3cccc",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "curve_valid_wind_range_mps": [
+        2.5,
+        25.0
+      ],
+      "density_correction_applicability": "SEEDS2 equivalent-speed approximation; both hub and equivalent speed restricted to documented domain; not a certified density family."
+    },
+    "quality": {
+      "cut_in": "manufacturer_spec",
+      "rated_wind_speed": "derived_from_curve_first_rated_point",
+      "cut_out": "manufacturer_spec",
+      "power_curve": "exact_manufacturer_table"
+    },
+    "source": {
+      "document": "DC-11-00-01-EN_GEV_MP-C_275_kW.pdf",
+      "pages": [
+        7
+      ],
+      "reference": "DC-11-00-01-EN; pie 04.14; https://www.vergnet.com/wp-content/uploads/2023/06/DC-11-00-01-EN_GEV_MP-C_275_kW.pdf; SHA256=05e8d865be60bbb96e9968c96edc6ca221fc5879c25c3c4eab4439d89ea79efa",
+      "url": "https://www.vergnet.com/wp-content/uploads/2023/06/DC-11-00-01-EN_GEV_MP-C_275_kW.pdf",
+      "sha256": "05e8d865be60bbb96e9968c96edc6ca221fc5879c25c3c4eab4439d89ea79efa",
+      "page_pdf": 7
+    },
+    "power_boundary": {
+      "quantity": "manufacturer_electrical_power_curve",
+      "measurement_point": null,
+      "measurement_point_label": "Punto eléctrico exacto no informado",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": false,
+      "confidence": "measurement_point_not_provided"
+    },
+    "integration_status": "restricted_domain",
+    "schema_version": 2
+  },
+  "Vestas V47-660 kW": {
+    "spec": {
+      "manufacturer": "Vestas",
+      "model": "V47-660 kW",
+      "rated_power_kw": 660,
+      "rotor_diameter_m": 47,
+      "swept_area_m2": 1735.0,
+      "hub_height_m": null,
+      "hub_height_options_m": [
+        40,
+        45,
+        50,
+        55
+      ],
+      "wind_class_iec": null,
+      "cut_in_mps": 4,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 15,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": 25,
+      "recut_in_mps": 20,
+      "reference_air_density_kg_m3": 1.225,
+      "power_regulation": "OptiTip pitch + OptiSlip deslizamiento variable",
+      "generator": "Asíncrono OptiSlip, un generador, 690 V",
+      "frequency_hz": 50,
+      "design_lifetime_years": null,
+      "notes": "LISTO PARA INCORPORACIÓN. Tabla oficial de la versión de un generador, rho=1.225; rango 19..25 publicado explícitamente. No mezclar con V47-660/200. Curva tabulada calculada por el fabricante a partir de perfiles NACA63.600/FFA-W3 y TI=10%, viento medio 10 min a buje y normal al rotor. No es un ajuste teórico creado para esta misión. No confundir tabla calculada p.PDF12 con medición TWE de apéndice ni con variante de dos generadores p.PDF14. V nominal publicada 15 m/s (folleto p.PDF4): P(15)=657 kW (99.55%). Primera velocidad >=99% a 15; primer valor exactamente 660 a 17. Rearranque 20 m/s en p.PDF10 (impresa4). SEEDS2 registra el dato pero no simula histéresis; idóneo para balance energético estático, no para validar secuencias de parada/rearranque.",
+      "curve_peak_power_kw": 660,
+      "power_rating_basis": {
+        "kind": "manufacturer_nominal",
+        "relative_tolerance": 0.01
+      },
+      "operating_power_limit_kw": 660,
+      "variant": "single_generator_690V_50Hz"
+    },
+    "curve": {
+      "source_type": "manufacturer_table",
+      "reference_density_kg_m3": 1.225,
+      "min_wind_mps": 4.0,
+      "max_wind_mps": 25.0,
+      "density_correction": "equivalent_wind_speed",
+      "notes": "Sólo dominio publicado. No extrapolar. Tabla oficial de la versión de un generador, rho=1.225; rango 19..25 publicado explícitamente. No mezclar con V47-660/200.",
+      "csv": "vestas47.csv",
+      "csv_sha256": "3a7afbfe22b48409e3056f498973bc18217828e5face9c8826514e3760591171",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "curve_valid_wind_range_mps": [
+        4.0,
+        25.0
+      ],
+      "density_correction_applicability": "SEEDS2 equivalent-speed approximation; both hub and equivalent speed restricted to documented domain; not a certified density family."
+    },
+    "quality": {
+      "cut_in": "manufacturer_spec",
+      "rated_wind_speed": "manufacturer_spec",
+      "cut_out": "manufacturer_spec",
+      "power_curve": "exact_manufacturer_table"
+    },
+    "source": {
+      "document": "Vestas_V47.pdf",
+      "pages": [
+        12
+      ],
+      "reference": "943111.R4, 02-05-00; pág. impresa 6 = pág. PDF 12; https://sti2d.ecolelamache.org/ressources/EE/premiere/TP/serie%202/Vestas_V47.pdf; SHA256=0aaf05e8c558f936f671759744ca56ae6ca2f9c6e8f9186783ca18ab76f1cad1",
+      "url": "https://sti2d.ecolelamache.org/ressources/EE/premiere/TP/serie%202/Vestas_V47.pdf",
+      "sha256": "0aaf05e8c558f936f671759744ca56ae6ca2f9c6e8f9186783ca18ab76f1cad1",
+      "page_pdf": 12
+    },
+    "power_boundary": {
+      "quantity": "manufacturer_electrical_power_curve",
+      "measurement_point": null,
+      "measurement_point_label": "Punto eléctrico exacto no informado",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": false,
+      "confidence": "measurement_point_not_provided"
+    },
+    "integration_status": "restricted_domain",
+    "schema_version": 2
+  },
+  "Vestas V52-850 kW OptiSpeed": {
+    "spec": {
+      "manufacturer": "Vestas",
+      "model": "V52-850 kW OptiSpeed",
+      "rated_power_kw": 850,
+      "rotor_diameter_m": 52,
+      "swept_area_m2": 2124.0,
+      "hub_height_m": null,
+      "hub_height_options_m": [
+        40,
+        44,
+        49,
+        55,
+        60,
+        65
+      ],
+      "wind_class_iec": "IA (torres seleccionadas; otras combinaciones IIA/DIBt en p.4)",
+      "cut_in_mps": 4,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 17.0,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": 25,
+      "recut_in_mps": 20,
+      "reference_air_density_kg_m3": 1.225,
+      "power_regulation": "Pitch OptiTip y velocidad variable OptiSpeed",
+      "generator": "Asíncrono de rotor bobinado, OptiSpeed (DFIG), 690 V",
+      "frequency_hz": [
+        50,
+        60
+      ],
+      "design_lifetime_years": null,
+      "notes": "LISTO PARA INCORPORACIÓN. Tabla oficial a 1.225 kg/m³ y modo acústico 104.2 dB(A). Rango 18..25 expresamente constante. V nominal inferida, sin mezclar otras curvas acústicas. Curvas/tablas calculadas oficialmente con perfiles NACA63/FFA-W3. No son mediciones nuevas ni una curva genérica cúbica. Curva nominal seleccionada: ruido 104.2 dB(A), TI=10%, viento medio 10 minutos a buje perpendicular al plano del rotor. No usar tablas 103/102/101/100 dB(A). Frontera publicada p.PDF7: excluye pérdidas del transformador y cables de alta tensión. No reaplicar eficiencias de rotor/caja/generador. V nominal no fijada en la tabla seleccionada: primer >=99% a 15 m/s; primer valor exactamente 850 a 17 m/s. Se propone 17 derivada (criterio alcance exacto). Rearranque 20 m/s p.PDF6. El modelo actual no representa histéresis ni ventanas de control de 10 minutos.",
+      "curve_peak_power_kw": 850,
+      "power_rating_basis": {
+        "kind": "manufacturer_nominal",
+        "relative_tolerance": 0.01
+      },
+      "operating_power_limit_kw": 850,
+      "variant": "OptiSpeed_104.2_dBA"
+    },
+    "curve": {
+      "source_type": "manufacturer_table",
+      "reference_density_kg_m3": 1.225,
+      "min_wind_mps": 4.0,
+      "max_wind_mps": 25.0,
+      "density_correction": "equivalent_wind_speed",
+      "notes": "Sólo dominio publicado. No extrapolar. Tabla oficial a 1.225 kg/m³ y modo acústico 104.2 dB(A). Rango 18..25 expresamente constante. V nominal inferida, sin mezclar otras curvas acústicas.",
+      "csv": "vestas52.csv",
+      "csv_sha256": "5efdf48fdf02356ac8b1176437f83023d89ea7db5a78e43edbf9b584e11ca52f",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "curve_valid_wind_range_mps": [
+        4.0,
+        25.0
+      ],
+      "density_correction_applicability": "SEEDS2 equivalent-speed approximation; both hub and equivalent speed restricted to documented domain; not a certified density family."
+    },
+    "quality": {
+      "cut_in": "manufacturer_spec",
+      "rated_wind_speed": "derived_from_curve_first_rated_point",
+      "cut_out": "manufacturer_spec",
+      "power_curve": "exact_manufacturer_table"
+    },
+    "source": {
+      "document": "V52-850kWh%20Gen%20Spec-1-1.pdf",
+      "pages": [
+        8
+      ],
+      "reference": "946506 V10, 2008-10-08; https://mkwind.pl/uploads/filemanager/PDF/V52-850kWh%20Gen%20Spec-1-1.pdf; SHA256=39e52a04fd0733c0deef916e18f91d1c5edca1ea10a37e681a14a59b19f34263",
+      "url": "https://mkwind.pl/uploads/filemanager/PDF/V52-850kWh%20Gen%20Spec-1-1.pdf",
+      "sha256": "39e52a04fd0733c0deef916e18f91d1c5edca1ea10a37e681a14a59b19f34263",
+      "page_pdf": 8
+    },
+    "power_boundary": {
+      "quantity": "manufacturer_electrical_power_curve",
+      "measurement_point": "ground_controller_low_voltage_side_of_transformer",
+      "measurement_point_label": "Controlador a nivel de suelo, lado de baja tensión del transformador (p.PDF7)",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": false,
+      "confidence": "manufacturer_explicit"
+    },
+    "integration_status": "restricted_domain",
+    "schema_version": 2
+  },
+  "Bergey Excel 10": {
+    "schema_version": 2,
+    "integration_status": "curve_analysis_only",
+    "integration_limitation": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total.",
+    "spec": {
+      "manufacturer": "Bergey",
+      "model": "Excel 10",
+      "variant": null,
+      "rated_power_kw": 8.9,
+      "commercial_power_kw": null,
+      "curve_peak_power_kw": 12.555,
+      "operating_power_limit_kw": 12.555,
+      "power_rating_basis": {
+        "kind": "archive_reference_at_wind_speed",
+        "wind_speed_mps": 11.0,
+        "relative_tolerance": 0.01,
+        "verification_status": "pending_primary_document"
+      },
+      "rotor_diameter_m": 7,
+      "swept_area_m2": 38.48451000647496,
+      "hub_height_m": null,
+      "hub_height_options_m": [],
+      "wind_class_iec": null,
+      "cut_in_mps": 2.5,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 11.0,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": null,
+      "recut_in_mps": null,
+      "reference_air_density_kg_m3": null,
+      "power_regulation": null,
+      "generator": null,
+      "frequency_hz": null,
+      "design_lifetime_years": null,
+      "notes": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total. Cut-in e geometria segundo arquivo secundário; não aplicados à análise dos bins. Área derivada de πD²/4, não medida."
+    },
+    "curve": {
+      "csv": "BergeyExcel10_8.9kW_7.csv",
+      "csv_sha256": "794d45b30da9ae3745a46a37fda0e2256a8673262a8592f09805752932ad90b3",
+      "source_type": "third_party_archive_table_v1",
+      "reference_density_kg_m3": null,
+      "min_wind_mps": 0.5,
+      "max_wind_mps": 20.5,
+      "curve_valid_wind_range_mps": [
+        0.5,
+        20.5
+      ],
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "density_correction": "not_validated",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "quantity": "net_electrical_exchange",
+      "notes": "CSV secundário NREL/NatLabRockies intacto; Cp original preservado. Página arquivada atribui a ensaio, YAML diz theoretical: divergência não resolvida. Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total."
+    },
+    "quality": {
+      "power_curve": "archived_table_pending_primary_verification",
+      "cut_in": "secondary_archive",
+      "cut_out": "not_provided",
+      "rated_wind_speed": "secondary_archive",
+      "reference_density": "not_provided"
+    },
+    "source": {
+      "document": "SWCC-10-12-Summary-Report.pdf",
+      "pages": [],
+      "reference": "NREL/NatLabRockies e9e4ccc6a87f50c0c65d236154a2897e752c47c9; https://smallwindcertification.org/wp-content/uploads/2019/12/SWCC-10-12-Summary-Report.pdf",
+      "archive_url": "https://github.com/NatLabRockies/turbine-models/blob/e9e4ccc6a87f50c0c65d236154a2897e752c47c9/turbine_models/data/Distributed/BergeyExcel10_8.9kW_7.csv",
+      "archive_commit": "e9e4ccc6a87f50c0c65d236154a2897e752c47c9",
+      "archive_blob_sha": "26a6612097118cd03278726aa45d2d07d583818a",
+      "primary_url": "https://smallwindcertification.org/wp-content/uploads/2019/12/SWCC-10-12-Summary-Report.pdf",
+      "sha256": null,
+      "primary_verification": "blocked_network_403",
+      "archive_page": "https://natlabrockies.github.io/turbine-models/BergeyExcel10_8.9kW_7.html"
+    },
+    "power_boundary": {
+      "quantity": "archived_net_electrical_exchange",
+      "measurement_point": null,
+      "measurement_point_label": "Fronteira exata pendente de documento primário",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": null,
+      "confidence": "secondary_archive_only"
+    }
+  },
+  "Bergey Excel 15": {
+    "schema_version": 2,
+    "integration_status": "curve_analysis_only",
+    "integration_limitation": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total.",
+    "spec": {
+      "manufacturer": "Bergey",
+      "model": "Excel 15",
+      "variant": null,
+      "rated_power_kw": 15.6,
+      "commercial_power_kw": null,
+      "curve_peak_power_kw": 20.611,
+      "operating_power_limit_kw": 20.611,
+      "power_rating_basis": {
+        "kind": "archive_reference_at_wind_speed",
+        "wind_speed_mps": 11.0,
+        "relative_tolerance": 0.01,
+        "verification_status": "pending_primary_document"
+      },
+      "rotor_diameter_m": 9.6,
+      "swept_area_m2": 72.38229473870884,
+      "hub_height_m": null,
+      "hub_height_options_m": [],
+      "wind_class_iec": null,
+      "cut_in_mps": 2.5,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 11.0,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": null,
+      "recut_in_mps": null,
+      "reference_air_density_kg_m3": null,
+      "power_regulation": null,
+      "generator": null,
+      "frequency_hz": null,
+      "design_lifetime_years": null,
+      "notes": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total. Cut-in e geometria segundo arquivo secundário; não aplicados à análise dos bins. Área derivada de πD²/4, não medida."
+    },
+    "curve": {
+      "csv": "BergeyExcel15_15.6kW_9.6.csv",
+      "csv_sha256": "d5eb6ccf68ba9de4e30fd01dd5bb481c097eb141ca1c04d94d58707176d82cc5",
+      "source_type": "third_party_archive_table_v1",
+      "reference_density_kg_m3": null,
+      "min_wind_mps": 1.0,
+      "max_wind_mps": 16.47,
+      "curve_valid_wind_range_mps": [
+        1.0,
+        16.47
+      ],
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "density_correction": "not_validated",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "quantity": "net_electrical_exchange",
+      "notes": "CSV secundário NREL/NatLabRockies intacto; Cp original preservado. Página arquivada atribui a ensaio, YAML diz theoretical: divergência não resolvida. Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total."
+    },
+    "quality": {
+      "power_curve": "archived_table_pending_primary_verification",
+      "cut_in": "secondary_archive",
+      "cut_out": "not_provided",
+      "rated_wind_speed": "secondary_archive",
+      "reference_density": "not_provided"
+    },
+    "source": {
+      "document": "LPP-16-05-2019-Summary-Report.pdf",
+      "pages": [],
+      "reference": "NREL/NatLabRockies e9e4ccc6a87f50c0c65d236154a2897e752c47c9; http://smallwindcertification.org/wp-content/uploads/2019/06/LPP-16-05-2019-Summary-Report.pdf",
+      "archive_url": "https://github.com/NatLabRockies/turbine-models/blob/e9e4ccc6a87f50c0c65d236154a2897e752c47c9/turbine_models/data/Distributed/BergeyExcel15_15.6kW_9.6.csv",
+      "archive_commit": "e9e4ccc6a87f50c0c65d236154a2897e752c47c9",
+      "archive_blob_sha": "be89d146525221f0d13d1c0eb665783e8c7735ac",
+      "primary_url": "http://smallwindcertification.org/wp-content/uploads/2019/06/LPP-16-05-2019-Summary-Report.pdf",
+      "sha256": null,
+      "primary_verification": "blocked_network_403",
+      "archive_page": "https://natlabrockies.github.io/turbine-models/BergeyExcel15_15.6kW_9.6.html"
+    },
+    "power_boundary": {
+      "quantity": "archived_net_electrical_exchange",
+      "measurement_point": null,
+      "measurement_point_label": "Fronteira exata pendente de documento primário",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": null,
+      "confidence": "secondary_archive_only"
+    }
+  },
+  "Kestrel e400nb": {
+    "schema_version": 2,
+    "integration_status": "curve_analysis_only",
+    "integration_limitation": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total.",
+    "spec": {
+      "manufacturer": "Kestrel (fabricante legal não confirmado)",
+      "model": "e400nb",
+      "variant": null,
+      "rated_power_kw": 2.5,
+      "commercial_power_kw": null,
+      "curve_peak_power_kw": 3.025,
+      "operating_power_limit_kw": 3.025,
+      "power_rating_basis": {
+        "kind": "archive_reference_at_wind_speed",
+        "wind_speed_mps": 11.0,
+        "relative_tolerance": 0.01,
+        "verification_status": "pending_primary_document"
+      },
+      "rotor_diameter_m": 4,
+      "swept_area_m2": 12.566370614359172,
+      "hub_height_m": null,
+      "hub_height_options_m": [],
+      "wind_class_iec": null,
+      "cut_in_mps": 4,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 11.0,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": null,
+      "recut_in_mps": null,
+      "reference_air_density_kg_m3": null,
+      "power_regulation": null,
+      "generator": null,
+      "frequency_hz": null,
+      "design_lifetime_years": null,
+      "notes": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total. Cut-in e geometria segundo arquivo secundário; não aplicados à análise dos bins. Área derivada de πD²/4, não medida."
+    },
+    "curve": {
+      "csv": "Kestrele400nb_2.5kW_4.csv",
+      "csv_sha256": "4f6f8be33910a653e2ba115cd27865ce7a1b4ca9462da51bea1a522dc48fcfc5",
+      "source_type": "third_party_archive_table_v1",
+      "reference_density_kg_m3": null,
+      "min_wind_mps": 0.59,
+      "max_wind_mps": 19.49,
+      "curve_valid_wind_range_mps": [
+        0.59,
+        19.49
+      ],
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "density_correction": "not_validated",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "quantity": "net_electrical_exchange",
+      "notes": "CSV secundário NREL/NatLabRockies intacto; Cp original preservado. Página arquivada atribui a ensaio, YAML diz theoretical: divergência não resolvida. Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total."
+    },
+    "quality": {
+      "power_curve": "archived_table_pending_primary_verification",
+      "cut_in": "secondary_archive",
+      "cut_out": "not_provided",
+      "rated_wind_speed": "secondary_archive",
+      "reference_density": "not_provided"
+    },
+    "source": {
+      "document": "Summary-Report-10-16-2020.pdf",
+      "pages": [],
+      "reference": "NREL/NatLabRockies e9e4ccc6a87f50c0c65d236154a2897e752c47c9; http://smallwindcertification.org/wp-content/uploads/2020/04/Summary-Report-10-16-2020.pdf",
+      "archive_url": "https://github.com/NatLabRockies/turbine-models/blob/e9e4ccc6a87f50c0c65d236154a2897e752c47c9/turbine_models/data/Distributed/Kestrele400nb_2.5kW_4.csv",
+      "archive_commit": "e9e4ccc6a87f50c0c65d236154a2897e752c47c9",
+      "archive_blob_sha": "3eddcb6ea68c9c2ddc7595f3b203a0136950aa2e",
+      "primary_url": "http://smallwindcertification.org/wp-content/uploads/2020/04/Summary-Report-10-16-2020.pdf",
+      "sha256": null,
+      "primary_verification": "blocked_network_403",
+      "archive_page": "https://natlabrockies.github.io/turbine-models/Kestrele400nb_2.5kW_4.html"
+    },
+    "power_boundary": {
+      "quantity": "archived_net_electrical_exchange",
+      "measurement_point": null,
+      "measurement_point_label": "Fronteira exata pendente de documento primário",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": null,
+      "confidence": "secondary_archive_only"
+    }
+  },
+  "SWIFT": {
+    "schema_version": 2,
+    "integration_status": "curve_analysis_only",
+    "integration_limitation": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total.",
+    "spec": {
+      "manufacturer": "Não confirmado (arquivo SWIFT)",
+      "model": "SWIFT",
+      "variant": null,
+      "rated_power_kw": 1,
+      "commercial_power_kw": null,
+      "curve_peak_power_kw": 1.43,
+      "operating_power_limit_kw": 1.43,
+      "power_rating_basis": {
+        "kind": "archive_reference_at_wind_speed",
+        "wind_speed_mps": 11.0,
+        "relative_tolerance": 0.01,
+        "verification_status": "pending_primary_document"
+      },
+      "rotor_diameter_m": 2.1,
+      "swept_area_m2": 3.463605900582747,
+      "hub_height_m": null,
+      "hub_height_options_m": [],
+      "wind_class_iec": null,
+      "cut_in_mps": 3.4,
+      "cut_in_range_mps": null,
+      "rated_wind_speed_mps": 11.0,
+      "rated_wind_speed_range_mps": null,
+      "cut_out_mps": null,
+      "recut_in_mps": null,
+      "reference_air_density_kg_m3": null,
+      "power_regulation": null,
+      "generator": null,
+      "frequency_hz": null,
+      "design_lifetime_years": null,
+      "notes": "Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total. Cut-in e geometria segundo arquivo secundário; não aplicados à análise dos bins. Área derivada de πD²/4, não medida."
+    },
+    "curve": {
+      "csv": "SWIFT_1kW_2.1.csv",
+      "csv_sha256": "d151168e38e2798f60bcc0689610c8fc5e43257361409df4bf5d8d03e2705d57",
+      "source_type": "third_party_archive_table_v1",
+      "reference_density_kg_m3": null,
+      "min_wind_mps": 0.54,
+      "max_wind_mps": 23.99,
+      "curve_valid_wind_range_mps": [
+        0.54,
+        23.99
+      ],
+      "domain_policy": "reject_outside_documented_domain_v1",
+      "density_correction": "not_validated",
+      "units": {
+        "wind_speed": "m/s",
+        "power": "kW"
+      },
+      "quantity": "net_electrical_exchange",
+      "notes": "CSV secundário NREL/NatLabRockies intacto; Cp original preservado. Página arquivada atribui a ensaio, YAML diz theoretical: divergência não resolvida. Somente análise da curva arquivada: relatório primário/variante e densidade não verificados; integração energética bloqueada. Valores negativos preservados como importação líquida observada, sem inferir o consumo interno total."
+    },
+    "quality": {
+      "power_curve": "archived_table_pending_primary_verification",
+      "cut_in": "secondary_archive",
+      "cut_out": "not_provided",
+      "rated_wind_speed": "secondary_archive",
+      "reference_density": "not_provided"
+    },
+    "source": {
+      "document": "56499.pdf",
+      "pages": [],
+      "reference": "NREL/NatLabRockies e9e4ccc6a87f50c0c65d236154a2897e752c47c9; https://www.nrel.gov/docs/fy13osti/56499.pdf",
+      "archive_url": "https://github.com/NatLabRockies/turbine-models/blob/e9e4ccc6a87f50c0c65d236154a2897e752c47c9/turbine_models/data/Distributed/SWIFT_1kW_2.1.csv",
+      "archive_commit": "e9e4ccc6a87f50c0c65d236154a2897e752c47c9",
+      "archive_blob_sha": "03cfa498ca79d76ed9aff60a681ea3abbdb4a210",
+      "primary_url": "https://www.nrel.gov/docs/fy13osti/56499.pdf",
+      "sha256": null,
+      "primary_verification": "blocked_network_403",
+      "archive_page": "https://natlabrockies.github.io/turbine-models/SWIFT_1kW_2.1.html"
+    },
+    "power_boundary": {
+      "quantity": "archived_net_electrical_exchange",
+      "measurement_point": null,
+      "measurement_point_label": "Fronteira exata pendente de documento primário",
+      "internal_turbine_losses_reapplied": false,
+      "downstream_grid_losses_included": null,
+      "confidence": "secondary_archive_only"
+    }
+  }
+}

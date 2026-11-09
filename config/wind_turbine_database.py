@@ -956,6 +956,38 @@ for _key, _boundary in _POWER_BOUNDARY.items():
 
 
 
+# The original six entries above are intentionally unchanged (including metadata).
+HISTORICAL_TURBINE_KEYS = tuple(TURBINE_DB)
+
+
+def _load_curve_additions() -> None:
+    import csv
+    import hashlib
+    import json
+    from pathlib import Path
+
+    directory = Path(__file__).with_name("wind_curves")
+    additions = json.loads((directory / "catalog_additions.json").read_text(encoding="utf-8"))
+    for key, entry in additions.items():
+        curve = entry["curve"]
+        path = directory / curve["csv"]
+        if hashlib.sha256(path.read_bytes()).hexdigest() != curve["csv_sha256"]:
+            raise ValueError(f"{key}: SHA-256 da curva não confere")
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            reader = csv.reader(stream)
+            header = next(reader)
+            expected = (["Wind Speed [m/s]", "Power [kW]", "Cp [-]"]
+                        if entry["integration_status"] == "curve_analysis_only"
+                        else ["wind_speed_mps", "power_kw"])
+            if header != expected:
+                raise ValueError(f"{key}: unidades/cabeçalho da curva inválidos")
+            curve["points"] = [(float(row[0]), float(row[1])) for row in reader]
+        TURBINE_DB[key] = entry
+
+
+_load_curve_additions()
+
+
 # ---------------------------------------------------------------------------
 # API de la base de datos
 # ---------------------------------------------------------------------------
@@ -1004,6 +1036,10 @@ def catalog_summary(key: str) -> dict:
         "manufacturer": spec["manufacturer"],
         "model": spec["model"],
         "rated_power_kw": spec["rated_power_kw"],
+        "curve_peak_power_kw": spec.get("curve_peak_power_kw", max(p for _, p in entry["curve"]["points"])),
+        "power_rating_basis": spec.get("power_rating_basis", {"kind": "legacy_manufacturer_nominal"}),
+        "curve_valid_wind_range_mps": entry["curve"].get("curve_valid_wind_range_mps"),
+        "integration_status": entry.get("integration_status", "legacy"),
         "rotor_diameter_m": spec["rotor_diameter_m"],
         "swept_area_m2": spec["swept_area_m2"],
         "specific_power_w_m2": specific_power_w_m2(key),
@@ -1020,21 +1056,97 @@ def catalog_summary(key: str) -> dict:
     }
 
 
-def validate_database() -> List[str]:
-    """Valida invariantes basicas del catalogo. Retorna una lista de errores."""
-    errors: List[str] = []
-    for key, entry in TURBINE_DB.items():
-        spec = entry.get("spec", {})
-        curve = entry.get("curve", {})
-        points = curve.get("points", [])
+def validate_turbine_entry(entry: dict) -> List[str]:
+    """Validate the versioned contract; unknown facts remain unknown, never defaults."""
+    import math
+    errors = []
+    spec, curve = entry.get("spec", {}), entry.get("curve", {})
+    try:
+        points = curve["points"]
+        if len(points) < 2 or any(len(p) != 2 for p in points):
+            raise ValueError()
+        speeds, powers = zip(*points)
+        if not all(math.isfinite(float(x)) for x in (*speeds, *powers)):
+            raise ValueError()
+        if min(speeds) < 0 or any(b <= a for a, b in zip(speeds, speeds[1:])):
+            errors.append("velocidades não estritamente crescentes/não negativas")
+        if curve.get("units") != {"wind_speed": "m/s", "power": "kW"}:
+            errors.append("unidades devem ser m/s e kW")
+        if curve.get("curve_valid_wind_range_mps") != [speeds[0], speeds[-1]]:
+            errors.append("domínio deve coincidir com os extremos documentados")
+        if curve.get("domain_policy") != "reject_outside_documented_domain_v1":
+            errors.append("política de domínio ausente/inválida")
+        ref = float(spec["rated_power_kw"])
+        peak = float(spec["curve_peak_power_kw"])
+        limit = float(spec["operating_power_limit_kw"])
+        if not all(math.isfinite(x) and x > 0 for x in (ref, peak, limit)):
+            errors.append("potências de referência/pico/limite inválidas")
+        if peak != max(powers) or limit != peak:
+            errors.append("pico/limite contradizem a curva aplicável")
+        analysis = entry.get("integration_status") == "curve_analysis_only"
+        area = float(spec["swept_area_m2"])
+        if not math.isfinite(area) or area <= 0:
+            errors.append("área do rotor conhecida/positiva obrigatória")
+        if min(powers) < 0 and not analysis:
+            errors.append("curva com importações requer análise separada; integração pendente")
+        if min(powers) < 0 and curve.get("quantity") != "net_electrical_exchange":
+            errors.append("negativos exigem contabilidade de intercâmbio líquido")
+        basis = spec["power_rating_basis"]
+        if basis["kind"] == "manufacturer_nominal":
+            tolerance = basis["relative_tolerance"]
+            if not math.isfinite(tolerance) or not 0 <= tolerance <= 0.03:
+                errors.append("tolerância nominal inválida")
+            elif abs(peak - ref) / ref > tolerance:
+                errors.append("curva não alcança nominal na tolerância relativa documentada")
+        elif basis["kind"] == "documented_reference_at_wind_speed":
+            from numpy import interp
+            vref, tolerance = float(basis["wind_speed_mps"]), float(basis["relative_tolerance"])
+            if not math.isfinite(vref) or not speeds[0] <= vref <= speeds[-1]:
+                errors.append("velocidade de referência fora da curva")
+            elif not math.isfinite(tolerance) or not 0 <= tolerance <= 0.03:
+                errors.append("tolerância de referência inválida")
+            elif abs(float(interp(vref, speeds, powers)) - ref) / ref > tolerance:
+                errors.append("curva não reproduz a referência na velocidade declarada")
+        elif basis["kind"] == "archive_reference_at_wind_speed":
+            if not analysis or basis.get("verification_status") != "pending_primary_document":
+                errors.append("referência secundária sem aprovação primária: apenas análise")
+            if not speeds[0] <= float(basis["wind_speed_mps"]) <= speeds[-1]:
+                errors.append("velocidade de referência fora da curva")
+        else:
+            errors.append("definição de potência desconhecida")
+        if not analysis:
+            rho = curve.get("reference_density_kg_m3")
+            if rho is None or not math.isfinite(rho) or rho <= 0:
+                errors.append("densidade de referência conhecida/positiva obrigatória")
+            for field in ("cut_in_mps", "cut_out_mps"):
+                value = spec.get(field)
+                if value is not None and (not math.isfinite(value) or value < 0):
+                    errors.append(f"{field} inválido")
+            if (spec.get("cut_in_mps") is not None and spec.get("cut_out_mps") is not None
+                    and spec["cut_in_mps"] >= spec["cut_out_mps"]):
+                errors.append("cut-in deve preceder cut-out")
+            if curve.get("density_correction") != "equivalent_wind_speed":
+                errors.append("correção de densidade não validada")
+        if analysis and not entry.get("integration_limitation"):
+            errors.append("análise sem declaração de limitação")
+    except (KeyError, TypeError, ValueError, OverflowError):
+        errors.append("curva/parâmetros ausentes ou não finitos")
+    return errors
 
+
+def validate_database() -> List[str]:
+    """Legacy checks preserved for the six original entries; v2 uses relative semantics."""
+    errors = []
+    for key, entry in TURBINE_DB.items():
+        if entry.get("schema_version") == 2:
+            errors.extend(f"{key}: {e}" for e in validate_turbine_entry(entry))
+            continue
+        spec, curve = entry.get("spec", {}), entry.get("curve", {})
+        points = curve.get("points", [])
         if not points:
             errors.append(f"{key}: curva vacia")
             continue
-
-        speeds = [float(v) for v, _ in points]
-        powers = [float(p) for _, p in points]
-
+        speeds, powers = zip(*points)
         if any(b <= a for a, b in zip(speeds, speeds[1:])):
             errors.append(f"{key}: velocidades no estrictamente crecientes")
         if min(powers) < 0:
@@ -1043,7 +1155,6 @@ def validate_database() -> List[str]:
             errors.append(f"{key}: curva supera Pnom en mas de 1%")
         if abs(max(powers) - float(spec["rated_power_kw"])) > max(10.0, float(spec["rated_power_kw"]) * 0.01):
             errors.append(f"{key}: la curva no alcanza aproximadamente Pnom")
-
     return errors
 
 
@@ -1051,6 +1162,8 @@ __all__ = [
     "CUSTOM_KEY",
     "DEFAULT_REFERENCE_AIR_DENSITY",
     "TURBINE_DB",
+    "HISTORICAL_TURBINE_KEYS",
+    "validate_turbine_entry",
     "list_manufacturers",
     "list_models",
     "get_turbine",

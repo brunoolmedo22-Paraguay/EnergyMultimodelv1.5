@@ -481,6 +481,10 @@ def missing_required(eq: dict) -> list[str]:
     if kind not in PARAM_SPECS:
         return []
     out = [s.label for s in PARAM_SPECS[kind] if s.required and params.get(s.name) is None]
+    if kind == "wind":
+        ref = wind_references().get(params.get("reference"))
+        if ref and ref.summary.get("Integração") == "curve_analysis_only":
+            out.append(ref.summary["Limitação"])
     if kind == "battery":
         from .derived import battery_derived
         d = battery_derived(params)

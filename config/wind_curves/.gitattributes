@@ -1,0 +1,2 @@
+# Preserve auditable CSV bytes and their published hashes, including original CRLF.
+*.csv -text whitespace=cr-at-eol

@@ -143,6 +143,17 @@ def _fmt(value, unit: str = "", decimals: int = 1, missing: str = "Não informad
     return f"{float(value):,.{decimals}f}{(' ' + unit) if unit else ''}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def format_wind_power(power_kw: float) -> str:
+    return _fmt(power_kw, "kW", 3) if abs(power_kw) < 1000 else _fmt(power_kw / 1000, "MW", 2)
+
+
+def _rating_description(spec: dict) -> str:
+    basis = spec.get("power_rating_basis", {})
+    if basis.get("kind") == "archive_reference_at_wind_speed":
+        return f"Referência do arquivo a {basis['wind_speed_mps']:g} m/s; confirmação primária pendente"
+    return "Potência nominal declarada pelo fabricante"
+
+
 def _fmt_list(values, unit="m") -> str:
     if not values:
         return "Não informado"
@@ -303,13 +314,15 @@ def _render_simulation() -> None:
             spec = entry["spec"]
             st.markdown(
                 f'<div class="wind-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.5rem">'
-                f'<div class="wind-spec"><small>Potência unitária</small><b>{_fmt(spec["rated_power_kw"]/1000,"MW",2)}</b></div>'
-                f'<div class="wind-spec"><small>Potência instalada</small><b>{_fmt(spec["rated_power_kw"]*count/1000,"MW",2)}</b></div>'
+                f'<div class="wind-spec"><small>Referência unitária</small><b>{format_wind_power(spec["rated_power_kw"])}</b></div>'
+                f'<div class="wind-spec"><small>Referência instalada</small><b>{format_wind_power(spec["rated_power_kw"]*count)}</b></div>'
                 f'<div class="wind-spec"><small>Rotor</small><b>{_fmt(spec["rotor_diameter_m"],"m",0)}</b></div>'
                 f'<div class="wind-spec"><small>ρ ref.</small><b>{_fmt(entry["curve"].get("reference_density_kg_m3"),"kg/m³",3)}</b></div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
+            if entry.get("integration_status") == "curve_analysis_only":
+                st.warning(entry["integration_limitation"] + " Use Catálogo de aerogeradores para análise.")
             st.markdown('<div class="wind-note" style="margin-top:.55rem"><b>Fronteira de perdas.</b> Não se aplicam eficiências adicionais de rotor, caixa ou gerador sobre a curva do fabricante. O switch acima é o único desconto elétrico externo da V1.</div>', unsafe_allow_html=True)
 
         with st.container(border=True):
@@ -452,6 +465,8 @@ def _render_simulation() -> None:
 def _quality_label(value: str | None) -> str:
     mapping = {
         "manufacturer_spec": "Fabricante",
+        "archived_table_pending_primary_verification": "Tabela secundária arquivada · confirmação primária pendente",
+        "secondary_archive": "Arquivo técnico secundário",
         "manufacturer_range; lower_bound_used_by_model": "Faixa do fabricante · limite inferior na V1",
         "manufacturer_range; upper_bound_used_as_representative": "Faixa do fabricante · limite superior na V1",
         "derived_from_curve": "Derivado da curva",
@@ -480,7 +495,7 @@ def _render_catalog() -> None:
             st.caption(spec.get("notes") or "")
             st.markdown(
                 f'<div class="wind-grid">'
-                f'<div class="wind-spec"><small>Potência nominal</small><b>{_fmt(spec["rated_power_kw"]/1000,"MW",2)}</b></div>'
+                f'<div class="wind-spec"><small>Potência nominal / referência</small><b>{format_wind_power(spec["rated_power_kw"])}</b></div>'
                 f'<div class="wind-spec"><small>Rotor</small><b>{_fmt(spec["rotor_diameter_m"],"m",0)}</b></div>'
                 f'<div class="wind-spec"><small>Área varrida</small><b>{_fmt(spec["swept_area_m2"],"m²",0)}</b></div>'
                 f'<div class="wind-spec"><small>Potência específica</small><b>{_fmt(specific_power_w_m2(selected),"W/m²",0)}</b></div>'
@@ -498,13 +513,36 @@ def _render_catalog() -> None:
             st.write(f"**Controle:** {spec.get('power_regulation') or 'Não informado'}")
             st.write(f"**Densidade de referência:** {_fmt(curve.get('reference_density_kg_m3'), 'kg/m³', 3)}")
             st.write(f"**Fonte da curva:** {_quality_label(quality.get('power_curve'))}")
-            st.write(f"**Grandeza da curva:** potência elétrica do aerogerador")
+            st.write("**Grandeza da curva:** " + ("intercâmbio elétrico líquido arquivado" if entry.get("integration_status") == "curve_analysis_only" else "potência elétrica do aerogerador"))
+            st.write(f"**Pico documentado:** {format_wind_power(spec.get('curve_peak_power_kw', max(p for _, p in curve['points'])))}")
+            if entry.get("schema_version") == 2:
+                st.write(f"**Base da referência:** {_rating_description(spec)}")
+                st.write(f"**Domínio válido:** {curve['curve_valid_wind_range_mps']} m/s; fora dele, condição não modelada.")
+                st.caption("Limite de curva utilizável não é um limite mecânico/térmico certificado.")
+            st.write(f"**Referência documental:** {source.get('reference')}")
             st.write(f"**Ponto de medição:** {boundary.get('measurement_point_label', 'Não explicitado')}")
             st.write(f"**Documento:** `{source.get('document')}` · pág. {', '.join(map(str, source.get('pages', [])))}")
             if selected == "Nordex N117/2400":
                 st.success("Este modelo possui tabela do fabricante para múltiplas densidades (1,000–1,300 kg/m³); a simulação usa interpolação 2D dentro desse intervalo.")
             elif curve.get("density_correction") == "equivalent_wind_speed":
                 st.info("A curva é corrigida por velocidade equivalente com base na densidade do ar.")
+
+    if entry.get("integration_status") == "curve_analysis_only":
+        from models.wind_model import analyze_wind_curve
+        st.warning(entry["integration_limitation"])
+        st.caption("Análise das coordenadas originais: sem correção atmosférica, cut-in/cut-out ou previsão de energia do sítio. Valores negativos são importação líquida observada; não medem todos os auxiliares internos.")
+        lo, hi = curve["curve_valid_wind_range_mps"]
+        speed = st.number_input("Coordenada de vento da curva [m/s]", min_value=float(lo), max_value=float(hi), value=float(lo), key=f"curve_speed_{selected}")
+        count = st.number_input("Unidades na análise de curva", min_value=1, value=1, step=1)
+        loss = st.checkbox("Desconto externo de 3% sobre geração na análise", value=False)
+        frame, analysis = analyze_wind_curve(selected, np.array([speed]), timestep_hours=1., turbine_count=int(count), apply_generic_grid_loss=loss)
+        st.dataframe(frame.rename(columns={"curve_wind_speed_mps": "Vento da curva [m/s]",
+            "curve_net_power_unit_kw": "Potência líquida unitária [kW]", "generation_power_kw": "Geração [kW]",
+            "observed_auxiliary_import_kw": "Importação auxiliar observada [kW]", "net_exchange_before_external_loss_kw": "Intercâmbio antes de perdas [kW]",
+            "external_generation_loss_kw": "Perda externa de geração [kW]", "net_exchange_kw": "Intercâmbio após perdas [kW]"}), hide_index=True, width="stretch")
+        st.caption("Intervalo analítico de 1 h, sem previsão operacional. " + analysis["scope"])
+        st.write(f"Energia gerada: {analysis['energy_generated_kwh']:.3f} kWh · consumida: {analysis['energy_consumed_kwh']:.3f} kWh · líquida: {analysis['energy_net_kwh']:.3f} kWh")
+        st.write(f"FC da análise: {100 * analysis['capacity_factor_generated']:.2f}% · denominador: potência de referência × quantidade × 1 h; pode superar 100%.")
 
     c1, c2 = st.columns([1.4, .6], gap="large")
     with c1:
