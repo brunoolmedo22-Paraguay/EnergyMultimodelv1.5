@@ -26,6 +26,7 @@ toda entrada de janela herda o mesmo PCC; observações do PCC numa missão isol
 from __future__ import annotations
 
 import dataclasses
+import math
 from dataclasses import dataclass, replace
 from datetime import timedelta
 
@@ -317,15 +318,13 @@ class ControladorMPCConectado(ControladorMPC):
     # ---------------------------------------------------------------- missão
     def finalizar(self, *, ambiente: dict | None = None):
         rm = super().finalizar(ambiente=ambiente)
-        ind = rm.conteudo.indicadores_acumulados
-        chaves = ("E_importada_kWh", "E_exportada_kWh", "E_importada_programada_kWh", "E_exportada_programada_kWh",
-                  "E_desvio_positivo_kWh", "E_desvio_negativo_kWh", "gasto_importacao_R", "receita_exportacao_R",
-                  "custo_desvio_rede_R")
+        totais, c = totais_rede_esperados(rm)
+        if c:
+            raise ContratoInvalido(c)
         rr = selar(RegistroMissaoRede3C3(ESQUEMA_3C3, FORMULACAO_3C3, self.cfg.identidade.missao_uid, rm.selo,
                                          rm.impressao_deterministica, hash_entrada_3c3(self.modelo_rede),
                                          hash_configuracao_rede(self.cfg_rede), self.modelo_rede.pcc.modo,
-                                         tuple(a.selo for a in self.anexos_3c3),
-                                         {k: float(ind.get(k, 0.0)) for k in chaves}))
+                                         tuple(a.selo for a in self.anexos_3c3), totais))
         self.registro_rede = rr
         if self.diretorio is not None:
             from ..mpc.persistencia import gravar_exclusivo
@@ -339,18 +338,87 @@ class ControladorMPCConectado(ControladorMPC):
                                         anexos_3c3=tuple(self.anexos_3c3), registro_rede=self.registro_rede)
 
 
+METRICAS_REDE = ("E_importada_kWh", "E_exportada_kWh", "E_importada_programada_kWh", "E_exportada_programada_kWh",
+                 "E_desvio_positivo_kWh", "E_desvio_negativo_kWh", "gasto_importacao_R", "receita_exportacao_R",
+                 "custo_desvio_rede_R")
+"""Conjunto EXATO de métricas do ``RegistroMissaoRede3C3`` no esquema ``ESQUEMA_3C3`` = 1 (C-03): todas obrigatórias,
+nenhuma outra admitida."""
+
+
+def _real_finito(v) -> bool:
+    return type(v) in (int, float) and math.isfinite(v)
+
+
+def totais_rede_esperados(rm) -> tuple[dict[str, float], list[Constatacao]]:
+    """Totais de rede que o registro de missão IMPÕE (C-03), lidos de ``indicadores_acumulados`` (Σ das janelas).
+    Ausência NÃO vira zero: uma métrica ausente com intervalos aplicados é inconsistência. Única regra explícita: com
+    ``intervalos_aplicados = 0`` nenhuma janela executou e nenhum intercâmbio foi aplicado nem liquidado ⇒ cada métrica
+    é exatamente 0 (fato derivado da contagem de intervalos, não valor padrão)."""
+    ind = rm.conteudo.indicadores_acumulados
+    n = rm.conteudo.intervalos_aplicados
+    out: dict[str, float] = {}
+    c: list[Constatacao] = []
+    for k in METRICAS_REDE:
+        if k in ind:
+            if not _real_finito(ind[k]):
+                c.append(erro("indicador_rede_invalido", f"missao.indicadores_acumulados[{k}]",
+                              f"{ind[k]!r}: exigido real finito."))
+            else:
+                out[k] = float(ind[k])
+        elif n == 0:
+            out[k] = 0.0
+        else:
+            c.append(erro("indicador_rede_ausente_no_registro_missao", f"missao.indicadores_acumulados[{k}]",
+                          f"{n} intervalo(s) aplicado(s) e a métrica não foi acumulada: ausência não é zero."))
+    return out, c
+
+
 def verificar_registro_rede(rr: RegistroMissaoRede3C3, rm, anexos) -> list[Constatacao]:
+    """C-03: esquema, perfil e rótulo EXATOS; conjunto COMPLETO de métricas (``METRICAS_REDE``; ausentes e inesperadas
+    reprovadas), valores reais finitos e IGUAIS aos impostos pelo registro de missão (``totais_rede_esperados``, sem
+    ausência como zero); selo; vínculo ao ``RegistroMissaoMPC``; sequência dos anexos."""
     out = []
-    if not selo_confere(rr):
+    if not isinstance(rr, RegistroMissaoRede3C3):
+        return [erro("registro_rede_invalido", "missao_rede", f"Esperado RegistroMissaoRede3C3; {type(rr).__name__}.")]
+    try:
+        selo_ok = selo_confere(rr)
+    except (TypeError, ValueError) as exc:          # NaN/Inf/objeto não serializável no JSON canônico
+        selo_ok = False
+        out.append(erro("registro_rede_nao_serializavel", "missao_rede", f"{type(exc).__name__}: {exc}"))
+    if not selo_ok:
         out.append(erro("registro_rede_adulterado", "missao_rede.selo", "Selo não confere."))
+    if type(rr.esquema) is not int or rr.esquema != ESQUEMA_3C3:
+        out.append(erro("registro_rede_esquema_incompativel", "missao_rede.esquema",
+                        f"{rr.esquema!r}: exigido {ESQUEMA_3C3} (sem migração implícita)."))
+    if rr.perfil != FORMULACAO_3C3:
+        out.append(erro("registro_rede_perfil_incompativel", "missao_rede.perfil",
+                        f"{rr.perfil!r}: exigido {FORMULACAO_3C3!r}."))
+    if rr.rotulo != ROTULO_REDE:
+        out.append(erro("registro_rede_rotulo_alterado", "missao_rede.rotulo", "Rótulo de escopo científico alterado."))
     if rr.selo_registro_missao != rm.selo or rr.impressao_missao != rm.impressao_deterministica:
         out.append(erro("registro_rede_de_outra_missao", "missao_rede", "Não vinculado ao registro da missão."))
     if rr.selos_anexos_3c3 != tuple(a.selo for a in anexos):
         out.append(erro("anexos_3c3_divergentes", "missao_rede.selos_anexos_3c3", "Sequência de anexos divergente."))
-    ind = rm.conteudo.indicadores_acumulados
-    for k, v in rr.totais.items():
-        if abs(float(ind.get(k, 0.0)) - v) > 1e-9 * max(1.0, abs(v)):
-            out.append(erro("totais_rede_divergentes", f"missao_rede.totais[{k}]", "≠ Σ indicadores das janelas."))
+    if not isinstance(rr.totais, dict):
+        return out + [erro("totais_rede_invalidos", "missao_rede.totais", f"{type(rr.totais).__name__}.")]
+    for k in METRICAS_REDE:
+        if k not in rr.totais:
+            out.append(erro("totais_rede_metrica_ausente", f"missao_rede.totais[{k}]",
+                            "Métrica obrigatória ausente (nunca lida como zero)."))
+    for k in sorted(set(rr.totais) - set(METRICAS_REDE), key=repr):
+        out.append(erro("totais_rede_metrica_inesperada", f"missao_rede.totais[{k!r}]",
+                        f"Métrica não prevista no esquema {ESQUEMA_3C3}."))
+    esperado, c = totais_rede_esperados(rm)
+    out += c
+    for k in METRICAS_REDE:
+        if k not in rr.totais:
+            continue
+        v = rr.totais[k]
+        if not _real_finito(v):
+            out.append(erro("totais_rede_valor_invalido", f"missao_rede.totais[{k}]", f"{v!r}: exigido real finito."))
+        elif k in esperado and float(v) != esperado[k]:
+            out.append(erro("totais_rede_divergentes", f"missao_rede.totais[{k}]",
+                            f"{v!r} ≠ {esperado[k]!r} (Σ indicadores das janelas no registro de missão)."))
     return out
 
 
@@ -382,6 +450,6 @@ class EntornoSimuladoConectado(EntornoSimuladoAlgebrico):
         return rec
 
 
-__all__ = ["ConfiguracaoRedeMPC", "ControladorMPCConectado", "EntornoSimuladoConectado", "RegistroMissaoRede3C3",
+__all__ = ["METRICAS_REDE", "totais_rede_esperados", "ConfiguracaoRedeMPC", "ControladorMPCConectado", "EntornoSimuladoConectado", "RegistroMissaoRede3C3",
            "ResolvedorMILP3C3", "ResultadoMissaoConectada", "VinculoRede3C3", "hash_configuracao_rede", "nome_vinculo",
            "registros_passos_pcc", "validar_configuracao_rede", "verificar_registro_rede"]

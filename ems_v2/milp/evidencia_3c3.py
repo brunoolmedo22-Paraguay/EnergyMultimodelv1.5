@@ -10,6 +10,7 @@ fluxo AC, controle primário, fatura real nem prova de tempo real.
 from __future__ import annotations
 
 import json
+import math
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
+# Saída LITERAL da reprodução de C-03 sobre o commit auditado 7b8da5d (antes da correção de verificar_registro_rede).
+ANTES_7B8DA5D_C03 = """
+== C-03 (commit 7b8da5d )
+original: [] (True, [])
+totais={}                        verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+esquema=99                       verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+perfil='v1.1-3C-1'               verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+totais sem gasto_importacao_R    verificar_registro_rede=[] auditoria_integral(aceito, erros)=(True, [])
+totais + metrica_extra           verificar_registro_rede=['totais_rede_divergentes'] auditoria_integral(aceito, erros)=(False, ['totais_rede_divergentes'])
+"""
 # Saída LITERAL do script de reprodução executado sobre o commit auditado d7da6c5 (antes das correções C-01/C-02).
 ANTES_D7DA6C5 = """
 == C-01 (commit d7da6c5 )
@@ -265,6 +276,29 @@ def main(saida: str | None = None, rep: int = 5) -> str:
     L += ["", f"Auditoria ANALÍTICA PARCIAL com o modelo de limites mais amplos: aceito = {ra.aceito}, escopo "
               f"`{ra.escopo}`, integridade documental certificada = {ra.integridade_documental_certificada} — reproduz "
               "os números, mas nunca certifica integridade.", ""]
+    # ------------------------------------------------------------------ C-03 (verificar_registro_rede)
+    from ..mpc.registro import selar as _selar
+    from ..rede.mpc import METRICAS_REDE, verificar_registro_rede
+    rr = r.registro_rede
+    L += ["## 7b. Correção C-03 (commit auditado `7b8da5d`) — `verificar_registro_rede`", "",
+          "**Antes (reproduzido sobre `7b8da5d`; saída literal):**", "", "```",
+          *ANTES_7B8DA5D_C03.strip("\n").splitlines(), "```", "", "**Depois (esta execução, missão G11):**", "",
+          "| Registro de rede re-selado | `verificar_registro_rede` | Auditoria integral aceita | balanço / custos |",
+          "|---|---|---|---|"]
+    casos_c03 = [("original", rr), ("totais = {}", _selar(replace(rr, totais={}, selo=""))),
+                 ("esquema = 99", _selar(replace(rr, esquema=99, selo=""))),
+                 ("perfil = 'v1.1-3C-1'", _selar(replace(rr, perfil="v1.1-3C-1", selo=""))),
+                 ("sem gasto_importacao_R", _selar(replace(rr, totais={k: v for k, v in rr.totais.items()
+                                                                        if k != "gasto_importacao_R"}, selo=""))),
+                 ("métrica extra = 0.0", _selar(replace(rr, totais={**rr.totais, "metrica_extra": 0.0}, selo=""))),
+                 ("E_exportada_kWh + 1 ulp", _selar(replace(rr, totais={
+                     **rr.totais, "E_exportada_kWh": math.nextafter(rr.totais["E_exportada_kWh"], math.inf)}, selo="")))]
+    for nome, rrx in casos_c03:
+        cs = sorted({c.codigo for c in verificar_registro_rede(rrx, r.registro_missao, r.anexos_3c3)})
+        rel = auditar_missao_conectada(r.registro_missao, **{**base_kw, "registro_rede": rrx})
+        L.append(f"| {nome} | {cs or 'aprovado'} | {rel.aceito} | {rel.verificacoes['balanco']} / "
+                 f"{rel.verificacoes['custos']} |")
+    L += ["", f"Métricas obrigatórias do esquema {rr.esquema} ({len(METRICAS_REDE)}): {list(METRICAS_REDE)}.", ""]
     L += ["## 8. Campanha de tempos (indicativa)", "",
           f"Missão G11 completa (4 janelas, MILP 3C-3 + auditorias + registros), n = {rep}: "
           f"{json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in vars(est).items()}, sort_keys=True)} s. "
