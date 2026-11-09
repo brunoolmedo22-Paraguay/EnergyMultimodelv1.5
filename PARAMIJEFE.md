@@ -2278,7 +2278,7 @@ contabilidad, limitaciones documentadas). Ambos defectos fueron **reproducidos a
 | C-02 | Reanudación aceptada con registro 3C-0 eliminado/alterado o anexo 3C-1 eliminado; históricos 0/0 | `verificar_artefatos_janela` por ventana ejecutada (`execucao_uid` determinista en `ConteudoJanelaMPC`): `verificar_registro`, `verificar_anexo_3c1`, sellos referenciados, identidad/misión/posición, ventana, plan, entrada, estados, checkpoint, previsión, instantáneo, costo e intervalos; ventana sin plan no exige artefactos; libro del punto de retomada × instantáneos comprometidos; `ContratoInvalido` estructurado; históricos `registros_3c0`/`anexos_3c1` restaurados |
 
 Pruebas: `test_ems_v2_3c2_auditoria_pr15.py` **24 passed**; 3C-2 completo **107 passed** (83 + 24); `tests/ems_v2`
-**824 passed** (sin Pyomo: 587 passed, 19 skipped); suite completa {FULL2}. E1–E8 repetidos con resultados
+**824 passed** (sin Pyomo: 587 passed, 19 skipped); suite completa **1278 passed, 7 warnings, 128 subtests** (384,3 s) = 1254 + 24. E1–E8 repetidos con resultados
 idénticos. Modelo físico, solver y políticas económicas sin cambios; 3A/3B-P/3C-0/3C-1/V1.6 intactos (guardia).
 Nueva brecha B3C2-13 (tiempo de ingestión confiable). Detalle: `FORMULACAO_3C2.md` §4 y §10, `MATRIZ_3C2.md`,
 `EVIDENCIA_3C2.md` §5b.

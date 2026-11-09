@@ -71,7 +71,7 @@ alterado ⇒ `registro_3c0_adulterado` + `anexo_3c1_invalido`.
 | `python -m pytest tests/ems_v2 -k 3c2 -q` (83 anteriores + 24) | **107 passed** |
 | `python -m pytest tests/ems_v2 -q` | **824 passed** = 717 + 107 |
 | `tests/ems_v2` con Pyomo/HiGHS bloqueados | **587 passed, 19 skipped** |
-| `python -m pytest tests/ -q` | {FULL2} |
+| `python -m pytest tests/ -q` | **1278 passed, 7 warnings, 128 subtests** (384,3 s) = 1254 + 24 |
 | `python -m ems_v2.mpc.evidencia docs/ems_v2/EVIDENCIA_3C2_EJECUCION.md 5` (E1–E8 repetidos) | resultados idénticos a la entrega original (costos, desenlaces, auditoría aprobada) — ver archivo regenerado |
 
 ## 5. Limitaciones de esta evidencia
