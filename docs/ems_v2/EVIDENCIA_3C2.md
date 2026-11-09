@@ -49,6 +49,31 @@ Las aserciones de los 717 tests anteriores no fueron modificadas. Las guardias h
 - **E5:** u = [0,0,0,1,1,1,0,0], memoria ejecutada 900 s y 1800 s al inicio de τ_4 y τ_5; la auditoría recalcula las
   permanencias en toda la misión (incluida la memoria inicial).
 
+## 5b. Correcciones C-01 y C-02 (auditoría del PR #15, base `d97f831`)
+
+Reproducción ANTES de corregir (scripts ejecutados sobre `d97f831`):
+
+```
+C-01  clasificación del evento futuro: rejeitada_outra_microrrede 2026-01-01T00:55:00+00:00
+      selar τ2: ACEPTADO · n_entradas τ2 sin/con evento futuro: 1 2 · hash τ2 depende del evento futuro: True
+      auditoría causal: ninguna anomalía detectada
+C-02  intacta: reanudación aceptada; históricos 3C-0/3C-1 restaurados 0/0
+      3C-0 eliminado / anexo 3C-1 eliminado / 3C-0 alterado: reanudación ACEPTADA (k = 4)
+```
+
+DESPUÉS: C-01 — sellar τ2 ⇒ `corte_antes_de_recepcao_registrada`; n y hash de τ2 idénticos con y sin el evento futuro.
+C-02 — intacta: históricos 2/2; 3C-0 eliminado ⇒ `registro_3c0_ausente`; anexo eliminado ⇒ `anexo_3c1_ausente`; 3C-0
+alterado ⇒ `registro_3c0_adulterado` + `anexo_3c1_invalido`.
+
+| Comando | Resultado |
+|---|---|
+| `python -m pytest tests/ems_v2/test_ems_v2_3c2_auditoria_pr15.py -q` | **24 passed** |
+| `python -m pytest tests/ems_v2 -k 3c2 -q` (83 anteriores + 24) | **107 passed** |
+| `python -m pytest tests/ems_v2 -q` | **824 passed** = 717 + 107 |
+| `tests/ems_v2` con Pyomo/HiGHS bloqueados | **587 passed, 19 skipped** |
+| `python -m pytest tests/ -q` | {FULL2} |
+| `python -m ems_v2.mpc.evidencia docs/ems_v2/EVIDENCIA_3C2_EJECUCION.md 5` (E1–E8 repetidos) | resultados idénticos a la entrega original (costos, desenlaces, auditoría aprobada) — ver archivo regenerado |
+
 ## 5. Limitaciones de esta evidencia
 
 - Una máquina, muestras pequeñas: los tiempos son indicativos, sin restricción operacional validada.

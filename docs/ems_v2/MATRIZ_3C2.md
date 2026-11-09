@@ -5,7 +5,8 @@ real** (Pyomo 6.10.1) por el adaptador `ResolvedorMILP3C1` y se saltan explícit
 `ct::` = `test_ems_v2_3c2_contrato.py` (19), `ob::` = `test_ems_v2_3c2_observacoes.py` (8), `pv::` =
 `test_ems_v2_3c2_previsao.py` (7), `la::` = `test_ems_v2_3c2_laco.py` (16, **sin solver**: dublé de regla analítica
 aprobado por el auditor independiente 3C-1), `mi::` = `test_ems_v2_3c2_milp.py` (29, HiGHS), `is::` =
-`test_ems_v2_3c2_isolamento.py` (4). Total nuevo: **83**. Evidencia ejecutada: `EVIDENCIA_3C2_EJECUCION.md` (`ev §n`).
+`test_ems_v2_3c2_isolamento.py` (4), `pr15::` = `test_ems_v2_3c2_auditoria_pr15.py` (24, correcciones C-01/C-02).
+Total nuevo: **107**. Evidencia ejecutada: `EVIDENCIA_3C2_EJECUCION.md` (`ev §n`).
 
 ## Batería obligatoria (misión §13)
 
@@ -31,6 +32,21 @@ aprobado por el auditor independiente 3C-1), `mi::` = `test_ems_v2_3c2_milp.py` 
 | 18 | Reproducción determinista | `impressao_deterministica` | `la::test_reproducao_determinista_da_mesma_missao`, `mi::test_reproducao_determinista_com_highs` | Misma impresión, cadena de contenido y cadena del libro |
 | 19 | Open-loop × MPC | `comparadores` | `mi::test_e3_open_loop_versus_mpc_em_condicoes_comparaveis`, `mi::test_e3_comparador_recusa_condicoes_diferentes` | OL R$ 18,7 (E_final 0) × MPC R$ 12,9 (E_final 2,5; obligación 900 s pendiente) — sin veredicto (ev §2) |
 | 20 | Adversariales de causalidad e integridad | `auditoria`, `entorno` | `mi::test_adversarial_registro_e_livro_adulterados…`, `ob::test_invalidas_outra_microrrede_recurso_e_informacao_futura`, `ob::test_duplicatas_conflito…`, `pv::test_oraculo_so_em_ablacao…` | Instantáneo/livro adulterados ⇒ rechazo; comando fuera de orden ⇒ `rejeitada_protocolo`; observación recibida antes del fin ⇒ inválida |
+
+## Correcciones de la auditoría del PR #15
+
+| ID | Requisito | Código | Prueba(s) | Resultado |
+|---|---|---|---|---|
+| C-01 | I_k nunca depende de un evento con recepción > τ_k (cualquier clasificación) | `observacoes` (marca de agua total, cuarentena, prefijo por recepción) | `pr15::test_c01_evento_futuro_de_qualquer_classificacao…` (8 clasificaciones) | n y hash de τ_2 idénticos con y sin el evento futuro; sellar τ_2 ⇒ `corte_antes_de_recepcao_registrada` |
+| C-01 | Eventos anteriores al corte (todas las clases) en el prefijo | `instantaneo` | `pr15::test_c01_eventos_antes_do_corte…` | prefijo de 6 entradas (aceptada, duplicada, rechazada, inválida, semántica) |
+| C-01 | Recepción retroactiva/ilegible: cuarentena trazable, sin hora inventada, corte intacto | `_quarentena_motivo`, `importar` | `pr15::test_c01_recepcao_retroativa_ou_ilegivel…`, `pr15::test_c01_fora_de_sequencia_dos_dois_lados…` | cuarentena 4 entradas; I(τ_2) idéntico; exportar/importar reproducen; quarentena adulterada ⇒ rechazo |
+| C-01 | Auditoría de la propiedad temporal de TODAS las entradas | `auditoria._propriedade_temporal`, `verificar_cadeia_livro` | `pr15::test_c01_auditoria_verifica…`, `pr15::test_c01_missao_completa_auditada…` | `informacao_futura_no_instantaneo`; `corte_inclui_recepcao_posterior`; `quarentena_divergente_da_missao` |
+| C-01 | El controlador no decide con evento futuro en el libro | `decidir` | `pr15::test_c01_controlador_recusa_decidir…` | `integridade`, ningún comando |
+| C-02 | Reanudación intacta restaura históricos | `retomar_controlador` | `pr15::test_c02_retomada_intacta…` | 2/2 registros y anexos con los mismos sellos |
+| C-02 | Registro/anexo eliminado, alterado, re-sellado, de otra ejecución, intercambiado | `verificar_artefatos_janela` | `pr15::test_c02_artefato_eliminado…`, `…registro_3c0_alterado…`, `…anexo_alterado_e_reselado…`, `…de_outra_execucao_ou_trocados…` | `registro_3c0_ausente`, `anexo_3c1_ausente`, `registro_3c0_adulterado`, `selo_registro_3c0_divergente`, `selo_anexo_3c1_divergente`, `anexo_3c1_invalido`, `artefato_de_outra_execucao` |
+| C-02 | Sello referenciado incorrecto; ventana sin plan | idem | `pr15::test_c02_selo_referenciado_incorreto…`, `pr15::test_c02_janela_sem_plano…` | ventana sin plan no exige artefactos; referenciarlos ⇒ `artefato_referenciado_sem_plano` |
+| C-02 | Libro/punto de retomada coherentes con las ventanas | `_verificar_livro_contra_janelas` | `pr15::test_c02_ponto_de_retomada_com_livro_truncado…` | `livro_incoerente_com_janelas` |
+| C-02 | Reanudaciones sucesivas = ejecución continua | idem | `pr15::test_c02_retomadas_sucessivas…`, `mi::test_retomada_de_checkpoint_com_highs` | misma impresión determinista; 3 registros 3C-0 con los mismos `execucao_uid` |
 
 ## Experimentos (misión §12)
 

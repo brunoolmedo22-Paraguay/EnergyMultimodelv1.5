@@ -110,11 +110,22 @@ cadena (`H(anterior | evento | clasificación | posición)`).
 | Fuera de secuencia | Lagunas: aceptada con nota; número menor que el máximo con evento nuevo ⇒ `aceita_fora_de_sequencia`; número reutilizado ⇒ `rejeitada_conflito_sequencia` |
 | Valores inválidos | NaN/Inf/negativo/fuera de dominio ⇒ `rejeitada_invalida` (NaN se guarda como `None`: el JSON canónico prohíbe NaN) |
 | Otra microrred / recurso no declarado | `rejeitada_outra_microrrede` / `rejeitada_recurso_desconhecido` |
-| Recibida después de cerrar una ventana | Recepción ≤ un corte sellado ⇒ `rejeitada_recepcao_retroativa`; recepción posterior que cubre un intervalo ya decidido ⇒ aceptada con `tardia_apos_corte` y **nunca** altera la decisión |
+| Recibida después de cerrar una ventana | Recepción ≤ un corte sellado o anterior a la marca de agua ⇒ **cuarentena** `quarentena_recepcao_retroativa` (C-01); recepción posterior que cubre un intervalo ya decidido ⇒ aceptada con `tardia_apos_corte` y **nunca** altera la decisión |
+| Recepción ilegible / sin huso | **Cuarentena** `quarentena_recepcao_invalida`: no se inventa hora de llegada (C-01) |
 | Revisión de intervalo ya conciliado | Política declarada (`interromper` × `registrar_sem_reconciliar`); nunca se reescribe el pasado |
 
-Como el libro registra en orden de recepción y rechaza recepciones retroactivas, I_k es un **prefijo** del libro
-comprometido por el hash de cadena: la auditoría lo recalcula (`instantaneo_de_prefixo`) y exige el mismo hash.
+**Orden temporal (C-01, auditoría del PR #15).** El libro tiene dos secciones append-only con cadenas propias: el
+**libro principal** (toda recepción ordenable, de CUALQUIER clasificación — aceptada, rechazada, duplicada, inválida,
+fuera de secuencia —, que avanza la marca de agua; recepciones declaradas no decrecientes y estrictamente posteriores al
+último corte sellado) y la **cuarentena** (recepciones retroactivas o ilegibles: registradas con la posición del libro
+principal y el número de cortes en el instante del registro; nunca entran en un prefijo causal, no definen identidad de
+evento ni consumen secuencia). Un corte τ solo se sella si ninguna entrada del libro principal tiene recepción > τ; I_k
+es el **prefijo** de las entradas con recepción ≤ τ_k, comprometido por el hash de cadena: **ningún instantáneo depende
+de un evento cuya recepción declarada sea posterior a τ_k**. La auditoría lo recalcula (`instantaneo_de_prefixo`),
+exige el mismo hash y verifica la propiedad temporal de TODAS las entradas del prefijo (y de cada conciliación);
+`verificar_cadeia_livro` comprueba orden y cortes; el registro de misión compromete la cadena de la cuarentena.
+Límite: `recebido_utc` es el instante DECLARADO por la fuente/canal; un tiempo de ingestión confiable exigiría un
+reloj propio del controlador (brecha B3C2-13).
 
 **Conciliación** (D-3C2-05): `realizacao_de_instantaneo` construye una `Realizacao` `incremental_online` con
 `observado_ate_utc` = última frontera hasta la que **todas** las observaciones obligatorias están presentes de forma
@@ -197,7 +208,17 @@ tiempo real.
 | **C-3C2-04** | En la conciliación solo se pasan observaciones obligatorias: una disponibilidad `estatica_declarada` no se contrasta con observaciones del libro | Las fixtures usan `observada`; brecha documentada |
 | C-3C2-05 | Planta y conciliación usan escalas de tolerancia D07 calculadas de entradas distintas (modelo × ventana) | Diferencia solo en el borde de tolerancia; D07 sigue provisional |
 
-## 10. Límites
+## 10. Correcciones de la auditoría independiente del PR #15 (base `d97f831`)
+
+| ID | Antes (reproducido en `d97f831`) | Después |
+|---|---|---|
+| C-01 | Un evento **rechazado** (otra microrred) con recepción 45 min posterior a τ_2 entraba en el prefijo de τ_2 (n = 2, hash dependiente de él); la marca de agua solo consideraba aceptadas, el corte τ_2 se sellaba y `_causal` solo verificaba aceptadas: ninguna anomalía | Marca de agua sobre toda entrada del libro principal; cuarentena con cadena propia para recepciones retroactivas/ilegibles; corte imposible con recepción posterior registrada (`corte_antes_de_recepcao_registrada`); prefijo = recepción ≤ τ; auditoría `informacao_futura_no_instantaneo` / `informacao_disponivel_omitida` sobre todas las entradas; `verificar_cadeia_livro` con `recepcao_fora_de_ordem_no_livro_principal` y `corte_inclui_recepcao_posterior`. Esquema del libro v2 |
+| C-02 | La reanudación aceptaba registro 3C-0 eliminado o alterado y anexo 3C-1 eliminado; históricos `registros_3c0`/`anexos_3c1` no restaurados (0/0) | `verificar_artefatos_janela` para cada ventana ejecutada (`execucao_uid` determinista registrado en `ConteudoJanelaMPC`): registro 3C-0 (`verificar_registro`), anexo (`verificar_anexo_3c1`), sellos referenciados, identidad/misión/posición, ventana, plan, entrada, estados, checkpoint, previsión, instantáneo, costo e intervalos; ventana sin plan no exige artefactos (y no puede referenciarlos); el libro del punto de retomada debe reproducir todos los instantáneos comprometidos; errores `ContratoInvalido` estructurados; históricos restaurados |
+
+Pruebas: `test_ems_v2_3c2_auditoria_pr15.py` (24). Ni el modelo físico, ni el solver, ni las políticas económicas
+cambiaron; los resultados de E1–E8 son idénticos.
+
+## 11. Límites
 
 - Sin término terminal ni valor futuro: el horizonte corto es **miope** (E2/E4 drenan el banco en cada ventana; E4
   m = 1 deja la PEMFC arrancando en el último intervalo con 1800 s de obligación pendiente). Corresponde a 3C-4.

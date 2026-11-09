@@ -30,6 +30,7 @@ algebraica.
 | B3C2-10 | Protección contra fuga es estructural + auditoría posterior por intervención (límite de confianza §3) | Un proveedor con referencia oculta a la verdad pasa en ejecución | Aislamiento de proceso/sandbox del proveedor (no implementado) |
 | B3C2-11 | Campaña de tiempos: n pequeño, una máquina, sin restricción operacional | Sin afirmación de tiempo real | Campaña dedicada (D07 y límites de tiempo por ventana) |
 | B3C2-12 | Modo 2 sin conexión física: confirmaciones y observaciones provienen de la planta de ensayo o del operador del ensayo | No hay control real | 3D/operación |
+| B3C2-13 | **Tiempo de ingestión confiable** (C-01): el orden causal del libro usa el `recebido_utc` DECLARADO por la fuente/canal; una fuente con reloj falso puede declarar recepciones verosímiles | El libro garantiza coherencia de las recepciones declaradas (orden, cortes, prefijos, cuarentena), no su veracidad | Reloj de ingestión propio del controlador + contrato de fuente (no implementado) |
 
 ## 3. Hipótesis aceptadas provisionalmente (requieren aprobación)
 

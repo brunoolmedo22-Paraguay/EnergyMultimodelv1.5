@@ -2191,7 +2191,7 @@ las dos guardias. Nada en V1.6, en la aplicación ni en los bancos depende de el
 | Rama | `ccr-2529baa8-16lz1j` (desde `main`) |
 | Base | `main` `55440f4bda17ec2b14cdf4235bdb924bf97159b0` (merge del PR #14, 3C-1 integrado); verificado idéntico a `origin/main` al iniciar |
 | PR | [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) contra `main`, **sin merge** (entregado para auditoría independiente) |
-| Pendientes | Auditoría del PR; decisiones D-3C2-01..13 y contradicciones C-3C2-01..05 a revisión; **no iniciar 3C-3/3C-4 sin autorización** |
+| Pendientes | Correcciones C-01/C-02 de la auditoría del PR #15 aplicadas (§5b); aprobación final; decisiones D-3C2-01..13 y contradicciones C-3C2-01..05 a revisión; **no iniciar 3C-3/3C-4 sin autorización** |
 
 ### 1. Resumen
 
@@ -2267,6 +2267,22 @@ D-3C2-01..13 y C-3C2-01..05 en `FORMULACAO_3C2.md` §8–§9. Requieren conocimi
 (corte inclusivo), D-3C2-05 (estado = propagación algebraica con confirmación + observación), D-3C2-06 (modo 1 sin
 decisión tardía), D-3C2-08 (costo planificado del prefijo) y C-3C2-01 (sin recurso de equilibrio).
 
+### 5b. Auditoría independiente del PR #15 (base `d97f831`): correcciones C-01 y C-02
+
+Arquitectura aprobada provisionalmente (ciclo de ventanas, reutilización 3C-1, transporte del estado ejecutado,
+contabilidad, limitaciones documentadas). Ambos defectos fueron **reproducidos antes de corregir**:
+
+| ID | Antes (`d97f831`, reproducido) | Después |
+|---|---|---|
+| C-01 | Un evento **rechazado** con recepción 45 min posterior a τ_2 entraba en el prefijo de τ_2 (n = 2; hash dependiente), el corte τ_2 se sellaba y la auditoría causal no detectaba nada | Libro principal con marca de agua sobre TODA entrada (cualquier clasificación) y recepciones no decrecientes; **cuarentena** append-only con cadena propia para recepciones retroactivas/ilegibles (sin hora inventada; nunca en un prefijo causal); corte imposible con recepción posterior registrada; I_k = prefijo con recepción ≤ τ_k; auditoría temporal de todas las entradas del prefijo y de cada conciliación; `verificar_cadeia_livro` verifica orden y cortes; la misión compromete la cadena de cuarentena (libro esquema v2) |
+| C-02 | Reanudación aceptada con registro 3C-0 eliminado/alterado o anexo 3C-1 eliminado; históricos 0/0 | `verificar_artefatos_janela` por ventana ejecutada (`execucao_uid` determinista en `ConteudoJanelaMPC`): `verificar_registro`, `verificar_anexo_3c1`, sellos referenciados, identidad/misión/posición, ventana, plan, entrada, estados, checkpoint, previsión, instantáneo, costo e intervalos; ventana sin plan no exige artefactos; libro del punto de retomada × instantáneos comprometidos; `ContratoInvalido` estructurado; históricos `registros_3c0`/`anexos_3c1` restaurados |
+
+Pruebas: `test_ems_v2_3c2_auditoria_pr15.py` **24 passed**; 3C-2 completo **107 passed** (83 + 24); `tests/ems_v2`
+**824 passed** (sin Pyomo: 587 passed, 19 skipped); suite completa {FULL2}. E1–E8 repetidos con resultados
+idénticos. Modelo físico, solver y políticas económicas sin cambios; 3A/3B-P/3C-0/3C-1/V1.6 intactos (guardia).
+Nueva brecha B3C2-13 (tiempo de ingestión confiable). Detalle: `FORMULACAO_3C2.md` §4 y §10, `MATRIZ_3C2.md`,
+`EVIDENCIA_3C2.md` §5b.
+
 ### 6. Rollback
 
 Revertir el PR elimina `ems_v2/mpc/`, `ems_v2/fixtures_3c2.py`, los tests `test_ems_v2_3c2_*` y `mpc_util.py` y los
@@ -2288,4 +2304,4 @@ documentos 3C-2. Ningún archivo existente de `ems_v2`, V1.6, `seeds2`, aplicaci
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
-| 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | Entregue para auditoria independente |
+| 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | Auditoria: arquitetura aprovada provisoriamente; correções C-01/C-02 aplicadas (§5b); aguardando aprovação final |
