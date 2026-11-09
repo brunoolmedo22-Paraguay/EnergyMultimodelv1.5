@@ -194,15 +194,49 @@ def plano_de_resultado_3c3(res, e: EntradaRede3C3, *, indice_fronteira_inicial: 
     pc = PlanoCommitment3C1(CONTRATO_VERSAO, hp, hash_entrada_3c1(e.compromisso), e.compromisso.politica_permanencia.tipo,
                             gar, mem, dict(obr), dict(res.eventos), res.custos_modelo.get("eventos"))
     ic = res.intercambio or {}
-    zeros = tuple(0.0 for _ in range(m.N))
-    imp = tuple(max(0.0, float(v)) for v in ic.get("P_imp", zeros))
-    exp = tuple(max(0.0, float(v)) for v in ic.get("P_exp", zeros))
-    if len(imp) != m.N or len(exp) != m.N or not all(math.isfinite(v) for v in imp + exp):
-        raise ContratoInvalido([erro("intercambio_programado_invalido", "resultado.intercambio", "N valores finitos.")])
+    if e.conectado:
+        # C-01 (auditoria do PR #16): nenhum recorte nem padrão silencioso — o intercâmbio programado de um resultado
+        # conectado deve trazer EXATAMENTE N valores reais finitos >= 0 em cada sentido (NaN/Inf/bool/texto/negativo
+        # ⇒ nenhum plano). O auditor 3C-3 já os aprovou; aqui só se recusa o que não é um programa válido.
+        c = [erro("intercambio_programado_invalido", f"resultado.intercambio[{nome}]",
+                  f"Exigidos {m.N} valores reais finitos >= 0 (sem recorte); recebido {ic.get(nome)!r}.")
+             for nome in ("P_imp", "P_exp") if not programa_valido(ic.get(nome), m.N)]
+        if c:
+            raise ContratoInvalido(c)
+        imp, exp = tuple(float(v) for v in ic["P_imp"]), tuple(float(v) for v in ic["P_exp"])
+    elif any(ic.get(nome) is not None and (not programa_valido(ic.get(nome), m.N) or any(ic[nome]))
+             for nome in ("P_imp", "P_exp")):
+        raise ContratoInvalido([erro("intercambio_programado_em_operacao_isolada", "resultado.intercambio",
+                                     "Operação isolada declarada com intercâmbio programado.")])
+    else:
+        imp = exp = tuple(0.0 for _ in range(m.N))
     pr = PlanoRede3C3(CONTRATO_VERSAO, FORMULACAO_3C3, hp, he, e.pcc.modo, str(e.pcc.uid), indice_fronteira_inicial,
                       imp, exp, {k: float(res.custos_modelo[k]) for k in ("importacao_rede", "exportacao_rede")
                                  if k in res.custos_modelo}, dict(getattr(res, "hash_tarifas", {}) or {}), pc)
     return p, pr
+
+
+def valor_intercambio_valido(v) -> bool:
+    """C-01: potência programada de UM sentido do PCC = real FINITO >= 0 (``int``/``float`` estritos; ``bool``, texto,
+    NaN, ±Inf e negativos são inválidos — nunca recortados nem convertidos)."""
+    return type(v) in (int, float) and math.isfinite(v) and v >= 0
+
+
+def programa_valido(vals, n: int) -> bool:
+    return isinstance(vals, (list, tuple)) and len(vals) == n and all(valor_intercambio_valido(v) for v in vals)
+
+
+def validar_programa(programa) -> list[Constatacao]:
+    """Programa explícito ``{k: (P_imp, P_exp)}`` (k = intervalo GLOBAL, ``int`` >= 0)."""
+    if not isinstance(programa, dict):
+        return [erro("programa_pcc_invalido", "programa", f"Esperado dicionário; recebido {type(programa).__name__}.")]
+    out = []
+    for k, v in programa.items():
+        if type(k) is not int or k < 0 or not isinstance(v, tuple) or len(v) != 2 or \
+                not all(valor_intercambio_valido(x) for x in v):
+            out.append(erro("programa_pcc_invalido", f"programa[{k!r}]",
+                            f"Exigido k inteiro >= 0 → (P_imp, P_exp) reais finitos >= 0; recebido {v!r}."))
+    return out
 
 
 def programa_de_plano(pr: PlanoRede3C3) -> dict[int, tuple[float, float]]:
@@ -255,7 +289,13 @@ class _PassoBarramentoConectado:
                      + [float(x.p_descarga_max_kW.valor) for x in b.baterias]
                      + [float(g.p_max_kW.valor) for g in b.geradores] + [abs(lim_i or 0.0), abs(lim_e or 0.0)])
         tolP = tol.potencia_abs_kW + tol.potencia_rel_escala * escala
-        aplicado = {k: float(v) for k, v in consignas.items()}
+        pcc_chaves = {f"{e.pcc.uid}|P_imp", f"{e.pcc.uid}|P_exp"}
+        ruins = sorted(k for k, v in consignas.items() if type(v) not in (int, float) or not math.isfinite(v))
+        if ruins:                                  # nenhuma conversão de consigna não numérica/não finita
+            return PassoAplicado({}, estado, False, (erro("consigna_invalida", ruins[0],
+                                                          f"Consignas não numéricas/não finitas: {ruins[:6]}."),),
+                                 "dados")
+        aplicado = {k: float(v) for k, v in consignas.items() if k not in pcc_chaves}
         injecao, ren_cmd, ren_ef = 0.0, 0.0, 0.0
         for r in b.renovaveis:
             uid = str(r.uid)
@@ -392,6 +432,7 @@ class ExecutorAlgebricoConectado3C3(ExecutorAlgebricoCommitment3C1):
                  programa: dict | None = None, exigir_medicao: bool = False, tol: Tolerancias = Tolerancias(),
                  identificador: str = "ref-alg-3C3"):
         c = validar_politica_ajuste(politica, e)
+        c += validar_programa(programa if programa is not None else {})
         if exigir_medicao and e.conectado and e.pcc.medidor_importacao_uid is None:
             c.append(erro("medidores_nao_declarados", "pcc.medidores", "Conciliação conectada exige medidores do PCC."))
         if c:
@@ -405,23 +446,51 @@ class ExecutorAlgebricoConectado3C3(ExecutorAlgebricoCommitment3C1):
         self.ultimo: RegistroPassoPCC | None = None
 
     def programado(self, estado, consignas, c: list) -> tuple[float, float] | None:
+        """Intercâmbio PROGRAMADO do intervalo (C-01). Fontes: o comando (``<pcc>|P_imp`` E ``<pcc>|P_exp``, na planta)
+        e/ou o programa explícito da janela (conciliação: o plano 3C-0 só tem recursos internos). Regras, sem recorte nem
+        conversão: cada valor presente = real finito >= 0; as DUAS consignas ou nenhuma; comando e programa presentes ⇒
+        idênticos; nenhuma fonte ⇒ ausente. Qualquer violação ⇒ ``None`` + constatação (falha de DADOS/integridade)."""
         pcc = str(self.e.pcc.uid)
         k = estado.indice_fronteira
-        cmd = (consignas.get(f"{pcc}|P_imp"), consignas.get(f"{pcc}|P_exp"))
+        chaves = (f"{pcc}|P_imp", f"{pcc}|P_exp")
+        presentes = [ch in consignas for ch in chaves]
         prg = self.programa.get(k)
-        if not self.e.conectado:
-            if any(x not in (None, 0, 0.0) for x in cmd) or (prg is not None and any(prg)):
-                c.append(erro("intercambio_programado_em_operacao_isolada", pcc, "Programa de intercâmbio em modo isolado."))
-            return (0.0, 0.0)
-        if None not in cmd:
-            if prg is not None and (abs(prg[0] - cmd[0]) > 1e-12 or abs(prg[1] - cmd[1]) > 1e-12):
-                c.append(erro("programa_pcc_contraditorio", pcc, "Comando e plano com intercâmbios distintos."))
+        if prg is not None and not (isinstance(prg, tuple) and len(prg) == 2 and
+                                    all(valor_intercambio_valido(x) for x in prg)):
+            c.append(erro("intercambio_programado_invalido", f"programa[{k}]", f"Programa {prg!r} inválido."))
+            return None
+        if presentes[0] != presentes[1]:
+            c.append(erro("intercambio_programado_incompleto", pcc,
+                          f"Só {chaves[presentes.index(True)]!r} no comando: as duas consignas do PCC ou nenhuma."))
+            return None
+        cmd = None
+        if all(presentes):
+            vals = tuple(consignas[ch] for ch in chaves)
+            if not all(valor_intercambio_valido(v) for v in vals):
+                c.append(erro("intercambio_programado_invalido", pcc,
+                              f"Consignas do PCC {vals!r}: exigidos reais finitos >= 0 (sem recorte nem conversão)."))
                 return None
-            return (float(cmd[0]), float(cmd[1]))
-        if prg is None:
+            cmd = (float(vals[0]), float(vals[1]))
+        if not self.e.conectado:
+            if (cmd is not None and any(cmd)) or (prg is not None and any(prg)):
+                c.append(erro("intercambio_programado_em_operacao_isolada", pcc, "Programa de intercâmbio em modo isolado."))
+                return None
+            return (0.0, 0.0)
+        if cmd is not None and prg is not None and (float(prg[0]), float(prg[1])) != cmd:
+            c.append(erro("programa_pcc_contraditorio", pcc, f"Comando {cmd} ≠ programa {prg} da janela."))
+            return None
+        if cmd is None and prg is None:
             c.append(erro("programa_pcc_ausente", pcc, f"Intercâmbio programado do intervalo k = {k} ausente."))
             return None
-        return (float(prg[0]), float(prg[1]))
+        return cmd if cmd is not None else (float(prg[0]), float(prg[1]))
+
+    def avancar(self, estado, consignas, entorno, delta_s) -> PassoAplicado:
+        """C-01: o programado é validado ANTES de qualquer verificação física/econômica; inválido ⇒ falha de DADOS
+        (nada aplicado, nenhum ``PassoAplicado`` exequível)."""
+        c: list[Constatacao] = []
+        if self.programado(estado, consignas, c) is None:
+            return PassoAplicado({}, estado, False, tuple(c), "dados")
+        return super().avancar(estado, consignas, entorno, delta_s)
 
 
 # ------------------------------------------------------------------------------------------------ desvios
@@ -545,5 +614,5 @@ def contabilidade_realizada_3c3(e: EntradaRede3C3, plano: PlanoDespacho, pr: Pla
 __all__ = ["ContabilidadeRealizada3C3", "DesvioIntercambio", "ExecutorAlgebricoConectado3C3", "INJECOES_RENOVAVEL",
            "LIQUIDACOES", "LiquidacaoPasso", "NATUREZAS_LIQUIDACAO", "PlanoRede3C3", "PoliticaAjustePCC",
            "RegistroPassoPCC", "TIPOS_AJUSTE", "contabilidade_realizada_3c3", "desvios_intercambio",
-           "hash_plano_rede", "hash_politica_ajuste", "plano_de_resultado_3c3", "programa_de_plano",
-           "validar_politica_ajuste"]
+           "hash_plano_rede", "hash_politica_ajuste", "plano_de_resultado_3c3", "programa_de_plano", "programa_valido",
+           "validar_politica_ajuste", "validar_programa", "valor_intercambio_valido"]

@@ -23,7 +23,7 @@ from ems_v2.mpc.entorno import PerturbacaoCanal  # noqa: E402
 from ems_v2.mpc.orquestrador import executar_missao_simulada  # noqa: E402
 from ems_v2.mpc.persistencia import comandos_aplicados  # noqa: E402
 from ems_v2.rede import experimentos as X  # noqa: E402
-from ems_v2.rede.auditoria import auditar_missao_conectada  # noqa: E402
+from ems_v2.rede.auditoria import auditar_missao_conectada, auditar_missao_conectada_analitica  # noqa: E402
 from ems_v2.rede.comparadores import comparar_missoes_3c3  # noqa: E402
 from ems_v2.rede.mpc import ControladorMPCConectado, ResolvedorMILP3C3, verificar_registro_rede  # noqa: E402
 from ems_v2.rede.persistencia import retomar_controlador_conectado  # noqa: E402
@@ -35,8 +35,10 @@ PCC = F.PCC
 
 def aud(ex, **kw):
     r = ex.resultado
-    return auditar_missao_conectada(r.registro_missao, r.registros, r.livro, ex.modelo, ex.politica, verdade=ex.verdade,
-                                    anexos=r.anexos_3c3, registros_3c0=r.registros_3c0, **kw)
+    a = dict(registros=r.registros, livro=r.livro, modelo=ex.modelo, configuracao_rede=ex.configuracao_rede,
+             verdade=ex.verdade, anexos=r.anexos_3c3, registros_3c0=r.registros_3c0, registro_rede=r.registro_rede)
+    a.update(kw)
+    return auditar_missao_conectada(r.registro_missao, **a)
 
 
 def erros(rel):
@@ -247,13 +249,14 @@ def test_g14_auditoria_rejeita_intercambio_tarifa_disponibilidade_e_custos_adult
     # intercâmbio aplicado alterado no conteúdo da janela (re-selado conteúdo, mas cadeia/selos quebram)
     p_alt = replace(p0, aplicado={**p0.aplicado, f"{PCC}|P_imp": p0.aplicado[f"{PCC}|P_imp"] + 2.0})
     regs_alt = regs[:1] + [replace(regs[1], conteudo=replace(c, passos=(p_alt,) + c.passos[1:]))] + regs[2:]
-    rel = auditar_missao_conectada(r.registro_missao, regs_alt, r.livro, g11.modelo, g11.politica)
+    rel = aud(g11, registros=regs_alt)
     assert not rel.aceito and {"conteudo_janela_adulterado", "balanco_observado_violado"} <= set(erros(rel))
     # tarifa de liquidação trocada: custo realizado não se reproduz
     pol2 = replace(g11.politica, tarifa_liquidacao_importacao=F.tarifa(
         "importacao", [0.7] * 8, "x", natureza="aplicavel_liquidacao"))
-    rel = auditar_missao_conectada(r.registro_missao, r.registros, r.livro, g11.modelo, pol2)
-    assert not rel.aceito and "custo_rede_nao_reproduzido" in erros(rel)
+    rel = auditar_missao_conectada_analitica(r.registro_missao, r.registros, r.livro, g11.modelo,
+                                             replace(g11.configuracao_rede, politica_ajuste=pol2))
+    assert not rel.aceito and "custo_rede_nao_reproduzido" in erros(rel) and rel.escopo == "analitica_parcial"
     # disponibilidade observada do PCC adulterada para 0 num passo com fluxo
     for i, x in enumerate(regs):
         for j, p in enumerate(x.conteudo.passos):
@@ -262,7 +265,7 @@ def test_g14_auditoria_rejeita_intercambio_tarifa_disponibilidade_e_custos_adult
                 cc = x.conteudo
                 ra = regs[:i] + [replace(x, conteudo=replace(cc, passos=cc.passos[:j] + (pa,) + cc.passos[j + 1:]))] + \
                     regs[i + 1:]
-                rel = auditar_missao_conectada(r.registro_missao, ra, r.livro, g11.modelo, g11.politica)
+                rel = aud(g11, registros=ra)
                 assert "intercambio_com_pcc_indisponivel" in erros(rel)
                 break
         else:
@@ -272,9 +275,7 @@ def test_g14_auditoria_rejeita_intercambio_tarifa_disponibilidade_e_custos_adult
     a = r.anexos_3c3[0]
     l0 = replace(a.conteudo.liquidacao[0], receita_exportacao_R=9.0)
     a_alt = replace(a, conteudo=replace(a.conteudo, liquidacao=(l0,) + a.conteudo.liquidacao[1:]))
-    rel = auditar_missao_conectada(r.registro_missao, r.registros, r.livro, g11.modelo,
-                                                           g11.politica, anexos=(a_alt,) + r.anexos_3c3[1:],
-                                                           registros_3c0=r.registros_3c0)
+    rel = aud(g11, anexos=(a_alt,) + r.anexos_3c3[1:])
     assert not rel.aceito and "anexo_3c3_invalido" in erros(rel)
 
 

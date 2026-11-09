@@ -21,31 +21,33 @@ from .mpc import ControladorMPCConectado, VinculoRede3C3, hash_configuracao_rede
 from .registro import AnexoExecucao3C3, SUFIXO_ANEXO_3C3, verificar_anexo_3c3
 
 
-def verificar_artefatos_janela_3c3(diretorio, cfg, r):
+def verificar_artefatos_carregados_3c3(cfg, r, reg, anexo) -> list:
+    """Verificação PURA (sem disco) dos artefatos históricos de UMA janela executada: registro 3C-0 (validade e selo),
+    anexo 3C-3 (``verificar_anexo_3c3`` conjunta com o registro), selos comprometidos no ``RegistroJanelaMPC``,
+    ``execucao_uid`` determinístico, identidade de origem/missão/posição, plano/entrada, plano de rede, estados,
+    discretização, checkpoint, informação e custo. Usada pela retomada e pela auditoria INTEGRAL (C-02)."""
     from ..ponte.execucao import hash_plano
     from ..ponte.registro import RegistroExecucaoEMS, verificar_registro
     c = r.conteudo
     cam = f"janelas[{c.posicao}]"
-    if c.hash_plano is None:
-        if r.selo_registro_3c0 is not None or r.selo_anexo_3c1 is not None or c.passos:
-            raise ContratoInvalido([erro("artefato_referenciado_sem_plano", cam,
-                                         "Janela sem plano não pode referenciar registro/anexo nem ter passos.")])
-        return None, None
-    m = cfg.identidade.missao_uid
-    uid = c.execucao_uid
-    if uid != sha256({"missao": m, "posicao": c.posicao})[:32] or r.selo_registro_3c0 is None or r.selo_anexo_3c1 is None:
-        raise ContratoInvalido([erro("execucao_da_janela_indeterminada", cam,
-                                     "Janela com plano sem execucao_uid determinístico ou sem selos 3C-0/3C-3.")])
-    d = Path(diretorio)
-    reg = _ler(RegistroExecucaoEMS, d / f"{uid}.ems3c0.json", "registro_3c0")
-    out = [erro("registro_3c0_adulterado", f"{cam}.registro_3c0", f"[{x.codigo}] {x.mensagem}")
-           for x in verificar_registro(reg)]
-    anexo = _ler(AnexoExecucao3C3, d / f"{uid}{SUFIXO_ANEXO_3C3}", "anexo_3c3")
-    out += [erro("anexo_3c3_invalido", f"{cam}.anexo_3c3", f"[{x.codigo}] {x.mensagem}")
-            for x in verificar_anexo_3c3(anexo, reg)]
+    out = []
 
     def e(cod, msg):
         out.append(erro(cod, cam, msg))
+    m = cfg.identidade.missao_uid
+    uid = c.execucao_uid
+    if uid != sha256({"missao": m, "posicao": c.posicao})[:32] or r.selo_registro_3c0 is None or r.selo_anexo_3c1 is None:
+        e("execucao_da_janela_indeterminada", "Janela com plano sem execucao_uid determinístico ou sem selos 3C-0/3C-3.")
+    if not isinstance(reg, RegistroExecucaoEMS):
+        return out + [erro("registro_3c0_ausente", f"{cam}.registro_3c0", "Registro 3C-0 da janela ausente.")]
+    if not isinstance(anexo, AnexoExecucao3C3):
+        return out + [erro("anexo_3c3_ausente", f"{cam}.anexo_3c3", "Anexo 3C-3 da janela ausente.")]
+    out += [erro("registro_3c0_adulterado", f"{cam}.registro_3c0", f"[{x.codigo}] {x.mensagem}")
+            for x in verificar_registro(reg)]
+    out += [erro("anexo_3c3_invalido", f"{cam}.anexo_3c3", f"[{x.codigo}] {x.mensagem}")
+            for x in verificar_anexo_3c3(anexo, reg)]
+    if reg.execucao_uid != uid or anexo.conteudo.execucao_uid != uid:
+        e("artefato_de_outra_execucao", "Registro 3C-0/anexo de outra execução (UID ≠ da janela).")
     if reg.selo != r.selo_registro_3c0:
         e("selo_registro_3c0_divergente", "Selo do registro 3C-0 ≠ referenciado pela janela.")
     if anexo.selo != r.selo_anexo_3c1:
@@ -60,7 +62,7 @@ def verificar_artefatos_janela_3c3(diretorio, cfg, r):
         e("plano_divergente", "Plano/entrada do registro 3C-0 ≠ janela.")
     if c.hash_plano_commitment != sha256(anexo.conteudo.plano_rede):
         e("plano_rede_divergente", "Plano de rede do anexo ≠ comprometido pela janela.")
-    if reg.estado_inicial != c.estados[0] or reg.estado_final != c.estados[-1]:
+    if not c.estados or reg.estado_inicial != c.estados[0] or reg.estado_final != c.estados[-1]:
         e("estados_divergentes", "Estados do registro 3C-0 ≠ estados executados da janela.")
     di = reg.discretizacao
     if (di.N, di.m, di.K_M, di.delta_s) != (c.janela.N_k, c.janela.m_k, cfg.malha.intervalos_missao, cfg.malha.delta_s):
@@ -71,6 +73,25 @@ def verificar_artefatos_janela_3c3(diretorio, cfg, r):
         e("informacao_divergente", "Previsão/instantâneo comprometidos ≠ janela.")
     if reg.custo_realizado != c.custos.realizado:
         e("custo_divergente", "Custo realizado do registro 3C-0 ≠ janela.")
+    return out
+
+
+def verificar_artefatos_janela_3c3(diretorio, cfg, r):
+    c = r.conteudo
+    cam = f"janelas[{c.posicao}]"
+    if c.hash_plano is None:
+        if r.selo_registro_3c0 is not None or r.selo_anexo_3c1 is not None or c.passos:
+            raise ContratoInvalido([erro("artefato_referenciado_sem_plano", cam,
+                                         "Janela sem plano não pode referenciar registro/anexo nem ter passos.")])
+        return None, None
+    from ..ponte.registro import RegistroExecucaoEMS
+    if c.execucao_uid is None or r.selo_registro_3c0 is None or r.selo_anexo_3c1 is None:
+        raise ContratoInvalido([erro("execucao_da_janela_indeterminada", cam,
+                                     "Janela com plano sem execucao_uid determinístico ou sem selos 3C-0/3C-3.")])
+    d = Path(diretorio)
+    reg = _ler(RegistroExecucaoEMS, d / f"{c.execucao_uid}.ems3c0.json", "registro_3c0")
+    anexo = _ler(AnexoExecucao3C3, d / f"{c.execucao_uid}{SUFIXO_ANEXO_3C3}", "anexo_3c3")
+    out = verificar_artefatos_carregados_3c3(cfg, r, reg, anexo)
     if out:
         raise ContratoInvalido(out)
     return reg, anexo
@@ -136,4 +157,4 @@ def retomar_controlador_conectado(diretorio, cfg, modelo, provedor, resolvedor, 
     return ctrl, pt
 
 
-__all__ = ["retomar_controlador_conectado", "verificar_artefatos_janela_3c3"]
+__all__ = ["retomar_controlador_conectado", "verificar_artefatos_carregados_3c3", "verificar_artefatos_janela_3c3"]

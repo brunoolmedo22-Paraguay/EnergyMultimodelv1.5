@@ -15,13 +15,26 @@ versões que o conhecem — as constatações dessas seções no relatório 3C-2
   importação e crédito de exportação RECALCULADOS com os perfis de liquidação da política (lookup próprio) e, com
   ``desvio_diferenciado``, o desvio a partir do programado do anexo; Σ = acumulado da missão.
 
-Com os anexos 3C-3 (``anexos``), verifica também cada anexo contra o seu registro 3C-0 (selo/compromissos/coerência),
-a política ``sem_ajuste`` (realizado = programado) e os desvios programado × realizado. Com a verdade (só após a
-missão), a separação previsão × realização 3C-0 continua aplicada (inclui a disponibilidade do PCC).
+**Dois escopos EXPLÍCITOS (C-02, auditoria do PR #16):**
+
+* ``auditar_missao_conectada`` — auditoria **INTEGRAL** (certificação documental): exige registros 3C-0, anexos 3C-3
+  e o ``RegistroMissaoRede3C3`` (argumentos obrigatórios; ausência ⇒ reprovação, nunca omissão). Verifica, para cada
+  janela executada, registro 3C-0 + anexo 3C-3 em POSIÇÃO (selos, compromissos, UID determinístico, identidade, plano,
+  plano de rede, estados, checkpoint, informação, custo — ``rede.persistencia.verificar_artefatos_carregados_3c3``),
+  janelas sem plano sem artefatos, nenhum artefato excedente, o registro de missão de rede (selo, vínculo ao
+  ``RegistroMissaoMPC``, sequência de anexos, totais) e a vinculação do MODELO 3C-3 e da CONFIGURAÇÃO de rede
+  fornecidos à auditoria (``hash_modelo_3c3``/``hash_configuracao_rede``): um PCC com limites mais amplos ou uma
+  política econômica substituída são reprovados mesmo que reproduzam os mesmos fluxos e custos;
+* ``auditar_missao_conectada_analitica`` — auditoria **ANALÍTICA PARCIAL** (só reprodução numérica: balanço, PCC,
+  custos, estado, causalidade). O relatório declara ``escopo = "analitica_parcial"`` e
+  ``integridade_documental_certificada = False``: NUNCA é certificação de integridade.
+
+Com a verdade (só após a missão), a separação previsão × realização 3C-0 continua aplicada (inclui o PCC).
 """
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 from ..audit import Tolerancias
 from ..diagnostics import Constatacao, erro
@@ -144,9 +157,19 @@ def custo_rede_independente(cfg, e: EntradaRede3C3, politica: PoliticaAjustePCC,
     return out, c
 
 
-def auditar_missao_conectada(registro_missao, registros, livro, modelo: EntradaRede3C3, politica: PoliticaAjustePCC, *,
-                             verdade=None, anexos=None, registros_3c0=None,
-                             tol: Tolerancias = Tolerancias()) -> RelatorioAuditoriaMissao:
+ESCOPOS = {"integral": "Certificação documental + reprodução analítica (registros 3C-0, anexos 3C-3, registro de "
+                       "missão de rede, vínculo do modelo e da configuração)",
+           "analitica_parcial": "SÓ reprodução analítica (balanço, PCC, custos, estado, causalidade): NÃO certifica a "
+                                "integridade documental da missão"}
+
+
+@dataclass(frozen=True)
+class RelatorioAuditoriaMissaoConectada(RelatorioAuditoriaMissao):
+    escopo: str = "integral"                              # ESCOPOS
+    integridade_documental_certificada: bool = False
+
+
+def _analitica(registro_missao, registros, livro, modelo, politica, verdade, tol, prog_global):
     base = auditar_missao(registro_missao, registros, livro, modelo.compromisso, verdade=verdade, tol=tol)
     cfg = registro_missao.conteudo.configuracao
     cons = [x for x in base.constatacoes if x.codigo not in SUBSTITUIDAS]
@@ -158,30 +181,6 @@ def auditar_missao_conectada(registro_missao, registros, livro, modelo: EntradaR
         ver[nome] = not any(x.severidade == "erro" for x in cs)
         cons.extend(cs)
     secao("balanco", _balanco_3c3(cfg, modelo, registros, tol))
-    prog_global: dict[int, tuple[float, float]] = {}
-    ca: list[Constatacao] = []
-    if anexos is not None:
-        from .registro import verificar_anexo_3c3
-        regs0 = {r.execucao_uid: r for r in (registros_3c0 or ())}
-        for a in anexos:
-            r0 = regs0.get(a.conteudo.execucao_uid)
-            if r0 is None:
-                ca.append(erro("anexo_3c3_sem_registro", f"anexos[{a.conteudo.execucao_uid}]", "Registro 3C-0 ausente."))
-                continue
-            ca += [erro("anexo_3c3_invalido", f"anexos[{a.conteudo.execucao_uid}]", f"[{x.codigo}] {x.mensagem}")
-                   for x in verificar_anexo_3c3(a, r0)]
-            pr = a.conteudo.plano_rede
-            for x in a.conteudo.passos_pcc:
-                j = x.indice_global - pr.indice_fronteira_inicial
-                prog_global[x.indice_global] = (pr.importacao_programada_kW[j], pr.exportacao_programada_kW[j])
-                if politica.tipo == "sem_ajuste" and (abs(x.importacao_realizada_kW - x.importacao_programada_kW) > 1e-9 or
-                                                     abs(x.exportacao_realizada_kW - x.exportacao_programada_kW) > 1e-9):
-                    ca.append(erro("ajuste_sem_politica", f"passos[{x.indice_global}]", "Realizado ≠ programado com "
-                                                                                       "a política 'sem_ajuste'."))
-        selos = [r.selo_anexo_3c1 for r in registros if r.selo_anexo_3c1 is not None]
-        if selos != [a.selo for a in anexos]:
-            ca.append(erro("anexos_3c3_nao_ligados_a_cadeia", "anexos", "Selos dos anexos ≠ referenciados pelas janelas."))
-        secao("anexos_3c3", ca)
     custos_c: list[Constatacao] = []
     soma = []
     dj = {}
@@ -190,7 +189,7 @@ def auditar_missao_conectada(registro_missao, registros, livro, modelo: EntradaR
         if c.custos.realizado is None:
             continue
         r1 = custo_realizado_independente(modelo.compromisso, c.passos, c.estados[0], cfg.malha.delta_s, tol)
-        rr, cc = custo_rede_independente(cfg, modelo, politica, c.passos, prog_global if anexos is not None else None)
+        rr, cc = custo_rede_independente(cfg, modelo, politica, c.passos, prog_global)
         custos_c += cc
         tot = math.fsum(list(r1.values()) + list(rr.values()))
         dj[c.posicao] = (tot, c.custos.realizado.total_R)
@@ -210,7 +209,102 @@ def auditar_missao_conectada(registro_missao, registros, livro, modelo: EntradaR
         custos_c.append(erro("custo_acumulado_nao_reproduzido", "missao", f"{acc!r} ≠ Σ recomputado {math.fsum(soma)!r}."))
     det["custos"] = {**dj, "acumulado_recomputado": math.fsum(soma)}
     secao("custos", custos_c)
-    return RelatorioAuditoriaMissao(all(ver.values()), ver, tuple(cons), det)
+    return ver, cons, det
 
 
-__all__ = ["SUBSTITUIDAS", "auditar_missao_conectada", "custo_rede_independente"]
+def auditar_missao_conectada_analitica(registro_missao, registros, livro, modelo: EntradaRede3C3, configuracao_rede, *,
+                                       verdade=None, tol: Tolerancias = Tolerancias()
+                                       ) -> RelatorioAuditoriaMissaoConectada:
+    """Escopo ANALÍTICO PARCIAL: reprodução numérica sem os artefatos históricos. Nunca certifica integridade."""
+    ver, cons, det = _analitica(registro_missao, registros, livro, modelo, configuracao_rede.politica_ajuste, verdade,
+                                tol, None)
+    return RelatorioAuditoriaMissaoConectada(all(ver.values()), ver, tuple(cons), det, escopo="analitica_parcial",
+                                             integridade_documental_certificada=False)
+
+
+def _documental(registro_missao, registros, modelo, configuracao_rede, registros_3c0, anexos, registro_rede):
+    """Seção documental da auditoria INTEGRAL (C-02). Devolve (constatações, programado por intervalo global)."""
+    from .contrato import hash_entrada_3c3
+    from .mpc import hash_configuracao_rede, validar_configuracao_rede, verificar_registro_rede
+    from .persistencia import verificar_artefatos_carregados_3c3
+    out: list[Constatacao] = []
+    cfg = registro_missao.conteudo.configuracao
+    falt = [n for n, v in (("registros_3c0", registros_3c0), ("anexos", anexos), ("registro_rede", registro_rede))
+            if v is None]
+    for n in falt:
+        out.append(erro("auditoria_integral_incompleta", n,
+                        f"Auditoria INTEGRAL sem {n}: a integridade documental não pode ser certificada "
+                        "(use a auditoria analítica parcial, rotulada, para só reproduzir números)."))
+    regs0, anx = tuple(registros_3c0 or ()), tuple(anexos or ())
+    out += [erro(x.codigo, "configuracao_rede." + x.caminho, x.mensagem)
+            for x in validar_configuracao_rede(configuracao_rede, modelo, cfg.rotulo_informacao) if x.severidade == "erro"]
+    # ------------------------------------------------ registro de missão de rede × modelo/configuração FORNECIDOS
+    if registro_rede is not None:
+        rr = registro_rede
+        out += list(verificar_registro_rede(rr, registro_missao, anx))
+        if rr.missao_uid != cfg.identidade.missao_uid:
+            out.append(erro("registro_rede_de_outra_missao", "missao_rede.missao_uid", "Missão divergente."))
+        if rr.hash_modelo_3c3 != hash_entrada_3c3(modelo):
+            out.append(erro("modelo_3c3_divergente", "missao_rede.hash_modelo_3c3",
+                            "O modelo 3C-3 (PCC, limites, tarifas do modelo) fornecido à auditoria NÃO é o da missão."))
+        if rr.hash_configuracao_rede != hash_configuracao_rede(configuracao_rede):
+            out.append(erro("configuracao_rede_divergente", "missao_rede.hash_configuracao_rede",
+                            "A configuração de rede (política de ajuste/liquidação, tarifas de decisão) fornecida NÃO é "
+                            "a da missão."))
+        if rr.modo_conexao != modelo.pcc.modo:
+            out.append(erro("modo_conexao_divergente", "missao_rede.modo_conexao", "Modo do PCC ≠ registrado."))
+    # ------------------------------------------------ artefatos por janela (posicionais)
+    com_plano = [r for r in registros if r.conteudo.hash_plano is not None]
+    for r in registros:
+        c = r.conteudo
+        if c.hash_plano is None and (r.selo_registro_3c0 is not None or r.selo_anexo_3c1 is not None or c.passos):
+            out.append(erro("artefato_referenciado_sem_plano", f"janelas[{c.posicao}]",
+                            "Janela sem plano não pode referenciar registro/anexo nem ter passos."))
+    if registros_3c0 is not None and len(regs0) != len(com_plano):
+        out.append(erro("registros_3c0_em_numero_incoerente", "registros_3c0",
+                        f"{len(regs0)} registro(s) para {len(com_plano)} janela(s) executada(s)."))
+    if anexos is not None and len(anx) != len(com_plano):
+        out.append(erro("anexos_3c3_em_numero_incoerente", "anexos",
+                        f"{len(anx)} anexo(s) para {len(com_plano)} janela(s) executada(s)."))
+    prog: dict[int, tuple[float, float]] = {}
+    for i, r in enumerate(com_plano):
+        reg = regs0[i] if i < len(regs0) else None
+        an = anx[i] if i < len(anx) else None
+        if registros_3c0 is None or anexos is None:
+            break
+        cs = verificar_artefatos_carregados_3c3(cfg, r, reg, an)
+        out += cs
+        if an is not None and (an.conteudo.plano_rede.pcc_uid != str(modelo.pcc.uid) or
+                               an.conteudo.plano_rede.modo_conexao != modelo.pcc.modo):
+            out.append(erro("plano_rede_de_outro_pcc", f"janelas[{r.conteudo.posicao}]", "PCC/modo do plano ≠ modelo."))
+        if an is not None and not cs:
+            pr = an.conteudo.plano_rede
+            for x in an.conteudo.passos_pcc:
+                j = x.indice_global - pr.indice_fronteira_inicial
+                prog[x.indice_global] = (pr.importacao_programada_kW[j], pr.exportacao_programada_kW[j])
+                if configuracao_rede.politica_ajuste.tipo == "sem_ajuste" and (
+                        x.importacao_realizada_kW != x.importacao_programada_kW or
+                        x.exportacao_realizada_kW != x.exportacao_programada_kW):
+                    out.append(erro("ajuste_sem_politica", f"passos[{x.indice_global}]",
+                                    "Realizado ≠ programado com a política 'sem_ajuste'."))
+    return out, prog
+
+
+def auditar_missao_conectada(registro_missao, registros, livro, modelo: EntradaRede3C3, configuracao_rede, *,
+                             registros_3c0, anexos, registro_rede, verdade=None,
+                             tol: Tolerancias = Tolerancias()) -> RelatorioAuditoriaMissaoConectada:
+    """Auditoria INTEGRAL da missão conectada (C-02). ``registros_3c0``, ``anexos`` e ``registro_rede`` são
+    OBRIGATÓRIOS (keyword sem padrão); ``None`` ⇒ ``auditoria_integral_incompleta`` e ``aceito = False``."""
+    docs, prog = _documental(registro_missao, registros, modelo, configuracao_rede, registros_3c0, anexos,
+                             registro_rede)
+    ver, cons, det = _analitica(registro_missao, registros, livro, modelo, configuracao_rede.politica_ajuste, verdade,
+                                tol, prog)
+    ver["documental"] = not any(x.severidade == "erro" for x in docs)
+    cons += docs
+    ok = all(ver.values())
+    return RelatorioAuditoriaMissaoConectada(ok, ver, tuple(cons), det, escopo="integral",
+                                             integridade_documental_certificada=ok)
+
+
+__all__ = ["ESCOPOS", "RelatorioAuditoriaMissaoConectada", "SUBSTITUIDAS", "auditar_missao_conectada",
+           "auditar_missao_conectada_analitica", "custo_rede_independente"]

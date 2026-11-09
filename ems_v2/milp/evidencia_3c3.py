@@ -19,6 +19,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
+# Saída LITERAL do script de reprodução executado sobre o commit auditado d7da6c5 (antes das correções C-01/C-02).
+ANTES_D7DA6C5 = """
+== C-01 (commit d7da6c5 )
+sem_ajuste               programa=False NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': nan} cod=[]
+sem_ajuste               programa=False parcial  exequivel=False aplicado_pcc={} cod=['programa_pcc_ausente']
+sem_ajuste               programa=True  NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': nan} cod=[]
+sem_ajuste               programa=True  parcial  exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+ajuste_local_algebrico   programa=False NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+ajuste_local_algebrico   programa=False parcial  exequivel=False aplicado_pcc={} cod=['programa_pcc_ausente']
+ajuste_local_algebrico   programa=True  NaN      exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+ajuste_local_algebrico   programa=True  parcial  exequivel=True aplicado_pcc={'syn-pcc|P_exp': 0.0, 'syn-pcc|P_imp': 20.0} cod=[]
+plano com imp (-3, NaN) aceito? (0.0, 0.0)
+plano com imp (-3, 20) => RECORTADO para (0.0, 20.0)
+== C-02
+sem anexos/registros_3c0/registro de rede: aceito = True ['aceitacao', 'balanco', 'cadeia_registros', 'causal', 'custos', 'estado_e_permanencias', 'livro_observacoes', 'separacao_previsao_realizacao', 'temporal']
+modelo PCC substituido (P_imp_max 60): aceito = True
+politica economica substituida: aceito = True
+"""
 
 
 def _f(x, nd=6):
@@ -108,8 +126,9 @@ def main(saida: str | None = None, rep: int = 5) -> str:
         r = ex.resultado
         rm = r.registro_missao.conteudo
         t = r.registro_rede.totais
-        rel = auditar_missao_conectada(r.registro_missao, r.registros, r.livro, ex.modelo, ex.politica,
-                                       verdade=ex.verdade, anexos=r.anexos_3c3, registros_3c0=r.registros_3c0)
+        rel = auditar_missao_conectada(r.registro_missao, r.registros, r.livro, ex.modelo, ex.configuracao_rede,
+                                       verdade=ex.verdade, anexos=r.anexos_3c3, registros_3c0=r.registros_3c0,
+                                       registro_rede=r.registro_rede)
         pi = [round(p.aplicado.get(f"{PCC}|P_imp", 0.0), 6) for x in r.registros for p in x.conteudo.passos]
         pe_ = [round(p.aplicado.get(f"{PCC}|P_exp", 0.0), 6) for x in r.registros for p in x.conteudo.passos]
         return (f"| {nome} | {r.configuracao.malha.intervalos_otimizacao}/{r.configuracao.malha.intervalos_reotimizacao}"
@@ -188,7 +207,65 @@ def main(saida: str | None = None, rep: int = 5) -> str:
         X.g11_mpc_conectado()
         tempos.append(time.perf_counter() - t0)
     est = estatisticas(tempos)
-    L += ["## 7. Campanha de tempos (indicativa)", "",
+    # ------------------------------------------------------------------ auditoria do PR #16 (C-01, C-02)
+    L += ["## 7. Auditoria independente do PR #16 (commit auditado `d7da6c5`) — C-01 e C-02", "",
+          "**Antes (reproduzido sobre `d7da6c5`, ANTES de qualquer correção; saída literal do script de reprodução):**",
+          "", "```", *ANTES_D7DA6C5.strip("\n").splitlines(), "```", "",
+          "**Depois (esta execução):**", "", "| Ensaio | Política | Programa explícito | Resultado |", "|---|---|---|---|"]
+    import sys as _s
+    _s.path.insert(0, str(RAIZ / "tests" / "ems_v2"))
+    from test_ems_v2_3c3_execucao import pol as _pol, real as _real, res_g1 as _res
+    from ..ponte.execucao import entorno_realizado, estado_inicial_de_entrada
+    from ..rede.execucao import ExecutorAlgebricoConectado3C3, plano_de_resultado_3c3, programa_de_plano
+    eg = F.caso_g1()
+    pg, prg = plano_de_resultado_3c3(_res(eg), eg)
+    ent, _ = entorno_realizado(_real(), pg.inicio_utc, pg.delta_s)
+    cons = {f"{x.uid}|{x.grandeza}": float(x.valores[0]) for x in pg.consignas}
+    for tipo in ("sem_ajuste", "ajuste_local_algebrico"):
+        for comprog in (False, True):
+            for nome, extra in (("P_imp = NaN", {f"{PCC}|P_imp": float("nan"), f"{PCC}|P_exp": 0.0}),
+                                ("só P_imp (parcial)", {f"{PCC}|P_imp": 20.0})):
+                exg = ExecutorAlgebricoConectado3C3(eg, {}, _pol(tipo=tipo),
+                                                    programa=programa_de_plano(prg) if comprog else None)
+                ps = exg.avancar(estado_inicial_de_entrada(eg.base), {**cons, **extra}, ent, pg.delta_s)
+                L.append(f"| {nome} | `{tipo}` | {comprog} | exequível = {ps.exequivel}, falha `{ps.falha}`, "
+                         f"{sorted(c.codigo for c in ps.constatacoes)} |")
+    from types import SimpleNamespace as _NS
+    for imp in ((-3.0, 20.0), (float("nan"), 20.0)):
+        try:
+            plano_de_resultado_3c3(_NS(**{**vars(_res(eg)), "intercambio": {"P_imp": imp, "P_exp": (0.0, 0.0)}}), eg)
+            L.append(f"| plano com P_imp = {imp} | — | — | ACEITO |")
+        except Exception as exc:  # noqa: BLE001
+            L.append(f"| plano com P_imp = {imp} | — | — | recusado: {sorted(exc.codigos)} (sem recorte) |")
+    from ..rede.auditoria import auditar_missao_conectada_analitica
+    r = g11.resultado
+    base_kw = dict(registros=r.registros, livro=r.livro, modelo=g11.modelo, configuracao_rede=g11.configuracao_rede,
+                   verdade=g11.verdade, anexos=r.anexos_3c3, registros_3c0=r.registros_3c0, registro_rede=r.registro_rede)
+    m = g11.modelo
+    largo = replace(m, pcc=replace(m.pcc, limite_importacao=replace(
+        m.pcc.limite_importacao, valores=tuple(v + 10.0 for v in m.pcc.limite_importacao.valores))))
+    crd = g11.configuracao_rede
+    sub = replace(crd, tarifas_decisao=tuple(p for p in crd.tarifas_decisao if p.revisao == 0))
+    an, r0 = list(r.anexos_3c3), list(r.registros_3c0)
+    casos_c02 = [("missão G11 válida", {}), ("sem anexos", {"anexos": None}), ("sem registros 3C-0", {"registros_3c0": None}),
+                 ("sem registro de missão de rede", {"registro_rede": None}),
+                 ("registro 3C-0 de outra janela", {"registros_3c0": (r0[1],) + tuple(r0[1:])}),
+                 ("evidências de duas janelas trocadas", {"anexos": (an[1], an[0], *an[2:]),
+                                                          "registros_3c0": (r0[1], r0[0], *r0[2:])}),
+                 ("modelo PCC com P̄_imp + 10 kW (mesmo núcleo)", {"modelo": largo}),
+                 ("configuração de rede sem a revisão r1 (mesmos custos realizados)", {"configuracao_rede": sub})]
+    L += ["", "| Auditoria INTEGRAL — caso | aceito | integridade certificada | balanço / custos | Constatações (erro) |",
+          "|---|---|---|---|---|"]
+    for nome, kw in casos_c02:
+        rel = auditar_missao_conectada(r.registro_missao, **{**base_kw, **kw})
+        L.append(f"| {nome} | {rel.aceito} | {rel.integridade_documental_certificada} | "
+                 f"{rel.verificacoes['balanco']} / {rel.verificacoes['custos']} | "
+                 f"{sorted({c.codigo for c in rel.constatacoes if c.severidade == 'erro'})[:5]} |")
+    ra = auditar_missao_conectada_analitica(r.registro_missao, r.registros, r.livro, largo, crd, verdade=g11.verdade)
+    L += ["", f"Auditoria ANALÍTICA PARCIAL com o modelo de limites mais amplos: aceito = {ra.aceito}, escopo "
+              f"`{ra.escopo}`, integridade documental certificada = {ra.integridade_documental_certificada} — reproduz "
+              "os números, mas nunca certifica integridade.", ""]
+    L += ["## 8. Campanha de tempos (indicativa)", "",
           f"Missão G11 completa (4 janelas, MILP 3C-3 + auditorias + registros), n = {rep}: "
           f"{json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in vars(est).items()}, sort_keys=True)} s. "
           "Uma máquina, sem restrição operacional: nenhuma afirmação de tempo real.", ""]
