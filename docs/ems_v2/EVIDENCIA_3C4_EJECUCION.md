@@ -30,7 +30,7 @@
 Todas con `PYTHONDONTWRITEBYTECODE=1`, Python 3.13.18, Pyomo 6.10.1, HiGHS 1.15.1 (`CONFIG_ANALITICA`: 1 hilo, gap 0,
 semilla 0).
 
-## 2. Salida literal de `python -m ems_v2.milp.evidencia_3c4` (regenerada en `c964a2e`)
+## 2. Salida literal de `python -m ems_v2.milp.evidencia_3c4` (código corregido de `c964a2e`; script ampliado commiteado en `0c2d753`)
 
 ### Ambiente
 
