@@ -2077,7 +2077,7 @@ Revertir el PR elimina `ems_v2/ponte/`, `ems_v2/ponte_seeds2/`, `ems_v2/fixtures
 | Rama | `claude/sweet-heisenberg-v0opgu` (desde `main`) |
 | Base | `main` `81aa09cfb5ee4bd7ff66ec6eec8fa4ccc049fc44` (merge del PR #13); verificada idéntica a `origin/main` al iniciar |
 | PR | [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) contra `main`, **sin merge** |
-| Pendientes | Auditoría del PR #14: A-01..A-03 corregidas (§5b); hipótesis aceptadas provisionalmente para ensayos; **no iniciar 3C-2 sin autorización** |
+| Pendientes | Auditoría del PR #14: A-01..A-03 (§5b) y B-01/B-02 (§5c) corregidas; hipótesis aceptadas provisionalmente para ensayos; **no iniciar 3C-2 sin autorización** |
 
 ### 1. Resumen
 
@@ -2148,6 +2148,17 @@ Pruebas: `test_ems_v2_3c1_auditoria_pr14.py` **36 passed**; casos A–L (110) si
 ausencia de cambios en V1.6/3A/3B-P/3C-0 verificados de nuevo (mismos tests). Detalle: `FORMULACAO_3C1.md` §9b,
 `EVIDENCIA_3C1.md` §2 y §6, `MATRIZ_3C1.md`.
 
+### 5c. Segunda auditoría del PR #14 (base `20243aa`: A-01, A-02 y el rechazo de duplicados/UID de A-03 aprobados)
+
+| ID | Antes (`20243aa`, reproducido) | Después |
+|---|---|---|
+| B-01 | Bloque q = 2 con `unidades_ligadas = 1` y dos unidades ON declaradas, o potencia del registro 10 kW con Σ por unidad 25 kW: **aceptados** | `coerencia_agregado_unidades` antes de proyectar: cantidad ON, estado discreto y potencia del registro (tolerancia D07); `unidades_ligadas_incoerente`, `estado_agregado_incoerente`, `potencia_agregada_incoerente`; agregado no declarado no se infiere; nada se reparte |
+| B-02 | Declaración de la versión 1 aplicada a la versión 2 del mismo escenario, o a otra revisión del inventario: **aceptada**; la fuente de disponibilidad estática no quedaba en la evidencia | `VinculoDeclaracao3C1` (reutiliza `ReferenciaInventario` + versión/impresión del escenario) con igualdad exacta; `hash_declaracao` en la procedencia de la entrada; `ponte/registro_3c1.py`: hashes 3C-1 en `RegistroExecucaoEMS.hashes` (esquema 3C-0 intacto) + `AnexoExecucao3C1` sellado con el CONTENIDO (fuentes, declaración, disponibilidad efectiva por paso, H₂ por unidad), verificable contra el registro |
+
+Pruebas: `test_ems_v2_3c1_auditoria_pr14_b.py` **18 passed**; A-01/A-02/A-03 (36) y casos A–L conservados;
+`tests/ems_v2` **699 passed** (sin Pyomo: 509 passed, 17 skipped); suite completa **1153 passed, 7 warnings, 128 subtests** (429 s) = 1135 + 18. Detalle:
+`FORMULACAO_3C1.md` §9c, `EVIDENCIA_3C1.md` §2 y §7, `MATRIZ_3C1.md`.
+
 ### 6. Rollback
 
 Revertir el PR elimina `ems_v2/compromisso/`, `ems_v2/milp/*_3c1.py`, `ems_v2/ponte/compromisso.py`,
@@ -2169,4 +2180,4 @@ las dos guardias. Nada en V1.6, en la aplicación ni en los bancos depende de el
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
-| 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) (sem merge) | Auditoria favorável com correções A-01..A-03 (§5b), aplicadas; aguardando autorização de merge |
+| 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) (sem merge) | Auditorias favoráveis com correções A-01..A-03 (§5b) e B-01/B-02 (§5c), aplicadas; aguardando autorização de merge |

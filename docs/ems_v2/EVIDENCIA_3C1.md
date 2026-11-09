@@ -38,6 +38,21 @@ Sintético/algebraico: **no es validación física**. Todas las corridas son de 
 | ídem con Pyomo/HiGHS bloqueados | **494 passed, 14 skipped** (los 5 nuevos dependientes del solver se saltan con `could not import 'pyomo'`) |
 | `… pytest tests/ -q` (suite completa) | **1135 passed, 7 warnings, 128 subtests** (435 s) = 1099 + 36 |
 
+**Segunda auditoría del PR #14 (B-01/B-02, base `20243aa`):**
+
+| Comando | Resultado |
+|---|---|
+| `… pytest tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_b.py` | **18 passed** (B-01: 9 · B-02 vínculo: 6 · B-02 evidencia: 3, con HiGHS) |
+| Los 8 archivos `tests/ems_v2/test_ems_v2_3c1_*.py` | 164 passed (28 + 36 + 18 + 7 + 30 + 32 + 6 + 7) |
+| `… pytest tests/ems_v2 -q` | **699 passed** (= 681 + 18) |
+| ídem con Pyomo/HiGHS bloqueados | **509 passed, 17 skipped** (los 3 nuevos de evidencia se saltan explícitamente) |
+| `… pytest tests/ -q` (suite completa) | **1153 passed, 7 warnings, 128 subtests** (429 s) = 1135 + 18 |
+
+Datos de prueba corregidos (no se relajó ninguna validación): en los bloques `quantidade = 2` de A-03 el agregado del
+registro venía de la fixture de una unidad (10 kW) y una prueba declaraba #1 ON a 12 kW; ahora cada prueba DECLARA
+el agregado coherente (`_cenario(..., agregado=12.0)`). Los helpers de declaración construyen el vínculo con
+`vinculo_do_instantaneo(inv, cen)` (B-02).
+
 Los tests 3C-1 que construían `ExecutorAlgebricoCommitment3C1` sin fuente de disponibilidad se actualizaron para
 DECLARARLA (Caso J: serie `observada` en la realización; casos de memoria/ponte: `estatica_declarada` con procedencia
 y justificativa). Ninguna aserción fue relajada: el caso D, con `observada` y sin serie realizada, pasó a fallar por
@@ -90,3 +105,15 @@ las mismas entradas de `test_ems_v2_3c1_auditoria_pr14.py`:
 | A-01 | ídem con disponibilidad 0,5 | `falha = "inexequivel"` (rotulado como físico) | `falha = "dados"` / `disponibilidade_realizada_invalida` |
 | A-02 | PEMFC con arranque y parada (m_SU = 0,002, m_SD = 0,001 kg) | solo la contabilidad 3C-0: H₂ R$ 0,30 (sin eventos) | R$ 0,33 = 10 × (0,03 + 0,003); eventos R$ 2,0 |
 | A-03 | `#1` válido, `#2` declarado dos veces (OFF y luego ON a 15 kW), `#7` inexistente | entrada **aceptada**; `#2` = ON a 15 kW (la última sobrescribió), `#7` ignorado | `condicao_unidade_duplicada` + `condicao_unidade_uid_desconhecido`; ninguna entrada |
+
+## 7. Reproducción de los defectos B-01/B-02 sobre `20243aa` (antes de corregir)
+
+Script ad hoc sobre el código de `20243aa` (mismas entradas de `test_ems_v2_3c1_auditoria_pr14_b.py`):
+
+| ID | Entrada | Resultado en `20243aa` | Resultado corregido |
+|---|---|---|---|
+| B-01 | Bloque q = 2; escenario `unidades_ligadas = 1`; #1 ON y #2 ON | **aceptada** | `unidades_ligadas_incoerente`; ninguna entrada (rechazo previo a la proyección) |
+| B-01 | Potencia del registro 10 kW; #1 ON 25 kW, #2 OFF | **aceptada** | `potencia_agregada_incoerente` |
+| B-02 | Declaración hecha para la versión 1 aplicada a la versión 2 del mismo escenario (mismo UID) | **aceptada** | `declaracao_de_outra_versao_do_cenario` |
+| B-02 | Declaración aplicada a otra revisión del inventario (mismo inventario físico) | **aceptada** (sin constatación) | `declaracao_de_outra_revisao_do_inventario` |
+| B-02 | Fuente de disponibilidad estática usada en la ejecución | no aparecía en ninguna evidencia persistida | valor, procedencia y justificativa en `AnexoExecucao3C1`, ligado por hash al registro |

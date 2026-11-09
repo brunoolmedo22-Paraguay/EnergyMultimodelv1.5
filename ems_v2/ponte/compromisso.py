@@ -17,7 +17,9 @@ JSON canônico e os mesmos selos); o 3C-1 acrescenta tipos PRÓPRIOS:
   3C-0 inalterada + H₂ (m_SU/m_SD) e C_SU/C_SD das transições APLICADAS, separados do planejado e do valor futuro;
 * ``DeclaracaoCommitment3C1`` / ``montar_entrada_3c1`` — projeção inventário + cenário + declarações POR UNIDADE →
   ``EntradaCommitment3C1`` (requisitos 3C-1 bloqueantes; estado por unidade nunca distribuído de um agregado;
-  declarações por unidade validadas antes de indexar — duplicatas, UIDs alheios e procedência; A-03).
+  declarações por unidade validadas antes de indexar — duplicatas, UIDs alheios e procedência; A-03; coerência com a
+  condição AGREGADA do registro no cenário — B-01; declaração vinculada ao instantâneo inventário × versão do cenário
+  por ``VinculoDeclaracao3C1`` — B-02). Evidência da execução 3C-1: ``ponte.registro_3c1`` (anexo selado).
 """
 from __future__ import annotations
 
@@ -37,7 +39,7 @@ from ..provenance import Procedencia
 from ..timegrid import ler_instante_utc
 from . import CONTRATO_VERSAO
 from .canonico import sha256
-from .cenario import CenarioEMS, ConjuntoPrevisao, DefinicaoTemporal
+from .cenario import CenarioEMS, ConjuntoPrevisao, DefinicaoTemporal, ReferenciaInventario
 from .execucao import (ConsignaRecurso, EstadoMicrorrede, ExecutorAlgebricoReferencia, PassoAplicado, PlanoDespacho,
                        TrajetoriaExecutada, TrajetoriaPlanejada, hash_plano, validar_plano)
 from .inventario import InventarioMicrorrede, recursos_ems
@@ -422,11 +424,30 @@ class CondicaoInicialUnidade:
 
 
 @dataclass(frozen=True)
-class DeclaracaoCommitment3C1:
-    """Decisões de modelagem do commitment declaradas por quem executa (nenhuma tem valor padrão). Vinculada a UMA
-    microrrede e a UM cenário (A-03): aplicada a outro inventário/cenário ⇒ erro."""
-    microrrede_uid: str
+class VinculoDeclaracao3C1:
+    """Instantâneo de dados que SUSTENTA as condições iniciais declaradas (B-02). Reutiliza os identificadores já
+    existentes nos contratos — nenhuma identidade nova: ``ReferenciaInventario`` (microrrede, incarnação, revisão e
+    impressões SHA-256 da configuração e do inventário físico) + cenário (UID, versão e impressão SHA-256)."""
+    inventario: ReferenciaInventario
     cenario_uid: str
+    versao_cenario: int
+    impressao_cenario: str
+
+
+def vinculo_do_instantaneo(inv: InventarioMicrorrede, cen: CenarioEMS) -> VinculoDeclaracao3C1:
+    """Vínculo com o instantâneo REALMENTE usado (inventário + versão do cenário) para compor a declaração."""
+    i = inv.identidade
+    return VinculoDeclaracao3C1(ReferenciaInventario(i.uid, i.incarnacao, i.revisao_config, i.impressao_config,
+                                                     i.impressao_inventario),
+                                cen.cenario_uid, cen.versao_cenario, cen.impressao_cenario)
+
+
+@dataclass(frozen=True)
+class DeclaracaoCommitment3C1:
+    """Decisões de modelagem do commitment declaradas por quem executa (nenhuma tem valor padrão). Vinculada ao
+    instantâneo EXATO (``vinculo``: microrrede, incarnação, revisão/impressões do inventário, versão/impressão do
+    cenário; A-03/B-02): aplicada a outro inventário, revisão, incarnação, cenário ou versão ⇒ erro."""
+    vinculo: VinculoDeclaracao3C1
     politica_permanencia: PoliticaPermanenciaTerminal
     termos_adicionais: tuple[str, ...]
     abstracao_por_equipamento: dict[str, str]  # UID do registro (eq-…) → ABSTRACOES_TRANSICAO
@@ -459,6 +480,96 @@ def _com_origem(cu: CondicaoInicialUnidade, origem: str) -> CondicaoInicialUnida
     return replace(cu, potencia_kW=pot, procedencia=anota(cu.procedencia))
 
 
+def hash_declaracao(decl: DeclaracaoCommitment3C1) -> str:
+    """SHA-256 do JSON canônico da declaração (referência verificável; o conteúdo é serializável por
+    ``canonico.json_canonico`` e relido por ``declaracao_de_json`` — o hash sozinho não reconstrói nada)."""
+    return sha256(decl)
+
+
+def declaracao_de_json(texto: str) -> DeclaracaoCommitment3C1:
+    from .canonico import de_json
+    return de_json(DeclaracaoCommitment3C1, texto)
+
+
+def verificar_vinculo(v: VinculoDeclaracao3C1, inv: InventarioMicrorrede, cen: CenarioEMS) -> list[Constatacao]:
+    """B-02: a declaração só se aplica ao instantâneo que a sustenta. Qualquer divergência BLOQUEIA (mesmo com o mesmo
+    UID de cenário: outra versão, outra revisão do inventário com o mesmo conteúdo físico ou outra incarnação)."""
+    c: list[Constatacao] = []
+    if not isinstance(v, VinculoDeclaracao3C1) or not isinstance(v.inventario, ReferenciaInventario):
+        return [erro("declaracao_sem_vinculo", "declaracao.vinculo", "Declaração sem vínculo ao instantâneo de dados.")]
+    i, r = inv.identidade, v.inventario
+    if r.microrrede_uid != i.uid:
+        c.append(erro("declaracao_de_outra_microrrede", "declaracao.vinculo.inventario.microrrede_uid",
+                      f"Declaração da microrrede {r.microrrede_uid!r} aplicada ao inventário de {i.uid!r}."))
+        return c
+    if r.incarnacao != i.incarnacao:
+        c.append(erro("declaracao_de_outra_incarnacao", "declaracao.vinculo.inventario.incarnacao",
+                      "Declaração feita para outra incarnação da microrrede (excluída e reimportada com o mesmo UID)."))
+    if (r.revisao_config, r.impressao_config, r.impressao_inventario) != (i.revisao_config, i.impressao_config,
+                                                                         i.impressao_inventario):
+        c.append(erro("declaracao_de_outra_revisao_do_inventario", "declaracao.vinculo.inventario",
+                      f"Declaração sustentada pela revisão {r.revisao_config} (config {r.impressao_config[:12]}…, "
+                      f"inventário {r.impressao_inventario[:12]}…); o instantâneo é a revisão {i.revisao_config} "
+                      f"(config {i.impressao_config[:12]}…, inventário {i.impressao_inventario[:12]}…): declaração obsoleta."))
+    if v.cenario_uid != cen.cenario_uid:
+        c.append(erro("declaracao_de_outro_cenario", "declaracao.vinculo.cenario_uid",
+                      f"Declaração do cenário {v.cenario_uid!r} aplicada ao cenário {cen.cenario_uid!r}."))
+    elif (v.versao_cenario, v.impressao_cenario) != (cen.versao_cenario, cen.impressao_cenario):
+        c.append(erro("declaracao_de_outra_versao_do_cenario", "declaracao.vinculo",
+                      f"Declaração sustentada pela versão {v.versao_cenario} do cenário ({v.impressao_cenario[:12]}…); "
+                      f"aplicada à versão {cen.versao_cenario} ({cen.impressao_cenario[:12]}…): declaração obsoleta."))
+    return c
+
+
+def coerencia_agregado_unidades(d, ci, declaradas: dict[str, CondicaoInicialUnidade], tol: Tolerancias = Tolerancias()
+                                ) -> list[Constatacao]:
+    """B-01: estados POR UNIDADE × condição AGREGADA do registro no cenário (bloco com ``quantidade`` q > 1).
+
+    Só compara o que o cenário DECLARA (nada é inferido nem distribuído):
+    * ``unidades_ligadas`` = k ⇒ ON declaradas = k (todas as q declaradas) ou ON <= k e OFF <= q − k (parcial);
+    * ``estado_discreto`` do registro: ``desligada`` ⇒ nenhuma unidade ON; ``em_operacao`` ⇒ ao menos uma ON (com as q
+      declaradas); ``em_partida`` ⇒ incompatível com estados estacionários por unidade;
+    * ``potencia_kW`` do registro (potência líquida do REGISTRO INTEIRO, semântica de ``CondicaoInicialDispositivo``)
+      ⇒ Σ potências por unidade = agregado (todas declaradas) ou <= agregado (parcial), na tolerância provisória D07
+      de potência (``potencia_abs_kW + potencia_rel_escala·max(1, agregado)``)."""
+    if ci is None:
+        return []
+    q = d.quantidade or 1
+    cam = f"cenario.condicoes_iniciais[{d.uid}]"
+    lig = [k for k, x in declaradas.items() if x.estado_discreto == "em_operacao"]
+    des = [k for k, x in declaradas.items() if x.estado_discreto == "desligada"]
+    n, todas = len(declaradas), len(declaradas) == q
+    out: list[Constatacao] = []
+    k = ci.unidades_ligadas
+    if k is not None and not isinstance(k, bool) and isinstance(k, int):
+        if (todas and len(lig) != k) or len(lig) > k or len(des) > q - k:
+            out.append(erro("unidades_ligadas_incoerente", cam + ".unidades_ligadas",
+                            f"Cenário declara {k} de {q} unidades em operação; declarações por unidade: {len(lig)} ON, "
+                            f"{len(des)} OFF ({n} de {q} declaradas)."))
+    e = ci.estado_discreto
+    if e == "desligada" and lig:
+        out.append(erro("estado_agregado_incoerente", cam + ".estado_discreto",
+                        f"Registro 'desligada' no cenário com unidade(s) ON declarada(s): {sorted(lig)}."))
+    elif e == "em_operacao" and todas and not lig:
+        out.append(erro("estado_agregado_incoerente", cam + ".estado_discreto",
+                        "Registro 'em_operacao' no cenário, mas todas as unidades declaradas OFF."))
+    elif e == "em_partida" and declaradas:
+        out.append(erro("estado_agregado_incoerente", cam + ".estado_discreto",
+                        "Registro 'em_partida' no cenário (transitório, não representável) × estados estacionários "
+                        "declarados por unidade."))
+    pa = ci.potencia_kW
+    if pa is not None and pa.valor is not None and declaradas and all(
+            x.potencia_kW is not None and x.potencia_kW.valor is not None for x in declaradas.values()):
+        soma = math.fsum(float(x.potencia_kW.valor) for x in declaradas.values())
+        agg = float(pa.valor)
+        t = tol.potencia_abs_kW + tol.potencia_rel_escala * max(1.0, abs(agg))
+        if (todas and abs(soma - agg) > t) or soma > agg + t:
+            out.append(erro("potencia_agregada_incoerente", cam + ".potencia_kW",
+                            f"Potência do registro no cenário = {agg} kW; Σ potências por unidade = {soma} kW ({n} de {q} "
+                            f"declaradas; tolerância {t} kW). Nenhuma potência é redistribuída."))
+    return out
+
+
 def _condicoes_por_unidade(inv: InventarioMicrorrede, cen: CenarioEMS, decl: DeclaracaoCommitment3C1, gers
                            ) -> tuple[dict[str, CondicaoInicialUnidade], list[Constatacao]]:
     """A-03: valida as declarações por unidade ANTES de indexá-las. Duplicatas (mesmo idênticas), UIDs que não são
@@ -468,12 +579,7 @@ def _condicoes_por_unidade(inv: InventarioMicrorrede, cen: CenarioEMS, decl: Dec
     from ..parameters import validar_parametro
     from ..provenance import validar_procedencia
     c: list[Constatacao] = []
-    if decl.microrrede_uid != inv.identidade.uid:
-        c.append(erro("declaracao_de_outra_microrrede", "declaracao.microrrede_uid",
-                      f"Declaração da microrrede {decl.microrrede_uid!r} aplicada ao inventário de {inv.identidade.uid!r}."))
-    if decl.cenario_uid != cen.cenario_uid:
-        c.append(erro("declaracao_de_outro_cenario", "declaracao.cenario_uid",
-                      f"Declaração do cenário {decl.cenario_uid!r} aplicada ao cenário {cen.cenario_uid!r}."))
+    c += verificar_vinculo(decl.vinculo, inv, cen)
     c += validar_procedencia(decl.procedencia, "declaracao.procedencia", sustenta_valor=False)
     esperados = {str(r): d for d, r in gers}
     outros = {str(r): d for d in inv.dispositivos for r in recursos_ems(d)} | {d.uid: d for d in inv.dispositivos}
@@ -501,7 +607,10 @@ def _condicoes_por_unidade(inv: InventarioMicrorrede, cen: CenarioEMS, decl: Dec
             cp.append(erro("memoria_invalida", cam + ".tempo_no_estado_s", f"{x.tempo_no_estado_s!r}."))
         c += cp
         if cont[x.uid] == 1 and not cp:
-            ok[x.uid] = _com_origem(x, f"DeclaracaoCommitment3C1.unidades[{i}] (cenário {decl.cenario_uid})")
+            v = decl.vinculo
+            ok[x.uid] = _com_origem(x, f"DeclaracaoCommitment3C1.unidades[{i}] (cenário {v.cenario_uid} v{v.versao_cenario}"
+                                       f", inventário rev. {v.inventario.revisao_config}; declaração "
+                                       f"{hash_declaracao(decl)[:16]})")
     return ok, c
 
 
@@ -526,6 +635,12 @@ def montar_entrada_3c1(inv: InventarioMicrorrede, cen: CenarioEMS, prev: Conjunt
     gers = [(d, r) for d in inv.dispositivos if d.habilitado and d.modelo.papel_ems == "gerador" for r in recursos_ems(d)]
     cond_u, cu_c = _condicoes_por_unidade(inv, cen, decl, gers)
     c += cu_c
+    for d in inv.dispositivos:                      # B-01: agregado do cenário × estados por unidade
+        if d.habilitado and d.modelo.papel_ems == "gerador" and (d.quantidade or 1) > 1:
+            decl_d = {str(r): cond_u[str(r)] for r in recursos_ems(d) if str(r) in cond_u}
+            c += coerencia_agregado_unidades(d, cen.condicao(d.uid), decl_d)
+    if any(x.severidade in ("erro", "pendente") for x in c):
+        return None, tuple(c), ResultadoProjecao(None, tuple(c), None)
     estados: dict[str, EstadoGerador] = {}
     usadas: dict[str, CondicaoInicialUnidade] = {}
     for d, r in gers:
@@ -601,8 +716,12 @@ def montar_entrada_3c1(inv: InventarioMicrorrede, cen: CenarioEMS, prev: Conjunt
         ob = obrigacao_derivada_s(T, tempo)
         procm = cu.procedencia if cu is not None else None
         memorias.append(MemoriaCommitmentUnidade(r, tempo, ob, procm))
+    procd = None if decl.procedencia is None else replace(
+        decl.procedencia, sha256=hash_declaracao(decl), observacoes=(
+            f"{decl.procedencia.observacoes} · declaração 3C-1 vinculada ao cenário {decl.vinculo.cenario_uid} "
+            f"v{decl.vinculo.versao_cenario} e ao inventário rev. {decl.vinculo.inventario.revisao_config}").strip(" ·"))
     e3 = EntradaCommitment3C1(ESQUEMA_3C1, FORMULACAO_3C1, proj.entrada, tuple(unidades), tuple(memorias),
-                              decl.politica_permanencia, tuple(decl.termos_adicionais), decl.procedencia)
+                              decl.politica_permanencia, tuple(decl.termos_adicionais), procd)
     if any(x.severidade in ("erro", "pendente") for x in c):
         return None, tuple(c), proj
     rel = validar_entrada_3c1(e3)
@@ -618,7 +737,8 @@ def hash_plano_commitment(p: PlanoCommitment3C1) -> str:
     return sha256(p)
 
 
-__all__ = ["ContabilidadeRealizada3C1", "DetalheH2Realizado", "FONTES_DISPONIBILIDADE", "FonteDisponibilidadeExecucao",
+__all__ = ["VinculoDeclaracao3C1", "coerencia_agregado_unidades", "declaracao_de_json", "hash_declaracao",
+           "verificar_vinculo", "vinculo_do_instantaneo", "ContabilidadeRealizada3C1", "DetalheH2Realizado", "FONTES_DISPONIBILIDADE", "FonteDisponibilidadeExecucao",
            "contabilidade_realizada_3c1", "validar_fontes_disponibilidade",
            "CondicaoInicialUnidade", "DeclaracaoCommitment3C1", "ResultadoProjecao3C1", "ExecutorAlgebricoCommitment3C1", "PlanoCommitment3C1",
            "custo_eventos_realizado", "entrada_de_continuacao", "estado_inicial_3c1", "hash_plano_commitment", "memorias_do_estado",

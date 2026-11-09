@@ -245,10 +245,10 @@ def _inventario(q=2):
     return F0.inventario(MG, (F0.bateria(MG), F0.usina(MG), F0.arranjo(MG), d))
 
 
-def _decl(unidades, mg=MG, cen="syn-cenario-3c0"):
+def _decl(unidades, vinculo):
     from ems_v2.compromisso.contrato import PoliticaPermanenciaTerminal
     from ems_v2.ponte.compromisso import DeclaracaoCommitment3C1
-    return DeclaracaoCommitment3C1(mg, cen, PoliticaPermanenciaTerminal("obrigacao_residual_vinculante", "ensaio",
+    return DeclaracaoCommitment3C1(vinculo, PoliticaPermanenciaTerminal("obrigacao_residual_vinculante", "ensaio",
                                                                         F0.proc()), (),
                                    {"syn-ter1": "instantanea_unidade_quente"}, {"syn-ter1": "rampa_convencional"},
                                    "Ensaio A-03", tuple(unidades), F0.proc())
@@ -258,14 +258,27 @@ def _cu(uid, estado="em_operacao", p=10.0, tempo=3600, pr=True):
     return CondicaoInicialUnidade(uid, estado, Parametro(p, "kW", F0.proc()), tempo, F0.proc() if pr else None)
 
 
-def _montar(unidades, q=2, **kw):
-    inv = _inventario(q)
+def _cenario(inv, q, *, ligadas=1, agregado=10.0, estado="em_operacao"):
+    """Cenário do bloco: a condição AGREGADA do registro é DECLARADA explicitamente em cada teste (B-01: a fixture de
+    uma unidade do 3C-0 traz 10 kW; para blocos q > 1 o agregado precisa coincidir com as unidades declaradas)."""
     cen = F0.cenario(inv)
     if q and q > 1:
+        pa = None if agregado is None else Parametro(agregado, "kW", F0.proc("3C0", "potência agregada do registro"))
         cen = dataclasses.replace(cen, condicoes_iniciais=tuple(
-            dataclasses.replace(c, unidades_ligadas=1) if c.uid == "syn-ter1" else c for c in cen.condicoes_iniciais))
-    return montar_entrada_3c1(inv, cen, F0.previsao(), F0.definicao(), F0.politicas(), _decl(unidades, **kw),
-                              contexto="ensaio")
+            dataclasses.replace(c, unidades_ligadas=ligadas, potencia_kW=pa, estado_discreto=estado)
+            if c.uid == "syn-ter1" else c for c in cen.condicoes_iniciais))
+    return cen
+
+
+def _montar(unidades, q=2, *, mud_vinculo=None, cen_aplicado=None, inv_aplicado=None, **kw_cen):
+    from ems_v2.ponte.compromisso import vinculo_do_instantaneo
+    inv = _inventario(q)
+    cen = _cenario(inv, q, **kw_cen)
+    v = vinculo_do_instantaneo(inv, cen)
+    if mud_vinculo is not None:
+        v = mud_vinculo(v)
+    return montar_entrada_3c1(inv_aplicado or inv, cen_aplicado or cen, F0.previsao(), F0.definicao(), F0.politicas(),
+                              _decl(unidades, v), contexto="ensaio")
 
 
 def _codigos(r):
@@ -273,7 +286,8 @@ def _codigos(r):
 
 
 def test_a03_duas_unidades_validas_com_estados_diferentes():
-    e3, cs, _ = _montar([_cu("syn-ter1#1", "em_operacao", 12.0, 3600), _cu("syn-ter1#2", "desligada", 0.0, 300)])
+    e3, cs, _ = _montar([_cu("syn-ter1#1", "em_operacao", 12.0, 3600), _cu("syn-ter1#2", "desligada", 0.0, 300)],
+                        agregado=12.0)
     assert e3 is not None, [(c.codigo, c.caminho) for c in cs if c.severidade != "aviso"]
     st = {str(s.uid): s for s in e3.base.estados_geradores}
     assert (st["syn-ter1#1"].ligado, st["syn-ter1#1"].p_anterior_kW.valor) == (True, 12.0)
@@ -298,8 +312,10 @@ def test_a03_uid_desconhecido_ou_de_outro_recurso_rejeitado(uid):
 
 def test_a03_declaracao_de_outra_microrrede_ou_cenario():
     un = [_cu("syn-ter1#1"), _cu("syn-ter1#2", "desligada", 0.0)]
-    assert "declaracao_de_outra_microrrede" in _codigos(_montar(un, mg="syn-mg-b"))
-    assert "declaracao_de_outro_cenario" in _codigos(_montar(un, cen="syn-outro-cenario"))
+    outra_mg = lambda v: dataclasses.replace(v, inventario=dataclasses.replace(v.inventario, microrrede_uid="syn-mg-b"))  # noqa: E731
+    assert "declaracao_de_outra_microrrede" in _codigos(_montar(un, mud_vinculo=outra_mg))
+    assert "declaracao_de_outro_cenario" in _codigos(_montar(un, mud_vinculo=lambda v: dataclasses.replace(
+        v, cenario_uid="syn-outro-cenario")))
 
 
 def test_a03_procedencia_e_valores_da_condicao_verificados():

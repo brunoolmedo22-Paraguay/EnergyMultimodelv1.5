@@ -39,9 +39,14 @@ def inventario(ter=None, quantidade=None):
     return F.inventario(MG, (F.bateria(MG), F.usina(MG), F.arranjo(MG), t))
 
 
-def declaracao(unidades=(), termos=("eventos",), abst="instantanea_unidade_quente", mg=MG, cen="syn-cenario-3c0"):
+def declaracao(unidades=(), termos=("eventos",), abst="instantanea_unidade_quente", *, inv=None, cen=None):
+    """Declaração vinculada ao instantâneo (B-02); por omissão, o inventário/cenário sintéticos destes testes (a
+    impressão do inventário não depende da quantidade nem dos valores, só dos UIDs — fixture 3C-0)."""
+    from ems_v2.ponte.compromisso import vinculo_do_instantaneo
+    inv = inv or inventario()
+    cen = cen or F.cenario(inv)
     return DeclaracaoCommitment3C1(
-        mg, cen, PoliticaPermanenciaTerminal("obrigacao_residual_vinculante", "Ensaio 3C-1: continuidade após a janela",
+        vinculo_do_instantaneo(inv, cen), PoliticaPermanenciaTerminal("obrigacao_residual_vinculante", "Ensaio 3C-1: continuidade após a janela",
                                     F.proc()),
         termos, {"syn-ter1": abst}, {"syn-ter1": "rampa_convencional"}, "Ensaio 3C-1 (unidade quente declarada)",
         tuple(unidades), F.proc())
@@ -169,7 +174,7 @@ def test_microrrede_real_bloqueada_no_3c1_com_explicacao(tmp_path):
         assert ter[s].bloqueia and ter[s].codigo == "parametro_obrigatorio_ausente", s      # vazio ≠ sem limite
     assert not ter["C_SU"].bloqueia and ter["C_SU"].procedencia.tipo == "declarado_seeds2"
     pol = dataclasses.replace(F.politicas(), procedencia=Procedencia("decisao_responsavel", "teste"))
-    d = dataclasses.replace(declaracao(mg=ub, cen=sc.scenario_uid),
+    d = dataclasses.replace(declaracao(inv=inv, cen=cen),
                             abstracao_por_equipamento={e: "instantanea_unidade_quente" for e in inv.uids()},
                             limites_por_equipamento={e: "rampa_convencional" for e in inv.uids()})
     e3, cs, _ = montar_entrada_3c1(inv, cen, F.previsao(), F.definicao(), pol, d, contexto="operacional")

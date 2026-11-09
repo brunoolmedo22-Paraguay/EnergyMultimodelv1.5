@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-09 · **rama:** `claude/sweet-heisenberg-v0opgu` · **PR:** [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-1 — Unit Commitment dinámico (M09–M12), rampas, permanencias y memoria operativa** implementado y verificado en la rama; auditoría del PR #14 favorable con correcciones A-01..A-03 **aplicadas**; **no integrado** (sin UI/runtime, sin MPC).
+**Actualización:** 2026-11-09 · **rama:** `claude/sweet-heisenberg-v0opgu` · **PR:** [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-1 — Unit Commitment dinámico (M09–M12), rampas, permanencias y memoria operativa** implementado y verificado en la rama; auditorías del PR #14 favorables con correcciones A-01..A-03 y B-01/B-02 **aplicadas**; **no integrado** (sin UI/runtime, sin MPC).
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 9**; formulación, decisiones y contradicciones en [`docs/ems_v2/FORMULACAO_3C1.md`](../ems_v2/FORMULACAO_3C1.md); trazabilidad en [`MATRIZ_3C1.md`](../ems_v2/MATRIZ_3C1.md); evidencia en [`EVIDENCIA_3C1.md`](../ems_v2/EVIDENCIA_3C1.md); brechas en [`BRECHAS_3C1.md`](../ems_v2/BRECHAS_3C1.md); transición en [`TRANSICAO_3C1_3C2.md`](../ems_v2/TRANSICAO_3C1_3C2.md).
 
@@ -22,6 +22,10 @@
   - **A-03:** declaraciones por unidad validadas antes de indexar (duplicatas, UID ajenos, procedencia); declaración vinculada a microrred/escenario; origen en la procedencia.
   - Verificado: `test_ems_v2_3c1_auditoria_pr14.py` 36 passed; `tests/ems_v2` **681 passed** (sin Pyomo 494 passed, 14 skipped); suite completa **1135 passed, 7 warnings, 128 subtests** (435 s) = 1099 + 36.
   - Hipótesis aceptadas provisionalmente por la auditoría (solo ensayos sintéticos): embrulho, redondeo conservador, obligación residual vinculante, S := R·Δ declarado, PEMFC instantánea como abstracción analítica.
+- **Segunda auditoría (base `20243aa`): A-01, A-02 y el rechazo de duplicados/UID de A-03 aprobados; cierre B-01/B-02 aplicado** (reproducidos antes de corregir):
+  - **B-01:** estados por unidad × condición agregada del registro (cantidad ON, estado discreto, potencia con tolerancia D07) ⇒ contradicción = error antes de proyectar; nada inferido ni repartido.
+  - **B-02:** `DeclaracaoCommitment3C1.vinculo` (`ReferenciaInventario` + versión/impresión del escenario, igualdad exacta); evidencia 3C-1 en `ems_v2/ponte/registro_3c1.py` (hashes en `RegistroExecucaoEMS.hashes` + anexo sellado `<uid>.ems3c1.json` con fuentes de disponibilidad, declaración, disponibilidad efectiva por paso y H₂ por unidad).
+  - Verificado: `test_ems_v2_3c1_auditoria_pr14_b.py` 18 passed; `tests/ems_v2` **699 passed** (sin Pyomo 509 passed, 17 skipped); suite completa **1153 passed, 7 warnings, 128 subtests** (429 s) = 1135 + 18.
 - **Decisiones:** D-3C1-01..10 (FORMULACAO_3C1 §9). **Contradicciones:** C-3C1-01 (dos guardias ajustadas nominalmente), C-3C1-02 (reinterpretación R$ ≡ R$/evento no verificable por la cadena 3A; tratada solo en la proyección 3C-1).
 - **Hallazgo:** ninguna microrred real puede usar el commitment dinámico hoy (faltan rampa, T_on/T_off, C_SD, estado por unidad y memoria; "Rampa máxima" vacía ≠ sin límite). PEMFC: abstracción instantánea solo en ensayo; D05 pendiente.
 - **No implementado (fuera de alcance):** MPC recedente (3C-2), valor futuro/planificador (3C-4), multimodo PEMFC (M20), M11-EXT, M05, M19, red/tarifas, UI/selector, migraciones, ejecutor físico.
