@@ -127,7 +127,13 @@ def _estado_gerador(uid_rec: UIDRecurso, q: int, ci) -> tuple[EstadoGerador | No
 
 
 def montar_entrada(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPrevisao, dt: DefinicaoTemporal,
-                   pol: PoliticasDeclaradas, *, contexto: str = "operacional") -> ResultadoProjecao:
+                   pol: PoliticasDeclaradas, *, contexto: str = "operacional",
+                   estados_por_unidade: dict[str, EstadoGerador] | None = None,
+                   perfil: str | None = None) -> ResultadoProjecao:
+    """``estados_por_unidade`` / ``perfil`` (extensão aditiva do 3C-1; ``None`` = comportamento 3C-0 INALTERADO):
+    estados iniciais POR UNIDADE declarados (chave ``str(UIDRecurso)``, p. ex. ``eq-…#2``) substituem a leitura do
+    estado do registro para essas unidades — nunca há distribuição de um estado agregado; ``perfil`` repassa o perfil
+    de commitment à matriz de parâmetros (``requisitos.EXIGIDOS_3C1``)."""
     c: list[Constatacao] = []
     c += list(validar_inventario(inv).constatacoes)
     c += list(validar_cenario(cen).constatacoes)
@@ -137,7 +143,7 @@ def montar_entrada(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPre
         return ResultadoProjecao(None, tuple(c), None)
     c += validar_previsao(prev, dt)
     termos = frozenset(pol.objetivo.termos)
-    mat = matriz_parametros(inv, termos=termos, contexto=contexto)
+    mat = matriz_parametros(inv, termos=termos, contexto=contexto, perfil=perfil)
     c += constatacoes_matriz(mat)
     topo = TOPOLOGIAS_INVENTARIO.get(inv.modo_operacao or "")
     if topo is None:
@@ -201,6 +207,9 @@ def montar_entrada(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPre
                                   "Gerador presente: declarar a variante de commitment (sem padrão)."))
                     continue
                 gers.append(EspecGerador(r, d.modelo.tecnologia_ems, pmin, pmax, disp, pol.variante_commitment))
+                if estados_por_unidade is not None and k in estados_por_unidade:
+                    egers.append(estados_por_unidade[k])
+                    continue
                 est, ce = _estado_gerador(r, d.quantidade or 1, ci)
                 c += ce
                 if est is not None:

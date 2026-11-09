@@ -6,7 +6,9 @@ M01–M23 (+ adenda v1.1). Piso 3B-P: o subpacote ``ems_v2.milp`` (ÚNICO que im
 a partir desses contratos, com perfil de capacidades explícito (``FORMULACAO_3BP``). Nenhuma integração com a
 interface, o Centro de Operação ou o runtime V1.6. Piso 3C-0: ``ems_v2.ponte`` (contratos da ponte científica, núcleo
 só com a biblioteca padrão) e ``ems_v2.ponte_seeds2`` (ÚNICO subpacote que importa ``seeds2``, somente leitura) — ver
-``docs/ems_v2/PONTE_3C0.md``.
+``docs/ems_v2/PONTE_3C0.md``. Piso 3C-1: ``ems_v2.compromisso`` (contrato, discretização, memória, preflight e auditor
+do commitment dinâmico M09–M12; só biblioteca padrão) e os módulos ``ems_v2.milp.*_3c1`` (MILP) — ver
+``docs/ems_v2/FORMULACAO_3C1.md``.
 
 Regras do pacote:
 
@@ -27,10 +29,14 @@ MOTOR_ID = "milp_mpc_v1"
 MOTOR_LEGADO_ID = "legacy_v16"
 FORMULACAO_VERSAO = "v1.1-3A"            # formulação do Piso 3A (contrato, referência, auditoria; sem solver)
 FORMULACAO_3BP = "v1.1-3B-P"             # Piso 3B-P: primeiro MILP executável (Pyomo + HiGHS), perfil explícito
-FORMULACOES = (FORMULACAO_VERSAO, FORMULACAO_3BP)
+FORMULACOES = (FORMULACAO_VERSAO, FORMULACAO_3BP)   # formulações aceitas por contracts.validar_entrada (INALTERADO)
+# Piso 3C-1: commitment dinâmico (M09–M12). NÃO entra em FORMULACOES: uma EntradaModeloEMS nunca declara 3C-1; o perfil
+# só existe no contrato EMBRULHO ``ems_v2.compromisso.EntradaCommitment3C1`` (núcleo contínuo/econômico = perfil 3B-P).
+FORMULACAO_3C1 = "v1.1-3C-1"
 ESTADO_MOTOR = "experimental_sem_solver"   # estado no Piso 3A (registro); 3B-P: ver ESTADO_MOTOR_3BP
 ESTADO_MOTOR_3BP = "experimental_milp_janela_unica"   # MILP só por API/testes; nunca integrado à aplicação
+ESTADO_MOTOR_3C1 = "experimental_milp_commitment_dinamico_janela_unica"   # 3C-1: sem MPC; só API/testes
 ROTULO_EVIDENCIA = "sintetico/algebrico — não é validação física"
 
-__all__ = ["ESQUEMA_VERSAO", "ESTADO_MOTOR", "ESTADO_MOTOR_3BP", "FORMULACAO_3BP", "FORMULACAO_VERSAO", "FORMULACOES", "MOTOR_ID",
+__all__ = ["ESQUEMA_VERSAO", "ESTADO_MOTOR", "ESTADO_MOTOR_3BP", "ESTADO_MOTOR_3C1", "FORMULACAO_3BP", "FORMULACAO_3C1", "FORMULACAO_VERSAO", "FORMULACOES", "MOTOR_ID",
            "MOTOR_LEGADO_ID", "ROTULO_EVIDENCIA"]

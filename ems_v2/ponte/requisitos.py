@@ -196,16 +196,36 @@ def _converter(numero: float, unidade_fonte: str, r: RequisitoParametro) -> tupl
                                  f"Unidade da fonte {unidade_fonte!r} desconhecida; exigida {alvo!r}.")])
 
 
+# 3C-1: com o perfil de commitment dinâmico declarado, os requisitos ``futuro_3C1`` deixam de ser informativos.
+# rampa/t_on/t_off passam a OBRIGATÓRIOS (ausente ⇒ erro: nunca "sem restrição"); C_SU/C_SD só quando o termo
+# "eventos" é declarado; ``partida_pemfc`` continua decisão pendente D05 (sem chave no inventário) e é tratada na
+# projeção 3C-1 (PEMFC com transição instantânea só em ENSAIO rotulado).
+EXIGIDOS_3C1 = {"rampa": None, "t_on_min": None, "t_off_min": None, "C_SU": "termo:eventos", "C_SD": "termo:eventos"}
+
+
+def _exigido(r: RequisitoParametro, termos: frozenset[str], perfil: str | None) -> bool:
+    if r.obrigatoriedade == "futuro_3C1" and perfil is not None and r.simbolo in EXIGIDOS_3C1:
+        cond = EXIGIDOS_3C1[r.simbolo]
+        return cond is None or (cond.partition(":")[2] in termos)
+    return r.obrigatoriedade == "obrigatorio" or (r.obrigatoriedade == "condicional" and _condicao_ativa(r, termos))
+
+
 def classificar_dispositivo(d: DispositivoInventario, *, termos: frozenset[str] | set[str] = frozenset(),
-                            contexto: str = "operacional") -> tuple[ClassificacaoParametro, ...]:
+                            contexto: str = "operacional", perfil: str | None = None) -> tuple[ClassificacaoParametro, ...]:
+    """``perfil`` (3C-1): ``None`` = comportamento 3C-0 INALTERADO; ``FORMULACAO_3C1`` = requisitos do commitment
+    dinâmico exigidos (``EXIGIDOS_3C1``)."""
     if contexto not in CONTEXTOS:
         raise ValueError(f"Contexto desconhecido: {contexto!r}")
+    if perfil is not None:
+        from .. import FORMULACAO_3C1
+        if perfil != FORMULACAO_3C1:
+            raise ValueError(f"Perfil desconhecido: {perfil!r}")
     termos = frozenset(termos)
     out: list[ClassificacaoParametro] = []
     for r in REQUISITOS:
         if d.tipo not in r.tipos:
             continue
-        exigido = r.obrigatoriedade == "obrigatorio" or (r.obrigatoriedade == "condicional" and _condicao_ativa(r, termos))
+        exigido = _exigido(r, termos, perfil)
         base = dict(uid=d.uid, tipo=d.tipo, simbolo=r.simbolo, obrigatoriedade=r.obrigatoriedade, unidade=r.unidade_canonica)
         v = next((d.valor(k) for k in r.fontes if d.valor(k) is not None and d.valor(k).presente), None)
         sugerido = next((d.valor(k) for k in r.fontes if d.valor(k) is not None
@@ -219,7 +239,7 @@ def classificar_dispositivo(d: DispositivoInventario, *, termos: frozenset[str] 
                                                            f"{s.unidade_fonte} é apenas valor inicial SUGERIDO pelo SEEDS2; "
                                                            "declare a origem (fabricante/instalação).",
                                                   chave_fonte=s.chave, origem=s.origem))
-            elif r.obrigatoriedade == "futuro_3C1":
+            elif r.obrigatoriedade == "futuro_3C1" and not exigido:
                 out.append(ClassificacaoParametro(**base, classe="faltante_necessario", bloqueia=False,
                                                   codigo="necessario_3C1", mensagem=f"{r.descricao}: ausente; exigido "
                                                   "pelo commitment dinâmico (3C-1). " + r.nota))
@@ -258,10 +278,11 @@ def classificar_dispositivo(d: DispositivoInventario, *, termos: frozenset[str] 
     return tuple(out)
 
 
-def matriz_parametros(inv: InventarioMicrorrede, *, termos=frozenset(), contexto: str = "operacional") -> MatrizParametros:
+def matriz_parametros(inv: InventarioMicrorrede, *, termos=frozenset(), contexto: str = "operacional",
+                      perfil: str | None = None) -> MatrizParametros:
     entradas: list[ClassificacaoParametro] = []
     for d in inv.dispositivos:
-        entradas += classificar_dispositivo(d, termos=termos, contexto=contexto)
+        entradas += classificar_dispositivo(d, termos=termos, contexto=contexto, perfil=perfil)
     return MatrizParametros(inv.identidade.uid, contexto, tuple(sorted(frozenset(termos))), tuple(entradas))
 
 
@@ -282,5 +303,5 @@ def hash_matriz(m: MatrizParametros) -> str:
     return sha256(m)
 
 
-__all__ = ["CLASSES", "CONTEXTOS", "ClassificacaoParametro", "INDICE", "MatrizParametros", "NATUREZAS", "OBRIGATORIEDADES",
+__all__ = ["CLASSES", "CONTEXTOS", "EXIGIDOS_3C1", "ClassificacaoParametro", "INDICE", "MatrizParametros", "NATUREZAS", "OBRIGATORIEDADES",
            "REQUISITOS", "RequisitoParametro", "classificar_dispositivo", "constatacoes", "hash_matriz", "matriz_parametros"]

@@ -132,7 +132,11 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
                      prev: ConjuntoPrevisao | None = None, real: Realizacao | None = None,
                      pol: PoliticasDeclaradas | None = None, *, contexto: str = "operacional",
                      compromisso: dict | None = None, finalidade: str = "otimizacao",
-                     ) -> tuple[RelatorioPreflightEMS, ResultadoProjecao | None]:
+                     commitment_3c1=None) -> tuple[RelatorioPreflightEMS, ResultadoProjecao | None]:
+    """``commitment_3c1`` (3C-1, aditivo): ``ponte.compromisso.DeclaracaoCommitment3C1``. ``None`` = comportamento
+    3C-0 INALTERADO. Com a declaração, a projeção é a do perfil ``v1.1-3C-1`` (requisitos M09–M12 bloqueantes,
+    estado por unidade), ``compromisso`` é o compromisso PARCIAL (0/1/None) e a área "solver" aplica
+    ``compromisso.preflight.preflight_3c1``; o segundo valor devolvido é ``ResultadoProjecao3C1``."""
     if contexto not in CONTEXTOS:
         raise ValueError(f"Contexto desconhecido: {contexto!r}")
     if finalidade not in FINALIDADES:
@@ -245,11 +249,26 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
             if finalidade == "otimizacao" else
             [aviso("politicas_nao_fornecidas_diagnostico_parcial", "politicas",
                    msg + ": diagnóstico PARCIAL dos dados; nenhuma política é criada.")])
-    if prev is not None and pol is not None:
+    if prev is not None and pol is not None and commitment_3c1 is not None:
+        from .compromisso import ResultadoProjecao3C1, montar_entrada_3c1
+        e3, cs3, pbase = montar_entrada_3c1(inv, cen, prev, dt, pol, commitment_3c1, contexto=contexto)
+        proj = ResultadoProjecao3C1(e3, cs3, pbase)
+        add("contrato", [c for c in cs3 if c.codigo != "entrada_de_ensaio"],
+            "Entrada 3C-1 montada e aceita por validar_entrada_3c1 (base 3B-P + commitment por unidade).")
+    elif prev is not None and pol is not None:
         proj = montar_entrada(inv, cen, prev, dt, pol, contexto=contexto)
         add("contrato", [c for c in proj.constatacoes if c.codigo != "entrada_de_ensaio"],
             "Entrada canônica montada e aceita por validar_entrada (3A/3B-P).")
-    if finalidade == "otimizacao":
+    if finalidade == "otimizacao" and commitment_3c1 is not None:
+        sv3: list[Constatacao] = []
+        if proj is None or not proj.aceito:
+            sv3.append(erro("projecao_nao_aceita", "projecao",
+                            "Sem entrada 3C-1 aceita: o solver 3C-1 não pode ser chamado."))
+        else:
+            from ..compromisso.preflight import preflight_3c1
+            sv3 += [c for c in preflight_3c1(proj.entrada, compromisso) if c.severidade != "aviso"]
+        add("solver", sv3, "Entrada 3C-1 aceita e preflight do commitment dinâmico sem bloqueios.")
+    elif finalidade == "otimizacao":
         sv: list[Constatacao] = []
         if proj is None or not proj.aceito:
             sv.append(erro("projecao_nao_aceita", "projecao",

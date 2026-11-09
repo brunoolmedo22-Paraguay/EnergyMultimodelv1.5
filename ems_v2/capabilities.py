@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from . import ESTADO_MOTOR, FORMULACAO_3BP, FORMULACAO_VERSAO, MOTOR_ID, MOTOR_LEGADO_ID
+from . import ESTADO_MOTOR, FORMULACAO_3BP, FORMULACAO_3C1, FORMULACAO_VERSAO, MOTOR_ID, MOTOR_LEGADO_ID
 
 STATUS_CAPACIDADE = {
     "implementado_3A": "Contrato + cálculo de referência e/ou auditoria algébrica (sem solver)",
@@ -120,7 +120,51 @@ CAPACIDADES_3BP: tuple[CapacidadeMotor, ...] = (
     _C(MOTOR_ID, "conversao_fronteira_bess", ("BND-BESS",), "nao_suportado", "3D"),
     _C(MOTOR_ID, "mpc", ("M23",), "apenas_especificacao", "3C"),
 )
-PERFIS = {FORMULACAO_VERSAO: CAPACIDADES, FORMULACAO_3BP: CAPACIDADES_3BP}
+# Perfil do Piso 3C-1 (formulação v1.1-3C-1, contrato embrulho ``ems_v2.compromisso``): commitment dinâmico de UMA
+# janela no MILP (``ems_v2.milp.solver_3c1``) e no auditor independente (``ems_v2.compromisso.auditor``). Os registros
+# 3A e 3B-P permanecem como histórico (não mudam).
+STATUS_CAPACIDADE.update({
+    "implementado_3C1": "Construído no MILP 3C-1 (Pyomo + HiGHS) E verificado pelo auditor independente 3C-1",
+    "parcial_3C1": "Parte da família no MILP 3C-1 e no auditor; o restante é bloqueado ou declarado não modelado",
+})
+_SUBST_3C1 = {
+    "M10": _C(MOTOR_ID, "pwl_pemfc_sintetica", ("M10",), "parcial_3C1", "3C-1",
+              "u DECIDIDO pelo MILP (M09) com disponibilidade; n_f = Σ u por bloco é saída (não reportada como agregado)."),
+    "commitment": _C(MOTOR_ID, "commitment", ("M09", "M11a", "M11b", "M12"), "implementado_3C1", "3C-1",
+                     "Variante INSTANTÂNEA por unidade: transições y/z, rampas com p_{-1}, limites de partida/parada "
+                     "declarados ou interpretação conservadora R·Δ, permanências U/D = ⌈T/Δ⌉, obrigações herdadas e "
+                     "política terminal explícita; transição não representável ⇒ bloqueada com diagnóstico."),
+    "M11-EXT": _C(MOTOR_ID, "commitment", ("M11-EXT",), "nao_suportado", "3C+",
+                  "Potências de extremo não modeladas: M11 restringe consignas de intervalo (aproximação declarada)."),
+    "combustivel": _C(MOTOR_ID, "combustivel_instantaneo", ("M17", "B05-INST"), "parcial_3C1", "3C-1",
+                      "h·q + m^SU y + m^SD z (massas DECLARADAS, exigidas para PEMFC com transições); W^SU/W^SD "
+                      "(energia elétrica de evento) não modelados."),
+    "objetivo": _C(MOTOR_ID, "objetivo_economico", ("M21-v1.1",), "parcial_3C1", "3C-1",
+                   "Termos 3B-P + 'eventos' Σ(C_SU y + C_SD z) [R$/evento, sem h]; geração térmica (M19), descarte, "
+                   "terminal e regularizador continuam futuros."),
+}
+
+
+def _perfil_3c1() -> tuple[CapacidadeMotor, ...]:
+    out = []
+    for c in CAPACIDADES_3BP:
+        if c.familia == "commitment":
+            out += [_SUBST_3C1["commitment"], _SUBST_3C1["M11-EXT"]]
+        elif c.equacoes == ("M10",):
+            out.append(_SUBST_3C1["M10"])
+        elif c.familia == "combustivel_instantaneo":
+            out.append(_SUBST_3C1["combustivel"])
+        elif c.familia == "objetivo_economico" and c.equacoes == ("M21-v1.1",):
+            out.append(_SUBST_3C1["objetivo"])
+        elif c.status in ("implementado_3BP", "parcial_3BP"):
+            out.append(_C(c.motor_id, c.familia, c.equacoes, c.status.replace("3BP", "3C1"), "3B-P/3C-1", c.observacoes))
+        else:
+            out.append(c)
+    return tuple(out)
+
+
+CAPACIDADES_3C1: tuple[CapacidadeMotor, ...] = _perfil_3c1()
+PERFIS = {FORMULACAO_VERSAO: CAPACIDADES, FORMULACAO_3BP: CAPACIDADES_3BP, FORMULACAO_3C1: CAPACIDADES_3C1}
 
 
 def capacidades(motor_id: str = MOTOR_ID, formulacao: str = FORMULACAO_VERSAO) -> tuple[CapacidadeMotor, ...]:
@@ -137,5 +181,5 @@ def status_equacao(eq: str, formulacao: str = FORMULACAO_VERSAO) -> str | None:
 # alias com o nome da ordem executiva
 EngineCapability = CapacidadeMotor
 
-__all__ = ["CAPACIDADES", "CAPACIDADES_3BP", "PERFIS", "CapacidadeMotor", "DescritorMotor", "EngineCapability", "MOTORES", "STATUS_CAPACIDADE",
+__all__ = ["CAPACIDADES", "CAPACIDADES_3BP", "CAPACIDADES_3C1", "PERFIS", "CapacidadeMotor", "DescritorMotor", "EngineCapability", "MOTORES", "STATUS_CAPACIDADE",
            "capacidades", "status_equacao"]

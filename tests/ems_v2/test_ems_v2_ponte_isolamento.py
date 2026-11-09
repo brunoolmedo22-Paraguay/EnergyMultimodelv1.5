@@ -55,6 +55,14 @@ def test_ponte_sem_ui_motor_legado_ou_solver():
     assert not any(m.split(".")[0] in proibidos + ("seeds2",) for m in _imports(RAIZ / "ems_v2/fixtures_3c0.py"))
 
 
+# 3C-1 (contradição C-3C1-01, docs/ems_v2/FORMULACAO_3C1.md §9): o 3C-1 precisa ACRESCENTAR módulos ao subpacote
+# ``ems_v2/milp`` (único autorizado a importar Pyomo/HiGHS). A guarda continua exigindo que TODO arquivo existente na
+# base auditada esteja byte a byte inalterado (nenhuma modificação, renomeação ou remoção) e passa a admitir apenas as
+# ADIÇÕES nominais abaixo — nunca em V1.6, modelos, runtime, ``seeds2``, aplicação ou requirements.
+ADICOES_3C1 = {"ems_v2/milp/modelo_3c1.py", "ems_v2/milp/solver_3c1.py", "ems_v2/milp/resultado_3c1.py",
+               "ems_v2/milp/evidencia_3c1.py"}
+
+
 def test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada():
     try:
         subprocess.run(["git", "cat-file", "-e", BASE_AUDITADA], cwd=RAIZ, check=True, capture_output=True)
@@ -63,6 +71,13 @@ def test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada():
     alvos = ["ems_integration", "models", "h2_pemfc", "simulation", "config", "reference_models", "seeds2",
              "orchestrator_runtime.py", "orchestrator_app.py", "app.py", "ems_app.py", "requirements.txt",
              "requirements-ems_v2.txt", "ems_v2/milp", "ems_v2/contracts.py", "ems_v2/audit.py", "ems_v2/reference.py"]
-    out = subprocess.run(["git", "diff", "--stat", BASE_AUDITADA, "--", *alvos], cwd=RAIZ, capture_output=True,
-                         text=True, check=True).stdout
-    assert out.strip() == "", out
+    out = subprocess.run(["git", "diff", "--name-status", "--no-renames", BASE_AUDITADA, "--", *alvos], cwd=RAIZ,
+                         capture_output=True, text=True, check=True).stdout
+    linhas = [ln.split("\t") for ln in out.strip().splitlines() if ln.strip()]
+    modificados = [ln for ln in linhas if ln[0] != "A"]
+    adicionados = {ln[1] for ln in linhas if ln[0] == "A"}
+    assert modificados == [], modificados                    # nenhum arquivo da base alterado ou removido
+    assert adicionados <= ADICOES_3C1, adicionados - ADICOES_3C1
+    nao_rastreados = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", *alvos], cwd=RAIZ,
+                                    capture_output=True, text=True, check=True).stdout.split()
+    assert set(nao_rastreados) <= ADICOES_3C1, set(nao_rastreados) - ADICOES_3C1
