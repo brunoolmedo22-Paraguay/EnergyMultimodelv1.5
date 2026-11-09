@@ -2178,6 +2178,119 @@ las dos guardias. Nada en V1.6, en la aplicación ni en los bancos depende de el
 
 ---
 
+## Entrega 10 — SEEDS2 Piso 3C-2 · MPC de horizonte recedente (M23), K6 y primer lazo cerrado reproducible
+
+> Redactada en español. Detalle: `docs/ems_v2/FORMULACAO_3C2.md` (M23, política de información, decisiones D-3C2-*,
+> contradicciones C-3C2-*), `MATRIZ_3C2.md`, `BRECHAS_3C2.md`, `TRANSICAO_3C2_3C3_3C4.md`, `EVIDENCIA_3C2.md` y
+> `EVIDENCIA_3C2_EJECUCION.md`. Este apartado resume y remite.
+
+### Punto de continuidad
+
+| Campo | Valor |
+|---|---|
+| Rama | `ccr-2529baa8-16lz1j` (desde `main`) |
+| Base | `main` `55440f4bda17ec2b14cdf4235bdb924bf97159b0` (merge del PR #14, 3C-1 integrado); verificado idéntico a `origin/main` al iniciar |
+| PR | [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) contra `main`, **sin merge** (entregado para auditoría independiente) |
+| Pendientes | Correcciones C-01/C-02 de la auditoría del PR #15 aplicadas (§5b); aprobación final; decisiones D-3C2-01..13 y contradicciones C-3C2-01..05 a revisión; **no iniciar 3C-3/3C-4 sin autorización** |
+
+### 1. Resumen
+
+Primer lazo cerrado MPC de SEEDS2, **simulación causal algebraica** (planta = dublé 3C-1), en `ems_v2/mpc/` (núcleo
+solo biblioteca estándar; el solver se alcanza solo por el adaptador explícito `adaptador_milp.ResolvedorMILP3C1` →
+`resolver_3c1`, import tardío):
+
+- **Contratos temporales** (`contrato`, `relogio`): `MalhaTemporal` reutilizada (Δ, N, m, K_M, H_f obligatorio),
+  ventanas τ_k/N_k/m_k (último bloque < m), contador global monotónico, política terminal **declarada**
+  (`janela_reduzida` × `horizonte_estendido_declarado` con cobertura posmisión verificada) y política de permanencia
+  intermedia/final; obligaciones al final **reportadas** (nunca desaparecen).
+- **K6** (`observacoes`): libro append-only por recurso/magnitud con tiempo físico × recepción, evento, secuencia,
+  revisiones, conflictos (clave conflictiva), duplicados, fuera de secuencia, otra microrred, inválidas (incl. recibida
+  antes del fin del intervalo), cadena SHA-256, cortes sellados (recepción retroactiva rechazada) e instantáneo
+  informacional = prefijo comprometido.
+- **Previsión por ventana** (`previsao`, `provedores`): pedido solo con el instantáneo; validación causal 3C-0 +
+  claves exactas + **vínculo informacional** (sha256 del instantáneo) + oráculo solo en ablación + independencia del
+  proveedor; proveedores sintéticos (tabla declarada; corrección por la última observación) y oráculo rotulado.
+- **Orquestador** (`orquestrador`): decidir → emitir comandos → recibir confirmaciones/observaciones → conciliar con
+  `executar`/`retomar` 3C-0 y el ejecutor 3C-1 (barrera **C-02 intacta**; modo 2 pausa y reanuda desde el checkpoint)
+  → cerrar. Estado y memoria **ejecutados** transportados (nunca el terminal planificado). Aceptación con política
+  explícita (no óptimo solo con gap/terminación declarados); fallas clasificadas (14 clases) con
+  `interromper`/`suspender`; sin despacho de reserva ni reutilización del plan anterior.
+- **Registros** (`registro`, `persistencia`): por ventana, registro 3C-0 + anexo 3C-1 (esquemas intactos) +
+  `RegistroJanelaMPC` determinista encadenado (contenido, sellos, vínculo explícito al checkpoint anterior);
+  `RegistroMissaoMPC` con costo realizado acumulado (sin doble conteo), obligaciones pendientes, valor futuro no
+  implementado e impresión determinista; gravación exclusiva/atómica y `PontoRetomada` sellado con reanudación
+  verificada.
+- **Auditoría independiente** (`auditoria`): temporal, causal (instantáneos recalculados del libro), estado (M07,
+  memoria, permanencias en toda la misión), balance, costos recomputados, aceptación, separación previsión ×
+  realización y **no anticipatividad por intervención**. **Métricas** y **comparadores** con condiciones comparables y
+  sin veredicto.
+
+### 2. Hallazgos relevantes
+
+- **C-3C2-01 (incompatibilidad no ocultada):** el ejecutor 3C-0/3C-1 exige balance exacto con la demanda realizada y no
+  hay recurso de equilibrio; en lazo cerrado cualquier error de demanda (o sobreestimación renovable) en un intervalo
+  aplicado vuelve la consigna inexequible ⇒ interrupción clasificada (sin recorte ni contingencia). Los experimentos
+  usan errores absorbibles (subestimación FV ⇒ vertimiento). Requiere recurso de equilibrio declarado (3C-3/3D).
+- **C-3C2-02:** con horizonte extendido, la entrada de la ventana declara `intervalos_missao = N_k` (3A intacto).
+- Miopía documentada: sin valor terminal el MPC drena el banco en cada ventana (E2/E4); E4 m = 1 termina con la PEMFC
+  arrancada en el último intervalo y 1800 s de obligación pendiente reportada.
+- Límite de confianza: un proveedor malicioso con referencia oculta a la verdad pasa las verificaciones estructurales
+  en ejecución; la intervención lo detecta (test con fuga deliberada).
+
+### 3. Experimentos (fixtures sintéticas; ver `EVIDENCIA_3C2_EJECUCION.md`)
+
+| Exp. | Resultado |
+|---|---|
+| E1 oráculo (ablación) | MPC N = 4/m = 2 y horizonte completo: R$ 2,075 ambos (referencia, excluida de comparaciones causales) |
+| E2 previsión reemitida | FV prevista 10 → 25 tras observar el escalón; R$ 12,9 = cálculo a mano por ventana (1,7 / 2,0 / 6,125 / 3,075) |
+| E3 open-loop × MPC | OL R$ 18,7 (E_final 0 kWh) × MPC R$ 12,9 (E_final 2,5 kWh; obligación 900 s pendiente) — sin veredicto |
+| E4 m ∈ {1, 2, 4} | R$ 7,2625 / 12,9 / 12,9 con 8 / 4 / 2 resoluciones |
+| E5 memoria | u = [0,0,0,1,1,1,0,0]: T_on (U = 3) cumplido a través de 3 ventanas N = 2; memoria descartada ⇒ planta rechaza |
+| E6 batería | Ventana 0 planifica e_N = 0; ejecutado en τ_2 = 10 kWh inicia la ventana 1; SOC ∈ [0, 1] |
+| E7 fallas | Sin solución / excepción / rechazo del auditor ⇒ ningún comando; no óptimo solo con política |
+| E8 tardías | Revisión tras τ_2 no altera instantáneo ni plan de τ_0/τ_2; `interromper` ⇒ parada en τ_4; modo 2 pausa C-02 y reanuda |
+
+### 4. Pruebas
+
+| Ejecución | Resultado |
+|---|---|
+| `tests/ems_v2/test_ems_v2_3c2_*.py` (6 archivos) | **83 passed** (contrato 19, observaciones 8, previsión 7, lazo sin solver 16, MILP 29, aislamiento 4) |
+| `tests/ems_v2` con Pyomo/HiGHS | **800 passed** (= 717 anteriores + 83) |
+| `tests/ems_v2` con Pyomo/HiGHS bloqueados | **563 passed, 19 skipped** (solo el archivo MILP 3C-2 se salta; el lazo sin solver corre) |
+| Suite completa `tests/` | **1254 passed, 7 warnings, 128 subtests** (378,9 s) = 1171 de `main` + 83 |
+
+Comandos, entorno y tiempos: `EVIDENCIA_3C2.md`.
+
+### 5. Decisiones y contradicciones
+
+D-3C2-01..13 y C-3C2-01..05 en `FORMULACAO_3C2.md` §8–§9. Requieren conocimiento del auditor en especial: D-3C2-01
+(corte inclusivo), D-3C2-05 (estado = propagación algebraica con confirmación + observación), D-3C2-06 (modo 1 sin
+decisión tardía), D-3C2-08 (costo planificado del prefijo) y C-3C2-01 (sin recurso de equilibrio).
+
+### 5b. Auditoría independiente del PR #15 (base `d97f831`): correcciones C-01 y C-02
+
+Arquitectura aprobada provisionalmente (ciclo de ventanas, reutilización 3C-1, transporte del estado ejecutado,
+contabilidad, limitaciones documentadas). Ambos defectos fueron **reproducidos antes de corregir**:
+
+| ID | Antes (`d97f831`, reproducido) | Después |
+|---|---|---|
+| C-01 | Un evento **rechazado** con recepción 45 min posterior a τ_2 entraba en el prefijo de τ_2 (n = 2; hash dependiente), el corte τ_2 se sellaba y la auditoría causal no detectaba nada | Libro principal con marca de agua sobre TODA entrada (cualquier clasificación) y recepciones no decrecientes; **cuarentena** append-only con cadena propia para recepciones retroactivas/ilegibles (sin hora inventada; nunca en un prefijo causal); corte imposible con recepción posterior registrada; I_k = prefijo con recepción ≤ τ_k; auditoría temporal de todas las entradas del prefijo y de cada conciliación; `verificar_cadeia_livro` verifica orden y cortes; la misión compromete la cadena de cuarentena (libro esquema v2) |
+| C-02 | Reanudación aceptada con registro 3C-0 eliminado/alterado o anexo 3C-1 eliminado; históricos 0/0 | `verificar_artefatos_janela` por ventana ejecutada (`execucao_uid` determinista en `ConteudoJanelaMPC`): `verificar_registro`, `verificar_anexo_3c1`, sellos referenciados, identidad/misión/posición, ventana, plan, entrada, estados, checkpoint, previsión, instantáneo, costo e intervalos; ventana sin plan no exige artefactos; libro del punto de retomada × instantáneos comprometidos; `ContratoInvalido` estructurado; históricos `registros_3c0`/`anexos_3c1` restaurados |
+
+Pruebas: `test_ems_v2_3c2_auditoria_pr15.py` **24 passed**; 3C-2 completo **107 passed** (83 + 24); `tests/ems_v2`
+**824 passed** (sin Pyomo: 587 passed, 19 skipped); suite completa **1278 passed, 7 warnings, 128 subtests** (384,3 s) = 1254 + 24. E1–E8 repetidos con resultados
+idénticos. Modelo físico, solver y políticas económicas sin cambios; 3A/3B-P/3C-0/3C-1/V1.6 intactos (guardia).
+Nueva brecha B3C2-13 (tiempo de ingestión confiable). Detalle: `FORMULACAO_3C2.md` §4 y §10, `MATRIZ_3C2.md`,
+`EVIDENCIA_3C2.md` §5b.
+
+### 6. Rollback
+
+Revertir el PR elimina `ems_v2/mpc/`, `ems_v2/fixtures_3c2.py`, los tests `test_ems_v2_3c2_*` y `mpc_util.py` y los
+documentos 3C-2. Ningún archivo existente de `ems_v2`, V1.6, `seeds2`, aplicación ni requirements fue modificado
+(guardia `test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14`).
+
+---
+
 ## Histórico de entregas
 
 | Entrega | Data | Missão | Rama / PR | Estado |
@@ -2190,4 +2303,5 @@ las dos guardias. Nada en V1.6, en la aplicación ni en los bancos depende de el
 | 6 | 2026-11-08 | Piso 3A — Fundações do EMS MILP–MPC (contratos, referência, auditor; sem solver) | `ccr-fb5b5eb8-bvbyw2` / [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) (sem merge) | **Integrado** em `main` (merge `f6d009d`), após auditoria favorável e correções C-3A-01..04 |
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
-| 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) (sem merge) | Auditorias favoráveis com correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d), aplicadas; aguardando autorização final de merge |
+| 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
+| 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | Auditoria: arquitetura aprovada provisoriamente; correções C-01/C-02 aplicadas (§5b); aguardando aprovação final |
