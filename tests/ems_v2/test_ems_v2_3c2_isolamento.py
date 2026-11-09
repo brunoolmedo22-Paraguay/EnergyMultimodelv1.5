@@ -71,25 +71,13 @@ def test_mpc_sem_seeds2_ui_motor_legado_e_milp_so_no_adaptador():
 
 
 def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14():
-    try:
-        subprocess.run(["git", "cat-file", "-e", BASE_3C1], cwd=RAIZ, check=True, capture_output=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        pytest.skip(f"Histórico git sem a base {BASE_3C1} (clone raso): verificação feita no PR.")
-    out = subprocess.run(["git", "diff", "--name-status", "--no-renames", BASE_3C1, "--", "ems_v2", "ems_integration",
-                          "models", "h2_pemfc", "simulation", "config", "reference_models", "seeds2",
-                          "orchestrator_runtime.py", "orchestrator_app.py", "app.py", "ems_app.py", "requirements.txt",
-                          "requirements-ems_v2.txt"], cwd=RAIZ, capture_output=True, text=True, check=True).stdout
-    linhas = [ln.split("\t") for ln in out.strip().splitlines() if ln.strip()]
-    from wind_guard_policy import authorized_changes, authorized_additions
-    linhas = authorized_changes(RAIZ, linhas)  # missão eólica: arquivos/pins exatos
-    # 3C-3 (contradição C-3C3-02, docs/ems_v2/FORMULACAO_3C3.md §10): ÚNICA modificação nominal admitida =
-    # refatoração controlada de ``ems_v2/mpc/orquestrador.py`` (pontos de extensão; impressões E1–E8 idênticas às da
-    # base ``a4c6b1c`` — tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py). Nenhum outro arquivo modificado/removido.
+    # C-EOL-01: immutable delivery audit, independent of shallow Git history.
+    from wind_guard_policy import authorized_changes, historical_changes, historical_untracked
+    linhas = authorized_changes(RAIZ, historical_changes(RAIZ, BASE_3C1))
     assert [ln for ln in linhas if ln[0] != "A" and ln[1:] != ["ems_v2/mpc/orquestrador.py"]] == []
     assert all(ln[0] in ("A", "M") for ln in linhas)
     novos = {ln[1] for ln in linhas if ln[0] == "A"}
-    nao_rastreados = set(subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "ems_v2"], cwd=RAIZ,
-                                        capture_output=True, text=True, check=True).stdout.split())
+    nao_rastreados = set(historical_untracked(RAIZ, BASE_3C1))
     from test_ems_v2_ponte_isolamento import ADICOES_3C3
     for f in novos | nao_rastreados:
         assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py")

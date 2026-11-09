@@ -32,3 +32,7 @@ A fixture `tests/fixtures/wind_historical_v1.json` foi capturada ANTES das mudan
 ## Continuação autorizada das três guardias
 
 Somente as três guardias históricas afetadas foram ajustadas com filtros nominais e hashes fixos, preservando todas as asserções. Ver [guardias, hashes e adversariais](GUARDIAS_REGRESION_EOLICA.md). Suite completa final: **1758 passed, 0 failed, 0 skipped, 7 warnings**. Os 110 testes novos da ampliação e as referências numéricas dos seis históricos permanecem intactos.
+
+## C-EOL-01 — PR #18
+
+Regresión vigente: **1765 passed, 0 failed, 0 skipped, 7 warnings**. La política de alcance se separó de la evolución del EMS; [evidencia, clones superficiales y prueba de integración posterior](AUDITORIA_C_EOL_01.md). No se alteraron curvas ni reglas físicas.

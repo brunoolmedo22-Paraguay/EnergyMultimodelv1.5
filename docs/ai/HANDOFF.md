@@ -159,3 +159,12 @@ O usuário autorizou expressamente o ajuste EXCLUSIVO das três guardias histór
 Nenhum byte de `ems_v2/` mudou; a nova verificação global rejeita alterações e adições EMS, inclusive em caminho 3C-4. A quarta guarda de ausência de integração continua intacta; suporte novo em `tests/ems_v2/`. Lote de guardias/adversariais: **128 passed**. Históricos separados: **12 passed** e **9 passed**. Detalhes e lista nominal completa: [guardias e hashes](../eolica/GUARDIAS_REGRESION_EOLICA.md); resultado integral atualizado em `docs/eolica/RESULTADOS_REGRESION.md`. Não tocar a rama simultânea de Claude; sem merge.
 
 **Regressão final da continuação eólica autorizada:** `1758 passed, 0 failed, 0 skipped, 7 warnings` em `415.84s (0:06:55)`. Nenhum código EMS modificado; PR ainda bloqueado pela API GitHub. Ver `docs/eolica/RESULTADOS_REGRESION.md`.
+
+
+### C-EOL-01 — PR #18: corregir el alcance temporal de las guardias eólicas
+
+La política anterior congelaba indirectamente todo EMS contra `10365c5`. Se separó la auditoría explícita base/head del PR de las comprobaciones permanentes. Estas mantienen los hashes eólicos y las seis máquinas históricas, pero leen evidencia auditada retenida para las entregas anteriores; permiten cambios EMS de otro PR y no dependen de commits antiguos disponibles localmente. La prueba Git de los subárboles EMS de `10365c5` y `9621543` conserva su identidad sin red.
+
+Lote focalizado **135 passed**; en un clon real de profundidad 1 las guardias ejecutan **14 passed, 0 skipped**, antes y después de integrar centinelas de una rama 3C-4 independiente. Modificar una curva después sigue fallando. Ningún código de producción, curva, parámetro o regla física cambió. Dossier: `docs/eolica/AUDITORIA_C_EOL_01.md`; suite completa en `docs/eolica/RESULTADOS_REGRESION.md`. El PR #18 fue creado externamente; esta corrección se entrega en su misma rama, sin merge. La descripción anterior de una congelación global permanente queda sustituida por C-EOL-01.
+
+**Cierre verificado C-EOL-01:** suite completa **1765 passed, 0 failed, 0 skipped, 7 warnings**, 411,59 s; lote focalizado **135 passed**. Se entrega un commit correctivo en la misma rama del PR #18; sin merge. Producción EMS y física eólica intactas.

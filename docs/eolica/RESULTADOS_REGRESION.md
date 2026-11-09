@@ -1,5 +1,15 @@
 # Resultados finales de regresión — misión eólica
 
+## C-EOL-01 — resultado vigente, PR #18
+
+Suite completa repetida después de la corrección: **1765 passed, 0 failed, 0 skipped, 7 warnings**, **411,59 s (6:51)**. Lote focalizado: **135 passed**. Históricos por separado: **12 passed, 98 deselected**; la suite completa también ejecutó los no seleccionados.
+
+Las guardias se ejecutaron sin omisiones en un clon real de profundidad 1 sin los objetos Git antiguos: **14 passed, 0 skipped**, antes y después de integrar una rama temporal 3C-4 con archivos nuevos y cambios en un módulo EMS existente. Los adversariales eólicos siguieron detectando modificaciones no autorizadas después de esa integración. La auditoría CLI de base/head de esta misión pasó, también en el clon superficial. Los tres deltas históricos retenidos se contrastaron con Git: 23, 50 y 51 archivos respectivamente.
+
+C-EOL-01 elimina la comparación global permanente del EMS con una base antigua. Mantiene los hashes originales eólicos sin cambios, conserva evidencia verificable y separa una auditoría explícita del diff del PR. No se modificó producción EMS, curvas ni reglas físicas. Detalle: [AUDITORIA_C_EOL_01.md](AUDITORIA_C_EOL_01.md).
+
+El PR fue creado externamente y es [#18](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/18). Esta corrección se entrega por su rama `codex/eolica-siete-curvas-potencias`, sin merge. Los resultados y bloqueos anteriores que siguen abajo son registros históricos, no el estado vigente de creación del PR.
+
 Base real de `main`: `10365c5478b4dd137906b58819cd7f71d8de9cea` (PR #16). Rama exclusiva `codex/eolica-siete-curvas-potencias`. Sin merge ni push a main.
 
 ## Resultado final después de la autorización de tres guardias

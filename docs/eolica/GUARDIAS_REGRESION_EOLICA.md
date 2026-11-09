@@ -1,5 +1,7 @@
 # Ajuste autorizado de tres guardias históricas — misión eólica
 
+> **C-EOL-01, PR #18:** el alcance vigente está en [AUDITORIA_C_EOL_01.md](AUDITORIA_C_EOL_01.md). La comparación global del EMS con una base antigua se retiró del contexto permanente. Esta tabla conserva los hashes originales y las excepciones nominales; no prohíbe cambios de otros PR en el EMS.
+
 El usuario autorizó expresamente ajustar exclusivamente las tres guardias afectadas, con excepciones mínimas por archivo, hashes originales verificables, protección íntegra del EMS y pruebas adversariales. Se mantienen todos los nombres y todas las aserciones originales. No se modifica código de `ems_v2/`, modelos solares, baterías, PEMFC, ni trabajo de otra rama.
 
 ## Tres archivos existentes modificados
@@ -10,7 +12,7 @@ El usuario autorizó expresamente ajustar exclusivamente las tres guardias afect
 | `tests/ems_v2/test_ems_v2_3c2_isolamento.py` | `9ba068e886341432b10270392b3880ab230f0781d205214f1939c39c3e89161a` | Filtrar solo estados M/A y nombres nominales validados antes de las aserciones existentes |
 | `tests/ems_v2/test_ems_v2_3c3_isolamento.py` | `078ab955a1a4ed642f644befac505ca3022b57edd26f1dc8a493a10a44d85296` | Filtrar solo estados M/A y nombres nominales validados antes de las aserciones existentes; aplicar el mismo filtro nominal a la unión de archivos nuevos |
 
-Las líneas originales no se borraron ni se relajaron. La transformación permitida se reconstruye exactamente desde el texto del commit base, mediante `expected_guard_source`: import local, filtrado validado de `linhas` y, donde corresponde, filtrado de adiciones. Cualquier otro cambio en las propias guardias, incluso eliminar una aserción, se rechaza por igualdad exacta de bytes con esa transformación. La cuarta guardia `test_aplicacao_nao_referencia_ems_v2` sigue intacta; por eso el soporte nuevo reside en `tests/ems_v2/`.
+C-EOL-01 mantiene las aserciones de alcance, pero sustituye las consultas de historia/árbol móvil por evidencia retenida de la entrega que estaban auditando. `expected_guard_source` reconstruye esa función; su AST protege las aserciones de la auditoría eólica y permite añadir tests legítimos de otros pisos al mismo módulo. La cuarta guardia `test_aplicacao_nao_referencia_ems_v2` permanece intacta. Los detalles vigentes de clones superficiales y auditoría explícita están en el dossier C-EOL-01.
 
 ## Excepciones nominales para archivos ya existentes
 
@@ -49,17 +51,18 @@ Los siguientes archivos nuevos son excepciones **solo para estado A**, con hashe
 
 Son siete CSV originales, metadatos del catálogo, licencia/atributos de preservación de bytes y las dos evidencias de regresión ya publicadas. Se verifican los bytes completos; que un archivo aparezca en esta lista no permite alterarlo libremente.
 
-Tres adiciones nuevas de soporte, también enumeradas por nombre completo:
+Adiciones de soporte enumeradas explícitamente, también enumeradas por nombre completo:
 
 - `tests/ems_v2/wind_guard_policy.py`: comprobaciones comunes de hashes, originales de guardias y protección global del EMS.
 - `tests/ems_v2/test_wind_guard_policy.py`: pruebas adversariales; no toca archivos reales de producción.
 - `tests/fixtures/wind_guard_policy_v1.json`: manifiesto estático de referencia, con SHA-256 literal fijado en el soporte.
+- `tests/fixtures/wind_guard_evidence_v1.json`: evidencia C-EOL-01, con bytes originales y pruebas de objetos Git, también fijada por SHA-256 literal.
 
 No hay comando de actualización automática de hashes. Los valores se capturaron desde objetos Git de los dos commits explícitos, no desde el árbol mutable para convertir fallos en éxitos. Un manifiesto con un hash nuevo falla su comprobación. Futuros cambios científicos requieren revisión explícita; no regenerar estas referencias como paso de test.
 
 ## Protección del EMS y de los seis históricos
 
-Además de las comprobaciones originales de cada piso, `assert_ems_unchanged` compara TODO el árbol `ems_v2/` con la base de esta misión, e inspecciona adiciones no rastreadas. No agrega ninguna excepción EMS: rechaza modificaciones, borrados, renombrados y archivos nuevos, incluso en una futura ruta 3C-4. Esta rama no contiene la implementación independiente 3C-4; los tests de ese caso usan repositorios temporales con centinelas, sin inspeccionar ni alterar la otra rama.
+C-EOL-01 separa una auditoría explícita base/head de misión de las comprobaciones permanentes. El contexto permanente valida evidencia histórica retenida y datos eólicos actuales; no compara el árbol EMS actual contra una base antigua. La auditoría explícita sigue rechazando cambios EMS dentro del rango que se le indique. La integración independiente 3C-4 se simula en un clon superficial temporal y ya no bloquea las guardias. Ver el dossier C-EOL-01 para los límites y la evidencia.
 
 Los nueve archivos eólicos existentes y los doce artefactos añadidos de datos/tests ya publicados están congelados byte a byte. En particular, modificar parámetros históricos dentro de `config/wind_turbine_database.py` falla aunque ese nombre esté autorizado. Se comparan además los seis registros completos en memoria con los hashes originales de `wind_historical_v1.json`, que también está fijada por hash. Las 12 comprobaciones numéricas independientes de potencias y TODOS los KPIs se mantienen sin modificación.
 
