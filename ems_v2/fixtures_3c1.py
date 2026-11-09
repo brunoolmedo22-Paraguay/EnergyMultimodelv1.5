@@ -262,9 +262,12 @@ def caso_j(N=8, inicio_indice=0, L=None, estado=None, memoria_g=None, e0=50.0, t
 
 
 # ------------------------------------------------------------------------- PEMFC (abstração instantânea)
-def pemfc_instantanea(com_massas=True):
+def pemfc_instantanea(com_massas=True, eventos=False):
     """PEMFC (curva sintética A06) OFF; demanda [0, 15, 15, 0] (Δ = 1 min); c_H = 10 R$/kg; m^SU = 0,002 kg,
-    m^SD = 0,001 kg. Abstração INSTANTÂNEA declarada (aviso: não é validação física)."""
+    m^SD = 0,001 kg. Abstração INSTANTÂNEA declarada (aviso: não é validação física).
+
+    Analítico: u = [0, 1, 1, 0]; q(15) = 0,9 kg/h ⇒ H₂ contínuo 2 × 0,9/60 = 0,03 kg; eventos 0,002 + 0,001 kg;
+    custo H₂ = 10 × 0,033 = R$ 0,33. Com ``eventos=True`` (C_SU = 1,5; C_SD = 0,5 R$/evento): + R$ 2,0."""
     from .fixtures_3b import CURVA_A06
     c, N, d = "3C1-PEMFC", 4, 1
     m = malha(d, N)
@@ -273,8 +276,8 @@ def pemfc_instantanea(com_massas=True):
     b = _base(c, m, demandas=[demanda("syn-carga", [0, 15, 15, 0], d, c)], geradores=[g], estados_geradores=[st],
               termos=("combustivel_h2",), variante_combustivel="instantanea")
     un = unidade(f, c, R=20.0, limites="declarados", Sp=20.0, Sd=20.0, msu=0.002 if com_massas else None,
-                 msd=0.001 if com_massas else None)
-    return embrulhar(b, [un], [memoria(f, c, tempo_s=600, T_estado_min=0.0)], c)
+                 msd=0.001 if com_massas else None, csu=1.5 if eventos else None, csd=0.5 if eventos else None)
+    return embrulhar(b, [un], [memoria(f, c, tempo_s=600, T_estado_min=0.0)], c, termos=("eventos",) if eventos else ())
 
 
 # ------------------------------------------------------------------------- 3B-P embrulhado (retrocompatibilidade)

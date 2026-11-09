@@ -142,7 +142,7 @@ Cada término exige **todos** sus coeficientes con procedencia; coeficiente decl
 Sin el término `eventos`, las transiciones siguen sujetas a M09–M12 pero ningún costo no declarado entra al objetivo
 (test `test_caso_a_sem_termo_eventos_transicoes_restritas_sem_custo`). El costo de evento no depende de Δ (test
 `test_caso_a_custo_de_evento_nao_e_multiplicado_por_h`, Δ = 1, 15, 60 min). Costos **planificados** (objetivo) y
-**incurridos** (`ponte.compromisso.custo_eventos_realizado`, desde las transiciones aplicadas) están separados; el valor
+**incurridos** (`ponte.compromisso.contabilidade_realizada_3c1`, desde las transiciones aplicadas; A-02) están separados; el valor
 futuro sigue sin implementar (3C-0: nunca contabilizado como costo).
 
 Linealidad: todas las restricciones y el objetivo tienen grado ≤ 1 y no hay SOS (test
@@ -217,9 +217,25 @@ Tolerancias: las **mismas** provisionales D07 (binaria 1e-6; potencia 1e-5 kW + 
 | D-3C1-07 | `eventos` en R$/evento sin h; SEEDS2 "Custo de partida" (R$) ≡ R$/evento por reinterpretación **registrada** | Multiplicar por h; costo cero implícito |
 | D-3C1-08 | PEMFC instantánea solo como abstracción declarada; masas de evento obligatorias con combustible; `operacional` ⇒ D05 pendiente | Inferir 30 s/600 s del V1.6 |
 | D-3C1-09 | "Rampa máxima" única del inventario ⇒ `R⁺ = R⁻` (interpretación registrada en la procedencia) | Inventar rampas asimétricas |
-| D-3C1-10 | Ejecutor 3C-1 = dublê **algébrico** que rechaza transiciones contra la memoria, rampas y disponibilidad realizada | Modelo físico (fuera de alcance) |
+| D-3C1-10 | Ejecutor 3C-1 = dublê **algébrico** que rechaza transiciones contra la memoria, rampas y disponibilidad efectiva (fuente declarada por unidad, A-01) | Modelo físico (fuera de alcance) |
 | **C-3C1-01** | Dos guardias de pisos anteriores impedían por construcción el 3C-1: (a) `test_so_o_subpacote_milp_importa_pyomo_ou_highspy` (lista nominal de 3 archivos que importan Pyomo) y (b) `test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada` (`git diff --stat` vacío sobre `ems_v2/milp`). **Ajuste mínimo:** (a) agrega nominalmente `milp/modelo_3c1.py` y `milp/solver_3c1.py` (la regla "solo `ems_v2/milp` importa Pyomo" se mantiene); (b) pasa a exigir que **todo archivo existente en la base esté sin modificar ni eliminar** (`--name-status`, sin renombres) y admite solo las **adiciones** nominales `ADICOES_3C1` en `ems_v2/milp`; además verifica archivos no rastreados (antes no lo hacía). V1.6, modelos, runtime, `seeds2`, aplicación y requirements siguen sin admitir ningún cambio | Modificar `modelo.py`/`solver.py` 3B-P (rompería la evidencia de no alteración) |
 | **C-3C1-02** | Latente en 3C-0: la reinterpretación R$ ≡ R$/evento de `requisitos` produce un `Parametro` con cadena bruto→canónico que el verificador 3A no reconoce (no es conversión lineal) ⇒ `cadeia_transformacao_inconsistente` al primer uso real de `C_SU`. Resuelto **solo** en la proyección 3C-1 (`_par3c1`: la reinterpretación queda en `transformacoes`, sin cadena numérica); 3C-0 y 3A sin cambios | Agregar "R$→R$/evento" a `units.CONVERSOES` (cambiaría el núcleo 3A) |
+
+## 9b. Correcciones de la auditoría independiente del PR #14 (base `540ac1b`)
+
+Dictamen: arquitectura, M09–M12 y auditor aprobados estructuralmente; tres correcciones de integridad/contabilidad.
+Las tres se **reprodujeron sobre `540ac1b` antes de corregir** (EVIDENCIA_3C1 §6). Formulación MILP, auditor,
+contratos 3A/3B-P/3C-0 y V1.6 **sin cambios**; solo `ems_v2/ponte/compromisso.py`, una fixture y tests.
+
+| ID | Defecto (antes) | Corrección | Después |
+|---|---|---|---|
+| A-01 | `ExecutorAlgebricoCommitment3C1` leía `entorno.get("<uid>\|disponibilidade")` y, **si no existía, omitía** la verificación: una consigna ON se ejecutaba sin saber si la unidad estaba disponible. Un valor fraccionario se clasificaba como inviabilidad física | Fuente **obligatoria y explícita por unidad** (`FonteDisponibilidadeExecucao`, validada en el constructor; sin defecto): `observada` (serie de la realización con el UID **exacto** de la unidad, valor ∈ {0,1}; la alineación la impone `executar`/`entorno_realizado` del 3C-0) o `estatica_declarada` (int 0/1 + procedencia + justificativa; una observación del mismo UID debe coincidir). Series de disponibilidad de UID que no es recurso de la entrada (p. ej. la del registro de un bloque `#k`) ⇒ rechazadas (sin herencia) | Ausente / inválida / contradictoria / de otro recurso ⇒ `falha = "dados"` (`erro_dados`); efectiva 0 con ON ⇒ `inexequivel`; nunca 1 por omisión; no se inventa telemetría |
+| A-02 | El objetivo incluía c_H·(m_SU y + m_SD z) pero la contabilidad **realizada** (3C-0 `indicadores_e_custo`) solo conoce h·q: el H₂ de los eventos ejecutados no se conciliaba | `contabilidade_realizada_3c1(e3, plano, traj, real)`: reutiliza **sin cambios** la función 3C-0 (términos base + H₂ continuo) y agrega, desde las transiciones **efectivamente aplicadas** (estados consecutivos de la trayectoria), c_H·(m_SU·partidas + m_SD·paradas) al componente `combustivel_h2` y el componente `eventos` (C_SU/C_SD, R$/evento, sin h). Detalle por unidad (`DetalheH2Realizado`) e indicadores `H2_continuo_kg`, `H2_eventos_kg`, `partidas_aplicadas`, `paradas_aplicadas` | `C_H2_realizado = c_H·[Σ h·q + Σ (m_SU y_real + m_SD z_real)]`; ejecución parcial/interrumpida cuenta solo lo aplicado; sin doble conteo (continuo = 3C-0, eventos = extensión); `CustoRealizado` 3C-0 sellable en el registro; valor futuro separado |
+| A-03 | `montar_entrada_3c1` convertía `decl.unidades` en diccionario **antes** de verificar: una duplicata contradictoria sobrescribía en silencio (la última ganaba) y un UID desconocido se ignoraba | `_condicoes_por_unidade` valida ANTES de indexar: duplicatas (incluso idénticas) ⇒ `condicao_unidade_duplicada` (ninguna se usa); UID que no es unidad generadora habilitada **de esta microrred** (otra microrred, recurso inexistente, otro índice `#k`, UID del registro de un bloque, batería…) ⇒ `condicao_unidade_uid_desconhecido`; procedencia, unidad y dominio de la potencia y del tiempo verificados. La declaración pasa a estar **vinculada** a `microrrede_uid` y `cenario_uid` (`declaracao_de_outra_microrrede`, `declaracao_de_outro_cenario`). Registro de una unidad con condición en el cenario **y** declaración: idénticas ⇒ aviso; distintas ⇒ `condicao_unidade_contradiz_cenario` | Ningún estado desaparece por sobrescritura; la **origen** de la condición usada queda en la procedencia de la potencia y de la memoria (`origem: DeclaracaoCommitment3C1.unidades[i]` o `condição do registro … no cenário`) |
+
+Las hipótesis aceptadas provisionalmente por la auditoría (embrulho separado, redondeo conservador, obligación
+residual vinculante, `S := R·Δ` declarado, PEMFC instantánea solo como abstracción analítica) se mantienen como
+**hipótesis de ensayo**, con sus avisos y bloqueos.
 
 ## 10. Fuera de alcance (no implementado)
 

@@ -20,9 +20,9 @@ from ems_v2.fixtures import proc  # noqa: E402
 from ems_v2.milp.config import CONFIG_ANALITICA as C  # noqa: E402
 from ems_v2.milp.solver_3c1 import resolver_3c1  # noqa: E402
 from ems_v2.ponte.cenario import Realizacao, SerieRecurso  # noqa: E402
-from ems_v2.ponte.compromisso import (ExecutorAlgebricoCommitment3C1, custo_eventos_realizado,  # noqa: E402
-                                      entrada_de_continuacao, estado_inicial_3c1, memorias_do_estado,
-                                      plano_de_resultado_3c1)
+from ems_v2.ponte.compromisso import (ExecutorAlgebricoCommitment3C1, FonteDisponibilidadeExecucao,  # noqa: E402
+                                      custo_eventos_realizado, entrada_de_continuacao, estado_inicial_3c1,
+                                      memorias_do_estado, plano_de_resultado_3c1)
 from ems_v2.ponte.execucao import (estado_inicial_de_entrada, executar, retomar, verificar_checkpoint)  # noqa: E402
 from ems_v2.ponte.registro import CustoRealizado, ComponenteCusto  # noqa: E402
 from ems_v2.series import SerieTemporal  # noqa: E402
@@ -33,9 +33,17 @@ INICIO = "2026-01-01T00:00:00+00:00"
 
 
 def realizacao(L_=L):
+    """Realização sintética do Caso J: demanda e disponibilidade OBSERVADA da térmica (A-01)."""
     s = SerieTemporal("potencia", "kW", "media_intervalo", INICIO, 900, tuple(float(x) for x in L_), proc("3C1-J-real"),
                       fronteira="barramento_liquido")
-    return Realizacao("syn-real-3c1", "sintetica", (SerieRecurso("syn-carga", "potencia", s),), proc("3C1-J-real"))
+    a = SerieTemporal("disponibilidade", "1", "media_intervalo", INICIO, 900, (1.0,) * len(L_), proc("3C1-J-real"))
+    return Realizacao("syn-real-3c1", "sintetica", (SerieRecurso("syn-carga", "potencia", s),
+                                                    SerieRecurso("syn-ter", "disponibilidade", a)), proc("3C1-J-real"))
+
+
+OBS = {"syn-ter": FonteDisponibilidadeExecucao("syn-ter", "observada")}
+EST = {"syn-ter": FonteDisponibilidadeExecucao("syn-ter", "estatica_declarada", 1, proc("3C1-disp"),
+                                               "Ensaio sintético: unidade declarada disponível durante toda a execução")}
 
 
 def _plano_continuo():
@@ -48,13 +56,13 @@ def _plano_continuo():
 
 def test_caso_j_execucao_continua_igual_a_dividida_por_checkpoint():
     e, r, p, pc, est0 = _plano_continuo()
-    ex = ExecutorAlgebricoCommitment3C1(e)
+    ex = ExecutorAlgebricoCommitment3C1(e, OBS)
     cont = executar(p, est0, ex, realizacao(), execucao_uid="exec-j")
     assert cont.situacao == "concluida" and len(cont.passos) == 8
     a = executar(p, est0, ex, realizacao(), execucao_uid="exec-j", intervalos=4)
     cp = a.checkpoints[-1]
     assert not verificar_checkpoint(cp) and cp.estado.gerador("syn-ter").tempo_no_estado_s is not None
-    b = retomar(cp, p, ExecutorAlgebricoCommitment3C1(e), realizacao())
+    b = retomar(cp, p, ExecutorAlgebricoCommitment3C1(e, OBS), realizacao())
     assert a.estados + b.estados[1:] == cont.estados
     assert b.checkpoints[-1].hash_aplicado == cont.checkpoints[-1].hash_aplicado
     # memória ao fim = memória planejada (plano ↔ execução coerentes)
@@ -74,7 +82,7 @@ def _cand_fatia(r, a, b, N):
 
 def test_caso_j_memoria_transportada_admite_exatamente_a_continuacao_do_plano_continuo():
     e, r, p, pc, est0 = _plano_continuo()
-    traj = executar(p, est0, ExecutorAlgebricoCommitment3C1(e), realizacao(), execucao_uid="exec-j2", intervalos=4)
+    traj = executar(p, est0, ExecutorAlgebricoCommitment3C1(e, OBS), realizacao(), execucao_uid="exec-j2", intervalos=4)
     est4 = traj.estados[-1]
     e2 = entrada_de_continuacao(Y.caso_j(N=4, inicio_indice=4), est4, procedencia=proc("3C1-J-transporte"))
     assert e2.base.estados_geradores[0].ligado == est4.gerador("syn-ter").ligado
@@ -98,7 +106,7 @@ def test_caso_j_borda_residual_vinculante_obriga_a_janela_seguinte():
     real = Realizacao("syn-real-f", "sintetica", (SerieRecurso("syn-carga", "potencia", SerieTemporal(
         "potencia", "kW", "media_intervalo", INICIO, 900, (0.0, 0.0, 0.0, 30.0), proc("3C1-F-real"),
         fronteira="barramento_liquido")),), proc("3C1-F-real"))
-    traj = executar(p1, estado_inicial_3c1(e1), ExecutorAlgebricoCommitment3C1(e1), real,
+    traj = executar(p1, estado_inicial_3c1(e1), ExecutorAlgebricoCommitment3C1(e1, EST), real,
                     execucao_uid="exec-f")
     est4 = traj.estados[-1]
     assert memorias_do_estado(e1, est4)[0].obrigacao_residual_s == 1800
@@ -127,20 +135,20 @@ def test_executor_recusa_transicao_contra_a_memoria_e_memoria_ausente():
         "potencia", "kW", "media_intervalo", INICIO, 900, (10.0, 0.0, 0.0, 20.0), proc("3C1-D-real"),
         fronteira="barramento_liquido")),), proc("3C1-D-real"))
     est0 = estado_inicial_de_entrada(e.base, memoria={"syn-ter": 7200})
-    t = executar(p, est0, ExecutorAlgebricoCommitment3C1(e), real, execucao_uid="exec-d")
+    t = executar(p, est0, ExecutorAlgebricoCommitment3C1(e, EST), real, execucao_uid="exec-d")
     assert t.situacao == "interrompida_inexequivel" and len(t.passos) == 3
     assert "permanencia_minima_violada" in {c.codigo for c in t.constatacoes}
     est_sem = estado_inicial_de_entrada(e.base, memoria={})        # memória não declarada
-    t = executar(p, est_sem, ExecutorAlgebricoCommitment3C1(e), real, execucao_uid="exec-d2")
+    t = executar(p, est_sem, ExecutorAlgebricoCommitment3C1(e, EST), real, execucao_uid="exec-d2")
     assert t.situacao == "erro_dados" and "memoria_ausente" in {c.codigo for c in t.constatacoes}
 
 
 def test_custo_de_eventos_realizado_separado_do_planejado():
     e, r, p, pc, est0 = _plano_continuo()
-    traj = executar(p, est0, ExecutorAlgebricoCommitment3C1(e), realizacao(), execucao_uid="exec-j3")
+    traj = executar(p, est0, ExecutorAlgebricoCommitment3C1(e, OBS), realizacao(), execucao_uid="exec-j3")
     c = custo_eventos_realizado(e, traj)
     assert c.base == "realizado" and c.valor_R == pytest.approx(pc.custo_eventos_planejado_R)
-    parcial = executar(p, est0, ExecutorAlgebricoCommitment3C1(e), realizacao(), execucao_uid="exec-j4", intervalos=0)
+    parcial = executar(p, est0, ExecutorAlgebricoCommitment3C1(e, OBS), realizacao(), execucao_uid="exec-j4", intervalos=0)
     assert custo_eventos_realizado(e, parcial).valor_R == 0.0         # nada aplicado ⇒ nada incorrido
     cr = CustoRealizado((c, ComponenteCusto("throughput_bess", 0.1, "realizado")), c.valor_R + 0.1, 8)
     assert cr.total_R == pytest.approx(c.valor_R + 0.1)

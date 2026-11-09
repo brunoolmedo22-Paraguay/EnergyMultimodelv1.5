@@ -4,7 +4,8 @@ Todas las pruebas son **sintéticas/algebraicas** (`synthetic_algebraic`). Las d
 real** (Pyomo 6.10.1) y se saltan explícitamente sin Pyomo. Abreviaturas: `ct::` = `test_ems_v2_3c1_contrato.py`
 (30), `au::` = `test_ems_v2_3c1_auditor.py` (28), `mi::` = `test_ems_v2_3c1_milp.py` (32), `co::` =
 `test_ems_v2_3c1_continuidade.py` (7), `po::` = `test_ems_v2_3c1_ponte.py` (7), `pe::` = `test_ems_v2_3c1_perfil.py`
-(6). Total nuevo: **110**. Módulos en `ems_v2/`.
+(6), `pr14::` = `test_ems_v2_3c1_auditoria_pr14.py` (36, correcciones A-01..A-03). Total nuevo: **146**. Módulos en
+`ems_v2/`.
 
 ## Casos obligatorios (orden de la misión §11)
 
@@ -44,3 +45,11 @@ real** (Pyomo 6.10.1) y se saltan explícitamente sin Pyomo. Abreviaturas: `ct::
 | Aislamiento: núcleo stdlib; auditor sin Pyomo; 3A/3B-P no conocen 3C-1 | — | `pe::test_modulos_3c1_sem_pyomo…`, `pe::test_nucleo_3a_3bp_nao_conhece_o_3c1`, `au::test_auditor_3c1_sem_pyomo…` | implemented |
 | Catálogo y capacidades coherentes | `CAPACIDADES_3C1`, columnas `status_3C1` | `pe::test_capacidades_3c1_…`, `pe::test_catalogo_3c1_…` (2) | implemented |
 | MPC, valor futuro, multimodo, M11-EXT, M19, red | — | — | **not implemented** (fuera de alcance) |
+
+## Correcciones de la auditoría del PR #14
+
+| ID | Requisito | Implementación | Prueba(s) | Resultado |
+|---|---|---|---|---|
+| A-01 | Disponibilidad efectiva del generador por fuente declarada; sin defecto 1 | `ponte/compromisso.FonteDisponibilidadeExecucao`, `validar_fontes_disponibilidade`, `ExecutorAlgebricoCommitment3C1.disponibilidade_efetiva` | `pr14::test_a01_observada_disponivel_executa`, `…_indisponivel_com_ON_inexequivel`, `…_ausente_e_erro_de_dados…`, `…_observacao_invalida…` (0,5/NaN/2/−1), `…_estatica_declarada_e_contradicao`, `…_serie_de_outro_recurso…` (incl. bloco `#k`), `…_fonte_sem_padrao_e_estrita` (11), `…_execucao_interrompida…` (HiGHS) | a = 1 ⇒ ejecuta; a = 0 con ON ⇒ `inexequivel`; ausente/fraccionaria/contradictoria/de otro recurso ⇒ `dados`; constructor rechaza fuentes faltantes o inválidas |
+| A-02 | Costo realizado de H₂ y de eventos desde transiciones aplicadas | `ponte/compromisso.contabilidade_realizada_3c1`, `_eventos_aplicados`, `DetalheH2Realizado` | `pr14::test_a02_custo_realizado_pemfc_completo_analitico`, `…_sem_dupla_contagem_e_3c0_inalterado`, `…_execucao_parcial_e_interrompida…`, `…_selado_no_registro_separado_do_valor_futuro` | 0,03 kg continuo + 0,003 kg de eventos ⇒ R$ 0,33; eventos R$ 2,0; total R$ 2,33 = plan; parcial/interrumpida: R$ 0,17 + R$ 1,5; registro sellado y releído; valor futuro rechazado como costo |
+| A-03 | Estados por unidad sin duplicados, UID alheios ni sobrescritura; procedencia verificable | `ponte/compromisso._condicoes_por_unidade`, `_com_origem`; `DeclaracaoCommitment3C1.microrrede_uid/cenario_uid` | `pr14::test_a03_duas_unidades_validas…`, `…_duplicatas_rejeitadas…` (idéntica y contradictoria), `…_uid_desconhecido…` (5 UID), `…_declaracao_de_outra_microrrede_ou_cenario`, `…_procedencia_e_valores…`, `…_registro_de_uma_unidade_declaracao_x_cenario` | duplicatas y UID ajenos ⇒ error; dos unidades con estados distintos conservados; origen en la procedencia |

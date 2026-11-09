@@ -28,6 +28,21 @@ Sintético/algebraico: **no es validación física**. Todas las corridas son de 
 | `PYTHONPATH=<bloqueador> … pytest tests/ems_v2 -q -rs` con Pyomo/HiGHS **bloqueados** (`sitecustomize` que hace fallar `import pyomo/highspy` con `ModuleNotFoundError`) | **463 passed, 9 skipped** (todos los saltos dicen `could not import 'pyomo'`; ningún test de solver se cuenta como ejecutado) |
 | `… pytest tests/ -q` (suite completa de la aplicación) | **1099 passed, 7 warnings, 128 subtests** (503 s) = 989 de `main` + 110 |
 
+**Cierre de la auditoría del PR #14 (A-01..A-03, base `540ac1b`):**
+
+| Comando | Resultado |
+|---|---|
+| `… pytest tests/ems_v2/test_ems_v2_3c1_auditoria_pr14.py` | **36 passed** (A-01: 21, de ellos 1 con HiGHS · A-02: 4, con HiGHS · A-03: 11) |
+| Los 7 archivos `tests/ems_v2/test_ems_v2_3c1_*.py` (casos A–L + A-01..A-03) | 146 passed (28 + 36 + 7 + 30 + 32 + 6 + 7) |
+| `… pytest tests/ems_v2 -q` (3A + 3B-P + 3C-0 + 3C-1) | **681 passed** (= 645 + 36) |
+| ídem con Pyomo/HiGHS bloqueados | **494 passed, 14 skipped** (los 5 nuevos dependientes del solver se saltan con `could not import 'pyomo'`) |
+| `… pytest tests/ -q` (suite completa) | **1135 passed, 7 warnings, 128 subtests** (435 s) = 1099 + 36 |
+
+Los tests 3C-1 que construían `ExecutorAlgebricoCommitment3C1` sin fuente de disponibilidad se actualizaron para
+DECLARARLA (Caso J: serie `observada` en la realización; casos de memoria/ponte: `estatica_declarada` con procedencia
+y justificativa). Ninguna aserción fue relajada: el caso D, con `observada` y sin serie realizada, pasó a fallar por
+`disponibilidade_realizada_ausente` (comportamiento correcto) y se le declaró la fuente estática.
+
 Tests anteriores **modificados**: solo las dos guardias de C-3C1-01 (`FORMULACAO_3C1.md` §9); ninguna aserción numérica,
 tolerancia ni caso existente fue alterado o eliminado.
 
@@ -63,3 +78,15 @@ objetivo del solver × objetivo evaluado: 1e-6 relativo (igual que 3B-P). La enu
 - Tiempos de pared en una sola máquina, pocas repeticiones; no son p95/p99 (campaña pendiente, BRECHAS_3C1 K6).
 - El ejecutor es el dublê **algébrico**: la continuidad probada es contractual, no física.
 - PEMFC: abstracción instantánea declarada; la curva es sintética (B04). Windows no ejecutado.
+
+## 6. Reproducción de los defectos del PR #14 sobre `540ac1b` (antes de corregir)
+
+Script ad hoc que carga `ems_v2/ponte/compromisso.py` de `540ac1b` (copiado temporalmente, luego borrado) y aplica
+las mismas entradas de `test_ems_v2_3c1_auditoria_pr14.py`:
+
+| ID | Entrada | Resultado en `540ac1b` | Resultado corregido |
+|---|---|---|---|
+| A-01 | Caso A, consigna ON, entorno **sin** `syn-ter\|disponibilidade` | `exequivel = True` (verificación omitida) | `erro_dados` / `disponibilidade_realizada_ausente` (fuente `observada`) |
+| A-01 | ídem con disponibilidad 0,5 | `falha = "inexequivel"` (rotulado como físico) | `falha = "dados"` / `disponibilidade_realizada_invalida` |
+| A-02 | PEMFC con arranque y parada (m_SU = 0,002, m_SD = 0,001 kg) | solo la contabilidad 3C-0: H₂ R$ 0,30 (sin eventos) | R$ 0,33 = 10 × (0,03 + 0,003); eventos R$ 2,0 |
+| A-03 | `#1` válido, `#2` declarado dos veces (OFF y luego ON a 15 kW), `#7` inexistente | entrada **aceptada**; `#2` = ON a 15 kW (la última sobrescribió), `#7` ignorado | `condicao_unidade_duplicada` + `condicao_unidade_uid_desconhecido`; ninguna entrada |

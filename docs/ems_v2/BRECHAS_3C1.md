@@ -41,5 +41,7 @@ byte a byte igual): la matriz con perfil 3C-1 marca `rampa`, `t_on_min`, `t_off_
 | K2 | Lectura de T_on/T_off/rampas/S desde la UI del Piso 1 | Prohibido en esta misión (sin migraciones ni UI) |
 | K3 | Reinterpretación R$ ≡ R$/evento no verificable por la cadena 3A (C-3C1-02) | Resuelto solo en la proyección 3C-1; recomendación: decidir si `units` debe reconocer equivalencias semánticas declaradas |
 | K4 | Ejecutor físico con memoria interna (arranque/parada) | Solo dublê algébrico (`ExecutorAlgebricoCommitment3C1`) |
+| K7 | Telemetría de disponibilidad de generadores (A-01) | El SEEDS2 no registra observaciones de disponibilidad por unidad: una ejecución real solo puede usar `estatica_declarada` (condición del escenario con procedencia) o quedará en `erro_dados` con `observada`; no se inventa telemetría |
+| K8 | Persistencia de la contabilidad 3C-1 (A-02) | `ContabilidadeRealizada3C1.custo` es un `CustoRealizado` 3C-0 sellable en el registro JSON; el detalle por unidad (`DetalheH2Realizado`) no tiene campo propio en `RegistroExecucaoEMS`: solo los agregados `H2_continuo_kg`, `H2_eventos_kg`, `partidas_aplicadas` y `paradas_aplicadas` van a `indicadores` |
 | K5 | Validación en Windows | No ejecutada |
 | K6 | Campaña de tiempos (p95/p99) | Solo mediciones indicativas (EVIDENCIA_3C1); sin carácter estadístico |

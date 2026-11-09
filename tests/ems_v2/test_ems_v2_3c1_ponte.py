@@ -39,9 +39,9 @@ def inventario(ter=None, quantidade=None):
     return F.inventario(MG, (F.bateria(MG), F.usina(MG), F.arranjo(MG), t))
 
 
-def declaracao(unidades=(), termos=("eventos",), abst="instantanea_unidade_quente"):
+def declaracao(unidades=(), termos=("eventos",), abst="instantanea_unidade_quente", mg=MG, cen="syn-cenario-3c0"):
     return DeclaracaoCommitment3C1(
-        PoliticaPermanenciaTerminal("obrigacao_residual_vinculante", "Ensaio 3C-1: continuidade após a janela",
+        mg, cen, PoliticaPermanenciaTerminal("obrigacao_residual_vinculante", "Ensaio 3C-1: continuidade após a janela",
                                     F.proc()),
         termos, {"syn-ter1": abst}, {"syn-ter1": "rampa_convencional"}, "Ensaio 3C-1 (unidade quente declarada)",
         tuple(unidades), F.proc())
@@ -126,8 +126,8 @@ def test_cadeia_3c1_ensaio_completa_com_milp_real():
     pytest.importorskip("pyomo", exc_type=ImportError)
     from ems_v2.milp.config import CONFIG_ANALITICA
     from ems_v2.milp.solver_3c1 import resolver_3c1
-    from ems_v2.ponte.compromisso import (ExecutorAlgebricoCommitment3C1, custo_eventos_realizado, estado_inicial_3c1,
-                                          plano_de_resultado_3c1)
+    from ems_v2.ponte.compromisso import (ExecutorAlgebricoCommitment3C1, FonteDisponibilidadeExecucao,
+                                          custo_eventos_realizado, estado_inicial_3c1, plano_de_resultado_3c1)
     from ems_v2.ponte.execucao import executar
     inv = inventario()
     cen, dt, pol, prev, real = F.cenario(inv), F.definicao(), F.politicas(), F.previsao(oraculo=True), F.realizacao()
@@ -136,7 +136,9 @@ def test_cadeia_3c1_ensaio_completa_com_milp_real():
     res = resolver_3c1(proj.entrada, CONFIG_ANALITICA)
     assert res.aceito, res.codigos()
     plano, pc = plano_de_resultado_3c1(res, proj.entrada)
-    traj = executar(plano, estado_inicial_3c1(proj.entrada), ExecutorAlgebricoCommitment3C1(proj.entrada), real,
+    fontes = {"syn-ter1": FonteDisponibilidadeExecucao("syn-ter1", "estatica_declarada", 1, F.proc(),
+                                                       "Ensaio 3C-0/3C-1: térmica declarada disponível no cenário")}
+    traj = executar(plano, estado_inicial_3c1(proj.entrada), ExecutorAlgebricoCommitment3C1(proj.entrada, fontes), real,
                     execucao_uid="0123456789abcdef0123456789abcdef")
     assert traj.situacao == "concluida" and len(traj.passos) == plano.N
     c = custo_eventos_realizado(proj.entrada, traj)
@@ -167,7 +169,8 @@ def test_microrrede_real_bloqueada_no_3c1_com_explicacao(tmp_path):
         assert ter[s].bloqueia and ter[s].codigo == "parametro_obrigatorio_ausente", s      # vazio ≠ sem limite
     assert not ter["C_SU"].bloqueia and ter["C_SU"].procedencia.tipo == "declarado_seeds2"
     pol = dataclasses.replace(F.politicas(), procedencia=Procedencia("decisao_responsavel", "teste"))
-    d = dataclasses.replace(declaracao(), abstracao_por_equipamento={e: "instantanea_unidade_quente" for e in inv.uids()},
+    d = dataclasses.replace(declaracao(mg=ub, cen=sc.scenario_uid),
+                            abstracao_por_equipamento={e: "instantanea_unidade_quente" for e in inv.uids()},
                             limites_por_equipamento={e: "rampa_convencional" for e in inv.uids()})
     e3, cs, _ = montar_entrada_3c1(inv, cen, F.previsao(), F.definicao(), pol, d, contexto="operacional")
     assert e3 is None
