@@ -33,7 +33,11 @@ HOTFIX_B3C4_01 = {"ems_v2/ponte/execucao.py", "ems_v2/rede/execucao.py"}
 # IDÊNTICA à base abaixo.
 HOTFIX_B3C4_10 = {"ems_v2/milp/solver_3c3.py", "ems_v2/milp/resultado_3c3.py", "ems_v2/rede/mpc.py",
                   "ems_v2/rede/execucao.py"}
-MODIFICADOS_3C4 = MODIFICADOS_3C4 | HOTFIX_B3C4_01 | HOTFIX_B3C4_10
+# A03 — último fecho da auditoria do PR #17 (FORMULACAO_3C4 §10d): o verificador ÚNICO das normalizações B3C4-10 vive
+# no núcleo de rede e a auditoria INTEGRAL 3C-3 ganha a seção ``normalizacoes_pcc`` (só adição; demais seções idênticas).
+HOTFIX_A03 = {"ems_v2/rede/auditoria.py"}
+MODIFICADOS_3C4 = MODIFICADOS_3C4 | HOTFIX_B3C4_01 | HOTFIX_B3C4_10 | HOTFIX_A03
+HEAD_B3C4_10 = "8dd8edb"           # HEAD auditado com a política B3C4-10 aprovada (2ª auditoria do PR #17)
 
 
 def test_nucleo_hierarquico_so_biblioteca_padrao_ao_importar():
@@ -162,3 +166,55 @@ def test_hotfix_b3c4_10_restrito_e_regra_c01_identica_a_base():
     atual = (RAIZ / "ems_v2/rede/execucao.py").read_text(encoding="utf-8")
     for nome in ("valor_intercambio_valido", "programa_valido", "validar_programa", "plano_de_resultado_3c3"):
         assert _fonte_funcao(atual, nome) == _fonte_funcao(base, nome), nome      # C-01 INTACTA
+
+
+# A03: só imports, o fecho do relatório integral (novo campo) e ``__all__`` — nenhuma verificação removida.
+REMOVIDAS_A03 = {
+    "from .execucao import PoliticaAjustePCC",
+    "integridade_documental_certificada=ok)",
+    '__all__ = ["ESCOPOS", "RelatorioAuditoriaMissaoConectada", "SUBSTITUIDAS", "auditar_missao_conectada",',
+    '"auditar_missao_conectada_analitica", "custo_rede_independente"]',
+}
+
+
+def _exige(ref):
+    try:
+        subprocess.run(["git", "cat-file", "-e", ref], cwd=RAIZ, check=True, capture_output=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pytest.skip(f"Histórico git sem {ref} (clone raso): verificação feita no PR.")
+
+
+def test_a03_auditoria_3c3_so_acrescenta_a_secao_de_normalizacoes():
+    _exige(BASE_3C3)
+    out = subprocess.run(["git", "diff", "-U0", BASE_3C3, "--", *sorted(HOTFIX_A03)], cwd=RAIZ,
+                         capture_output=True, text=True, check=True).stdout
+    removidas = {ln[1:].strip() for ln in out.splitlines() if ln.startswith("-") and not ln.startswith("---")}
+    assert removidas <= REMOVIDAS_A03, removidas - REMOVIDAS_A03
+    base = subprocess.run(["git", "show", f"{BASE_3C3}:ems_v2/rede/auditoria.py"], cwd=RAIZ, capture_output=True,
+                          text=True, check=True).stdout
+    atual = (RAIZ / "ems_v2/rede/auditoria.py").read_text(encoding="utf-8")
+    for nome in ("_balanco_3c3", "custo_rede_independente", "_analitica", "auditar_missao_conectada_analitica",
+                 "_documental"):
+        assert _fonte_funcao(atual, nome) == _fonte_funcao(base, nome), nome
+    # o verificador comum não depende do EMS hierárquico
+    arv = ast.parse(atual)
+    mods = {n.module or "" for n in ast.walk(arv) if isinstance(n, ast.ImportFrom)}
+    mods |= {a.name for n in ast.walk(arv) if isinstance(n, ast.Import) for a in n.names}
+    assert not any("hierarquia" in m for m in mods), mods
+
+
+def test_a03_politica_b3c4_10_e_c01_inalteradas_desde_o_head_auditado():
+    _exige(HEAD_B3C4_10)
+    out = subprocess.run(["git", "diff", "--name-only", HEAD_B3C4_10, "--", "ems_v2/rede/execucao.py",
+                          "ems_v2/milp/solver_3c3.py", "ems_v2/milp/solver_3c4.py", "ems_v2/milp/resultado_3c3.py",
+                          "ems_v2/rede/mpc.py", "ems_v2/ponte/execucao.py"], cwd=RAIZ, capture_output=True, text=True,
+                         check=True).stdout
+    assert out.strip() == "", out
+
+
+def test_a03_verificador_unico_reutilizado_pela_auditoria_3c4():
+    from ems_v2.hierarquia import auditoria as H
+    from ems_v2.rede import auditoria as R
+    assert H.reconstruir_normalizacoes_pcc is R.reconstruir_normalizacoes_pcc
+    fonte = (RAIZ / "ems_v2/hierarquia/auditoria.py").read_text(encoding="utf-8")
+    assert "def reconstruir_normalizacoes_pcc" not in fonte and "_RE_NORMALIZACAO" not in fonte

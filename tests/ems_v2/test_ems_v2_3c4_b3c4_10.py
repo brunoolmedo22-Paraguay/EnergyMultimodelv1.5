@@ -363,7 +363,7 @@ def _auditar_hier(x, **over):
 def _alterar_aviso(r0, **campos):
     """Reescreve o aviso de normalização do registro 3C-0 com campos alterados (``rehash`` recompõe o hash)."""
     from ems_v2.ponte.canonico import sha256
-    from ems_v2.hierarquia.auditoria import _RE_NORMALIZACAO
+    from ems_v2.rede.auditoria import _RE_NORMALIZACAO
     from ems_v2.rede.execucao import NormalizacaoNumericaPCC
     from ems_v2.rede.mpc import CHAVE_HASH_NORMALIZACOES_PCC
     rehash = campos.pop("rehash", False)
