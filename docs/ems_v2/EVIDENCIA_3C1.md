@@ -48,6 +48,19 @@ Sintético/algebraico: **no es validación física**. Todas las corridas son de 
 | ídem con Pyomo/HiGHS bloqueados | **509 passed, 17 skipped** (los 3 nuevos de evidencia se saltan explícitamente) |
 | `… pytest tests/ -q` (suite completa) | **1153 passed, 7 warnings, 128 subtests** (429 s) = 1135 + 18 |
 
+**Corrección final B-03 (base `1b953db`):**
+
+| Comando | Resultado |
+|---|---|
+| `… pytest tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py` | **18 passed** (13 adulteraciones re-selladas + intacta + declaración + integridad del registro + límite SHA ≠ firma + coherencia con metadatos) |
+| Los 9 archivos `tests/ems_v2/test_ems_v2_3c1_*.py` (casos A–L, A-01..A-03, B-01..B-03) | **182 passed** |
+| `… pytest tests/ems_v2 -q` | **717 passed** (= 699 + 18) |
+| ídem con Pyomo/HiGHS bloqueados | **509 passed, 18 skipped** (el archivo B-03 se salta entero con `could not import 'pyomo'`) |
+| `… pytest tests/ -q` (suite completa) | **1171 passed, 7 warnings, 128 subtests** (432 s) = 1153 + 18 |
+
+Los tests B-02 de evidencia se adaptaron a la API en tres fases (conteúdo → hashes en el registro → anexo); sus
+aserciones se mantienen (acceso a los campos por `anexo.conteudo`).
+
 Datos de prueba corregidos (no se relajó ninguna validación): en los bloques `quantidade = 2` de A-03 el agregado del
 registro venía de la fixture de una unidad (10 kW) y una prueba declaraba #1 ON a 12 kW; ahora cada prueba DECLARA
 el agregado coherente (`_cenario(..., agregado=12.0)`). Los helpers de declaración construyen el vínculo con
@@ -117,3 +130,15 @@ Script ad hoc sobre el código de `20243aa` (mismas entradas de `test_ems_v2_3c1
 | B-02 | Declaración hecha para la versión 1 aplicada a la versión 2 del mismo escenario (mismo UID) | **aceptada** | `declaracao_de_outra_versao_do_cenario` |
 | B-02 | Declaración aplicada a otra revisión del inventario (mismo inventario físico) | **aceptada** (sin constatación) | `declaracao_de_outra_revisao_do_inventario` |
 | B-02 | Fuente de disponibilidad estática usada en la ejecución | no aparecía en ninguna evidencia persistida | valor, procedencia y justificativa en `AnexoExecucao3C1`, ligado por hash al registro |
+
+## 8. Reproducción del defecto B-03 sobre `1b953db` (antes de corregir)
+
+Script ad hoc con la cadena PEMFC de `test_ems_v2_3c1_auditoria_pr14_b._cadeia` (fuente estática), código de
+`1b953db`: evidencia válida y sellada; luego cada campo alterado y el anexo **re-sellado** con `selar_anexo_3c1`:
+
+| Campo alterado (anexo re-sellado) | `verificar_anexo_3c1` en `1b953db` | Tras B-03 |
+|---|---|---|
+| ninguno (íntegro) | `[]` | `[]` |
+| `disponibilidade_efetiva[0].valor` 1 → 0 | `[]` (**aceptado**) | `conteudo_anexo_divergente` |
+| `detalhe_h2[0].massa_eventos_kg` 0,003 → 0 | `[]` (**aceptado**) | `conteudo_anexo_divergente` |
+| `eventos_aplicados` partidas 1 → 0 | `[]` (**aceptado**) | `conteudo_anexo_divergente` (+ `anexo_eventos_incoerentes`, `anexo_h2_incoerente`) |

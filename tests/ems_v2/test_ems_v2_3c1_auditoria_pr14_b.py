@@ -125,29 +125,31 @@ def test_b02_vinculo_correto_aceito_e_hash_na_procedencia_da_entrada():
 
 
 # =============================================================================== B-02 (evidência da disponibilidade)
-def _cadeia(fontes, tmp_path, sub):
+def _cadeia(fontes, tmp_path, sub, declaracao=None, origem=None):
     pytest.importorskip("pyomo", exc_type=ImportError)
     from ems_v2.ponte.compromisso import contabilidade_realizada_3c1, estado_inicial_3c1, ExecutorAlgebricoCommitment3C1
     from ems_v2.ponte.execucao import executar, hash_plano
-    from ems_v2.ponte.registro_3c1 import gravar_anexo_3c1, hashes_para_registro_3c1, montar_anexo_3c1
+    from ems_v2.ponte.registro_3c1 import (gravar_anexo_3c1, hashes_para_registro_3c1, montar_anexo_3c1,
+                                           preparar_conteudo_anexo_3c1)
     e, r, p, pc = _plano_pemfc()
     real = _real_pemfc()
     uid = "0123456789abcdef0123456789abcdef"
     t = executar(p, estado_inicial_3c1(e), ExecutorAlgebricoCommitment3C1(e, fontes), real, execucao_uid=uid)
     cont = contabilidade_realizada_3c1(e, p, t, real)
     h = "0" * 64
+    conteudo = preparar_conteudo_anexo_3c1(e, p, t, real, fontes, declaracao=declaracao, contabilidade=cont)
     reg = RG.selar_registro(RG.RegistroExecucaoEMS(
-        1, uid, "2026-11-09T00:00:00+00:00", RG.ReferenciaOrigem(e.base.microrrede_uid, None, 1, h, h, h,
-                                                                 e.base.cenario_uid, 1, h),
+        1, uid, "2026-11-09T00:00:00+00:00", origem or RG.ReferenciaOrigem(e.base.microrrede_uid, None, 1, h, h, h,
+                                                                           e.base.cenario_uid, 1, h),
         {"ponte": "3C-0", "perfil": "v1.1-3C-1"},
-        {"entrada": r.hash_entrada, "plano": hash_plano(p), **hashes_para_registro_3c1(e, fontes)},
+        {"entrada": r.hash_entrada, "plano": hash_plano(p), **hashes_para_registro_3c1(conteudo)},
         RG.Discretizacao(e.base.malha.inicio_utc, e.base.malha.delta_s, 4, 4, 4),
         RG.ResumoSolver(r.classificacao, r.estado_despacho, r.terminacao, r.objetivo, r.limite_dual, r.gap_abs,
                         r.gap_rel, "{}", canonico.json_canonico(r.ambiente)),
         p, t.estados[0], t.estados[-1], t.situacao, t.checkpoints[-1], cont.indicadores, cont.custo,
         dict(p.custo_objetivo_planejado), RG.valor_futuro_nao_implementado(t.estados[-1].indice_fronteira),
         "exito", "ensaio 3C-1", {}, (), {}))
-    an = montar_anexo_3c1(reg, e, p, t, real, fontes, contabilidade=cont)
+    an = montar_anexo_3c1(reg, conteudo)
     d = tmp_path / sub
     return e, p, t, real, reg, an, RG.gravar_registro(d, reg), gravar_anexo_3c1(d, an)
 
@@ -158,16 +160,16 @@ def test_b02_anexo_reconstroi_fontes_estatica_e_observada(tmp_path):
     e, p, t, real, reg, an, cr, ca = _cadeia(fe, tmp_path, "estatica")
     lido_r, lido_a = RG.ler_registro(cr), ler_anexo_3c1(ca)
     assert verificar_anexo_3c1(lido_a, lido_r) == [] and lido_a == an
-    f = lido_a.fontes_disponibilidade[0]
+    f = lido_a.conteudo.fontes_disponibilidade[0]
     assert (f.fonte, f.valor, f.procedencia.referencia, f.justificativa) == ("estatica_declarada", 1, "B02-disp",
                                                                              "Condição estática declarada do ensaio")
     # disponibilidade efetiva por passo: estática (1) e o valor observado coincidente (1) registrados
-    assert [(x.indice_plano, x.valor, x.fonte, x.observado) for x in lido_a.disponibilidade_efetiva] == [
+    assert [(x.indice_plano, x.valor, x.fonte, x.observado) for x in lido_a.conteudo.disponibilidade_efetiva] == [
         (i, 1, "estatica_declarada", 1.0) for i in range(4)]
-    assert lido_a.detalhe_h2[0].massa_eventos_kg == pytest.approx(0.003, abs=1e-12)        # K8: detalhe por unidade
+    assert lido_a.conteudo.detalhe_h2[0].massa_eventos_kg == pytest.approx(0.003, abs=1e-12)        # K8: detalhe por unidade
     fo = {"syn-fc": FD("syn-fc", "observada")}
     *_, reg_o, an_o, _, _ = _cadeia(fo, tmp_path, "observada")
-    assert verificar_anexo_3c1(an_o, reg_o) == [] and an_o.disponibilidade_efetiva[0].fonte == "observada"
+    assert verificar_anexo_3c1(an_o, reg_o) == [] and an_o.conteudo.disponibilidade_efetiva[0].fonte == "observada"
 
 
 def test_b02_mudar_a_declaracao_de_disponibilidade_altera_a_evidencia(tmp_path):
@@ -181,7 +183,8 @@ def test_b02_mudar_a_declaracao_de_disponibilidade_altera_a_evidencia(tmp_path):
     *_, reg2, an2, _, _ = _cadeia(f2, tmp_path, "b")
     assert reg1.selo != reg2.selo and an1.selo != an2.selo
     assert "anexo_de_outro_registro" in {c.codigo for c in verificar_anexo_3c1(an1, reg2)}
-    falso = dataclasses.replace(an1, fontes_disponibilidade=an2.fontes_disponibilidade)
+    falso = dataclasses.replace(an1, conteudo=dataclasses.replace(
+        an1.conteudo, fontes_disponibilidade=an2.conteudo.fontes_disponibilidade))
     falso = dataclasses.replace(falso, selo=canonico.sha256(dataclasses.replace(falso, selo="")))   # re-selado
     assert "hash_3c1_divergente" in {c.codigo for c in verificar_anexo_3c1(falso, reg1)}
 
@@ -193,12 +196,13 @@ def test_b02_registro_sem_hashes_3c1_ou_anexo_adulterado_recusados(tmp_path):
     e, p, t, real, reg, an, cr, ca = _cadeia(fe, tmp_path, "x")
     sem = RG.selar_registro(dataclasses.replace(reg, hashes={"entrada": reg.hashes["entrada"]}, selo=""))
     with pytest.raises(ContratoInvalido) as exc:
-        montar_anexo_3c1(sem, e, p, t, real, fe)
+        montar_anexo_3c1(sem, an.conteudo)
     assert "registro_sem_hash_3c1" in exc.value.codigos
     ca.write_text(ca.read_text(encoding="utf-8").replace('"valor":1', '"valor":0'), encoding="utf-8")
     with pytest.raises(ContratoInvalido):
         ler_anexo_3c1(ca)
     with pytest.raises(ContratoInvalido):                                   # nunca sobrescreve um anexo existente
-        gravar_anexo_3c1(tmp_path / "x", dataclasses.replace(an, eventos_aplicados={}, selo=canonico.sha256(
-            dataclasses.replace(an, eventos_aplicados={}, selo=""))))
+        outro = dataclasses.replace(an, conteudo=dataclasses.replace(an.conteudo, eventos_aplicados={}))
+        gravar_anexo_3c1(tmp_path / "x", dataclasses.replace(outro, selo=canonico.sha256(
+            dataclasses.replace(outro, selo=""))))
     _ = est

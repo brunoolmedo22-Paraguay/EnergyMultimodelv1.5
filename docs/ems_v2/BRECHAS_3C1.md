@@ -43,6 +43,7 @@ byte a byte igual): la matriz con perfil 3C-1 marca `rampa`, `t_on_min`, `t_off_
 | K4 | Ejecutor físico con memoria interna (arranque/parada) | Solo dublê algébrico (`ExecutorAlgebricoCommitment3C1`) |
 | K7 | Telemetría de disponibilidad de generadores (A-01) | El SEEDS2 no registra observaciones de disponibilidad por unidad: una ejecución real solo puede usar `estatica_declarada` (condición del escenario con procedencia) o quedará en `erro_dados` con `observada`; no se inventa telemetría |
 | K8 | Persistencia de la contabilidad 3C-1 (A-02) | **Cerrada (B-02):** el detalle por unidad (`DetalheH2Realizado`) y los eventos aplicados se guardan en el anexo sellado `AnexoExecucao3C1` (`<uid>.ems3c1.json`), ligado por hash al registro 3C-0 |
+| K10 | Autenticidad de origen de la evidencia (B-03) | El registro sellado compromete el contenido del anexo por SHA-256: se detecta cualquier alteración respecto de un registro CONFIABLE conservado, pero no hay firma digital; quien reescriba y re-selle registro y anexo juntos produce un par coherente. Requiere firma/almacenamiento de confianza (fuera del 3C-1) |
 | K9 | Estados por unidad en el escenario real (B-01) | El SEEDS2 solo declara el agregado del registro (`units_on`, `power_kW`); las declaraciones por unidad se verifican contra él, pero siguen siendo declaraciones sintéticas de ensayo (D9) |
 | K5 | Validación en Windows | No ejecutada |
 | K6 | Campaña de tiempos (p95/p99) | Solo mediciones indicativas (EVIDENCIA_3C1); sin carácter estadístico |
