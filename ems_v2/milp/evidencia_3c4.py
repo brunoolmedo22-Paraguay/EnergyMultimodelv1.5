@@ -68,11 +68,28 @@ def tabela_campanha(res: dict) -> str:
     return "\n".join(ln)
 
 
+def _normalizacoes(x) -> str:
+    """B3C4-10: normalizações de resíduos do solver no PCC RECONSTRUÍDAS dos artefatos selados (k global da janela)."""
+    from ..hierarquia.auditoria import reconstruir_normalizacoes_pcc
+    r = x.resultado
+    r0, ax = getattr(r, "registros_3c0", None), getattr(r, "anexos_3c3", None)
+    if r0 is None or ax is None:
+        return "—"
+    out = []
+    for w in r.registros:
+        nz, c = reconstruir_normalizacoes_pcc(x.modelo, [w], r0, ax)
+        if c:
+            return f"DESVIO {sorted({k.codigo for k in c})}"
+        out += [(w.conteudo.janela.k + n.indice_janela, n.grandeza, n.valor_bruto_kW, n.limiar_kW) for n in nz]
+    return str(out)
+
+
 def tabela_h9(res: dict) -> str:
     from ..hierarquia.auditoria import reconstruir_projecoes_energia
     ex = res["h9_pemfc"][0]
     ln = ["| Estratégia | Situação | k final | Custo [R$] | E final [kWh] | PEMFC ligada / p [kW] / tempo no estado [s] "
-          "| Obrigações pendentes | Projeções B3C4-01 (k, limite, correção kWh) | Falha |", "|---|---|---|---|---|---|---|---|---|"]
+          "| Obrigações pendentes | Projeções B3C4-01 (k, limite, correção kWh) | Normalizações B3C4-10 (k, grandeza, "
+          "bruto kW, limiar kW) | Falha |", "|---|---|---|---|---|---|---|---|---|---|"]
     for e in ("mpc_sem_sinal", "hier_pwl", "hier_ref_dura", "hier_ref_branda", "mpc_encolhido", "open_loop", "oraculo"):
         x = ex[e]
         c, r = x.controlador, x.resultado
@@ -82,7 +99,8 @@ def tabela_h9(res: dict) -> str:
         ln.append(f"| {e} | {r.situacao} | {c.k} | {r.registro_missao.conteudo.custo_realizado_acumulado.total_R!r} | "
                   f"{[b.energia_kWh for b in c.estado.armazenamento]} | {g.ligado} / {g.potencia_kW} / "
                   f"{g.tempo_no_estado_s} | {c.obrigacoes_pendentes()[0]} | "
-                  f"{[(p.indice_global, p.limite, p.correcao_kWh) for p in pj]} | {f[0] if f else '—'} |")
+                  f"{[(p.indice_global, p.limite, p.correcao_kWh) for p in pj]} | {_normalizacoes(x)} | "
+                  f"{f[0] if f else '—'} |")
     return "\n".join(ln)
 
 

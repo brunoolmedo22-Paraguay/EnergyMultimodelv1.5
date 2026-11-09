@@ -138,10 +138,11 @@ def test_b01_retomada_3c3_usa_o_estado_projetado():
 
 
 @solver
-def test_b01_b10_segundo_artefato_herdado_C01_documentado_e_nao_corrigido():
+def test_b01_b10_segundo_artefato_C01_agora_normalizado_pelo_hotfix_b3c4_10():
+    """Antes do hotfix B3C4-10 a missão parava em k = 10 (C-01 recusava P_imp = −8,88e-16 do solver); agora o resíduo é
+    normalizado na extração (detalhes em test_ems_v2_3c4_b3c4_10.py) e a missão conclui."""
     a = _h9("mpc_sem_sinal")
-    assert a.controlador.k == 10 and a.resultado.classe_falha == "integridade"
-    assert "-8.881784197001252e-16" in " ".join(c.mensagem for c in a.resultado.registros[-1].conteudo.constatacoes)
+    assert a.controlador.k == 12 and a.resultado.situacao == "encerrada"
 
 
 @solver
@@ -151,13 +152,11 @@ def test_b01_h9_cinco_estrategias():
     for e, x in res.items():
         assert reconstruir_projecoes_energia(x.modelo, x.resultado.registros, 3600)[1] == []
     fim = {e: (x.resultado.situacao, x.controlador.k) for e, x in res.items()}
-    assert fim == {"mpc_sem_sinal": ("interrompida", 10), "hier_pwl": ("encerrada", 12),
-                   "hier_ref_dura": ("interrompida", 10), "hier_ref_branda": ("encerrada", 12),
-                   "mpc_encolhido": ("encerrada", 12)}
+    assert fim == {e: ("encerrada", 12) for e in res}                    # após B3C4-01 + B3C4-10
     custo = {e: x.resultado.registro_missao.conteudo.custo_realizado_acumulado.total_R for e, x in res.items()}
-    assert custo["hier_pwl"] == pytest.approx(129.6) and custo["hier_ref_branda"] == pytest.approx(129.6)
-    assert custo["mpc_encolhido"] == pytest.approx(127.6)
-    for e in ("hier_pwl", "hier_ref_branda", "mpc_encolhido"):
+    assert custo == pytest.approx({"mpc_sem_sinal": 129.8, "hier_pwl": 129.6, "hier_ref_dura": 129.6,
+                                   "hier_ref_branda": 129.6, "mpc_encolhido": 127.6})
+    for e in res:
         c = res[e].controlador
         assert c.obrigacoes_pendentes()[0] == {} and [b.energia_kWh for b in c.estado.armazenamento] == [0.0]
         assert c.estado.geracao[0].ligado is True

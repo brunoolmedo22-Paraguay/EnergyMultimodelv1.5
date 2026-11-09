@@ -18,6 +18,7 @@ class ResultadoResolucao3C3(ResultadoResolucao3C1):
     intercambio: dict = field(default_factory=dict)           # {"P_imp": N, "P_exp": N, "w"?: N} PROGRAMADO
     economia_rede: dict = field(default_factory=dict)         # gasto_importacao_R, receita_exportacao_R, liquido_R
     hash_tarifas: dict = field(default_factory=dict)          # grandeza → SHA-256 do perfil usado na decisão
+    normalizacoes_numericas: tuple = ()                       # B3C4-10: resíduos do SOLVER normalizados (rede.execucao)
 
 
 __all__ = ["ResultadoResolucao3C3"]

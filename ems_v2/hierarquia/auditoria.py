@@ -19,7 +19,9 @@ seção ``hierarquica`` (``verificar_coordenacoes``):
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 from ..audit import Tolerancias, _tol_custo
@@ -27,6 +29,7 @@ from ..diagnostics import Constatacao, ContratoInvalido, erro
 from ..mpc.registro import selo_confere
 from ..rede.auditoria import RelatorioAuditoriaMissaoConectada, auditar_missao_conectada
 from ..rede.contrato import hash_entrada_3c3
+from ..timegrid import ler_instante_utc
 from . import ESQUEMA_3C4, FORMULACAO_3C4
 from .auditor import CHAVES_TERMINAIS
 from .contrato import (hash_configuracao_planejador, modo_condicionado, validar_sinal, validar_sinal_para_janela)
@@ -222,6 +225,82 @@ def reconstruir_projecoes_energia(modelo, registros, delta_s: int, tol: Toleranc
     return tuple(proj), c
 
 
+_RE_NORMALIZACAO = re.compile(
+    r"^bruto=(?P<bruto>\S+) normalizado=(?P<norm>\S+) diferenca=(?P<dif>\S+) limiar=(?P<lim>\S+) "
+    r"escala=(?P<esc>\S+) origem=solver; (?P<motivo>.+)$")
+_RE_CAMINHO_NORM = re.compile(r"^pcc\[(?P<uid>[^\]]+)\]\.(?P<g>P_imp|P_exp)\[(?P<t>\d+)\]$")
+
+
+def reconstruir_normalizacoes_pcc(modelo_rede, registros, registros_3c0, anexos, tol: Tolerancias = Tolerancias()):
+    """B3C4-10: reconstrói, de artefatos SELADOS, cada normalização de resíduo do solver no PCC e a confronta com a
+    política: (i) aviso no registro 3C-0 da janela + hash ``normalizacoes_pcc_b3c4_10`` comprometido antes do selo;
+    (ii) código ``normalizacao_numerica_pcc`` no resumo da RESOLUÇÃO selado na janela (a normalização vem do
+    resolvedor, isto é, do valor extraído do solver — nunca de consigna externa); (iii) valor programado no plano de rede
+    do anexo 3C-3 = 0.0; (iv) bruto < 0, diferença = −bruto, |bruto| <= limiar; (v) escala S_t e limiar RECALCULADOS do
+    plano 3C-0 e dos limites do modelo fornecido iguais aos registrados. Devolve (normalizações, constatações)."""
+    from ..ponte.canonico import sha256
+    from ..rede.contrato import valor_no_intervalo
+    from ..rede.execucao import (NormalizacaoNumericaPCC, POLITICA_RESIDUO_PCC, escala_balanco_pcc,
+                                 limiar_residuo_pcc)
+    from ..rede.mpc import CHAVE_HASH_NORMALIZACOES_PCC
+    r0 = {r.execucao_uid: r for r in registros_3c0}
+    an = {a.conteudo.execucao_uid: a for a in anexos}
+    e, out, c = modelo_rede, [], []
+    for r in registros:
+        ct = r.conteudo
+        reg0 = r0.get(ct.execucao_uid)
+        if reg0 is None:
+            continue
+        cam = f"janelas[{ct.posicao}]"
+        avs = [x for x in reg0.constatacoes if x.codigo == "normalizacao_numerica_pcc"]
+        tem_hash = CHAVE_HASH_NORMALIZACOES_PCC in reg0.hashes
+        if not avs and not tem_hash:
+            continue
+        recs = []
+        for x in avs:
+            m, mc = _RE_NORMALIZACAO.match(x.mensagem), _RE_CAMINHO_NORM.match(x.caminho)
+            if m is None or mc is None:
+                c.append(erro("normalizacao_pcc_ilegivel", cam, f"{x.caminho}: {x.mensagem[:80]}"))
+                continue
+            try:
+                recs.append(NormalizacaoNumericaPCC(mc["uid"], mc["g"], int(mc["t"]), float(m["bruto"]),
+                                                    float(m["norm"]), float(m["dif"]), float(m["lim"]),
+                                                    float(m["esc"]), m["motivo"]))
+            except ValueError:
+                c.append(erro("normalizacao_pcc_ilegivel", cam, x.mensagem[:80]))
+        if not tem_hash or reg0.hashes[CHAVE_HASH_NORMALIZACOES_PCC] != sha256(tuple(recs)) or len(recs) != len(avs):
+            c.append(erro("normalizacao_pcc_nao_comprometida", cam,
+                          "Avisos de normalização × hash comprometido no registro 3C-0 divergentes."))
+        if "normalizacao_numerica_pcc" not in (ct.resolucao.codigos if ct.resolucao else ()):
+            c.append(erro("normalizacao_pcc_sem_origem_no_solver", cam,
+                          "A resolução selada da janela não registra a normalização (origem no solver não provada)."))
+        ax = an.get(ct.execucao_uid)
+        pr = getattr(getattr(ax, "conteudo", None), "plano_rede", None)
+        p = reg0.plano
+        for n in recs:
+            cn = f"{cam}.{n.grandeza}[{n.indice_janela}]"
+            prog = None if pr is None else (pr.importacao_programada_kW if n.grandeza == "P_imp" else
+                                            pr.exportacao_programada_kW)
+            t = n.indice_janela
+            ok = (prog is not None and t < len(prog) and prog[t] == 0.0 and n.valor_normalizado_kW == 0.0
+                  and n.valor_bruto_kW < 0 and n.diferenca_kW == 0.0 - n.valor_bruto_kW
+                  and -n.valor_bruto_kW <= n.limiar_kW and n.motivo == POLITICA_RESIDUO_PCC
+                  and n.pcc_uid == str(e.pcc.uid))
+            if ok:
+                ini = (ler_instante_utc(p.inicio_utc, "p")[0] + timedelta(seconds=p.delta_s * t)).isoformat()
+                li = valor_no_intervalo(e.pcc.limite_importacao, ini, p.delta_s) if e.importa else 0.0
+                le = valor_no_intervalo(e.pcc.limite_exportacao, ini, p.delta_s) if e.exporta else 0.0
+                vals = {f"{x.uid}|{x.grandeza}": x.valores[t] for x in p.consignas}
+                S = escala_balanco_pcc(vals, li or 0.0, le or 0.0)
+                ok = S == n.escala_kW and limiar_residuo_pcc(S, tol) == n.limiar_kW
+            if not ok:
+                c.append(erro("normalizacao_pcc_fora_da_politica", cn,
+                              f"Normalização não sustentada pela política/plano/modelo: {n!r}."))
+            else:
+                out.append(n)
+    return tuple(out), c
+
+
 @dataclass(frozen=True)
 class RelatorioAuditoriaHierarquica:
     aceito: bool
@@ -229,6 +308,7 @@ class RelatorioAuditoriaHierarquica:
     constatacoes: tuple[Constatacao, ...]
     relatorio_3c3: RelatorioAuditoriaMissaoConectada | None
     projecoes_numericas: tuple = ()
+    normalizacoes_pcc: tuple = ()
 
     def codigos(self) -> set[str]:
         return {c.codigo for c in self.constatacoes}
@@ -253,9 +333,11 @@ def auditar_missao_hierarquica(registro_missao, registros, livro, modelo_rede, c
                                         modelo_rede=modelo_rede, configuracao_rede=configuracao_rede,
                                         configuracao_planejador=configuracao_planejador)
     pj, cp = reconstruir_projecoes_energia(modelo_rede, registros, cfg.malha.delta_s, tol)
+    nz, cz = reconstruir_normalizacoes_pcc(modelo_rede, registros, registros_3c0, anexos, tol)
     ver = {"integral_3c3": r3.aceito, "hierarquica": not ch, "registro_hierarquico": not cm,
-           "projecoes_numericas": not cp}
-    return RelatorioAuditoriaHierarquica(all(ver.values()), ver, tuple(list(r3.constatacoes) + ch + cm + cp), r3, pj)
+           "projecoes_numericas": not cp, "normalizacoes_pcc": not cz}
+    return RelatorioAuditoriaHierarquica(all(ver.values()), ver, tuple(list(r3.constatacoes) + ch + cm + cp + cz), r3,
+                                         pj, nz)
 
 
 # ================================================================================================ retomada
@@ -320,5 +402,5 @@ def ler_registro_hierarquico(diretorio, missao_uid: str) -> RegistroMissaoHierar
     return _ler(RegistroMissaoHierarquica3C4, Path(diretorio) / nome_missao_hier(missao_uid), "registro_hierarquico")
 
 
-__all__ = ["ProjecaoNumericaEnergia", "RelatorioAuditoriaHierarquica", "reconstruir_projecoes_energia", "auditar_missao_hierarquica", "ler_registro_hierarquico",
+__all__ = ["reconstruir_normalizacoes_pcc", "ProjecaoNumericaEnergia", "RelatorioAuditoriaHierarquica", "reconstruir_projecoes_energia", "auditar_missao_hierarquica", "ler_registro_hierarquico",
            "retomar_controlador_hierarquico", "verificar_coordenacoes"]

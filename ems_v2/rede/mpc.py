@@ -45,9 +45,13 @@ from ..timegrid import ler_instante_utc
 from . import ESQUEMA_3C3, FORMULACAO_3C3, ROTULO_REDE
 from .contrato import (EntradaRede3C3, PerfilTarifario, hash_entrada_3c3, selecionar_perfil_causal,
                        validar_entrada_3c3, validar_perfil)
-from .execucao import (ExecutorAlgebricoConectado3C3, PoliticaAjustePCC, contabilidade_realizada_3c3, hash_plano_rede,
-                       plano_de_resultado_3c3, programa_de_plano, validar_politica_ajuste)
+from .execucao import (ExecutorAlgebricoConectado3C3, PoliticaAjustePCC, aviso_normalizacao_pcc,
+                       contabilidade_realizada_3c3, hash_plano_rede, plano_de_resultado_3c3, programa_de_plano,
+                       validar_politica_ajuste)
 from .registro import gravar_anexo_3c3, hashes_para_registro_3c3, montar_anexo_3c3, preparar_conteudo_anexo_3c3
+
+# B3C4-10 (hotfix autorizado, PR #17): chave do hash das normalizações de resíduos do solver no registro 3C-0.
+CHAVE_HASH_NORMALIZACOES_PCC = "normalizacoes_pcc_b3c4_10"
 
 
 # ------------------------------------------------------------------------------------------------ configuração
@@ -292,6 +296,12 @@ class ControladorMPCConectado(ControladorMPC):
                                            self.cfg_rede.politica_ajuste, passos, contab)
         hashes = {"plano_rede_3c3": hash_plano_rede(ab.pc), "nucleo_3c1": hash_entrada_3c1(ab.e3.compromisso),
                   **hashes_para_registro_3c3(cont)}
+        # B3C4-10 (hotfix autorizado, PR #17): normalizações de resíduos do SOLVER comprometidas ANTES do selo do
+        # registro 3C-0 (avisos com bruto/normalizado/diferença/limiar/escala + hash); ausentes ⇒ nada muda.
+        norm = tuple(getattr(ab.res, "normalizacoes_numericas", ()) or ())
+        if norm:
+            ab.constatacoes.extend(aviso_normalizacao_pcc(n) for n in norm)
+            hashes[CHAVE_HASH_NORMALIZACOES_PCC] = sha256(norm)
         return hashes, (lambda reg0: montar_anexo_3c3(reg0, cont))
 
     def _registrar_anexo(self, anexo) -> None:

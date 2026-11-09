@@ -123,17 +123,15 @@ def test_h9_pemfc_obrigacoes_e_modos():
     assert auditar(b).aceito
 
 
-def test_h9_linha_de_base_apos_hotfix_B3C4_01_e_artefato_C01_documentado_B3C4_10():
-    """Após o hotfix B3C4-01 (auditoria do PR #17) a deriva de ENERGIA é projetada (k = 8, 1 ulp) e a missão segue;
-    ela para em k = 10 por um SEGUNDO artefato herdado, fora da autorização (B3C4-10): o solver devolve
-    P_imp = −8,88e-16 kW e a regra C-01 do 3C-3 (real >= 0, sem recorte) recusa o plano. Nenhuma superioridade é
-    afirmada (missão não concluída)."""
-    a = run("h9_pemfc", "mpc_sem_sinal")
-    assert a.resultado.situacao == "interrompida" and a.resultado.classe_falha == "integridade" and a.controlador.k == 10
-    msg = " ".join(c.mensagem for c in a.resultado.registros[-1].conteudo.constatacoes)
-    assert "intercambio_programado_invalido" in msg and "-8.881784197001252e-16" in msg
-    assert not comparar({"mpc_sem_sinal": a, "hier_pwl": run("h9_pemfc", "hier_pwl")})["efeitos"][
-        "antecipacao"].comparavel
+def test_h9_linha_de_base_comparavel_apos_hotfixes_B3C4_01_e_B3C4_10():
+    """Após os hotfixes B3C4-01 (energia, k = 8) e B3C4-10 (resíduo P_imp do solver, k = 10), a linha de base 3C-3
+    conclui. Condições terminais IGUAIS (E = 0, PEMFC ligada, sem obrigações) ⇒ comparável: antecipação R$ 0,2. A
+    brecha de R$ 2,0 frente ao horizonte completo é COMUM aos dois MPC curtos (``cumprir_na_janela``, B3C4-02) — não é
+    atribuível à aproximação do valor futuro."""
+    a, b = run("h9_pemfc", "mpc_sem_sinal"), run("h9_pemfc", "hier_pwl")
+    assert a.resultado.situacao == b.resultado.situacao == "encerrada"
+    ef = comparar({"mpc_sem_sinal": a, "hier_pwl": b})["efeitos"]["antecipacao"]
+    assert ef.comparavel and ef.diferenca_R == pytest.approx(0.2)
 
 
 def test_h17_dois_bancos_envoltoria_convexa():

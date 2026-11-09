@@ -28,7 +28,12 @@ MODIFICADOS_3C4 = {"tests/ems_v2/test_ems_v2_3c2_isolamento.py", "tests/ems_v2/t
 # B3C4-01 — hotfix AUTORIZADO na auditoria do PR #17 (FORMULACAO_3C4 §10b): ÚNICOS arquivos protegidos de código
 # modificados; diffs restritos à projeção numérica da energia (função compartilhada) — verificado abaixo.
 HOTFIX_B3C4_01 = {"ems_v2/ponte/execucao.py", "ems_v2/rede/execucao.py"}
-MODIFICADOS_3C4 = MODIFICADOS_3C4 | HOTFIX_B3C4_01
+# B3C4-10 — hotfix AUTORIZADO na 2ª auditoria do PR #17 (FORMULACAO_3C4 §10c): normalização de resíduos NEGATIVOS do
+# SOLVER no PCC na fronteira de extração (``resolver_3c3``) + compromisso no registro 3C-0. A regra C-01 é verificada
+# IDÊNTICA à base abaixo.
+HOTFIX_B3C4_10 = {"ems_v2/milp/solver_3c3.py", "ems_v2/milp/resultado_3c3.py", "ems_v2/rede/mpc.py",
+                  "ems_v2/rede/execucao.py"}
+MODIFICADOS_3C4 = MODIFICADOS_3C4 | HOTFIX_B3C4_01 | HOTFIX_B3C4_10
 
 
 def test_nucleo_hierarquico_so_biblioteca_padrao_ao_importar():
@@ -111,6 +116,15 @@ REMOVIDAS_B3C4_01 = {
     'if not (float(x.soc_min.valor) * C - tolE <= e1 <= float(x.soc_max.valor) * C + tolE):',
     'return PassoAplicado(dict(sorted(aplicado.items())), novo, True, ())',
 }
+# B3C4-10: só imports, ``__all__`` e o fecho do construtor do resultado (novo campo) — nenhuma regra removida.
+REMOVIDAS_B3C4_10 = {
+    'economia_rede=econ)',
+    'from ..diagnostics import Constatacao, ContratoInvalido, erro',
+    'validar_perfil, valor_no_intervalo',
+    '"validar_politica_ajuste", "validar_programa", "valor_intercambio_valido"]',
+    'from .execucao import (ExecutorAlgebricoConectado3C3, PoliticaAjustePCC, contabilidade_realizada_3c3, hash_plano_rede,',
+    'plano_de_resultado_3c3, programa_de_plano, validar_politica_ajuste)',
+}
 
 
 def test_hotfix_b3c4_01_restrito_a_projecao_numerica():
@@ -121,8 +135,30 @@ def test_hotfix_b3c4_01_restrito_a_projecao_numerica():
     out = subprocess.run(["git", "diff", "-U0", BASE_3C3, "--", *sorted(HOTFIX_B3C4_01)], cwd=RAIZ,
                          capture_output=True, text=True, check=True).stdout
     removidas = {ln[1:].strip() for ln in out.splitlines() if ln.startswith("-") and not ln.startswith("---")}
-    assert removidas <= REMOVIDAS_B3C4_01, removidas - REMOVIDAS_B3C4_01
+    assert removidas <= REMOVIDAS_B3C4_01 | REMOVIDAS_B3C4_10, removidas - REMOVIDAS_B3C4_01 - REMOVIDAS_B3C4_10
     adicionadas = "\n".join(ln[1:] for ln in out.splitlines() if ln.startswith("+") and not ln.startswith("+++"))
     assert "energia_apos_intervalo" in adicionadas and "projecao_numerica_energia" in adicionadas
     for proibido in ("min(max(", "max(min(", "clip(", "soc_min.valor) * C - tolE - ", "tolE * "):
         assert proibido not in adicionadas, proibido
+
+
+def _fonte_funcao(texto: str, nome: str) -> str:
+    arv = ast.parse(texto)
+    no = next(n for n in arv.body if isinstance(n, ast.FunctionDef) and n.name == nome)
+    return ast.get_source_segment(texto, no)
+
+
+def test_hotfix_b3c4_10_restrito_e_regra_c01_identica_a_base():
+    try:
+        subprocess.run(["git", "cat-file", "-e", BASE_3C3], cwd=RAIZ, check=True, capture_output=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pytest.skip(f"Histórico git sem a base {BASE_3C3} (clone raso): verificação feita no PR.")
+    out = subprocess.run(["git", "diff", "-U0", BASE_3C3, "--", *sorted(HOTFIX_B3C4_10 - HOTFIX_B3C4_01)], cwd=RAIZ,
+                         capture_output=True, text=True, check=True).stdout
+    removidas = {ln[1:].strip() for ln in out.splitlines() if ln.startswith("-") and not ln.startswith("---")}
+    assert removidas <= REMOVIDAS_B3C4_10, removidas - REMOVIDAS_B3C4_10
+    base = subprocess.run(["git", "show", f"{BASE_3C3}:ems_v2/rede/execucao.py"], cwd=RAIZ, capture_output=True,
+                          text=True, check=True).stdout
+    atual = (RAIZ / "ems_v2/rede/execucao.py").read_text(encoding="utf-8")
+    for nome in ("valor_intercambio_valido", "programa_valido", "validar_programa", "plano_de_resultado_3c3"):
+        assert _fonte_funcao(atual, nome) == _fonte_funcao(base, nome), nome      # C-01 INTACTA
