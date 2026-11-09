@@ -57,11 +57,23 @@ REPRESENTACOES = {
     "constante_0d": "Sem bancos: um valor por modo",
     "intervalos_consecutivos_1d": "1 banco: interpolante linear por partes entre pontos consecutivos (exato, convexo ou "
                                   "não), por modo",
-    "envoltoria_convexa_nd": "2 bancos: envoltória convexa inferior dos pontos — só com convexidade VERIFICADA",
+    "envoltoria_convexa_nd": "2 bancos: envoltória convexa inferior dos pontos — só com convexidade verificada NA "
+                             "AMOSTRA (pontos da grade; centros validados); não é prova de convexidade global de V",
     "linear_local": "Aproximação linear local (um modo, domínio de validade explícito)",
     "referencia": "Referência terminal energética (sem função de valor)",
 }
 ESTADOS_SINAL = {"valido": "Utilizável pelo MPC", "indisponivel": "Não utilizável (motivo registrado)"}
+ESTADOS_MODO = {
+    "valido": "Representação aceita: pontos auditados, domínio delimitado e tolerâncias declaradas atendidas",
+    "inviavel": "Cauda INVIÁVEL em TODA a faixa de energia considerada — justificada por certificado de cobertura do "
+                "solver com a energia inicial LIVRE na faixa (ou por avaliação única quando não há banco); só então o "
+                "modo é excluído (C-3C4-A02)",
+    "dominio_indeterminado": "Cobertura insuficiente para concluir (amostras inviáveis sem certificado, certificado "
+                             "inconclusivo ou ponto proposto não confirmado): o modo NÃO pode ser excluído nem "
+                             "representado ⇒ o sinal fica indisponível",
+    "indisponivel": "Representação não sustentável cientificamente (domínio não conexo, tolerância não atingida, "
+                    "2D não convexo na amostra, avaliação falha)",
+}
 POLITICAS_ATUALIZACAO = {
     "a_cada_janela": "O planejador é executado em cada τ_k (sinal para a fronteira k + N_k)",
     "periodica": "O planejador é executado a cada P janelas e emite, em τ_p, um LOTE de sinais para as fronteiras das P "
@@ -115,7 +127,18 @@ class ModoValor:
     energias_inviaveis: tuple[tuple[float, ...], ...]   # pontos amostrados com cauda INVIÁVEL (evidência do domínio)
     dominio_min_kWh: tuple[float, ...]
     dominio_max_kWh: tuple[float, ...]
-    convexidade_verificada: bool
+    convexidade_verificada_na_amostra: bool      # verificação SOBRE A AMOSTRA (pontos/centros), não prova global
+
+
+@dataclass(frozen=True)
+class DiagnosticoModo:
+    """Resultado do planejador para UM estado terminal (incluído ou não no sinal) — C-3C4-A02."""
+    geradores: tuple[EstadoTerminalGerador, ...]
+    estado: str                                  # ESTADOS_MODO
+    justificativa: str
+    faixas_kWh: tuple[tuple[float, float], ...]  # faixas consideradas por banco
+    certificados: tuple[str, ...]                # p. ex. "cobertura[lo,hi]:inviavel/infeasible"
+    indice_no_sinal: int | None = None
 
 
 @dataclass(frozen=True)
@@ -200,6 +223,7 @@ class SinalValorFuturo:
     hashes: dict[str, str]                       # previsão longa, instantâneo, tarifas, modelo, estado, configuração
     procedencia: Procedencia | None
     selo: str = ""
+    diagnostico_modos: tuple[DiagnosticoModo, ...] = ()     # todos os estados terminais avaliados (A02)
 
 
 @dataclass(frozen=True)
@@ -404,6 +428,13 @@ def validar_sinal(s: SinalValorFuturo, cam: str = "sinal") -> list[Constatacao]:
     dim = len(s.baterias)
     if len(set(s.baterias)) != dim or len(set(s.geradores)) != len(s.geradores):
         out.append(erro("uid_duplicado", cam, "Bancos/geradores repetidos."))
+    for i, d in enumerate(s.diagnostico_modos):
+        if not isinstance(d, DiagnosticoModo) or d.estado not in ESTADOS_MODO:
+            out.append(erro("diagnostico_modo_invalido", f"{cam}.diagnostico_modos[{i}]", "Estado de modo inválido."))
+    if s.qualidade.estado == "valido" and any(d.estado in ("dominio_indeterminado", "indisponivel")
+                                              for d in s.diagnostico_modos if isinstance(d, DiagnosticoModo)):
+        out.append(erro("sinal_valido_com_modo_nao_resolvido", cam + ".diagnostico_modos",
+                        "Sinal válido não pode omitir um estado terminal de domínio indeterminado/indisponível."))
     if s.qualidade.estado != "valido":
         return out                               # sinal indisponível: só a estrutura é exigida
     if s.tipo in ("referencia_energia_dura", "referencia_energia_branda"):
@@ -479,7 +510,7 @@ def _validar_pontos(s: SinalValorFuturo, m: ModoValor, dim: int, cm: str) -> lis
     if rep == "envoltoria_convexa_nd":
         if dim > 2:
             out.append(erro("dimensao_nao_suportada", cm, f"{dim} bancos: só 0D/1D/2D (declarado)."))
-        if not m.convexidade_verificada:
+        if not m.convexidade_verificada_na_amostra:
             out.append(erro("convexidade_nao_verificada", cm, "Envoltória convexa só com convexidade VERIFICADA."))
     if rep == "linear_local" and len(m.pontos) != 1:
         out.append(erro("representacao_incompativel", cm, "Linear local exige o ponto de referência."))
@@ -694,7 +725,7 @@ def validar_configuracao_planejador(c: ConfiguracaoPlanejador3C4, cfg_mpc=None, 
     return out
 
 
-__all__ = ["COBERTURAS_FIM_MISSAO", "CONVENCAO_SINAIS", "ConfiguracaoPlanejador3C4", "DEGRADACOES",
+__all__ = ["COBERTURAS_FIM_MISSAO", "CONVENCAO_SINAIS", "DiagnosticoModo", "ESTADOS_MODO", "ConfiguracaoPlanejador3C4", "DEGRADACOES",
            "EntradaHierarquica3C4", "EstadoTerminalGerador", "ESTADOS_SINAL", "ModoValor", "ParametroBateria",
            "POLITICAS_ATUALIZACAO", "PontoValidacao", "PontoValor", "QualidadeSinal", "REPRESENTACOES",
            "ReferenciaTerminal", "SensibilidadeLocal", "SinalValorFuturo", "TERMOS_DECLARADOS", "TIPOS_SINAL",

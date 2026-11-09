@@ -209,6 +209,59 @@ def resolver_3c4(entrada: EntradaHierarquica3C4, configuracao: ConfiguracaoSolve
         custo_operativo_previsto_R=custos3["total"], custo_futuro_estimado_R=theta, auditoria_terminal=aud_t)
 
 
+def resolver_cobertura_3c4(entrada: EntradaHierarquica3C4, configuracao: ConfiguracaoSolver, faixas: dict) -> dict:
+    """C-3C4-A02 — CERTIFICADO DE COBERTURA do planejador: o MESMO MILP 3C-4 da entrada, mas com a energia INICIAL de
+    cada banco em ``faixas`` (uid → (E_lo, E_hi)) como VARIÁVEL de decisão (M08ini desativada; cotas da faixa), e o
+    mesmo objetivo. Responde, sobre TODA a faixa (não só em pontos amostrados):
+
+    * ``inviavel`` — o solver provou que NENHUMA energia inicial da faixa admite cauda factível (prova do B&B do HiGHS;
+      não é uma prova independente — sem certificado de Farkas para MILP);
+    * ``otimo``/``factivel_nao_otimo`` — existe energia factível; devolve um ponto E* (minimizador de V na faixa) que o
+      planejador REAVALIA pela resolução auditada normal (nada é aceito sem auditoria);
+    * outra classificação ⇒ indeterminado (limite de tempo, erro): o planejador não conclui nada.
+
+    O despacho com energia inicial livre NÃO é auditável contra a entrada (e0 diferente): serve só como certificado de
+    (in)viabilidade e para propor E*."""
+    t0 = time.perf_counter()
+    out = {"classificacao": "erro", "terminacao": None, "status_solucao": None, "energias": None, "objetivo": None,
+           "limite_dual": None, "tempo_s": None, "constatacoes": ()}
+    rel = validar_entrada_3c4(entrada)
+    c = [x for x in rel.constatacoes if x.severidade != "aviso"]
+    if rel.aceito:
+        c += [x for x in preflight_3c3(entrada.rede, None) if x.severidade in ("erro", "pendente")]
+    bats = {str(b.uid) for b in entrada.base.baterias}
+    if set(faixas) != bats or any(not (isinstance(v, (tuple, list)) and len(v) == 2 and v[0] <= v[1]) for v in
+                                  faixas.values()):
+        c.append(erro("faixas_de_cobertura_invalidas", "faixas", f"Exigidas faixas (lo <= hi) para {sorted(bats)}."))
+    if c:
+        out.update(classificacao="bloqueado_validacao", constatacoes=tuple(c))
+        return out
+    from .modelo_3c4 import construir_modelo_3c4
+    mc = construir_modelo_3c4(entrada, None)
+    m = mc.modelo
+    for u, (lo, hi) in faixas.items():
+        m.M08ini[u].deactivate()
+        m.e[u, 0].setlb(max(float(lo), m.e[u, 0].lb))
+        m.e[u, 0].setub(min(float(hi), m.e[u, 0].ub))
+    try:
+        exe = _executar_highs(m, configuracao)
+    except Exception as exc:  # noqa: BLE001
+        out.update(constatacoes=(erro("falha_solver", "cobertura", f"{type(exc).__name__}: {exc}"),),
+                   tempo_s=time.perf_counter() - t0)
+        return out
+    classif = classificar(exe.get("terminacao"), exe.get("status_solucao"))
+    out.update(classificacao=classif, terminacao=exe.get("terminacao"), status_solucao=exe.get("status_solucao"),
+               objetivo=_finito(exe.get("incumbente")), limite_dual=_finito(exe.get("limite")))
+    if classif in DESPACHAVEIS:
+        exe["carregar"]()
+        faltas: list[str] = []
+        out["energias"] = {u: _valor(m.e[u, 0], f"e[{u},0]", faltas) for u in sorted(faixas)}
+        if faltas:
+            out.update(classificacao="erro", energias=None)
+    out["tempo_s"] = time.perf_counter() - t0
+    return out
+
+
 def visao_nucleo_3c3(res: ResultadoResolucao3C4, e: EntradaHierarquica3C4) -> ResultadoNucleo3C3De3C4:
     """Visão do despacho 3C-4 sobre a entrada NÚCLEO 3C-3 (C-3C4-01). Recusa resultado não aceito ou de outra entrada."""
     if not isinstance(res, ResultadoResolucao3C4) or res.versao_formulacao != FORMULACAO_3C4:
@@ -222,4 +275,4 @@ def visao_nucleo_3c3(res: ResultadoResolucao3C4, e: EntradaHierarquica3C4) -> Re
     return ResultadoNucleo3C3De3C4(**campos, hash_entrada_3c4=res.hash_entrada, resultado_3c4=res)
 
 
-__all__ = ["NAO_MODELADAS_3C4", "resolver_3c4", "visao_nucleo_3c3"]
+__all__ = ["NAO_MODELADAS_3C4", "resolver_3c4", "resolver_cobertura_3c4", "visao_nucleo_3c3"]

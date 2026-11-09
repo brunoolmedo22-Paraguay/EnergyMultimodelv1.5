@@ -83,7 +83,10 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14():
     # 3C-3 (contradição C-3C3-02, docs/ems_v2/FORMULACAO_3C3.md §10): ÚNICA modificação nominal admitida =
     # refatoração controlada de ``ems_v2/mpc/orquestrador.py`` (pontos de extensão; impressões E1–E8 idênticas às da
     # base ``a4c6b1c`` — tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py). Nenhum outro arquivo modificado/removido.
-    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] != ["ems_v2/mpc/orquestrador.py"]] == []
+    # 3C-4 (B3C4-01, hotfix AUTORIZADO na auditoria do PR #17, docs/ems_v2/FORMULACAO_3C4.md §10b): projeção
+    # EXCLUSIVAMENTE numérica da energia no limite em ``ems_v2/ponte/execucao.py`` (excesso <= min(tolE, 16 u S)).
+    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] not in (["ems_v2/mpc/orquestrador.py"],
+                                                                   ["ems_v2/ponte/execucao.py"])] == []
     assert all(ln[0] in ("A", "M") for ln in linhas)
     novos = {ln[1] for ln in linhas if ln[0] == "A"}
     nao_rastreados = set(subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "ems_v2"], cwd=RAIZ,

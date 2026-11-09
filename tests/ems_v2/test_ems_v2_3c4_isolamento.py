@@ -25,6 +25,10 @@ PROIBIDOS = ["streamlit", "pyomo", "highspy", "seeds2", "ems_integration", "orch
              "h2_pemfc", "simulation", "config", "numpy", "scipy", "pandas"]
 MODIFICADOS_3C4 = {"tests/ems_v2/test_ems_v2_3c2_isolamento.py", "tests/ems_v2/test_ems_v2_3c3_isolamento.py",
                    "tests/ems_v2/test_ems_v2_ponte_isolamento.py", "tests/ems_v2/test_ems_v2_milp_perfil.py"}
+# B3C4-01 — hotfix AUTORIZADO na auditoria do PR #17 (FORMULACAO_3C4 §10b): ÚNICOS arquivos protegidos de código
+# modificados; diffs restritos à projeção numérica da energia (função compartilhada) — verificado abaixo.
+HOTFIX_B3C4_01 = {"ems_v2/ponte/execucao.py", "ems_v2/rede/execucao.py"}
+MODIFICADOS_3C4 = MODIFICADOS_3C4 | HOTFIX_B3C4_01
 
 
 def test_nucleo_hierarquico_so_biblioteca_padrao_ao_importar():
@@ -89,3 +93,36 @@ def test_adicoes_3c4_nominais():
                            "ems_v2/milp/evidencia_3c1.py"}
     assert ADICOES_3C3 == {"ems_v2/milp/modelo_3c3.py", "ems_v2/milp/solver_3c3.py", "ems_v2/milp/resultado_3c3.py",
                            "ems_v2/milp/evidencia_3c3.py"}
+
+
+# Linhas REMOVIDAS admitidas pelo hotfix B3C4-01 (recorrência M07 movida para ``energia_apos_intervalo``, verificação
+# de limites reescrita com os mesmos limites, transporte do valor projetado, avisos no passo, import) — nada mais.
+REMOVIDAS_B3C4_01 = {
+    'alfa = 1.0 if b.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(',
+    '-float(b.autodescarga_1_h.valor) * h)',
+    'e1 = alfa * st.energia_kWh + h * (float(b.eta_carga.valor) * pc - pd / float(b.eta_descarga.valor))',
+    'if not (float(b.soc_min.valor) * C - tolE <= e1 <= float(b.soc_max.valor) * C + tolE):',
+    'novos_b.append(EstadoArmazenamento(uid, e1))',
+    'return PassoAplicado({k_: float(v) for k_, v in sorted(consignas.items())}, novo, True, ())',
+    'PlanoDespacho, TrajetoriaExecutada, TrajetoriaPlanejada, hash_plano, validar_plano)',
+    'alfa = 1.0 if x.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(',
+    '-float(x.autodescarga_1_h.valor) * h)',
+    'e1 = alfa * st.energia_kWh + h * (float(x.eta_carga.valor) * pc - pd / float(x.eta_descarga.valor))',
+    'if not (float(x.soc_min.valor) * C - tolE <= e1 <= float(x.soc_max.valor) * C + tolE):',
+    'return PassoAplicado(dict(sorted(aplicado.items())), novo, True, ())',
+}
+
+
+def test_hotfix_b3c4_01_restrito_a_projecao_numerica():
+    try:
+        subprocess.run(["git", "cat-file", "-e", BASE_3C3], cwd=RAIZ, check=True, capture_output=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pytest.skip(f"Histórico git sem a base {BASE_3C3} (clone raso): verificação feita no PR.")
+    out = subprocess.run(["git", "diff", "-U0", BASE_3C3, "--", *sorted(HOTFIX_B3C4_01)], cwd=RAIZ,
+                         capture_output=True, text=True, check=True).stdout
+    removidas = {ln[1:].strip() for ln in out.splitlines() if ln.startswith("-") and not ln.startswith("---")}
+    assert removidas <= REMOVIDAS_B3C4_01, removidas - REMOVIDAS_B3C4_01
+    adicionadas = "\n".join(ln[1:] for ln in out.splitlines() if ln.startswith("+") and not ln.startswith("+++"))
+    assert "energia_apos_intervalo" in adicionadas and "projecao_numerica_energia" in adicionadas
+    for proibido in ("min(max(", "max(min(", "clip(", "soc_min.valor) * C - tolE - ", "tolE * "):
+        assert proibido not in adicionadas, proibido

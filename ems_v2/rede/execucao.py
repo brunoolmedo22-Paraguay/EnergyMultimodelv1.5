@@ -39,7 +39,8 @@ from ..ponte import CONTRATO_VERSAO
 from ..ponte.canonico import sha256
 from ..ponte.compromisso import (ExecutorAlgebricoCommitment3C1, PlanoCommitment3C1, contabilidade_realizada_3c1)
 from ..ponte.execucao import (ConsignaRecurso, EstadoArmazenamento, EstadoGeracao, EstadoMicrorrede, PassoAplicado,
-                              PlanoDespacho, TrajetoriaExecutada, TrajetoriaPlanejada, hash_plano, validar_plano)
+                              PlanoDespacho, TrajetoriaExecutada, TrajetoriaPlanejada, aviso_projecao,
+                              energia_apos_intervalo, hash_plano, projecao_numerica_energia, validar_plano)
 from ..ponte.registro import ComponenteCusto, CustoRealizado
 from ..provenance import Procedencia, validar_procedencia
 from ..timegrid import ler_instante_utc
@@ -275,6 +276,7 @@ class _PassoBarramentoConectado:
         b = e.base
         tol, h = d.tol, delta_s / 3600.0
         c: list[Constatacao] = []
+        avisos: list[Constatacao] = []
 
         def val(k: str, fonte: dict, nome: str) -> float | None:
             v = fonte.get(k)
@@ -330,13 +332,15 @@ class _PassoBarramentoConectado:
             if pc < -tolP or pd < -tolP or pc > float(x.p_carga_max_kW.valor) + tolP \
                     or pd > float(x.p_descarga_max_kW.valor) + tolP or min(pc, pd) > tolP:
                 c.append(erro("consigna_inexequivel_bateria", uid, f"P_c = {pc}, P_d = {pd} kW fora dos limites M06."))
-            alfa = 1.0 if x.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(
-                -float(x.autodescarga_1_h.valor) * h)
-            e1 = alfa * st.energia_kWh + h * (float(x.eta_carga.valor) * pc - pd / float(x.eta_descarga.valor))
+            e1, esc = energia_apos_intervalo(x, st.energia_kWh, pc, pd, h)        # B3C4-01: aritmética única 3C-0
             tolE = tol.energia_abs_kWh + tol.energia_rel_capacidade * C
-            if not (float(x.soc_min.valor) * C - tolE <= e1 <= float(x.soc_max.valor) * C + tolE):
+            lo, hi = float(x.soc_min.valor) * C, float(x.soc_max.valor) * C
+            if not (lo - tolE <= e1 <= hi + tolE):
                 c.append(erro("estado_fora_dos_limites", uid, f"e = {e1} kWh fora de [s_min C, s_max C] (sem recorte)."))
-            novos_b.append(EstadoArmazenamento(uid, e1))
+            v, corr, lim, eps = projecao_numerica_energia(e1, lo, hi, esc, tolE)
+            if lim is not None:
+                avisos.append(aviso_projecao(uid, e1, v, corr, lim, eps))
+            novos_b.append(EstadoArmazenamento(uid, v))
             injecao += pd - pc
         novos_g = []
         for g in sorted(b.geradores, key=lambda y: str(y.uid)):
@@ -416,7 +420,7 @@ class _PassoBarramentoConectado:
         d.ultimo = RegistroPassoPCC(estado.indice_fronteira, a_pcc, imp_p, exp_p, exigido, imp_r, exp_r, ren_cmd, ren_ef,
                                     mi, me, ajuste)
         novo = EstadoMicrorrede(estado.microrrede_uid, k, t1.isoformat(), tuple(novos_b), tuple(novos_g))
-        return PassoAplicado(dict(sorted(aplicado.items())), novo, True, ())
+        return PassoAplicado(dict(sorted(aplicado.items())), novo, True, tuple(avisos))
 
 
 class ExecutorAlgebricoConectado3C3(ExecutorAlgebricoCommitment3C1):

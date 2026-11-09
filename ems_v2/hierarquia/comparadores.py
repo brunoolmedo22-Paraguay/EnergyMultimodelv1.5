@@ -56,7 +56,8 @@ def resumo(x) -> LinhaEstrategia:
     coords = getattr(r, "coordenacoes", ()) or ()
     obr, _ = ctrl.obrigacoes_pendentes()
     tm = getattr(rm, "tempos_s", None) if rm is not None else None
-    tp = getattr(ctrl, "_tempos_plan", {}) or {}
+    from .mpc import tempos_planejador_de
+    tp = tempos_planejador_de(coords)
     v0 = coords[0].decomposicao.custo_futuro_estimado_R if coords and coords[0].decomposicao else None
     return LinhaEstrategia(
         x.estrategia, x.estrategia != "oraculo", r.situacao, r.classe_falha,

@@ -18,7 +18,7 @@ from ems_v2.hierarquia.contrato import (ParametroBateria, TermoTerminal3C4, entr
                                         json_canonico_3c4, selar_sinal, validar_configuracao_planejador,
                                         validar_entrada_3c4, validar_sinal, validar_sinal_para_janela)
 from ems_v2.hierarquia.planejador import rampa_inativa_na_fronteira
-from ems_v2.hierarquia.valor import (avaliar_modo, convexidade_verificada, envoltoria_convexa, inclinacoes_1d,
+from ems_v2.hierarquia.valor import (avaliar_modo, convexidade_verificada_na_amostra, envoltoria_convexa, inclinacoes_1d,
                                      interpolar_1d, modos_compativeis, valor_termo_declarado)
 from ems_v2.rede.contrato import hash_entrada_3c3, validar_entrada_3c3
 from test_ems_v2_3c4_apoio import (H, MISSAO, entrada, entrada4, ger, instante, modo, ref, sens, sinal, termo)
@@ -118,7 +118,7 @@ def test_sinal_local_e_referencias_validos():
                                                                                                          termo(s))))
 
 
-def test_dois_bancos_exige_convexidade_verificada():
+def test_dois_bancos_exige_convexidade_verificada_na_amostra():
     bancos = (F.Banco(F.BESS, 10.0, 5.0, 5.0), F.Banco(F.BESS2, 10.0, 5.0, 5.0))
     e = entrada(bancos=bancos)
     pts = tuple((((x, y)), 10.0 - 0.5 * x - 0.3 * y) for x in (0.0, 10.0) for y in (0.0, 10.0))
@@ -224,9 +224,9 @@ def test_interpolacao_1d_e_dominio():
     assert interpolar_1d(m.pontos, 20.0) == 0.0
     assert interpolar_1d(m.pontos, 20.5) is None and interpolar_1d(m.pontos, -0.5) is None
     assert inclinacoes_1d(m.pontos) == pytest.approx([-1.2, 0.8, -0.8])
-    assert not convexidade_verificada(m.pontos, 1, 1e-9)[0]
+    assert not convexidade_verificada_na_amostra(m.pontos, 1, 1e-9)[0]
     mc = modo(((0, 25.0), (10, 10.1), (20, 5.2)))
-    assert convexidade_verificada(mc.pontos, 1, 1e-9)[0]
+    assert convexidade_verificada_na_amostra(mc.pontos, 1, 1e-9)[0]
 
 
 def test_envoltoria_convexa_2d_exata():
@@ -236,10 +236,10 @@ def test_envoltoria_convexa_2d_exata():
     for p in ((2.5, 7.5), (0.0, 10.0), (9.0, 1.0)):
         assert envoltoria_convexa(m.pontos, p) == pytest.approx(lin(*p))
     assert envoltoria_convexa(m.pontos, (11.0, 0.0)) is None
-    assert convexidade_verificada(m.pontos, 2, 1e-9)[0]
+    assert convexidade_verificada_na_amostra(m.pontos, 2, 1e-9)[0]
     bico = modo((((0.0, 0.0), 0.0), ((10.0, 0.0), 0.0), ((0.0, 10.0), 0.0), ((10.0, 10.0), 0.0), ((5.0, 5.0), 3.0)),
                 rep="envoltoria_convexa_nd")
-    ok, exc = convexidade_verificada(bico.pontos, 2, 1e-9)
+    ok, exc = convexidade_verificada_na_amostra(bico.pontos, 2, 1e-9)
     assert not ok and exc == pytest.approx(3.0)
 
 

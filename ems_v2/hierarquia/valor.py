@@ -85,7 +85,7 @@ def envoltoria_convexa(pontos, x, tol: float = TOL) -> float | None:
     return melhor
 
 
-def convexidade_verificada(pontos, dim: int, tol: float) -> tuple[bool, float]:
+def convexidade_verificada_na_amostra(pontos, dim: int, tol: float) -> tuple[bool, float]:
     """Amostra convexo-consistente: nenhum ponto acima da envoltória convexa dos DEMAIS (máximo excesso [R$])."""
     if dim == 0 or len(pontos) <= 2 and dim == 1:
         return True, 0.0
@@ -156,5 +156,5 @@ def penalidade_branda(sinal, energias) -> float:
                                                                                       energias))
 
 
-__all__ = ["avaliar_modo", "convexidade_verificada", "envoltoria_convexa", "inclinacoes_1d", "interpolar_1d",
+__all__ = ["avaliar_modo", "convexidade_verificada_na_amostra", "envoltoria_convexa", "inclinacoes_1d", "interpolar_1d",
            "modos_compativeis", "penalidade_branda", "valor_termo_declarado"]

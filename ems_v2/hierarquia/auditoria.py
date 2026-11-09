@@ -178,11 +178,57 @@ def verificar_coordenacoes(cfg, registros, coordenacoes, registros_3c0, anexos_3
 
 
 @dataclass(frozen=True)
+class ProjecaoNumericaEnergia:
+    """Uma projeção B3C4-01 RECONSTRUÍDA bit a bit dos dados selados (estado anterior + consignas aplicadas)."""
+    posicao: int
+    indice_global: int
+    uid: str
+    energia_bruta_kWh: float
+    energia_transportada_kWh: float
+    correcao_kWh: float
+    limite: str
+    epsilon_num_kWh: float
+
+
+def reconstruir_projecoes_energia(modelo, registros, delta_s: int, tol: Tolerancias = Tolerancias()
+                                  ) -> tuple[tuple[ProjecaoNumericaEnergia, ...], list[Constatacao]]:
+    """B3C4-01: para CADA passo executado e cada banco, recalcula a recorrência com a MESMA função dos executores
+    (``ponte.execucao.energia_apos_intervalo``) e a política ``projecao_numerica_energia``; o estado transportado
+    registrado deve ser IGUAL (bit a bit) ao previsto pela política. Devolve as projeções (magnitude, limite, ε_num) e
+    constatações para qualquer estado que não seja o bruto nem a projeção admitida (excesso fora da política)."""
+    from ..ponte.execucao import energia_apos_intervalo, projecao_numerica_energia
+    base = modelo.base
+    h = delta_s / 3600.0
+    proj, c = [], []
+    for r in registros:
+        ct = r.conteudo
+        for i, x in enumerate(ct.passos):
+            a, z = ct.estados[i], ct.estados[i + 1]
+            for b in base.baterias:
+                u = str(b.uid)
+                C = float(b.capacidade_kWh.valor)
+                e1, esc = energia_apos_intervalo(b, a.bateria(u).energia_kWh, x.aplicado[f"{u}|P_c"],
+                                                 x.aplicado[f"{u}|P_d"], h)
+                tolE = tol.energia_abs_kWh + tol.energia_rel_capacidade * C
+                v, corr, lim, eps = projecao_numerica_energia(e1, float(b.soc_min.valor) * C,
+                                                              float(b.soc_max.valor) * C, esc, tolE)
+                real = z.bateria(u).energia_kWh
+                if real != v:
+                    c.append(erro("estado_transportado_fora_da_politica_numerica", f"janelas[{ct.posicao}].passos["
+                                  f"{x.indice_global}][{u}]", f"transportado {real!r} ≠ esperado pela política {v!r} "
+                                  f"(bruto {e1!r}, ε_num {eps!r})."))
+                elif lim is not None:
+                    proj.append(ProjecaoNumericaEnergia(ct.posicao, x.indice_global, u, e1, v, corr, lim, eps))
+    return tuple(proj), c
+
+
+@dataclass(frozen=True)
 class RelatorioAuditoriaHierarquica:
     aceito: bool
     verificacoes: dict[str, bool]
     constatacoes: tuple[Constatacao, ...]
     relatorio_3c3: RelatorioAuditoriaMissaoConectada | None
+    projecoes_numericas: tuple = ()
 
     def codigos(self) -> set[str]:
         return {c.codigo for c in self.constatacoes}
@@ -203,14 +249,13 @@ def auditar_missao_hierarquica(registro_missao, registros, livro, modelo_rede, c
     cfg = registro_missao.conteudo.configuracao
     ch = verificar_coordenacoes(cfg, registros, coordenacoes, registros_3c0, anexos, modelo_rede, configuracao_planejador,
                                 livro=livro, tol=tol)
-    cm = verificar_registro_hierarquico(registro_hierarquico, registro_missao, registro_rede, coordenacoes)
-    if isinstance(registro_hierarquico, RegistroMissaoHierarquica3C4) and (
-            registro_hierarquico.hash_modelo_rede != hash_entrada_3c3(modelo_rede)
-            or registro_hierarquico.hash_configuracao_planejador != hash_configuracao_planejador(configuracao_planejador)):
-        cm.append(erro("configuracao_hierarquica_divergente", "missao_hier",
-                       "Modelo de rede/configuração do planejador fornecidos ≠ comprometidos."))
-    ver = {"integral_3c3": r3.aceito, "hierarquica": not ch, "registro_hierarquico": not cm}
-    return RelatorioAuditoriaHierarquica(all(ver.values()), ver, tuple(list(r3.constatacoes) + ch + cm), r3)
+    cm = verificar_registro_hierarquico(registro_hierarquico, registro_missao, registro_rede, coordenacoes,
+                                        modelo_rede=modelo_rede, configuracao_rede=configuracao_rede,
+                                        configuracao_planejador=configuracao_planejador)
+    pj, cp = reconstruir_projecoes_energia(modelo_rede, registros, cfg.malha.delta_s, tol)
+    ver = {"integral_3c3": r3.aceito, "hierarquica": not ch, "registro_hierarquico": not cm,
+           "projecoes_numericas": not cp}
+    return RelatorioAuditoriaHierarquica(all(ver.values()), ver, tuple(list(r3.constatacoes) + ch + cm + cp), r3, pj)
 
 
 # ================================================================================================ retomada
@@ -275,5 +320,5 @@ def ler_registro_hierarquico(diretorio, missao_uid: str) -> RegistroMissaoHierar
     return _ler(RegistroMissaoHierarquica3C4, Path(diretorio) / nome_missao_hier(missao_uid), "registro_hierarquico")
 
 
-__all__ = ["RelatorioAuditoriaHierarquica", "auditar_missao_hierarquica", "ler_registro_hierarquico",
+__all__ = ["ProjecaoNumericaEnergia", "RelatorioAuditoriaHierarquica", "reconstruir_projecoes_energia", "auditar_missao_hierarquica", "ler_registro_hierarquico",
            "retomar_controlador_hierarquico", "verificar_coordenacoes"]

@@ -123,17 +123,17 @@ def test_h9_pemfc_obrigacoes_e_modos():
     assert auditar(b).aceito
 
 
-def test_h9_linha_de_base_interrompida_por_deriva_numerica_herdada_B3C4_01():
-    """Documenta a brecha HERDADA B3C4-01 (3C-0/3C-2/3C-3, não corrigida aqui): a energia executada acumula deriva de
-    ponto flutuante (C + 2 ulp) e a validação SEM recorte da janela seguinte a bloqueia."""
+def test_h9_linha_de_base_apos_hotfix_B3C4_01_e_artefato_C01_documentado_B3C4_10():
+    """Após o hotfix B3C4-01 (auditoria do PR #17) a deriva de ENERGIA é projetada (k = 8, 1 ulp) e a missão segue;
+    ela para em k = 10 por um SEGUNDO artefato herdado, fora da autorização (B3C4-10): o solver devolve
+    P_imp = −8,88e-16 kW e a regra C-01 do 3C-3 (real >= 0, sem recorte) recusa o plano. Nenhuma superioridade é
+    afirmada (missão não concluída)."""
     a = run("h9_pemfc", "mpc_sem_sinal")
-    assert a.resultado.classe_falha == "bloqueado_validacao"
-    cods = {c.codigo for c in a.resultado.registros[-1].conteudo.constatacoes}
-    assert "energia_maior_que_capacidade" in cods
-    e = a.controlador.estado.armazenamento[0].energia_kWh
-    assert 10.0 < e <= 10.0 + 1e-12
+    assert a.resultado.situacao == "interrompida" and a.resultado.classe_falha == "integridade" and a.controlador.k == 10
+    msg = " ".join(c.mensagem for c in a.resultado.registros[-1].conteudo.constatacoes)
+    assert "intercambio_programado_invalido" in msg and "-8.881784197001252e-16" in msg
     assert not comparar({"mpc_sem_sinal": a, "hier_pwl": run("h9_pemfc", "hier_pwl")})["efeitos"][
-        "antecipacao"].comparavel                        # nenhuma superioridade é afirmada
+        "antecipacao"].comparavel
 
 
 def test_h17_dois_bancos_envoltoria_convexa():
@@ -141,7 +141,7 @@ def test_h17_dois_bancos_envoltoria_convexa():
     b = run("h17_dois_bancos", "hier_pwl", planejador_kw=(("pontos", 3),))
     assert custo(a) == pytest.approx(55.5) and custo(b) == pytest.approx(50.2)
     c0 = b.controlador.coordenacoes[0].sinal
-    assert c0.modos[0].representacao == "envoltoria_convexa_nd" and c0.modos[0].convexidade_verificada
+    assert c0.modos[0].representacao == "envoltoria_convexa_nd" and c0.modos[0].convexidade_verificada_na_amostra
     assert c0.baterias == (F.BESS, F.BESS2)
     assert auditar(b).aceito
 

@@ -208,7 +208,6 @@ class ControladorMPCHierarquico(ControladorMPCConectado):
         self._coord: dict | None = None
         self._coord_aberto: RegistroCoordenacao3C4 | None = None
         self.registro_hierarquico: RegistroMissaoHierarquica3C4 | None = None
-        self._tempos_plan: dict[str, float] = {}
         super().__init__(cfg, modelo, provedor, resolvedor, fontes_disponibilidade, configuracao_rede, **kw)
         self._hash_modelo = hash_entrada_3c3(self.modelo_rede)
         self._hash_cfg_plan = hash_configuracao_planejador(configuracao_planejador)
@@ -275,8 +274,6 @@ class ControladorMPCHierarquico(ControladorMPCConectado):
                                                                                      for a in alvos))
                 co["constatacoes"] += list(rp.constatacoes)
                 co["tempos"].update({f"planejador_{k}": v for k, v in rp.tempos_s.items()})
-                for k_, v in rp.tempos_s.items():
-                    self._tempos_plan[k_] = self._tempos_plan.get(k_, 0.0) + v
                 sinal = rp.sinais[jan.indice_janela]
                 self._lote = {a.indice_janela: rp.sinais[a.indice_janela] for a in alvos[1:]}
                 co["origem"] = "planejado_nesta_janela"
@@ -405,25 +402,17 @@ class ControladorMPCHierarquico(ControladorMPCConectado):
 
     # ---------------------------------------------------------------- missão
     def contagens(self) -> dict[str, int]:
-        out = {k: 0 for k in SITUACOES_COORDENACAO}
-        for c in self.coordenacoes:
-            out[c.situacao] = out.get(c.situacao, 0) + 1
-        out["avaliacoes_planejador"] = sum(c.avaliacoes_planejador for c in self.coordenacoes)
-        out["execucoes_planejador"] = sum(1 for c in self.coordenacoes if c.origem_sinal == "planejado_nesta_janela"
-                                          or c.plano_longo is not None)
-        out["sinais_de_lote"] = sum(1 for c in self.coordenacoes if c.origem_sinal == "lote_periodico")
-        return out
+        return contagens_de(self.coordenacoes)
 
     def finalizar(self, *, ambiente: dict | None = None):
         rm = super().finalizar(ambiente=ambiente)
-        en = {x.uid: float(x.energia_kWh) for x in self.estado.armazenamento}
-        val = valor_termo_declarado(self.cfg_plan.termo_longo, en) if en or self.cfg_plan.termo_longo.tipo == \
-            "nenhum_declarado" else None
+        en = energias_executadas(rm)
         rh = selar(RegistroMissaoHierarquica3C4(
             ESQUEMA_3C4, FORMULACAO_3C4, self.cfg.identidade.missao_uid, rm.selo, rm.impressao_deterministica,
             self.registro_rede.selo, self._hash_modelo, hash_configuracao_rede(self.cfg_rede), self._hash_cfg_plan,
             tuple(c.selo for c in self.coordenacoes), tuple(impressao_coordenacao(c) for c in self.coordenacoes),
-            self.contagens(), val, en, dict(sorted(self._tempos_plan.items()))))
+            contagens_de(self.coordenacoes), valor_termo_declarado(self.cfg_plan.termo_longo, en), en,
+            tempos_planejador_de(self.coordenacoes)))
         self.registro_hierarquico = rh
         if self.diretorio is not None:
             from ..mpc.persistencia import gravar_exclusivo
@@ -438,9 +427,59 @@ class ControladorMPCHierarquico(ControladorMPCConectado):
             registro_hierarquico=self.registro_hierarquico)
 
 
-def verificar_registro_hierarquico(rh: RegistroMissaoHierarquica3C4, rm, rr, coordenacoes) -> list[Constatacao]:
-    """Selo, esquema/perfil/rótulo, vínculo aos registros de missão MPC e de rede, sequência de coordenações (selos e
-    impressões) e contagens recalculadas."""
+CHAVES_TEMPOS_PLANEJADOR = ("cauda_s", "plano_longo_s", "total_s")
+
+
+def contagens_de(coordenacoes) -> dict[str, int]:
+    """Contagens da missão RECALCULADAS dos registros de coordenação (fonte única do registro final e da auditoria)."""
+    out = {k: 0 for k in SITUACOES_COORDENACAO}
+    for c in coordenacoes:
+        out[c.situacao] = out.get(c.situacao, 0) + 1
+    out["avaliacoes_planejador"] = sum(c.avaliacoes_planejador for c in coordenacoes)
+    out["execucoes_planejador"] = sum(1 for c in coordenacoes if c.origem_sinal == "planejado_nesta_janela"
+                                      or c.plano_longo is not None)
+    out["sinais_de_lote"] = sum(1 for c in coordenacoes if c.origem_sinal == "lote_periodico")
+    return out
+
+
+def tempos_planejador_de(coordenacoes) -> dict[str, float]:
+    """Σ, na ORDEM das execuções, dos tempos MEDIDOS do planejador registrados (e selados) em cada coordenação
+    (``planejador_<chave>``). São medições de relógio NÃO reprodutíveis: verificáveis só como coerentes com a fonte
+    registrada, nunca como determinísticas."""
+    acc: dict[str, float] = {}
+    for c in coordenacoes:
+        for k, v in c.tempos_s.items():
+            if k.startswith("planejador_"):
+                acc[k[len("planejador_"):]] = acc.get(k[len("planejador_"):], 0.0) + v
+    return dict(sorted(acc.items()))
+
+
+def energias_executadas(rm) -> dict[str, float]:
+    """Energias do estado final EXECUTADO e conciliado da missão (``RegistroMissaoMPC.conteudo.estado_final``)."""
+    return {x.uid: float(x.energia_kWh) for x in rm.conteudo.estado_final.armazenamento}
+
+
+def _tempo_valido(v) -> bool:
+    return type(v) in (int, float) and math.isfinite(v) and v >= 0
+
+
+def verificar_registro_hierarquico(rh: RegistroMissaoHierarquica3C4, rm, rr, coordenacoes, *, modelo_rede=None,
+                                   configuracao_rede=None, configuracao_planejador=None) -> list[Constatacao]:
+    """C-3C4-A01 (auditoria do PR #17). O SELO só prova que o conteúdo não mudou desde que foi selado; NÃO prova que
+    o conteúdo é verdadeiro nem identifica uma fonte confiável (quem controla o arquivo pode re-selar). Por isso TODO
+    campo científico é CONFRONTADO com a sua fonte:
+
+    * esquema/perfil/rótulo; ``missao_uid`` = identidade do registro de missão MPC (e de cada coordenação);
+    * vínculos: selo e impressão do ``RegistroMissaoMPC``, selo do ``RegistroMissaoRede3C3``;
+    * sequência de coordenações (selos e impressões determinísticas);
+    * ``contagens`` = ``contagens_de(coordenações)`` (igualdade exata);
+    * ``energias_finais_kWh`` = estado final EXECUTADO do registro de missão (igualdade exata);
+    * ``valoracao_terminal_declarada_R`` = Φ_L DECLARADO (``termo_longo`` da configuração fornecida) nesse estado;
+    * ``hash_modelo_rede``, ``hash_configuracao_rede``, ``hash_configuracao_planejador`` = hashes dos objetos
+      FORNECIDOS à auditoria (obrigatórios na auditoria integral);
+    * ``tempos_planejador_s``: chaves conhecidas, reais finitos >= 0, ``total_s`` >= componentes e igualdade exata com
+      a soma das medições seladas nas coordenações — coerência com a FONTE registrada, não reprodução determinística
+      (tempos de relógio não são reprodutíveis)."""
     out = []
     if not isinstance(rh, RegistroMissaoHierarquica3C4):
         return [erro("registro_hierarquico_invalido", "missao_hier", type(rh).__name__)]
@@ -456,13 +495,60 @@ def verificar_registro_hierarquico(rh: RegistroMissaoHierarquica3C4, rm, rr, coo
     if rh.selo_registro_missao != rm.selo or rh.impressao_missao != rm.impressao_deterministica or \
             rr is None or rh.selo_registro_rede != rr.selo:
         out.append(erro("registro_hierarquico_de_outra_missao", "missao_hier", "Não vinculado aos registros da missão."))
+    mid = rm.conteudo.identidade.missao_uid
+    if rh.missao_uid != mid or any(c.missao_uid != mid for c in coordenacoes):
+        out.append(erro("registro_hierarquico_missao_divergente", "missao_hier.missao_uid",
+                        f"{rh.missao_uid!r} ≠ identidade do registro de missão {mid!r}."))
     if rh.selos_coordenacao != tuple(c.selo for c in coordenacoes) or rh.impressoes_coordenacao != tuple(
             impressao_coordenacao(c) for c in coordenacoes):
         out.append(erro("coordenacoes_divergentes", "missao_hier.selos_coordenacao", "Sequência de coordenações ≠."))
+    if not isinstance(rh.contagens, dict) or rh.contagens != contagens_de(coordenacoes) or any(
+            type(v) is not int for v in rh.contagens.values()):
+        out.append(erro("contagens_divergentes", "missao_hier.contagens",
+                        "Contagens ≠ recalculadas a partir dos registros de coordenação."))
+    en = energias_executadas(rm)
+    if not isinstance(rh.energias_finais_kWh, dict) or rh.energias_finais_kWh != en or any(
+            type(v) is not float for v in rh.energias_finais_kWh.values()):
+        out.append(erro("energias_finais_divergentes", "missao_hier.energias_finais_kWh",
+                        f"{rh.energias_finais_kWh!r} ≠ estado final EXECUTADO {en!r}."))
+    if configuracao_planejador is None or modelo_rede is None or configuracao_rede is None:
+        out.append(erro("auditoria_integral_incompleta", "missao_hier",
+                        "Modelo de rede e configurações de rede/planejador são obrigatórios para conferir o registro."))
+    else:
+        val = valor_termo_declarado(configuracao_planejador.termo_longo, en)
+        v = rh.valoracao_terminal_declarada_R
+        if (val is None) != (v is None) or (v is not None and (type(v) is not float or v != val)):
+            out.append(erro("valoracao_terminal_divergente", "missao_hier.valoracao_terminal_declarada_R",
+                            f"{v!r} ≠ Φ_L declarado ({configuracao_planejador.termo_longo.tipo}) no estado executado "
+                            f"= {val!r}."))
+        for nome, real, esperado in (
+                ("hash_modelo_rede", rh.hash_modelo_rede, hash_entrada_3c3(modelo_rede)),
+                ("hash_configuracao_rede", rh.hash_configuracao_rede, hash_configuracao_rede(configuracao_rede)),
+                ("hash_configuracao_planejador", rh.hash_configuracao_planejador,
+                 hash_configuracao_planejador(configuracao_planejador))):
+            if real != esperado:
+                out.append(erro("configuracao_hierarquica_divergente", f"missao_hier.{nome}",
+                                f"{nome} ≠ hash do objeto fornecido à auditoria."))
+    t = rh.tempos_planejador_s
+    if not isinstance(t, dict) or not set(t) <= set(CHAVES_TEMPOS_PLANEJADOR) or not all(
+            _tempo_valido(v) for v in t.values()):
+        out.append(erro("tempos_planejador_invalidos", "missao_hier.tempos_planejador_s",
+                        f"Chaves ⊆ {CHAVES_TEMPOS_PLANEJADOR} e reais finitos >= 0 exigidos; recebido {t!r}."))
+    else:
+        if t.get("total_s", 0.0) + 1e-12 < t.get("plano_longo_s", 0.0) + t.get("cauda_s", 0.0):
+            out.append(erro("tempos_planejador_incoerentes", "missao_hier.tempos_planejador_s",
+                            "total_s < plano_longo_s + cauda_s."))
+        if t != tempos_planejador_de(coordenacoes):
+            out.append(erro("tempos_planejador_divergentes", "missao_hier.tempos_planejador_s",
+                            "≠ soma das medições seladas nas coordenações (fonte registrada; medição não reprodutível)."))
+    for c in coordenacoes:
+        if not all(_tempo_valido(v) for v in c.tempos_s.values()):
+            out.append(erro("tempos_coordenacao_invalidos", f"coordenacao[{c.posicao}].tempos_s", "Não finitos/negativos."))
     return out
 
 
 __all__ = ["ControladorMPCHierarquico", "DecomposicaoObjetivo", "RegistroCoordenacao3C4",
            "RegistroMissaoHierarquica3C4", "ResolvedorMILP3C4", "ResultadoMissaoHierarquica", "SITUACOES_COORDENACAO",
            "VinculoHierarquico3C4", "impressao_coordenacao", "nome_coordenacao", "nome_missao_hier",
-           "nome_vinculo_hier", "plano_de_resultado_3c4", "verificar_registro_hierarquico"]
+           "nome_vinculo_hier", "plano_de_resultado_3c4", "verificar_registro_hierarquico", "contagens_de",
+           "tempos_planejador_de", "energias_executadas", "CHAVES_TEMPOS_PLANEJADOR"]

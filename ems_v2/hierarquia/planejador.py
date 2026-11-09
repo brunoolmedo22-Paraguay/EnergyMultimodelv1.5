@@ -42,11 +42,11 @@ from ..provenance import Procedencia
 from ..rede.contrato import EntradaRede3C3, hash_entrada_3c3, hash_perfil, selecionar_perfil_causal
 from ..timegrid import ler_instante_utc
 from . import ESQUEMA_3C4, FORMULACAO_3C4
-from .contrato import (CONVENCAO_SINAIS, ConfiguracaoPlanejador3C4, EntradaHierarquica3C4, EstadoTerminalGerador,
+from .contrato import (CONVENCAO_SINAIS, ConfiguracaoPlanejador3C4, DiagnosticoModo, EntradaHierarquica3C4, EstadoTerminalGerador,
                        ModoValor, PontoValidacao, PontoValor, QualidadeSinal, ReferenciaTerminal, SensibilidadeLocal,
                        SinalValorFuturo, hash_configuracao_planejador, hash_termo, limites_energia,
                        residuo_terminal_herdado, selar_sinal)
-from .valor import convexidade_verificada, envoltoria_convexa, interpolar_1d, valor_termo_declarado
+from .valor import convexidade_verificada_na_amostra, envoltoria_convexa, interpolar_1d, valor_termo_declarado
 
 
 # ================================================================================================ adaptador
@@ -63,6 +63,10 @@ class ResolvedorPlanejador3C4:
         from ..milp.solver_3c4 import resolver_3c4
         return resolver_3c4(entrada, self.configuracao, None, tolerancias=self.tolerancias or Tolerancias(),
                             _executor=self._executor)
+
+    def resolver_cobertura(self, entrada, faixas: dict) -> dict:
+        from ..milp.solver_3c4 import resolver_cobertura_3c4
+        return resolver_cobertura_3c4(entrada, self.configuracao, faixas)
 
     def configuracao_registro(self) -> dict:
         import dataclasses
@@ -425,82 +429,153 @@ class Planejador3C4:
         return self._montar(alvo, (mv,), ref, sl, q)
 
     def _sinal_pwl(self, alvo, ref, combos, p_ref):
+        """C-3C4-A02: cada estado terminal recebe um DIAGNÓSTICO (``ESTADOS_MODO``). Só um modo ``inviavel`` com
+        justificativa (certificado de cobertura sobre a faixa inteira) é excluído; um modo ``dominio_indeterminado``
+        ou ``indisponivel`` torna o SINAL indisponível (nenhuma alternativa possivelmente mais barata é omitida em
+        silêncio). O método é CONSERVADOR: o domínio de cada modo é uma aproximação INTERNA (bissecção) e a cobertura
+        depende do certificado do solver — não há afirmação de exaustividade além disso."""
         cp = self.ctx.cfg_plan
         dim = len(self.bats)
-        modos, val, motivos = [], [], []
+        modos, val, diag, motivos = [], [], [], []
         gap = 0.0
+        faixas = tuple(self.lim[u] for u in self.bats)
         for modo in combos:
             if dim == 0:
                 s, v, lb = self.avaliar(alvo.fronteira, modo, (), p_ref)
-                if s == "inviavel":
-                    motivos.append(f"modo {[(x.uid, x.ligado) for x in modo]} inviável na cauda (excluído)")
+                if s == "inviavel":     # sem banco não há amostragem: a própria resolução cobre o único estado
+                    diag.append(DiagnosticoModo(modo, "inviavel", "cauda inviável (estado único, sem banco: a "
+                                                "resolução auditada cobre todo o domínio)", (), ("avaliacao:inviavel",)))
                     continue
                 if s != "ok":
-                    return self._indisponivel(alvo, f"avaliação falhou: {lb}", ref)
+                    diag.append(DiagnosticoModo(modo, "indisponivel", f"avaliação falhou: {lb}", (), ()))
+                    continue
                 gap = max(gap, 0.0 if lb is None else abs(v - lb))
+                diag.append(DiagnosticoModo(modo, "valido", "estado único avaliado", (), (), len(modos)))
                 modos.append(ModoValor(len(modos), modo, "constante_0d", (PontoValor((), v, lb, "otimo"),), (), (), (),
                                        True))
                 continue
             r = self._modo_1d(alvo, modo, p_ref) if dim == 1 else self._modo_2d(alvo, modo, p_ref)
-            if r[0] == "inviavel":
-                motivos.append(r[1])
+            estado, msg, cert = r[0], r[1], r[-1]
+            if estado != "valido":
+                diag.append(DiagnosticoModo(modo, estado, msg, faixas, tuple(cert)))
+                if estado == "inviavel":
+                    motivos.append(msg)
                 continue
-            if r[0] != "ok":
-                return self._indisponivel(alvo, r[1], ref)
-            _, mv, vv, g = r
+            _, mv, vv, g, _c = r
+            just = (f"domínio [{', '.join(f'{x:g}' for x in mv.dominio_min_kWh)}] – "
+                    f"[{', '.join(f'{x:g}' for x in mv.dominio_max_kWh)}] kWh (aproximação interna conservadora)")
+            diag.append(DiagnosticoModo(modo, "valido", just, faixas, tuple(cert), len(modos)))
             modos.append(replace(mv, indice=len(modos)))
             val += [replace(x, modo=len(modos) - 1) for x in vv]
             gap = max(gap, g)
+        nao_resolvidos = [d for d in diag if d.estado in ("dominio_indeterminado", "indisponivel")]
+        if nao_resolvidos:
+            d = nao_resolvidos[0]
+            return self._indisponivel(alvo, f"{d.estado}: modo {[(x.uid, x.ligado) for x in d.geradores]} — "
+                                            f"{d.justificativa}", ref, tuple(diag))
         if not modos:
-            return self._indisponivel(alvo, "nenhum estado terminal admite cauda factível: " + "; ".join(motivos), ref)
+            return self._indisponivel(alvo, "nenhum estado terminal admite cauda factível (todos INVIÁVEIS com "
+                                            "certificado): " + "; ".join(motivos), ref, tuple(diag))
         erro_max = max((x.erro_R for x in val), default=0.0)
         ok = erro_max <= cp.tolerancia_interpolacao_R + 1e-9
         q = QualidadeSinal("valido" if ok else "indisponivel",
-                           ("PWL por reotimização paramétrica auditada; " + "; ".join(motivos)).strip("; ") if ok else
+                           ("PWL por reotimização paramétrica auditada (domínio = aproximação interna conservadora); "
+                            + "; ".join(motivos)).strip("; ") if ok else
                            f"tolerância de interpolação não atingida com pontos_max = {cp.pontos_max} "
                            f"(erro {erro_max:.6g} R$ > {cp.tolerancia_interpolacao_R})",
                            erro_max, cp.tolerancia_interpolacao_R, gap, self.avaliacoes, tuple(val))
-        return self._montar(alvo, tuple(modos), ref, None, q)
+        return self._montar(alvo, tuple(modos), ref, None, q, tuple(diag))
+
+    def _cobertura(self, b, modo, p_ref, faixas: tuple[tuple[float, float], ...]):
+        """Certificado sobre a FAIXA inteira (energia inicial livre). ('inviavel'|'factivel'|'indeterminado', E*, cert)."""
+        rot = "cobertura[" + ";".join(f"{lo:g},{hi:g}" for lo, hi in faixas) + "]"
+        f = getattr(self.res, "resolver_cobertura", None)
+        if f is None:
+            return "indeterminado", None, f"{rot}:resolvedor_sem_certificado"
+        ctx = self.ctx
+        t0 = self._clock()
+        est = estado_na_fronteira(ctx, b, {u: lo for u, (lo, _) in zip(self.bats, faixas)}, modo, p_ref)
+        try:
+            rede = entrada_rede_planejamento(ctx, b, self.fim - b, est, self.proc)
+            r = f(_envolver(ctx, rede, self.proc), {u: fx for u, fx in zip(self.bats, faixas)})
+        except ContratoInvalido as exc:
+            r = {"classificacao": "bloqueado_validacao", "constatacoes": exc.constatacoes}
+        self.avaliacoes += 1
+        self.tempos["cauda_s"] += self._clock() - t0
+        cl = r.get("classificacao")
+        cert = f"{rot}:{cl}/{r.get('terminacao')}"
+        self.detalhe.append((b, tuple((x.uid, x.ligado) for x in modo), faixas, "cobertura:" + str(cl), None))
+        if cl == "inviavel":
+            return "inviavel", None, cert
+        if cl in ("otimo", "factivel_nao_otimo") and r.get("energias"):
+            return "factivel", tuple(float(r["energias"][u]) for u in self.bats), cert
+        return "indeterminado", None, cert
 
     def _modo_1d(self, alvo, modo, p_ref):
+        """Grade + certificados de cobertura. Retorna ('valido', ModoValor, validações, gap, certificados) ou
+        (estado, mensagem, certificados) com estado em {'inviavel', 'dominio_indeterminado', 'indisponivel'}."""
         cp = self.ctx.cfg_plan
         u = self.bats[0]
         lo, hi = self.lim[u]
         b = alvo.fronteira
         n = cp.pontos_iniciais
-        grade = [lo + (hi - lo) * i / (n - 1) for i in range(n)] if hi > lo else [lo]
-        av = {x: self.avaliar(b, modo, (x,), p_ref) for x in grade}
-        falha = [x for x in grade if av[x][0] == "falha"]
-        if falha:
-            return ("falha", f"avaliação da cauda falhou em E = {falha[0]}: {av[falha[0]][2]}")
-        fact = [i for i, x in enumerate(grade) if av[x][0] == "ok"]
         nome = [(x.uid, x.ligado, x.obrigacao_residual_s) for x in modo]
-        if not fact:
-            return ("inviavel", f"modo {nome}: cauda inviável em toda a grade (excluído)")
+        certs: list[str] = []
+        amostras = {x: self.avaliar(b, modo, (x,), p_ref)
+                    for x in ([lo + (hi - lo) * i / (n - 1) for i in range(n)] if hi > lo else [lo])}
+        falha = sorted(x for x, r in amostras.items() if r[0] == "falha")
+        if falha:
+            return ("indisponivel", f"avaliação da cauda falhou em E = {falha[0]}: {amostras[falha[0]][2]}", certs)
+        if not any(r[0] == "ok" for r in amostras.values()):
+            st, Ex, cert = self._cobertura(b, modo, p_ref, ((lo, hi),))
+            certs.append(cert)
+            if st == "inviavel":
+                return ("inviavel", f"modo {nome}: cauda inviável em TODA a faixa [{lo:g}, {hi:g}] kWh (certificado de "
+                                    "cobertura do solver com energia inicial livre; não só na grade)", certs)
+            if st == "indeterminado":
+                return ("dominio_indeterminado", f"modo {nome}: grade sem ponto factível e certificado inconclusivo "
+                                                 f"({cert})", certs)
+            r = self.avaliar(b, modo, Ex, p_ref)
+            if r[0] != "ok":
+                return ("dominio_indeterminado", f"modo {nome}: ponto factível proposto pela cobertura E* = {Ex[0]!r} "
+                                                 f"não confirmado pela resolução auditada ({r[0]})", certs)
+            amostras[Ex[0]] = r
+            certs.append(f"ponto_factivel_encontrado_fora_da_grade:E*={Ex[0]!r}")
+        xs = sorted(amostras)
+        fact = [i for i, x in enumerate(xs) if amostras[x][0] == "ok"]
         if fact != list(range(fact[0], fact[-1] + 1)):
-            return ("falha", f"modo {nome}: domínio factível não conexo na grade")
-        inv = tuple((x,) for x in grade if av[x][0] == "inviavel")
-        pontos = {x: av[x] for x in (grade[i] for i in fact)}
-        for lado in ("inf", "sup"):          # bissecção da fronteira de factibilidade (conservadora)
-            if lado == "inf" and fact[0] > 0:
-                a, z = grade[fact[0] - 1], grade[fact[0]]
-            elif lado == "sup" and fact[-1] < len(grade) - 1:
-                a, z = grade[fact[-1] + 1], grade[fact[-1]]
-            else:
+            return ("indisponivel", f"modo {nome}: domínio factível NÃO CONEXO (ponto inviável entre pontos factíveis "
+                                    "na amostra): não representável por um intervalo", certs)
+        pontos = {xs[i]: amostras[xs[i]] for i in fact}
+        lim_inv = {"inf": xs[fact[0] - 1] if fact[0] > 0 else None,
+                   "sup": xs[fact[-1] + 1] if fact[-1] < len(xs) - 1 else None}
+        for lado in ("inf", "sup"):          # bissecção da fronteira de factibilidade (aproximação INTERNA)
+            a = lim_inv[lado]
+            if a is None:
                 continue
+            z = min(pontos) if lado == "inf" else max(pontos)
             while abs(z - a) > cp.tolerancia_dominio_kWh:
                 mid = (a + z) / 2
                 r = self.avaliar(b, modo, (mid,), p_ref)
                 if r[0] == "falha":
-                    return ("falha", f"avaliação da cauda falhou em E = {mid}: {r[2]}")
+                    return ("indisponivel", f"avaliação da cauda falhou em E = {mid}: {r[2]}", certs)
                 if r[0] == "ok":
                     z = mid
                     pontos[mid] = r
                 else:
                     a = mid
-                    inv = inv + ((mid,),)
+            lim_inv[lado] = a
+            faixa = (lo, a) if lado == "inf" else (a, hi)        # certificar que NÃO há outra componente factível
+            st, Ex, cert = self._cobertura(b, modo, p_ref, (faixa,))
+            certs.append(cert)
+            if st == "factivel":
+                return ("indisponivel", f"modo {nome}: componente factível adicional em E = {Ex[0]!r} além da "
+                                        "fronteira encontrada (domínio não conexo): não representável", certs)
+            if st == "indeterminado":
+                return ("dominio_indeterminado", f"modo {nome}: exclusão de [{faixa[0]:g}, {faixa[1]:g}] kWh não "
+                                                 f"certificada ({cert})", certs)
+        inv = tuple(sorted((x,) for x in xs if amostras[x][0] == "inviavel"))
         es = sorted(pontos)
-        es = [x for x in es if x >= min(es) and x <= max(es)]
         val = []
         pend = list(zip(es, es[1:]))
         while pend:
@@ -508,8 +583,8 @@ class Planejador3C4:
             mid = (a + z) / 2
             r = self.avaliar(b, modo, (mid,), p_ref)
             if r[0] != "ok":
-                return ("falha", f"modo {nome}: ponto médio E = {mid} {r[0]} dentro do domínio (domínio não convexo/"
-                                 "avaliação falhou)")
+                return ("indisponivel", f"modo {nome}: ponto médio E = {mid} {r[0]} dentro do domínio (domínio não "
+                                        "conexo/avaliação falhou)", certs)
             aprox = pontos[a][1] + (pontos[z][1] - pontos[a][1]) * 0.5
             err = abs(r[1] - aprox)
             if err > cp.tolerancia_interpolacao_R and len(pontos) < cp.pontos_max:
@@ -519,10 +594,10 @@ class Planejador3C4:
                 val.append(PontoValidacao(0, (mid,), r[1], aprox, err))
         es = sorted(pontos)
         pts = tuple(PontoValor((x,), pontos[x][1], pontos[x][2], "otimo") for x in es)
-        conv, _ = convexidade_verificada(pts, 1, cp.tolerancia_interpolacao_R + 1e-9)
+        conv, _ = convexidade_verificada_na_amostra(pts, 1, cp.tolerancia_interpolacao_R + 1e-9)
         gap = max((0.0 if p.limite_inferior_R is None else abs(p.valor_R - p.limite_inferior_R)) for p in pts)
-        return ("ok", ModoValor(0, modo, "intervalos_consecutivos_1d", pts, tuple(sorted(inv)), (es[0],), (es[-1],),
-                                conv), val, gap)
+        return ("valido", ModoValor(0, modo, "intervalos_consecutivos_1d", pts, inv, (es[0],), (es[-1],), conv), val,
+                gap, certs)
 
     def _modo_2d(self, alvo, modo, p_ref):
         cp = self.ctx.cfg_plan
@@ -535,28 +610,40 @@ class Planejador3C4:
         b = alvo.fronteira
         av = {x: self.avaliar(b, modo, x, p_ref) for x in grade}
         nome = [(x.uid, x.ligado) for x in modo]
+        certs: list[str] = []
         if any(av[x][0] == "falha" for x in grade):
-            return ("falha", f"modo {nome}: avaliação falhou na grade 2D")
+            return ("indisponivel", f"modo {nome}: avaliação falhou na grade 2D", certs)
         if all(av[x][0] == "inviavel" for x in grade):
-            return ("inviavel", f"modo {nome}: cauda inviável em toda a grade 2D (excluído)")
+            st, Ex, cert = self._cobertura(b, modo, p_ref, tuple(self.lim[u] for u in self.bats))
+            certs.append(cert)
+            if st == "inviavel":
+                return ("inviavel", f"modo {nome}: cauda inviável em TODA a caixa de energias (certificado de "
+                                    "cobertura do solver)", certs)
+            if st == "factivel":
+                return ("indisponivel", f"modo {nome}: região factível em E* = {Ex!r} não contida na grade 2D (domínio "
+                                        "não retangular: não suportado)", certs)
+            return ("dominio_indeterminado", f"modo {nome}: grade 2D sem ponto factível e certificado inconclusivo",
+                    certs)
         if any(av[x][0] == "inviavel" for x in grade):
-            return ("falha", f"modo {nome}: domínio 2D não retangular na grade (não suportado; declarado)")
+            return ("indisponivel", f"modo {nome}: domínio 2D não retangular na grade (não suportado; declarado)", certs)
         pts = tuple(PontoValor(x, av[x][1], av[x][2], "otimo") for x in grade)
-        conv, exc = convexidade_verificada(pts, 2, cp.tolerancia_interpolacao_R + 1e-9)
+        conv, exc = convexidade_verificada_na_amostra(pts, 2, cp.tolerancia_interpolacao_R + 1e-9)
         if not conv:
-            return ("falha", f"modo {nome}: amostra NÃO convexa (excesso {exc:.6g} R$): envoltória convexa inválida")
+            return ("indisponivel", f"modo {nome}: amostra NÃO convexa (excesso {exc:.6g} R$): envoltória convexa "
+                                    "inválida", certs)
         val = []
         for i in range(n - 1):
             for j in range(n - 1):
                 c = ((eixos[0][i] + eixos[0][i + 1]) / 2, (eixos[1][j] + eixos[1][j + 1]) / 2)
                 r = self.avaliar(b, modo, c, p_ref)
                 if r[0] != "ok":
-                    return ("falha", f"modo {nome}: centro {c} {r[0]}")
+                    return ("indisponivel", f"modo {nome}: centro {c} {r[0]}", certs)
                 ap = envoltoria_convexa(pts, c)
                 val.append(PontoValidacao(0, c, r[1], ap, abs(r[1] - ap)))
         gap = max((0.0 if p.limite_inferior_R is None else abs(p.valor_R - p.limite_inferior_R)) for p in pts)
-        return ("ok", ModoValor(0, modo, "envoltoria_convexa_nd", pts, (), (eixos[0][0], eixos[1][0]),
-                                (eixos[0][-1], eixos[1][-1]), True), val, gap)
+        return ("valido", ModoValor(0, modo, "envoltoria_convexa_nd", pts, (), (eixos[0][0], eixos[1][0]),
+                                    (eixos[0][-1], eixos[1][-1]), True), val, gap,
+                certs + ["convexidade_verificada_NA_AMOSTRA (grade + centros; não é prova global)"])
 
     # ------------------------------------------------------------------------------------- montagem
     def _hashes(self) -> dict[str, str]:
@@ -577,7 +664,7 @@ class Planejador3C4:
             h["plano_longo"] = self.plano.hash_entrada_3c4
         return h
 
-    def _montar(self, alvo: JanelaAlvo, modos, ref, sl, q) -> SinalValorFuturo:
+    def _montar(self, alvo: JanelaAlvo, modos, ref, sl, q, diag=()) -> SinalValorFuturo:
         ctx = self.ctx
         cp = ctx.cfg_plan
         ident = ctx.cfg.identidade
@@ -587,12 +674,13 @@ class Planejador3C4:
             instante_fronteira(ctx.cfg.malha, alvo.fronteira), max(self.fim, alvo.fronteira),
             max(0, self.fim - alvo.fronteira), self.bats, self.gers, "R$", "kWh", CONVENCAO_SINAIS, tuple(modos), ref,
             sl, cp.penalidade_branda_R_kWh if cp.tipo_sinal == "referencia_energia_branda" else None, cp.termo_longo,
-            q, self._hashes(), self.proc))
+            q, self._hashes(), self.proc, diagnostico_modos=tuple(diag)))
 
-    def _indisponivel(self, alvo, motivo: str, ref) -> SinalValorFuturo:
+    def _indisponivel(self, alvo, motivo: str, ref, diag=()) -> SinalValorFuturo:
         cp = self.ctx.cfg_plan
         return self._montar(alvo, (), ref, None, QualidadeSinal("indisponivel", motivo, None,
-                                                                cp.tolerancia_interpolacao_R, None, self.avaliacoes, ()))
+                                                                cp.tolerancia_interpolacao_R, None, self.avaliacoes, ()),
+                            diag)
 
 
 def planejar(ctx: ContextoPlanejamento, resolvedor, *, relogio=time.perf_counter) -> ResultadoPlanejamento:

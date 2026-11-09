@@ -24,7 +24,9 @@ BASE_3C2 = "a4c6b1c"
 PROIBIDOS = ["streamlit", "pyomo", "highspy", "seeds2", "ems_integration", "orchestrator_runtime", "models",
              "h2_pemfc", "simulation", "config", "numpy", "scipy", "pandas"]
 MODIFICADOS_3C3 = {"ems_v2/mpc/orquestrador.py", "tests/ems_v2/test_ems_v2_3c2_isolamento.py",
-                   "tests/ems_v2/test_ems_v2_ponte_isolamento.py", "tests/ems_v2/test_ems_v2_milp_perfil.py"}
+                   "tests/ems_v2/test_ems_v2_ponte_isolamento.py", "tests/ems_v2/test_ems_v2_milp_perfil.py",
+                   # B3C4-01 (hotfix AUTORIZADO na auditoria do PR #17): projeção numérica da energia (3C-0)
+                   "ems_v2/ponte/execucao.py"}
 
 
 def test_nucleo_rede_so_biblioteca_padrao_ao_importar():
