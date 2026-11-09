@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-09 · **rama:** `claude/sweet-heisenberg-v0opgu` · **PR:** __PR__ contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-1 — Unit Commitment dinámico (M09–M12), rampas, permanencias y memoria operativa** implementado y verificado en la rama; **no integrado** (sin UI/runtime, sin MPC).
+**Actualización:** 2026-11-09 · **rama:** `claude/sweet-heisenberg-v0opgu` · **PR:** [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-1 — Unit Commitment dinámico (M09–M12), rampas, permanencias y memoria operativa** implementado y verificado en la rama; **no integrado** (sin UI/runtime, sin MPC).
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 9**; formulación, decisiones y contradicciones en [`docs/ems_v2/FORMULACAO_3C1.md`](../ems_v2/FORMULACAO_3C1.md); trazabilidad en [`MATRIZ_3C1.md`](../ems_v2/MATRIZ_3C1.md); evidencia en [`EVIDENCIA_3C1.md`](../ems_v2/EVIDENCIA_3C1.md); brechas en [`BRECHAS_3C1.md`](../ems_v2/BRECHAS_3C1.md); transición en [`TRANSICAO_3C1_3C2.md`](../ems_v2/TRANSICAO_3C1_3C2.md).
 
@@ -122,6 +122,6 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) — Piso 2D-B, Relatórios Científicos, Excel e Figuras (merge `8556b71`): `PARAMIJEFE.md` Entrega 5.
 - PR [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) — Piso 3A (merge `f6d009d`): Entrega 6. PR [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) — Piso 3B-P (merge `3c65d98`): Entrega 7.
 - PR [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) — Piso 3C-0, Puente científico (merge `81aa09c`): Entrega 8.
-- Piso 3C-1 — Commitment dinámico (rama `claude/sweet-heisenberg-v0opgu`; PR __PR__, pendiente de auditoría): Entrega 9.
+- Piso 3C-1 — Commitment dinámico (rama `claude/sweet-heisenberg-v0opgu`; PR [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14), pendiente de auditoría): Entrega 9.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.
