@@ -37,9 +37,18 @@ Se solicitó autorización adicional para excepciones nominales y verificables. 
 
 Los cuatro pequeños están presentes en el catálogo único con puntos y contabilidad de importaciones, pero integración energética pendiente. API GitHub y documentos primarios bloqueados por red (403); el intento de guardar los dominios requeridos en la configuración de plataforma no confirmó persistencia. Falta verificar informes primarios y crear PR si no se restablece API. No se fabrican URL de PR ni condiciones de ensayo.
 
+## Publicación de la rama y bloqueo del PR
+
+Implementación publicada en el commit `e992a9629cb87c04ad982eb9a510c88c40a8200f`; el commit siguiente solo completa este registro. El remoto confirmó el mismo SHA para `refs/heads/codex/eolica-siete-curvas-potencias`. `main` seguía en `10365c5478b4dd137906b58819cd7f71d8de9cea` en la comprobación final.
+
+Se intentó `gh pr create --draft --base main --head codex/eolica-siete-curvas-potencias` con título y cuerpo completos. Resultado: `Post "https://api.github.com/graphql": Forbidden`. **PR NO creado**; no hay número/URL de PR que reportar. Texto listo en `/workspace/.local/state/energy/wind-pr.md`. No hubo merge. Se requiere acceso de red a `api.github.com` para reintentar la creación. La configuración de plataforma no confirmó persistencia del cambio solicitado.
+
+Las tres guardias continúan intactas al no haberse recibido autorización adicional. No se describe la suite completa como aprobada.
+
 ## Archivos de esta misión
 
 - `PARAMIJEFE.md`
+- `config/wind_curves/.gitattributes`
 - `config/wind_curves/BergeyExcel10_8.9kW_7.csv`
 - `config/wind_curves/BergeyExcel15_15.6kW_9.6.csv`
 - `config/wind_curves/Kestrele400nb_2.5kW_4.csv`
@@ -56,6 +65,7 @@ Los cuatro pequeños están presentes en el catálogo único con puntos y contab
 - `docs/eolica/RESULTADOS_REGRESION.md`
 - `docs/eolica/RESULTADOS_VALIDACAO_CATALOGO.json`
 - `docs/eolica/VALIDACION_7_EQUIPOS.md`
+- `docs/eolica/evidencia/.gitattributes`
 - `docs/eolica/evidencia/BergeyExcel10_8.9kW_7.yaml`
 - `docs/eolica/evidencia/BergeyExcel15_15.6kW_9.6.yaml`
 - `docs/eolica/evidencia/Kestrele400nb_2.5kW_4.yaml`
