@@ -80,12 +80,18 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14():
                           "orchestrator_runtime.py", "orchestrator_app.py", "app.py", "ems_app.py", "requirements.txt",
                           "requirements-ems_v2.txt"], cwd=RAIZ, capture_output=True, text=True, check=True).stdout
     linhas = [ln.split("\t") for ln in out.strip().splitlines() if ln.strip()]
-    assert [ln for ln in linhas if ln[0] != "A"] == []          # nenhum arquivo da base modificado/removido
-    novos = {ln[1] for ln in linhas}
+    # 3C-3 (contradição C-3C3-02, docs/ems_v2/FORMULACAO_3C3.md §10): ÚNICA modificação nominal admitida =
+    # refatoração controlada de ``ems_v2/mpc/orquestrador.py`` (pontos de extensão; impressões E1–E8 idênticas às da
+    # base ``a4c6b1c`` — tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py). Nenhum outro arquivo modificado/removido.
+    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] != ["ems_v2/mpc/orquestrador.py"]] == []
+    assert all(ln[0] in ("A", "M") for ln in linhas)
+    novos = {ln[1] for ln in linhas if ln[0] == "A"}
     nao_rastreados = set(subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "ems_v2"], cwd=RAIZ,
                                         capture_output=True, text=True, check=True).stdout.split())
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3
     for f in novos | nao_rastreados:
-        assert f.startswith("ems_v2/mpc/") or f == "ems_v2/fixtures_3c2.py", f
+        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py")
+                or f in ADICOES_3C3), f
 
 
 def test_adicoes_3c1_da_guarda_anterior_inalteradas():
