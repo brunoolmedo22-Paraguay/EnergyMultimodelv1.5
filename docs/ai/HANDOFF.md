@@ -2,7 +2,7 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-09 · **rama:** `ccr-2529baa8-16lz1j` · **PR:** contra `main`, sin merge (pendiente de auditoría independiente) · **estado:** **Piso 3C-2 — MPC de horizonte recedente (M23), K6 y primer lazo cerrado reproducible** implementado y verificado en la rama; **no integrado** (sin UI/runtime; simulación causal **algebraica**, no física).
+**Actualización:** 2026-11-09 · **rama:** `ccr-2529baa8-16lz1j` · **PR:** [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) contra `main`, sin merge (pendiente de auditoría independiente) · **estado:** **Piso 3C-2 — MPC de horizonte recedente (M23), K6 y primer lazo cerrado reproducible** implementado y verificado en la rama; **no integrado** (sin UI/runtime; simulación causal **algebraica**, no física).
 
 > **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 10**; formulación M23, política de información, decisiones y contradicciones en [`docs/ems_v2/FORMULACAO_3C2.md`](../ems_v2/FORMULACAO_3C2.md); trazabilidad en [`MATRIZ_3C2.md`](../ems_v2/MATRIZ_3C2.md); evidencia en [`EVIDENCIA_3C2.md`](../ems_v2/EVIDENCIA_3C2.md) y [`EVIDENCIA_3C2_EJECUCION.md`](../ems_v2/EVIDENCIA_3C2_EJECUCION.md); brechas en [`BRECHAS_3C2.md`](../ems_v2/BRECHAS_3C2.md); transición en [`TRANSICAO_3C2_3C3_3C4.md`](../ems_v2/TRANSICAO_3C2_3C3_3C4.md).
 
@@ -127,6 +127,6 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) — Piso 3A (merge `f6d009d`): Entrega 6. PR [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) — Piso 3B-P (merge `3c65d98`): Entrega 7.
 - PR [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) — Piso 3C-0, Puente científico (merge `81aa09c`): Entrega 8.
 - PR [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) — Piso 3C-1, Commitment dinámico (merge `55440f4`): Entrega 9.
-- Piso 3C-2 — MPC de horizonte recedente (rama `ccr-2529baa8-16lz1j`; PR contra `main`, pendiente de auditoría): Entrega 10.
+- Piso 3C-2 — MPC de horizonte recedente (rama `ccr-2529baa8-16lz1j`; PR [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15), pendiente de auditoría): Entrega 10.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

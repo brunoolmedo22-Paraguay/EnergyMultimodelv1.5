@@ -2190,7 +2190,7 @@ las dos guardias. Nada en V1.6, en la aplicación ni en los bancos depende de el
 |---|---|
 | Rama | `ccr-2529baa8-16lz1j` (desde `main`) |
 | Base | `main` `55440f4bda17ec2b14cdf4235bdb924bf97159b0` (merge del PR #14, 3C-1 integrado); verificado idéntico a `origin/main` al iniciar |
-| PR | contra `main`, **sin merge** (entregado para auditoría independiente) |
+| PR | [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) contra `main`, **sin merge** (entregado para auditoría independiente) |
 | Pendientes | Auditoría del PR; decisiones D-3C2-01..13 y contradicciones C-3C2-01..05 a revisión; **no iniciar 3C-3/3C-4 sin autorización** |
 
 ### 1. Resumen
@@ -2288,4 +2288,4 @@ documentos 3C-2. Ningún archivo existente de `ems_v2`, V1.6, `seeds2`, aplicaci
 | 7 | 2026-11-08 | Piso 3B-P — Primeiro MILP executável (Pyomo + HiGHS), uma janela, sem integração | `claude/seeds2-piso3b-milp-highs` / [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) | **Integrado** em `main` (merge `3c65d98`), após correções C-3B-01..03 |
 | 8 | 2026-11-08 | Piso 3C-0 — Ponte científica EMS MILP ↔ microrredes (contratos, sem integração) | `ccr-0cc9677c-ydyfl7` / [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) | **Integrado** em `main` (merge `81aa09c`), após H-01..H-04 (§6b) e C-01..C-03 (§6c); C-3C0-01 aceita condicionalmente |
 | 9 | 2026-11-09 | Piso 3C-1 — Unit Commitment dinâmico (M09–M12), rampas, permanências e memória operativa | `claude/sweet-heisenberg-v0opgu` / [#14](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/14) | **Integrado** em `main` (merge `55440f4`), após correções A-01..A-03 (§5b), B-01/B-02 (§5c) e B-03 (§5d) |
-| 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / PR contra `main` (sem merge) | Entregue para auditoria independente |
+| 10 | 2026-11-09 | Piso 3C-2 — MPC de horizonte recedente (M23), K6 e primeiro laço fechado reproduzível (algébrico) | `ccr-2529baa8-16lz1j` / [#15](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/15) (sem merge) | Entregue para auditoria independente |
