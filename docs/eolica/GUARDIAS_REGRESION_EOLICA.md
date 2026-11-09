@@ -71,4 +71,3 @@ Los nueve archivos eólicos existentes y los doce artefactos añadidos de datos/
 - Regresión completa final: resultado en `RESULTADOS_REGRESION.md`.
 
 Los adversariales comprueban modificaciones dentro de cada archivo permitido, cada parámetro/curva histórica, familia de densidades Nordex, nombres hermanos no autorizados, estados D/R/T/A sobre excepciones M, manipulación del manifiesto, cambios adicionales en las tres guardias y symlinks. En repositorios Git temporales se prueban modificaciones/borrados y adiciones preparadas/no rastreadas en rutas de 3C-1, 3C-2, 3C-3 y 3C-4. Ninguna mutación se hace sobre el checkout productivo.
-
