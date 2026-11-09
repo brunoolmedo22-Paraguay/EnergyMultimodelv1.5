@@ -34,18 +34,19 @@ from datetime import timedelta
 from ..audit import Tolerancias
 from ..compromisso.contrato import hash_entrada_3c1
 from ..compromisso.memoria import garantia
-from ..diagnostics import Constatacao, ContratoInvalido, erro
+from ..diagnostics import Constatacao, ContratoInvalido, aviso, erro
 from ..ponte import CONTRATO_VERSAO
 from ..ponte.canonico import sha256
 from ..ponte.compromisso import (ExecutorAlgebricoCommitment3C1, PlanoCommitment3C1, contabilidade_realizada_3c1)
 from ..ponte.execucao import (ConsignaRecurso, EstadoArmazenamento, EstadoGeracao, EstadoMicrorrede, PassoAplicado,
-                              PlanoDespacho, TrajetoriaExecutada, TrajetoriaPlanejada, hash_plano, validar_plano)
+                              PlanoDespacho, TrajetoriaExecutada, TrajetoriaPlanejada, aviso_projecao,
+                              energia_apos_intervalo, hash_plano, projecao_numerica_energia, validar_plano)
 from ..ponte.registro import ComponenteCusto, CustoRealizado
 from ..provenance import Procedencia, validar_procedencia
 from ..timegrid import ler_instante_utc
 from . import FORMULACAO_3C3
 from .contrato import EntradaRede3C3, PerfilTarifario, hash_entrada_3c3, hash_perfil, preco_no_intervalo, \
-    validar_perfil, valor_no_intervalo
+    series_pcc, validar_perfil, valor_no_intervalo
 
 TIPOS_AJUSTE = {
     "sem_ajuste": "Intercâmbio realizado = programado; qualquer desvio de balanço no intervalo ⇒ inexequível",
@@ -226,6 +227,96 @@ def programa_valido(vals, n: int) -> bool:
     return isinstance(vals, (list, tuple)) and len(vals) == n and all(valor_intercambio_valido(v) for v in vals)
 
 
+# ------------------------------------------------------------------------------------------------ B3C4-10
+# Hotfix AUTORIZADO na 2ª auditoria do PR #17. A regra C-01 acima NÃO muda: todo programa/consigna EXTERNO com
+# negativo, NaN, ±Inf, bool ou incompleto continua recusado. A política abaixo atua SÓ na fronteira de EXTRAÇÃO do
+# resultado MILP (``resolver_3c3``/``resolver_3c4``), sobre valores que o PRÓPRIO solver devolveu para as variáveis
+# P_imp/P_exp (domínio NonNegativeReals) ANTES da auditoria independente e do plano: um valor v < 0 é RESÍDUO NUMÉRICO
+# (cota inferior violada dentro da tolerância de factibilidade do solver) e é normalizado a 0 SÓ se
+# |v| <= ε_pcc,t = min(κ·u·S_t, tol_fact_solver, tolP_D07,t), κ = 16, u = 2^-53, S_t = 1 + Σ|P_R| + Σ(|P_c| + |P_d|)
+# + Σ|p| + Σ|ℓ| + |d| + P̄_imp,t + P̄_exp,t (escala do balanço M02 do intervalo; reconstruível do plano e do modelo),
+# tol_fact_solver = 1e-7 (primal_feasibility_tolerance padrão do HiGHS 1.15.1, não alterada pela ConfiguracaoSolver).
+# |v| > ε_pcc,t ⇒ NÃO normalizado: o resolvedor rejeita a solução (``intercambio_negativo_fora_da_politica_numerica``).
+# Cada normalização é registrada (bruto, normalizado, diferença, limiar, escala, motivo), recebe aviso
+# ``normalizacao_numerica_pcc`` no resultado e é comprometida no registro 3C-0 da janela; a solução normalizada é
+# REVALIDADA pelo auditor independente (balanço M02, limites, exclusividade, custos).
+KAPPA_PCC = 16
+TOL_FACTIBILIDADE_SOLVER = 1e-7
+POLITICA_RESIDUO_PCC = ("residuo_numerico_pcc_v1: normaliza a 0 SÓ valores do SOLVER v < 0 com |v| <= "
+                        "min(16 u S_t, 1e-7, tolP_D07); demais negativos rejeitados; C-01 inalterada")
+GRANDEZAS_ESCALA_PCC = ("P_R", "P_c", "P_d", "p", "ell", "d")
+
+
+@dataclass(frozen=True)
+class NormalizacaoNumericaPCC:
+    pcc_uid: str
+    grandeza: str                       # "P_imp" | "P_exp"
+    indice_janela: int                  # intervalo t da janela (global = k + t)
+    valor_bruto_kW: float               # devolvido pelo solver
+    valor_normalizado_kW: float         # 0.0
+    diferenca_kW: float                 # normalizado − bruto (> 0)
+    limiar_kW: float                    # ε_pcc,t
+    escala_kW: float                    # S_t
+    motivo: str = POLITICA_RESIDUO_PCC
+
+
+def escala_balanco_pcc(valores_t: dict, lim_imp: float, lim_exp: float) -> float:
+    """S_t: 1 + Σ|potências de decisão do intervalo| (P_R, P_c, P_d, p, ℓ, d) + limites contratados do PCC."""
+    return math.fsum([1.0, abs(lim_imp), abs(lim_exp)] + [abs(float(v)) for k, v in sorted(valores_t.items())
+                                                          if k.rpartition("|")[2] in GRANDEZAS_ESCALA_PCC])
+
+
+def limiar_residuo_pcc(escala: float, tol: Tolerancias) -> float:
+    tolP = tol.potencia_abs_kW + tol.potencia_rel_escala * escala
+    return min(KAPPA_PCC * 2.0 ** -53 * escala, TOL_FACTIBILIDADE_SOLVER, tolP)
+
+
+def valores_intervalo_despacho(despacho: dict, t: int) -> dict:
+    """Potências de decisão do intervalo t no despacho EXTRAÍDO (mesmas chaves ``uid|grandeza`` das consignas)."""
+    out = {}
+    for grupo, chaves in (("renovaveis", ("P_R",)), ("baterias", ("P_c", "P_d")), ("geradores", ("p",)),
+                          ("demandas", ("ell",))):
+        for uid, d in (despacho.get(grupo) or {}).items():
+            for g in chaves:
+                if g in d:
+                    out[f"{uid}|{g}"] = d[g][t]
+    if despacho.get("descarte") is not None:
+        out["descarte|d"] = despacho["descarte"][t]
+    return out
+
+
+def normalizar_residuos_pcc(e: EntradaRede3C3, pcc: dict, despacho: dict, tol: Tolerancias = Tolerancias()):
+    """(pcc normalizado, normalizações, constatações). Só para valores do SOLVER (chamada exclusiva dos resolvedores)."""
+    if pcc is None or not e.conectado:
+        return pcc, (), []
+    sp = series_pcc(e)
+    uid = str(e.pcc.uid)
+    novo, normas, c = {k: list(v) for k, v in pcc.items()}, [], []
+    for g in ("P_imp", "P_exp"):
+        for t, v in enumerate(novo.get(g, ())):
+            if type(v) not in (int, float) or not math.isfinite(v):
+                c.append(erro("intercambio_extraido_invalido", f"pcc[{uid}].{g}[{t}]", f"{v!r}: não finito/não real."))
+                continue
+            if v >= 0:
+                continue
+            S = escala_balanco_pcc(valores_intervalo_despacho(despacho, t), sp["imp_max"][t], sp["exp_max"][t])
+            eps = limiar_residuo_pcc(S, tol)
+            if -v <= eps:
+                normas.append(NormalizacaoNumericaPCC(uid, g, t, float(v), 0.0, 0.0 - float(v), eps, S))
+                novo[g][t] = 0.0
+            else:
+                c.append(erro("intercambio_negativo_fora_da_politica_numerica", f"pcc[{uid}].{g}[{t}]",
+                              f"{v!r} kW < 0 com |v| > ε_pcc = {eps!r} kW (S = {S!r}): não é resíduo numérico; "
+                              "solução rejeitada (nada é recortado)."))
+    return {k: tuple(v) for k, v in novo.items()}, tuple(normas), c
+
+
+def aviso_normalizacao_pcc(n: NormalizacaoNumericaPCC) -> Constatacao:
+    return aviso("normalizacao_numerica_pcc", f"pcc[{n.pcc_uid}].{n.grandeza}[{n.indice_janela}]",
+                 f"bruto={n.valor_bruto_kW!r} normalizado={n.valor_normalizado_kW!r} diferenca={n.diferenca_kW!r} "
+                 f"limiar={n.limiar_kW!r} escala={n.escala_kW!r} origem=solver; {n.motivo}")
+
+
 def validar_programa(programa) -> list[Constatacao]:
     """Programa explícito ``{k: (P_imp, P_exp)}`` (k = intervalo GLOBAL, ``int`` >= 0)."""
     if not isinstance(programa, dict):
@@ -275,6 +366,7 @@ class _PassoBarramentoConectado:
         b = e.base
         tol, h = d.tol, delta_s / 3600.0
         c: list[Constatacao] = []
+        avisos: list[Constatacao] = []
 
         def val(k: str, fonte: dict, nome: str) -> float | None:
             v = fonte.get(k)
@@ -330,13 +422,15 @@ class _PassoBarramentoConectado:
             if pc < -tolP or pd < -tolP or pc > float(x.p_carga_max_kW.valor) + tolP \
                     or pd > float(x.p_descarga_max_kW.valor) + tolP or min(pc, pd) > tolP:
                 c.append(erro("consigna_inexequivel_bateria", uid, f"P_c = {pc}, P_d = {pd} kW fora dos limites M06."))
-            alfa = 1.0 if x.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(
-                -float(x.autodescarga_1_h.valor) * h)
-            e1 = alfa * st.energia_kWh + h * (float(x.eta_carga.valor) * pc - pd / float(x.eta_descarga.valor))
+            e1, esc = energia_apos_intervalo(x, st.energia_kWh, pc, pd, h)        # B3C4-01: aritmética única 3C-0
             tolE = tol.energia_abs_kWh + tol.energia_rel_capacidade * C
-            if not (float(x.soc_min.valor) * C - tolE <= e1 <= float(x.soc_max.valor) * C + tolE):
+            lo, hi = float(x.soc_min.valor) * C, float(x.soc_max.valor) * C
+            if not (lo - tolE <= e1 <= hi + tolE):
                 c.append(erro("estado_fora_dos_limites", uid, f"e = {e1} kWh fora de [s_min C, s_max C] (sem recorte)."))
-            novos_b.append(EstadoArmazenamento(uid, e1))
+            v, corr, lim, eps = projecao_numerica_energia(e1, lo, hi, esc, tolE)
+            if lim is not None:
+                avisos.append(aviso_projecao(uid, e1, v, corr, lim, eps))
+            novos_b.append(EstadoArmazenamento(uid, v))
             injecao += pd - pc
         novos_g = []
         for g in sorted(b.geradores, key=lambda y: str(y.uid)):
@@ -416,7 +510,7 @@ class _PassoBarramentoConectado:
         d.ultimo = RegistroPassoPCC(estado.indice_fronteira, a_pcc, imp_p, exp_p, exigido, imp_r, exp_r, ren_cmd, ren_ef,
                                     mi, me, ajuste)
         novo = EstadoMicrorrede(estado.microrrede_uid, k, t1.isoformat(), tuple(novos_b), tuple(novos_g))
-        return PassoAplicado(dict(sorted(aplicado.items())), novo, True, ())
+        return PassoAplicado(dict(sorted(aplicado.items())), novo, True, tuple(avisos))
 
 
 class ExecutorAlgebricoConectado3C3(ExecutorAlgebricoCommitment3C1):
@@ -615,4 +709,6 @@ __all__ = ["ContabilidadeRealizada3C3", "DesvioIntercambio", "ExecutorAlgebricoC
            "LIQUIDACOES", "LiquidacaoPasso", "NATUREZAS_LIQUIDACAO", "PlanoRede3C3", "PoliticaAjustePCC",
            "RegistroPassoPCC", "TIPOS_AJUSTE", "contabilidade_realizada_3c3", "desvios_intercambio",
            "hash_plano_rede", "hash_politica_ajuste", "plano_de_resultado_3c3", "programa_de_plano", "programa_valido",
-           "validar_politica_ajuste", "validar_programa", "valor_intercambio_valido"]
+           "validar_politica_ajuste", "validar_programa", "valor_intercambio_valido", "KAPPA_PCC",
+           "NormalizacaoNumericaPCC", "POLITICA_RESIDUO_PCC", "TOL_FACTIBILIDADE_SOLVER", "aviso_normalizacao_pcc",
+           "escala_balanco_pcc", "limiar_residuo_pcc", "normalizar_residuos_pcc", "valores_intervalo_despacho"]

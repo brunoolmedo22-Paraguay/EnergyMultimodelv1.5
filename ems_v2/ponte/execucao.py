@@ -243,6 +243,48 @@ class PassoAplicado:
     falha: str = "inexequivel"                    # quando exequivel=False: "inexequivel" (física) | "dados" (integridade)
 
 
+# ------------------------------------------------------------------------------------------------ B3C4-01
+# Hotfix AUTORIZADO na auditoria do PR #17 (consistência numérica; NÃO amplia o domínio físico). Um estado de energia
+# calculado pela recorrência M07 que excede um limite declarado [s_min C, s_max C] por no máximo
+# ε_num = min(tolE_D07, κ · u · S) — u = 2^-53 (arredondamento unitário do binário64), κ = 16, S = |α e0| +
+# h (η_c |P_c| + |P_d| / η_d) + max(|lim_inf|, |lim_sup|) — é um ARTEFATO de ponto flutuante (arredondamento da
+# recorrência ou resíduo do solver da ordem de ulp, p. ex. P_d = −1,78e-15 kW) e é PROJETADO no limite; a correção
+# (valor bruto, limite, magnitude, ε_num) é devolvida como aviso ``projecao_numerica_limite_energia`` e é
+# reconstruível bit a bit a partir do estado anterior e das consignas aplicadas (mesma função). Excessos > ε_num
+# NÃO são projetados (o tratamento D07 anterior permanece: aceitos até tolE e transportados SEM alteração; acima de
+# tolE ⇒ inexequível). Nenhum outro estado é alterado.
+KAPPA_ARREDONDAMENTO = 16
+UNIDADE_ARREDONDAMENTO = 2.0 ** -53
+POLITICA_PROJECAO_ENERGIA = ("projecao_numerica_limite_energia_v1: projeta no limite declarado SÓ excessos <= "
+                             "min(tolE_D07, 16 u S); demais excessos inalterados (D07)")
+
+
+def energia_apos_intervalo(spec, e0: float, pc: float, pd: float, h: float) -> tuple[float, float]:
+    """(e1 BRUTO pela recorrência M07, escala S dos termos) — aritmética ÚNICA dos executores e da reconstrução."""
+    alfa = 1.0 if spec.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(
+        -float(spec.autodescarga_1_h.valor) * h)
+    ec, ed = float(spec.eta_carga.valor), float(spec.eta_descarga.valor)
+    e1 = alfa * e0 + h * (ec * pc - pd / ed)
+    return e1, abs(alfa * e0) + h * (ec * abs(pc) + abs(pd) / ed)
+
+
+def projecao_numerica_energia(e1: float, lim_inf: float, lim_sup: float, escala: float, tolE: float
+                              ) -> tuple[float, float, str | None, float]:
+    """(valor transportado, correção [kWh] >= 0, limite projetado ou None, ε_num). Só projeta |excesso| <= ε_num."""
+    eps = min(tolE, KAPPA_ARREDONDAMENTO * UNIDADE_ARREDONDAMENTO * (escala + max(abs(lim_inf), abs(lim_sup))))
+    if lim_sup < e1 <= lim_sup + eps:
+        return lim_sup, e1 - lim_sup, "superior", eps
+    if lim_inf - eps <= e1 < lim_inf:
+        return lim_inf, lim_inf - e1, "inferior", eps
+    return e1, 0.0, None, eps
+
+
+def aviso_projecao(uid: str, e1: float, valor: float, corr: float, limite: str, eps: float) -> Constatacao:
+    return aviso("projecao_numerica_limite_energia", uid,
+                 f"e bruto = {e1!r} kWh projetado no limite {limite} {valor!r} kWh (correção {corr!r} kWh <= "
+                 f"ε_num = {eps!r} kWh; {POLITICA_PROJECAO_ENERGIA}).")
+
+
 class ExecutorPasso(Protocol):
     identificador: str
     natureza: str
@@ -267,6 +309,7 @@ class ExecutorAlgebricoReferencia:
     def avancar(self, estado, consignas, entorno, delta_s) -> PassoAplicado:
         tol, h = self.tol, delta_s / 3600.0
         c: list[Constatacao] = []
+        avisos: list[Constatacao] = []
 
         def val(k: str, fonte: dict, nome: str) -> float | None:
             v = fonte.get(k)
@@ -303,13 +346,15 @@ class ExecutorAlgebricoReferencia:
             if pc < -tolP or pd < -tolP or pc > float(b.p_carga_max_kW.valor) + tolP \
                     or pd > float(b.p_descarga_max_kW.valor) + tolP or min(pc, pd) > tolP:
                 c.append(erro("consigna_inexequivel_bateria", uid, f"P_c = {pc}, P_d = {pd} kW fora dos limites M06."))
-            alfa = 1.0 if b.hipotese_autodescarga == "nao_modelada_alpha_1" else math.exp(
-                -float(b.autodescarga_1_h.valor) * h)
-            e1 = alfa * st.energia_kWh + h * (float(b.eta_carga.valor) * pc - pd / float(b.eta_descarga.valor))
+            e1, esc = energia_apos_intervalo(b, st.energia_kWh, pc, pd, h)
             tolE = tol.energia_abs_kWh + tol.energia_rel_capacidade * C
-            if not (float(b.soc_min.valor) * C - tolE <= e1 <= float(b.soc_max.valor) * C + tolE):
+            lo, hi = float(b.soc_min.valor) * C, float(b.soc_max.valor) * C
+            if not (lo - tolE <= e1 <= hi + tolE):
                 c.append(erro("estado_fora_dos_limites", uid, f"e = {e1} kWh fora de [s_min C, s_max C] (sem recorte)."))
-            novos_b.append(EstadoArmazenamento(uid, e1))
+            v, corr, lim, eps = projecao_numerica_energia(e1, lo, hi, esc, tolE)      # B3C4-01
+            if lim is not None:
+                avisos.append(aviso_projecao(uid, e1, v, corr, lim, eps))
+            novos_b.append(EstadoArmazenamento(uid, v))
             injecao += pd - pc
         novos_g = []
         for uid, g in sorted(self._gen.items()):
@@ -343,7 +388,7 @@ class ExecutorAlgebricoReferencia:
         k = estado.indice_fronteira + 1
         t1 = ler_instante_utc(estado.instante_utc, "estado")[0] + timedelta(seconds=delta_s)
         novo = EstadoMicrorrede(estado.microrrede_uid, k, t1.isoformat(), tuple(novos_b), tuple(novos_g))
-        return PassoAplicado({k_: float(v) for k_, v in sorted(consignas.items())}, novo, True, ())
+        return PassoAplicado({k_: float(v) for k_, v in sorted(consignas.items())}, novo, True, tuple(avisos))
 
 
 # ------------------------------------------------------------------------------------------------ checkpoint
