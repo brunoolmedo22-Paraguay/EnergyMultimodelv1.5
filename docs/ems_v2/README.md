@@ -1,4 +1,15 @@
-# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P) y commitment dinámico (Piso 3C-1)
+# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P), commitment dinámico (Piso 3C-1) y MPC recedente (Piso 3C-2)
+
+> **Piso 3C-2 (MPC de horizonte recedente, M23):** `ems_v2/mpc/` (núcleo solo biblioteca estándar) ejecuta misiones
+> de varias ventanas: reloj τ_k / N_k / m_k con política terminal explícita, libro de observaciones **append-only**
+> (K6: tiempo físico × recepción, revisiones, conflictos, cortes sellados), previsión **reemitida y validada por
+> ventana** (vínculo al instantáneo informacional), entrada 3C-1 con el estado y la memoria **ejecutados**,
+> `resolver_3c1` solo por el adaptador explícito `adaptador_milp.py`, aceptación con política declarada, conciliación
+> por la barrera C-02 (modos 1 y 2), registros sellados y encadenados (3C-0 + anexo 3C-1 + `RegistroJanelaMPC`),
+> reanudación verificada, auditoría temporal/causal/contable independiente, métricas y comparadores. Simulación causal
+> de lazo cerrado **algebraica** (no física). Ver [`FORMULACAO_3C2.md`](FORMULACAO_3C2.md),
+> [`MATRIZ_3C2.md`](MATRIZ_3C2.md), [`EVIDENCIA_3C2.md`](EVIDENCIA_3C2.md), [`BRECHAS_3C2.md`](BRECHAS_3C2.md) y
+> [`TRANSICAO_3C2_3C3_3C4.md`](TRANSICAO_3C2_3C3_3C4.md).
 
 > **Piso 3C-1 (Unit Commitment dinámico, perfil `v1.1-3C-1`):** `ems_v2/compromisso/` (contrato embrulho por unidad,
 > discretización exacta, memoria, preflight y **auditor independiente**, solo biblioteca estándar) y
