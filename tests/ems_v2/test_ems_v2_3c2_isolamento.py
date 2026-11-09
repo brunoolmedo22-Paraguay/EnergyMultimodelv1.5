@@ -74,14 +74,14 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14():
     # C-EOL-01: immutable delivery audit, independent of shallow Git history.
     from wind_guard_policy import authorized_changes, historical_changes, historical_untracked
     linhas = authorized_changes(RAIZ, historical_changes(RAIZ, BASE_3C1))
-    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] != ["ems_v2/mpc/orquestrador.py"]] == []
+    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] not in (["ems_v2/mpc/orquestrador.py"], ["ems_v2/ponte/execucao.py"])] == []
     assert all(ln[0] in ("A", "M") for ln in linhas)
     novos = {ln[1] for ln in linhas if ln[0] == "A"}
     nao_rastreados = set(historical_untracked(RAIZ, BASE_3C1))
-    from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3, ADICOES_3C4
     for f in novos | nao_rastreados:
-        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py")
-                or f in ADICOES_3C3), f
+        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/", "ems_v2/hierarquia/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py", "ems_v2/fixtures_3c4.py")
+                or f in ADICOES_3C3 | ADICOES_3C4), f
 
 
 def test_adicoes_3c1_da_guarda_anterior_inalteradas():

@@ -23,6 +23,7 @@ from ..diagnostics import Constatacao, erro
 from ..rede import FORMULACAO_3C3
 from ..rede.auditor import CandidatoRede3C3, auditar_3c3
 from ..rede.contrato import EntradaRede3C3, hash_entrada_3c3, hash_perfil
+from ..rede.execucao import aviso_normalizacao_pcc, normalizar_residuos_pcc
 from ..rede.preflight import preflight_3c3
 from .ambiente import INTERFACE, verificar_ambiente
 from .config import ConfiguracaoSolver, configuracao_registro, validar_configuracao
@@ -131,6 +132,12 @@ def resolver_3c3(entrada: EntradaRede3C3, configuracao: ConfiguracaoSolver, comp
         tempos["total_s"] = time.perf_counter() - t_ini
         return sem(classif, constat, tempos, tam, he, term, st, {"limite": _finito(lim)}, disc=disc,
                    bloq=mc.transicoes_bloqueadas)
+    # B3C4-10 (hotfix autorizado, PR #17): resíduos NEGATIVOS do solver em P_imp/P_exp — só valores extraídos do
+    # solver, só |v| <= ε_pcc (rede.execucao.normalizar_residuos_pcc); maiores ⇒ rejeição; auditoria revalida tudo.
+    pcc, normas, cn = normalizar_residuos_pcc(entrada, pcc, despacho, tolerancias)
+    constat += cn + [aviso_normalizacao_pcc(n) for n in normas]
+    if pcc is not None:
+        despacho = {**despacho, "pcc": {str(entrada.pcc.uid): dict(pcc)}}
     import pyomo.environ as pe
     custos_modelo = {k: float(pe.value(v)) for k, v in mc.expr_termos.items() if k in mc.termos}
     obj_modelo = float(pe.value(mc.modelo.J))
@@ -175,7 +182,7 @@ def resolver_3c3(entrada: EntradaRede3C3, configuracao: ConfiguracaoSolver, comp
         familias_nao_modeladas=aud.familias_nao_modeladas, integridade=integ, discretizacao=disc, eventos=eventos,
         memoria_terminal=mem, obrigacoes_residuais_s=res, garantia_permanencia=gar,
         transicoes_bloqueadas=mc.transicoes_bloqueadas, intercambio={} if cr.pcc is None else dict(cr.pcc),
-        economia_rede=econ)
+        economia_rede=econ, normalizacoes_numericas=normas)
 
 
 __all__ = ["resolver_3c3"]

@@ -34,14 +34,18 @@ Com a verdade (só após a missão), a separação previsão × realização 3C-
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
+from datetime import timedelta
 
 from ..audit import Tolerancias
 from ..diagnostics import Constatacao, erro
 from ..mpc.auditoria import RelatorioAuditoriaMissao, auditar_missao, custo_realizado_independente
 from .auditor import _precos_idx, _seg, _serie_idx
 from .contrato import EntradaRede3C3
-from .execucao import PoliticaAjustePCC
+from ..timegrid import ler_instante_utc
+from .execucao import (POLITICA_RESIDUO_PCC, NormalizacaoNumericaPCC, PoliticaAjustePCC, escala_balanco_pcc,
+                       limiar_residuo_pcc)
 
 SUBSTITUIDAS = {"balanco_observado_violado", "renovavel_acima_do_observado", "custo_realizado_nao_reproduzido",
                 "custo_com_intervalos_nao_aplicados", "custo_acumulado_nao_reproduzido"}
@@ -167,6 +171,95 @@ ESCOPOS = {"integral": "Certificação documental + reprodução analítica (reg
 class RelatorioAuditoriaMissaoConectada(RelatorioAuditoriaMissao):
     escopo: str = "integral"                              # ESCOPOS
     integridade_documental_certificada: bool = False
+    normalizacoes_pcc: tuple = ()                         # B3C4-10: normalizações RECONSTRUÍDAS (escopo integral)
+
+
+# ------------------------------------------------------------------------------------------ B3C4-10 (A03)
+CODIGO_NORMALIZACAO_PCC = "normalizacao_numerica_pcc"
+_RE_NORMALIZACAO = re.compile(
+    r"^bruto=(?P<bruto>\S+) normalizado=(?P<norm>\S+) diferenca=(?P<dif>\S+) limiar=(?P<lim>\S+) "
+    r"escala=(?P<esc>\S+) origem=solver; (?P<motivo>.+)$")
+_RE_CAMINHO_NORM = re.compile(r"^pcc\[(?P<uid>[^\]]+)\]\.(?P<g>P_imp|P_exp)\[(?P<t>\d+)\]$")
+
+
+def reconstruir_normalizacoes_pcc(modelo_rede: EntradaRede3C3, registros, registros_3c0, anexos,
+                                  tol: Tolerancias = Tolerancias()):
+    """B3C4-10: verificador ÚNICO das normalizações de resíduos do solver no PCC (auditorias integrais 3C-3 e 3C-4).
+
+    Por janela executada, TRÊS evidências seladas devem ser coerentes: (1) código ``normalizacao_numerica_pcc`` no
+    resumo da RESOLUÇÃO da janela; (2) avisos com os dados de cada normalização no registro 3C-0; (3) hash
+    ``normalizacoes_pcc_b3c4_10`` das normalizações, comprometido no registro 3C-0 antes do selo. As três AUSENTES =
+    janela sem normalização (inclusive todo registro anterior a B3C4-10: nenhuma obrigação nova); qualquer outra
+    combinação é rejeitada (A03-1). Cada normalização é então confrontada com a política: programa do anexo 3C-3 = 0.0;
+    bruto < 0; diferença = −bruto; |bruto| <= limiar; motivo = política; escala S_t e limiar RECALCULADOS do plano 3C-0
+    e dos limites do modelo fornecido. Os selos SHA-256 detectam alteração frente ao artefato selado; não são assinatura
+    nem provam a procedência autêntica do solver (B3C4-08). Devolve (normalizações aceitas, constatações)."""
+    from ..ponte.canonico import sha256
+    from .contrato import valor_no_intervalo
+    from .mpc import CHAVE_HASH_NORMALIZACOES_PCC
+    r0 = {r.execucao_uid: r for r in (registros_3c0 or ())}
+    an = {a.conteudo.execucao_uid: a for a in (anexos or ())}
+    e, out, c = modelo_rede, [], []
+    for r in registros:
+        ct = r.conteudo
+        reg0 = r0.get(ct.execucao_uid)
+        if reg0 is None:
+            continue                                   # janela sem execução: nada comprometido (seção documental)
+        cam = f"janelas[{ct.posicao}]"
+        avs = [x for x in reg0.constatacoes if x.codigo == CODIGO_NORMALIZACAO_PCC]
+        tem_hash = CHAVE_HASH_NORMALIZACOES_PCC in reg0.hashes
+        tem_codigo = CODIGO_NORMALIZACAO_PCC in (ct.resolucao.codigos if ct.resolucao else ())
+        if not avs and not tem_hash and not tem_codigo:
+            continue                                   # janela legítima sem normalização (inclui registros históricos)
+        if not tem_codigo:
+            c.append(erro("normalizacao_pcc_sem_origem_no_solver", cam,
+                          "Avisos/hash de normalização sem o código na resolução selada da janela (origem no "
+                          "resolvedor não declarada)."))
+        if not avs and not tem_hash:
+            c.append(erro("normalizacao_pcc_declarada_sem_registro", cam,
+                          "A resolução selada declara normalização, mas o registro 3C-0 não tem avisos nem hash."))
+            continue
+        recs = []
+        for x in avs:
+            m, mc = _RE_NORMALIZACAO.match(x.mensagem), _RE_CAMINHO_NORM.match(x.caminho)
+            if m is None or mc is None:
+                c.append(erro("normalizacao_pcc_ilegivel", cam, f"{x.caminho}: {x.mensagem[:80]}"))
+                continue
+            try:
+                recs.append(NormalizacaoNumericaPCC(mc["uid"], mc["g"], int(mc["t"]), float(m["bruto"]),
+                                                    float(m["norm"]), float(m["dif"]), float(m["lim"]),
+                                                    float(m["esc"]), m["motivo"]))
+            except ValueError:
+                c.append(erro("normalizacao_pcc_ilegivel", cam, x.mensagem[:80]))
+        if not avs or not tem_hash or reg0.hashes[CHAVE_HASH_NORMALIZACOES_PCC] != sha256(tuple(recs)) or \
+                len(recs) != len(avs):
+            c.append(erro("normalizacao_pcc_nao_comprometida", cam,
+                          "Avisos de normalização × hash comprometido no registro 3C-0 ausentes ou divergentes."))
+        ax = an.get(ct.execucao_uid)
+        pr = getattr(getattr(ax, "conteudo", None), "plano_rede", None)
+        p = reg0.plano
+        for n in recs:
+            cn = f"{cam}.{n.grandeza}[{n.indice_janela}]"
+            prog = None if pr is None else (pr.importacao_programada_kW if n.grandeza == "P_imp" else
+                                            pr.exportacao_programada_kW)
+            t = n.indice_janela
+            ok = (prog is not None and t < len(prog) and prog[t] == 0.0 and n.valor_normalizado_kW == 0.0
+                  and n.valor_bruto_kW < 0 and n.diferenca_kW == 0.0 - n.valor_bruto_kW
+                  and -n.valor_bruto_kW <= n.limiar_kW and n.motivo == POLITICA_RESIDUO_PCC
+                  and e.pcc is not None and n.pcc_uid == str(e.pcc.uid))
+            if ok:
+                ini = (ler_instante_utc(p.inicio_utc, "p")[0] + timedelta(seconds=p.delta_s * t)).isoformat()
+                li = valor_no_intervalo(e.pcc.limite_importacao, ini, p.delta_s) if e.importa else 0.0
+                le = valor_no_intervalo(e.pcc.limite_exportacao, ini, p.delta_s) if e.exporta else 0.0
+                vals = {f"{x.uid}|{x.grandeza}": x.valores[t] for x in p.consignas}
+                S = escala_balanco_pcc(vals, li or 0.0, le or 0.0)
+                ok = S == n.escala_kW and limiar_residuo_pcc(S, tol) == n.limiar_kW
+            if not ok:
+                c.append(erro("normalizacao_pcc_fora_da_politica", cn,
+                              f"Normalização não sustentada pela política/plano/modelo: {n!r}."))
+            else:
+                out.append(n)
+    return tuple(out), c
 
 
 def _analitica(registro_missao, registros, livro, modelo, politica, verdade, tol, prog_global):
@@ -301,10 +394,15 @@ def auditar_missao_conectada(registro_missao, registros, livro, modelo: EntradaR
                                 tol, prog)
     ver["documental"] = not any(x.severidade == "erro" for x in docs)
     cons += docs
+    # B3C4-10 (A03-2): coerência das normalizações do solver, com o MESMO verificador da auditoria 3C-4
+    nz, cz = reconstruir_normalizacoes_pcc(modelo, registros, registros_3c0, anexos, tol)
+    ver["normalizacoes_pcc"] = not cz
+    cons += cz
     ok = all(ver.values())
     return RelatorioAuditoriaMissaoConectada(ok, ver, tuple(cons), det, escopo="integral",
-                                             integridade_documental_certificada=ok)
+                                             integridade_documental_certificada=ok, normalizacoes_pcc=nz)
 
 
-__all__ = ["ESCOPOS", "RelatorioAuditoriaMissaoConectada", "SUBSTITUIDAS", "auditar_missao_conectada",
-           "auditar_missao_conectada_analitica", "custo_rede_independente"]
+__all__ = ["CODIGO_NORMALIZACAO_PCC", "ESCOPOS", "RelatorioAuditoriaMissaoConectada", "SUBSTITUIDAS",
+           "auditar_missao_conectada", "auditar_missao_conectada_analitica", "custo_rede_independente",
+           "reconstruir_normalizacoes_pcc"]

@@ -137,8 +137,9 @@ def test_so_o_subpacote_milp_importa_pyomo_ou_highspy():
         # 3C-1 (contradição C-3C1-01, ver docs/ems_v2/FORMULACAO_3C1.md §9): os DOIS módulos novos do MILP 3C-1 são
         # acrescentados nominalmente; a regra "só o subpacote milp importa Pyomo/HiGHS" é preservada.
         # 3C-3 (contradição C-3C3-02, docs/ems_v2/FORMULACAO_3C3.md §10): mesmos termos para os DOIS módulos do MILP 3C-3.
+        # 3C-4 (contradição C-3C4-02, docs/ems_v2/FORMULACAO_3C4.md §10): mesmos termos para os DOIS módulos do MILP 3C-4.
         if rel in ("milp/modelo.py", "milp/solver.py", "milp/ambiente.py", "milp/modelo_3c1.py", "milp/solver_3c1.py",
-                   "milp/modelo_3c3.py", "milp/solver_3c3.py"):
+                   "milp/modelo_3c3.py", "milp/solver_3c3.py", "milp/modelo_3c4.py", "milp/solver_3c4.py"):
             continue
         assert not usa, rel
         assert not any(x.split(".")[0] in ("streamlit", "ems_integration") for x in nomes), rel

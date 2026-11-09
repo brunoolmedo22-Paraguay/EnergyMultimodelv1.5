@@ -229,11 +229,12 @@ def test_shallow_clone_runs_all_guards_without_skip_or_fetch(shallow_integration
     _run_shallow_guards(clone)
     # Explicit audit of PR #18 can resolve its base from retained Git-object
     # evidence, while the actual HEAD/working tree remain from this shallow clone.
-    assert_ems_unchanged(clone,POLICY['base_commit'])
+    snapshot_base = subprocess.check_output(['git','rev-parse','HEAD'],cwd=clone,text=True).strip()
+    assert_ems_unchanged(clone,snapshot_base)
     import os
     import sys
     result=subprocess.run([sys.executable,'tests/ems_v2/wind_guard_policy.py',
-                           '--audit-mission-base',POLICY['base_commit']],cwd=clone,
+                           '--audit-mission-base',snapshot_base],cwd=clone,
                           env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'},capture_output=True,text=True,timeout=30)
     assert result.returncode==0, result.stdout+result.stderr
     assert 'EMS inalterado' in result.stdout

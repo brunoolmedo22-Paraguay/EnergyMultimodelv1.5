@@ -1,5 +1,7 @@
 # C-EOL-01 — alcance de la política eólica y evolución del EMS
 
+> Integración posterior real de 3C-4: [INTEGRACAO_3C4_PR18.md](INTEGRACAO_3C4_PR18.md). La auditoría del estado combinado usa main `19aa3ac`; las referencias 10365c5/9621543 de esta evidencia conservan únicamente su alcance histórico.
+
 PR #18: https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/18 . Corrección de tests y evidencia; sin cambios de producción, curvas, parámetros o reglas físicas. No se hace merge.
 
 ## Problema reproducido
@@ -21,11 +23,11 @@ Por tanto, una integración independiente puede añadir o modificar archivos EMS
 
 `assert_ems_unchanged(root, base, head, include_worktree=True)` sigue disponible, pero ya NO se llama desde el contexto permanente. Exige la base/head de la misión que se quiere auditar. Compara el identificador de la subárbol EMS entre esas revisiones y verifica también cambios locales preparados/no preparados y archivos nuevos.
 
-Para la entrega actual del PR #18, desde la raíz:
+Para el estado combinado del PR #18, desde la raíz (base actualizada tras integrar main):
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python tests/ems_v2/wind_guard_policy.py \
-  --audit-mission-base 10365c5478b4dd137906b58819cd7f71d8de9cea
+  --audit-mission-base 19aa3ac328f337e31ec4c36baa837c056299a57a
 ```
 
 Resultado verificado: `EMS inalterado; catálogo e referências históricas íntegros`. Un commit EMS dentro del rango auditado sigue fallando. Para otro PR se debe indicar SU base; no reutilizar indefinidamente la base histórica de la misión eólica. La herramienta no cambia ni deduce automáticamente el alcance para convertir un fallo en éxito.
@@ -55,4 +57,4 @@ Resultado de la suite completa: **1765 passed, 0 failed, 0 skipped, 7 warnings**
 
 ## Estado de la integración real
 
-Durante esta corrección se observó `main` en `19aa3ac328f337e31ec4c36baa837c056299a57a` (PR #17, 3C-4). La rama del PR #18 sigue conservando su base original; no se reescribió su historia ni se incorporó código de producción de otra rama. La prueba adversarial descrita simula la integración posterior; no equivale a afirmar que se ejecutó la suite combinada del PR #17. Las guardias propias que otras entregas mantengan contra árboles móviles deberán distinguir igualmente su entrega histórica del diff de futuros PR.
+Durante esta corrección se observó `main` en `19aa3ac328f337e31ec4c36baa837c056299a57a` (PR #17, 3C-4). Ese era el estado previo a la integración autorizada posterior: ver INTEGRACAO_3C4_PR18.md para el merge de main en la rama eólica, sin reescritura de la historia ni modificaciones propias al código 3C-4. La prueba adversarial descrita simula la integración posterior; no equivale a afirmar que se ejecutó la suite combinada del PR #17. Las guardias propias que otras entregas mantengan contra árboles móviles deberán distinguir igualmente su entrega histórica del diff de futuros PR.

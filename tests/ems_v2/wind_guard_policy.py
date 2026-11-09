@@ -17,6 +17,8 @@ from pathlib import Path
 
 EVIDENCE_SHA256 = "b3e81f4c658f07c97d242a1fa0ab2cd01b362bd22cea4f0363931d367f54c316"
 AUDITED_WIND_HEAD = "96215438e0d4d57bcf600f62b5ae3f2d3c25da9d"
+INTEGRATION_SHA256 = "662de6976b6ca7a6883442273d978bc6913b4547a34f9f0eb8ebd9b544439ce7"
+INTEGRATION_BASE = "19aa3ac328f337e31ec4c36baa837c056299a57a"
 MANIFEST_SHA256 = "4c9303ee2296e2edbc999cb28523382a3adc45bab47248150e7793d60f08926d"
 # New verification support only; never directories/patterns or runtime EMS files.
 SUPPORT_ADDITIONS = frozenset({
@@ -24,6 +26,8 @@ SUPPORT_ADDITIONS = frozenset({
     "tests/ems_v2/test_wind_guard_policy.py",
     "tests/fixtures/wind_guard_policy_v1.json",
     "tests/fixtures/wind_guard_evidence_v1.json",
+    "tests/fixtures/wind_3c4_integration_v1.json",
+    "tests/ems_v2/test_wind_3c4_integration.py",
 })
 
 
@@ -69,21 +73,21 @@ GUARD_BODIES = {
     modificados = [ln for ln in linhas if ln[0] != "A"]
     adicionados = {ln[1] for ln in linhas if ln[0] == "A"}
     assert modificados == [], modificados                    # nenhum arquivo da base alterado ou removido
-    assert adicionados <= ADICOES_3C1 | ADICOES_3C3, adicionados - ADICOES_3C1 - ADICOES_3C3
+    assert adicionados <= ADICOES_3C1 | ADICOES_3C3 | ADICOES_3C4, adicionados - ADICOES_3C1 - ADICOES_3C3 - ADICOES_3C4
     nao_rastreados = authorized_additions(RAIZ, historical_untracked(RAIZ, BASE_AUDITADA))
-    assert set(nao_rastreados) <= ADICOES_3C1 | ADICOES_3C3, set(nao_rastreados) - ADICOES_3C1 - ADICOES_3C3""",
+    assert set(nao_rastreados) <= ADICOES_3C1 | ADICOES_3C3 | ADICOES_3C4, set(nao_rastreados) - ADICOES_3C1 - ADICOES_3C3 - ADICOES_3C4""",
     "tests/ems_v2/test_ems_v2_3c2_isolamento.py": """def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14():
     # C-EOL-01: immutable delivery audit, independent of shallow Git history.
     from wind_guard_policy import authorized_changes, historical_changes, historical_untracked
     linhas = authorized_changes(RAIZ, historical_changes(RAIZ, BASE_3C1))
-    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] != ["ems_v2/mpc/orquestrador.py"]] == []
+    assert [ln for ln in linhas if ln[0] != "A" and ln[1:] not in (["ems_v2/mpc/orquestrador.py"], ["ems_v2/ponte/execucao.py"])] == []
     assert all(ln[0] in ("A", "M") for ln in linhas)
     novos = {ln[1] for ln in linhas if ln[0] == "A"}
     nao_rastreados = set(historical_untracked(RAIZ, BASE_3C1))
-    from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3, ADICOES_3C4
     for f in novos | nao_rastreados:
-        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py")
-                or f in ADICOES_3C3), f""",
+        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/", "ems_v2/hierarquia/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py", "ems_v2/fixtures_3c4.py")
+                or f in ADICOES_3C3 | ADICOES_3C4), f""",
     "tests/ems_v2/test_ems_v2_3c3_isolamento.py": """def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr15():
     # C-EOL-01: later authorized floors are not changes to this frozen delivery.
     from wind_guard_policy import authorized_changes, authorized_additions, historical_changes, historical_untracked
@@ -92,11 +96,11 @@ GUARD_BODIES = {
     assert alterados <= MODIFICADOS_3C3, alterados - MODIFICADOS_3C3
     assert all(ln[0] in ("A", "M") for ln in linhas)
     novos = {ln[1] for ln in linhas if ln[0] == "A"} | set(historical_untracked(RAIZ, BASE_3C2))
-    from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3, ADICOES_3C4
     novos = set(authorized_additions(RAIZ, novos))
     for f in novos:
-        assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/"))
-                or f in ADICOES_3C3 or f == "ems_v2/fixtures_3c3.py"), f""",
+        assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/", "ems_v2/hierarquia/", "tests/ems_v2/test_ems_v2_3c4_"))
+                or f in ADICOES_3C3 | ADICOES_3C4 or f in ("ems_v2/fixtures_3c3.py", "ems_v2/fixtures_3c4.py")), f""",
 }
 
 
@@ -183,6 +187,42 @@ def assert_historical_records(root: Path, entries: dict | None = None) -> None:
         assert _sha(value) == digest, f"parâmetros/curva históricos alterados: {key}"
 
 
+def read_integration_evidence(root: Path) -> dict:
+    raw = (root / "tests/fixtures/wind_3c4_integration_v1.json").read_bytes()
+    assert _sha(raw) == INTEGRATION_SHA256, "evidência da integração 3C-4 alterada"
+    record = json.loads(raw)
+    assert record["main_commit"] == INTEGRATION_BASE
+    assert _sha(record["guard_source"].encode()) == record["guard_sha256"]
+    _proved_ems_tree(record, INTEGRATION_BASE)
+    return record
+
+
+def combined_3c4_guard_source(original: str) -> str:
+    # All scientific assertions remain ACTIVE against the actual integrated EMS.
+    marker = '    linhas = [ln.split("\\t") for ln in out.strip().splitlines() if ln.strip()]\n'
+    assert original.count(marker) == 1
+    combined = original.replace(marker, marker +
+        '    from wind_guard_policy import authorized_changes, authorized_additions\n'
+        '    linhas = authorized_changes(RAIZ, linhas)  # nominal wind exceptions only\n')
+    return combined.replace('    for f in novos:\n',
+                            '    novos = set(authorized_additions(RAIZ, novos))\n    for f in novos:\n')
+
+
+def assert_3c4_guards(root: Path) -> None:
+    record = read_integration_evidence(root)
+    expected = ast.parse(combined_3c4_guard_source(record["guard_source"]))
+    actual = ast.parse((root / record["guard_path"]).read_bytes())
+    # Every upstream function and constant is retained, not just the scope test.
+    # Adding future independent tests is allowed; removing/changing a scientific
+    # check (B3C4-01, B3C4-10, C-01, A03) requires its own reviewed revision.
+    def members(tree):
+        return {n.name: ast.dump(n) for n in tree.body if isinstance(n, ast.FunctionDef)}
+    want, have = members(expected), members(actual)
+    assert all(have.get(k) == v for k, v in want.items()), "guarda científica 3C-4 alterada"
+    constants = lambda tree: [ast.dump(n) for n in tree.body if isinstance(n, (ast.Assign, ast.AnnAssign))]
+    assert constants(actual) == constants(expected), "exceções científicas 3C-4 alteradas"
+
+
 def assert_ems_unchanged(root: Path, base: str, head: str = "HEAD", *, include_worktree: bool = True) -> None:
     """Explicit PR/mission audit ONLY. Never a permanent constraint on future EMS.
 
@@ -195,6 +235,8 @@ def assert_ems_unchanged(root: Path, base: str, head: str = "HEAD", *, include_w
         if result.returncode == 0:
             return result.stdout.strip()
         evidence = read_evidence(root)
+        if ref == INTEGRATION_BASE:
+            evidence = read_integration_evidence(root)
         assert ref in evidence["git_proofs"], f"base/head de missão indisponível: {ref}"
         return _proved_ems_tree(evidence, ref)
     assert tree_at(base) == tree_at(head), "EMS V2 alterado/adicionado/removido nesta missão eólica"
@@ -221,6 +263,7 @@ def assert_context(root: Path) -> dict:
         original = original_bytes(root, path)
         assert_guard_file(root, path, original, digest)
     assert_frozen_mission_ems(root)
+    assert_3c4_guards(root)
     assert_curve_inventory(root, policy)
     assert_historical_records(root)
     return policy

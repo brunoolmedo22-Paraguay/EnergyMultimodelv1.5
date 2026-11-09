@@ -24,7 +24,9 @@ BASE_3C2 = "a4c6b1c"
 PROIBIDOS = ["streamlit", "pyomo", "highspy", "seeds2", "ems_integration", "orchestrator_runtime", "models",
              "h2_pemfc", "simulation", "config", "numpy", "scipy", "pandas"]
 MODIFICADOS_3C3 = {"ems_v2/mpc/orquestrador.py", "tests/ems_v2/test_ems_v2_3c2_isolamento.py",
-                   "tests/ems_v2/test_ems_v2_ponte_isolamento.py", "tests/ems_v2/test_ems_v2_milp_perfil.py"}
+                   "tests/ems_v2/test_ems_v2_ponte_isolamento.py", "tests/ems_v2/test_ems_v2_milp_perfil.py",
+                   # B3C4-01 (hotfix AUTORIZADO na auditoria do PR #17): projeção numérica da energia (3C-0)
+                   "ems_v2/ponte/execucao.py"}
 
 
 def test_nucleo_rede_so_biblioteca_padrao_ao_importar():
@@ -57,8 +59,8 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr15():
     assert alterados <= MODIFICADOS_3C3, alterados - MODIFICADOS_3C3
     assert all(ln[0] in ("A", "M") for ln in linhas)
     novos = {ln[1] for ln in linhas if ln[0] == "A"} | set(historical_untracked(RAIZ, BASE_3C2))
-    from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3, ADICOES_3C4
     novos = set(authorized_additions(RAIZ, novos))
     for f in novos:
-        assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/"))
-                or f in ADICOES_3C3 or f == "ems_v2/fixtures_3c3.py"), f
+        assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/", "ems_v2/hierarquia/", "tests/ems_v2/test_ems_v2_3c4_"))
+                or f in ADICOES_3C3 | ADICOES_3C4 or f in ("ems_v2/fixtures_3c3.py", "ems_v2/fixtures_3c4.py")), f

@@ -1,6 +1,18 @@
 # Resultados finales de regresión — misión eólica
 
-## C-EOL-01 — resultado vigente, PR #18
+## Integración real con 3C-4 — resultado vigente del PR #18
+
+Main incorporado mediante merge en la rama eólica: `19aa3ac328f337e31ec4c36baa837c056299a57a`. Nueva ejecución global: **2004 passed, 0 failed, 0 skipped, 7 warnings**, 501.77s (0:08:21). No es el resultado 1765 de la etapa anterior.
+
+- Históricos originales: **9 passed**; comparación exacta por separado: **12 passed, 98 no seleccionados**.
+- Siete curvas: **110 passed**; guardias/adversariales combinados: **153 passed**.
+- EMS 3C-1/2/3: **545 passed**; suite 3C-4 completa: **228 passed**.
+- Entorno separado realmente sin Pyomo/HiGHS: EMS **994 passed, 101 skipped** por solver; eólica **119 passed, 0 skipped**. Sin omisiones nuevas por historia Git.
+- `ems_v2/` idéntico a main integrado (árbol `9a28ed95fc2c5be4267fb296ea0e8a4422b035ed`); curvas, parámetros y reglas eólicas intactos. Auditoría combinada usa **19aa3ac**, conservando 10365c5 solo como evidencia histórica sellada.
+
+Resolución de cada guardia, preservación documental y lista COMPLETA de archivos relativos al nuevo main: [INTEGRACAO_3C4_PR18.md](INTEGRACAO_3C4_PR18.md). Sin merge del PR #18 en main. Los resultados siguientes son registros de etapas anteriores.
+
+## C-EOL-01 — resultado anterior a la integración real, PR #18
 
 Suite completa repetida después de la corrección: **1765 passed, 0 failed, 0 skipped, 7 warnings**, **411,59 s (6:51)**. Lote focalizado: **135 passed**. Históricos por separado: **12 passed, 98 deselected**; la suite completa también ejecutó los no seleccionados.
 
