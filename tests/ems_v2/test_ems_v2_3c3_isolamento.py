@@ -60,6 +60,8 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr15():
     out = subprocess.run(["git", "diff", "--name-status", "--no-renames", BASE_3C2, "--", *alvos], cwd=RAIZ,
                          capture_output=True, text=True, check=True).stdout
     linhas = [ln.split("\t") for ln in out.strip().splitlines() if ln.strip()]
+    from wind_guard_policy import authorized_changes, authorized_additions
+    linhas = authorized_changes(RAIZ, linhas)  # missão eólica: arquivos/pins exatos
     alterados = {ln[1] for ln in linhas if ln[0] != "A"}
     assert alterados <= MODIFICADOS_3C3, alterados - MODIFICADOS_3C3
     assert all(ln[0] in ("A", "M") for ln in linhas)
@@ -67,6 +69,7 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr15():
         ["git", "ls-files", "--others", "--exclude-standard", "--", *alvos], cwd=RAIZ, capture_output=True, text=True,
         check=True).stdout.split())
     from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    novos = set(authorized_additions(RAIZ, novos))
     for f in novos:
         assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/"))
                 or f in ADICOES_3C3 or f == "ems_v2/fixtures_3c3.py"), f

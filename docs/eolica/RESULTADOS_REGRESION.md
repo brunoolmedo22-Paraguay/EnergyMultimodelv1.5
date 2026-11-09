@@ -1,49 +1,47 @@
-# Resultados de regresión — misión eólica
+# Resultados finales de regresión — misión eólica
 
 Base real de `main`: `10365c5478b4dd137906b58819cd7f71d8de9cea` (PR #16). Rama exclusiva `codex/eolica-siete-curvas-potencias`. Sin merge ni push a main.
 
-## Evidencia ejecutada
+## Resultado final después de la autorización de tres guardias
 
-- Antes de cambios: `pytest tests/test_wind_model.py tests/test_wind_turbine_database.py -q`: **9 passed**.
-- Después: las mismas pruebas **9 passed**, manteniendo todas las aserciones físicas. El usuario autorizó limitar exactamente dos pruebas al conjunto histórico (conteo y recorrido), sin alterar datos.
-- `pytest tests/test_wind_catalog_expansion.py -q`: **110 passed**, incluyendo 12 comparaciones históricas exactas (seis equipos × dos perfiles), siete curvas punto por punto y siete AppTest del catálogo.
-- `pytest tests/test_wind_catalog_expansion.py tests/test_seeds2_refinamento.py tests/test_app_smoke.py -q`: **151 passed** en el código final, incluidos todos los nuevos adversariales.
-- Auditoría de catálogo: `python -m tools.validate_wind_catalog --output docs/eolica/RESULTADOS_VALIDACAO_CATALOGO.json`: exit 0, siete registros íntegros. NO certifica cuatro fuentes primarias pendientes.
-- Los **21 archivos** listados en SHA256_PAK_INPUT.txt fueron contrastados con sus hashes originales. Los cuatro CSV NREL coinciden con el commit remoto fijado y sus SHA de blob.
+`PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rs`: **1758 passed, 0 failed, 0 skipped, 7 warnings**, 415.84s (0:06:55). La suite completa incluye todos los 110 tests nuevos de ampliación eólica, los 114 nuevos adversariales de política y las regresiones anteriores. Advertencias SLSQP de SciPy sobre clipping durante el paso interno, presentes también en la base.
 
-## Comparación histórica
+No se excluyó ningún test ni se actualizó un resultado esperado para ocultar diferencias. No cambió código EMS. Solo se insertaron ocho líneas en las tres guardias existentes autorizadas; el detalle, las listas nominales y los hashes originales están en [GUARDIAS_REGRESION_EOLICA.md](GUARDIAS_REGRESION_EOLICA.md).
 
-Cero diferencias de los seis registros completos (hash JSON canónico), tres columnas de potencia (SHA de bytes float64) y todos los KPIs. Perfiles: semana meteorológica real de ejemplo, 1008 muestras; grade 0–30 m/s, 601 muestras. Dos turbinas y descuento opcional del 3%, misma versión de dependencias. Densidad tabulada Nordex y corrección equivalente V1 conservadas. La fixture se capturó antes de implementar, no después.
+## Comprobación histórica separada
 
-## Suite completa ejecutada
+- Antes de implementar la ampliación: pruebas eólicas existentes **9 passed**.
+- Después del ajuste autorizado: las mismas pruebas **9 passed**, con todas sus aserciones físicas intactas, limitando solamente conteo/recorrido a los seis equipos originales.
+- Selección independiente `pytest tests/test_wind_catalog_expansion.py -k e01 -q`: **12 passed, 98 deselected**. Seis equipos × dos perfiles. Los 98 no seleccionados se ejecutaron posteriormente en la suite completa.
+- Cero diferencias de los seis registros completos (hash JSON canónico), tres columnas de potencia (SHA de bytes float64) y todos los KPIs. Perfiles: semana meteorológica de ejemplo, 1008 muestras; grade 0–30 m/s, 601 muestras. Dos turbinas y descuento del 3%. Densidad tabulada Nordex y corrección equivalente V1 conservadas.
+- Fixture `tests/fixtures/wind_historical_v1.json` capturada ANTES de implementar en la base `10365c5`. Se conserva intacta, ahora además fijada por hash en el manifiesto de política. No se regeneró para acomodar la implementación.
 
-`pytest tests/ -q -rs`: **1605 passed, 3 failed, 0 skipped, 7 warnings**, 410,49 s. Incluyó los primeros 74 tests nuevos; los 36 agregados posteriormente pasaron en la ejecución dedicada final de 110 y en el lote afectado de 151. Los únicos tres fallos fueron las guardias de alcance descritas abajo. No se presenta esta ejecución como totalmente aprobada.
+## Otras ejecuciones útiles
 
-## Contradicción de alcance de tres guardias anteriores
+- Nuevas pruebas eólicas: **110 passed**.
+- Lote de ampliación + refinamiento SEEDS2 + smoke V1.6: **151 passed**.
+- Tres guardias ajustadas, nuevos adversariales y cuarta guardia intacta: **128 passed** (114 nuevos + 14 anteriores).
+- `python -m tools.validate_wind_catalog --output docs/eolica/RESULTADOS_VALIDACAO_CATALOGO.json`: exit 0, siete registros íntegros. No certifica las cuatro fuentes primarias pendientes.
+- Los 21 archivos de SHA256_PAK_INPUT.txt coinciden con sus hashes originales. Los cuatro CSV NREL coinciden byte a byte con el commit remoto fijado y sus SHA de blob. Los siete CSV coinciden también con los objetos Git publicados, sin normalizar sus finales de línea.
+- `git diff --check`: sin errores. Atributos Git locales preservan los bytes originales de CSV/YAML de evidencia.
 
-Tres tests de `tests/ems_v2` comparan el árbol completo de modelos/configuración/UI contra bases antiguas y prohíben CUALQUIER modificación eólica. Por construcción rechazan esta misión, aunque no cambie un byte del motor EMS. Se reprodujo con el subconjunto de guardias: **3 failed, 8 passed**. No son fallos numéricos de despacho.
+## Diagnóstico previo y corrección autorizada
 
-- `test_ems_v2_ponte_isolamento.py::test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada`
-- `test_ems_v2_3c2_isolamento.py::test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14`
-- `test_ems_v2_3c3_isolamento.py::test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr15`
+La primera suite de ampliación terminó con **1605 passed, 3 failed, 0 skipped, 7 warnings**, antes de la autorización adicional: los tres fallos eran guardias que prohibían cualquier edición eólica desde bases antiguas. No eran fallos numéricos del despacho. El usuario autorizó después el ajuste mínimo y nominal.
 
-Se solicitó autorización adicional para excepciones nominales y verificables. Hasta recibirla, las tres guardias permanecen intactas: no se las omite ni se falsea el resultado de la suite completa.
+La primera ubicación del soporte nuevo, fuera de `tests/ems_v2/`, activó la guardia léxica `test_aplicacao_nao_referencia_ems_v2`; se interrumpió esa ejecución para diagnosticarla (**1 failed, 1215 passed** hasta la interrupción). Se reubicaron únicamente los archivos nuevos de soporte a la carpeta correcta. Esa cuarta guardia no fue modificada ni omitida. La suite completa final de arriba reemplaza ese intento interrumpido como resultado de aceptación.
 
-## Protección de alcance
+## Garantías de alcance
 
-`git diff origin/main -- ems_v2 ems_integration models/battery_model.py models/single_diode.py h2_pemfc config/pv_database.py orchestrator_runtime.py seeds2/microgrid/registry.py` sin diferencias. No se implementa Piso 3C-4 ni se toca la rama simultánea de Claude. El ajuste del Gestor es solo la disponibilidad de la referencia eólica para simulación, no su administración.
+`git diff 10365c5478b4dd137906b58819cd7f71d8de9cea -- ems_v2` sin diferencias. Igualmente sin diferencias en ciencia solar, batería, PEMFC, EMS V1.6, runtime y administración del Gestor. Los únicos archivos existentes modificados en la continuación autorizada son las tres guardias y documentación. No se inspecciona ni modifica la otra rama de Claude; la detección de cambios 3C-4 se prueba con centinelas en repositorios temporales.
 
-## Limitaciones de entrega
+Los nueve archivos eólicos ya existentes y los doce artefactos de datos/tests de la implementación previa están congelados por nombres exactos y SHA. Las tres guardias son iguales a sus originales salvo las inserciones textuales exactas admitidas. No se admiten directorios, comodines, borrados, renombrados, cambios de tipo o ediciones adicionales dentro de un archivo autorizado. El manifiesto también tiene un SHA literal; no contiene ningún mecanismo para actualizar sus propios hashes.
 
-Los cuatro pequeños están presentes en el catálogo único con puntos y contabilidad de importaciones, pero integración energética pendiente. API GitHub y documentos primarios bloqueados por red (403); el intento de guardar los dominios requeridos en la configuración de plataforma no confirmó persistencia. Falta verificar informes primarios y crear PR si no se restablece API. No se fabrican URL de PR ni condiciones de ensayo.
+## Disponibilidad física y bloqueo externo del PR
 
-## Publicación de la rama y bloqueo del PR
+Catálogo único con 13 entradas: seis históricos, tres nuevos simulables dentro del dominio documentado y cuatro pequeños disponibles para análisis fiel de curva, todavía NO para integración energética. En los cuatro quedan pendientes informes primarios/variantes/densidad y compatibilidad de importación auxiliar con el balance. Kestrel y SWIFT discrepan del filtro numérico a 11 m/s; no se alteraron puntos o referencias para aprobarlos.
 
-Implementación publicada en el commit `e992a9629cb87c04ad982eb9a510c88c40a8200f`; el commit siguiente solo completa este registro. El remoto confirmó el mismo SHA para `refs/heads/codex/eolica-siete-curvas-potencias`. `main` seguía en `10365c5478b4dd137906b58819cd7f71d8de9cea` en la comprobación final.
-
-Se intentó `gh pr create --draft --base main --head codex/eolica-siete-curvas-potencias` con título y cuerpo completos. Resultado: `Post "https://api.github.com/graphql": Forbidden`. **PR NO creado**; no hay número/URL de PR que reportar. Texto listo en `/workspace/.local/state/energy/wind-pr.md`. No hubo merge. Se requiere acceso de red a `api.github.com` para reintentar la creación. La configuración de plataforma no confirmó persistencia del cambio solicitado.
-
-Las tres guardias continúan intactas al no haberse recibido autorización adicional. No se describe la suite completa como aprobada.
+La API GitHub continúa bloqueada: `gh pr create --draft --base main --head codex/eolica-siete-curvas-potencias` devuelve `Post "https://api.github.com/graphql": Forbidden`. **PR no creado**; no hay número/URL de PR verificable. Cuerpo listo en `/workspace/.local/state/energy/wind-pr.md`. La rama se publica por Git HTTPS; no se hizo merge. Hace falta acceso permitido a `api.github.com` para completar la creación. La herramienta de configuración de plataforma no pudo verificar el borrador. No se solicitan ni se publican secretos.
 
 ## Archivos de esta misión
 
@@ -61,6 +59,7 @@ Las tres guardias continúan intactas al no haberse recibido autorización adici
 - `config/wind_turbine_database.py`
 - `docs/ai/HANDOFF.md`
 - `docs/eolica/FORMULACAO_POTENCIA_REFERENCIA_MAXIMA.md`
+- `docs/eolica/GUARDIAS_REGRESION_EOLICA.md`
 - `docs/eolica/RASTREABILIDAD_7_EQUIPOS.md`
 - `docs/eolica/RESULTADOS_REGRESION.md`
 - `docs/eolica/RESULTADOS_VALIDACAO_CATALOGO.json`
@@ -75,6 +74,12 @@ Las tres guardias continúan intactas al no haberse recibido autorización adici
 - `seeds2/microgrid/config.py`
 - `seeds2/microgrid/references.py`
 - `seeds2/ui/equipment.py`
+- `tests/ems_v2/test_ems_v2_3c2_isolamento.py`
+- `tests/ems_v2/test_ems_v2_3c3_isolamento.py`
+- `tests/ems_v2/test_ems_v2_ponte_isolamento.py`
+- `tests/ems_v2/test_wind_guard_policy.py`
+- `tests/ems_v2/wind_guard_policy.py`
+- `tests/fixtures/wind_guard_policy_v1.json`
 - `tests/fixtures/wind_historical_v1.json`
 - `tests/test_wind_catalog_expansion.py`
 - `tests/test_wind_model.py`

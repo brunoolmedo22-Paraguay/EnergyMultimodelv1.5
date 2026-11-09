@@ -28,3 +28,7 @@ Auditoria numérica não é certificação física. Exit 0 do validador signific
 110 testes novos passaram na execução dedicada. Há testes parametrizados adversariais de dados não finitos, curvas truncadas, potências contraditórias, unidades erradas, parâmetros faltantes, densidade inválida, auxiliares e identidade. Interface testada com Streamlit AppTest; sem alegação de execução JavaScript de navegador ou ensaio de campo.
 
 A fixture `tests/fixtures/wind_historical_v1.json` foi capturada ANTES das mudanças na base `10365c5`, após os 9 testes eólicos existentes passarem. Não foi regravada para adaptar resultados novos. Sem alteração das seis entradas originais. Somente as duas provas antigas que contavam/iteravam o catálogo foram delimitadas aos históricos com autorização explícita do usuário; as asserções físicas originais foram conservadas.
+
+## Continuação autorizada das três guardias
+
+Somente as três guardias históricas afetadas foram ajustadas com filtros nominais e hashes fixos, preservando todas as asserções. Ver [guardias, hashes e adversariais](GUARDIAS_REGRESION_EOLICA.md). Suite completa final: **1758 passed, 0 failed, 0 skipped, 7 warnings**. Os 110 testes novos da ampliação e as referências numéricas dos seis históricos permanecem intactos.

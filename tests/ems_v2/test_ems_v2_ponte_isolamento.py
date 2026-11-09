@@ -78,10 +78,13 @@ def test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada():
     out = subprocess.run(["git", "diff", "--name-status", "--no-renames", BASE_AUDITADA, "--", *alvos], cwd=RAIZ,
                          capture_output=True, text=True, check=True).stdout
     linhas = [ln.split("\t") for ln in out.strip().splitlines() if ln.strip()]
+    from wind_guard_policy import authorized_changes, authorized_additions
+    linhas = authorized_changes(RAIZ, linhas)  # missão eólica: arquivos/pins exatos
     modificados = [ln for ln in linhas if ln[0] != "A"]
     adicionados = {ln[1] for ln in linhas if ln[0] == "A"}
     assert modificados == [], modificados                    # nenhum arquivo da base alterado ou removido
     assert adicionados <= ADICOES_3C1 | ADICOES_3C3, adicionados - ADICOES_3C1 - ADICOES_3C3
     nao_rastreados = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", *alvos], cwd=RAIZ,
                                     capture_output=True, text=True, check=True).stdout.split()
+    nao_rastreados = authorized_additions(RAIZ, nao_rastreados)
     assert set(nao_rastreados) <= ADICOES_3C1 | ADICOES_3C3, set(nao_rastreados) - ADICOES_3C1 - ADICOES_3C3

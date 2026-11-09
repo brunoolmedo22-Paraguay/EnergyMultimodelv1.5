@@ -150,3 +150,12 @@ Catálogo único com 13 entradas: três tabelas de fabricante (Vergnet C275, V47
 Dossier: [formulação](../eolica/FORMULACAO_POTENCIA_REFERENCIA_MAXIMA.md), [rastreabilidade](../eolica/RASTREABILIDAD_7_EQUIPOS.md), [validação](../eolica/VALIDACION_7_EQUIPOS.md), [resultados](../eolica/RESULTADOS_REGRESION.md). Pacote Work original preservado com sete CSV e fontes; validador `python -m tools.validate_wind_catalog` não transforma integridade numérica em certificação.
 
 110 testes novos passaram. Duas provas históricas foram delimitadas aos seis originais com autorização expressa, preservando asserções. Três guardias antigas que proíbem qualquer edição eólica foram identificadas; o resultado integral e o eventual ajuste autorizado estão em RESULTADOS_REGRESION.md. Pendência de rede para informes primários/API GitHub. Não sobrescrever nem reinterpretar entregas EMS anteriores com esta seção.
+
+
+### Missão eólica — autorização posterior para três guardias nominais
+
+O usuário autorizou expressamente o ajuste EXCLUSIVO das três guardias históricas de ponte/3C-2/3C-3. Foram inseridos filtros por arquivos e estados exatos, mantendo todas as asserções anteriores. Originais em `10365c5` e implementação eólica já publicada em `5bc4283` fixados por SHA-256; nenhum hash regenerado pelo teste. Arquivos autorizados continuam congelados integralmente, e os seis registros históricos também são conferidos por digest e regressão numérica independente.
+
+Nenhum byte de `ems_v2/` mudou; a nova verificação global rejeita alterações e adições EMS, inclusive em caminho 3C-4. A quarta guarda de ausência de integração continua intacta; suporte novo em `tests/ems_v2/`. Lote de guardias/adversariais: **128 passed**. Históricos separados: **12 passed** e **9 passed**. Detalhes e lista nominal completa: [guardias e hashes](../eolica/GUARDIAS_REGRESION_EOLICA.md); resultado integral atualizado em `docs/eolica/RESULTADOS_REGRESION.md`. Não tocar a rama simultânea de Claude; sem merge.
+
+**Regressão final da continuação eólica autorizada:** `1758 passed, 0 failed, 0 skipped, 7 warnings` em `415.84s (0:06:55)`. Nenhum código EMS modificado; PR ainda bloqueado pela API GitHub. Ver `docs/eolica/RESULTADOS_REGRESION.md`.
