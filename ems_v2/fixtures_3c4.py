@@ -293,6 +293,16 @@ def h4_pico_deslocado(hora: int = 6, **kw) -> Cenario3C4:
     return Cenario3C4(f"H4h{hora}", 12, (10.0,) * 12, tuple(c), **kw)
 
 
+L_REAL_H5 = (10.0, 10.0, 13.0, 13.0, 13.0, 13.0, 10.0, 10.0, 12.0, 12.0, 8.0, 10.0)
+
+
+def h5_erro_previsao(**kw) -> Cenario3C4:
+    """H5 — H2 com demanda REALIZADA diferente da prevista (+3 kW nas horas 2–5, +2 nas 8–9, −2 na 10): todas as
+    estratégias sobre a MESMA verdade; o PCC absorve o erro pelo ajuste local declarado (3C-3)."""
+    kw.setdefault("bancos", (Banco(pcmax=5.0),))
+    return Cenario3C4("H5", 12, (10.0,) * 12, PLANO_12, L_real=L_REAL_H5, **kw)
+
+
 def h7_limite_importacao(**kw) -> Cenario3C4:
     """H7 — tarifa PLANA 0,5; PCC limitado a 0 kW nas horas 8–9 (limite contratado declarado). Sem coordenação o banco
     é esvaziado cedo e a janela de τ_6 é INVIÁVEL (sem energia inventada); com custo de continuação o domínio da
@@ -328,7 +338,7 @@ def h17_dois_bancos(**kw) -> Cenario3C4:
 __all__ = ["BASES", "BESS", "BESS2", "Banco", "Cenario3C4", "DELTA", "DEM", "FC", "FONTE_CANAL", "FONTE_PREV",
            "FONTE_VERDADE", "FV", "INICIO", "MED_EXP", "MED_IMP", "PCC", "PLANO_12", "Pemfc", "configuracao_mpc",
            "configuracao_planejador", "configuracao_rede", "fontes", "h17_dois_bancos", "h1_tarifa_plana",
-           "h2_pico_futuro", "h3_pico_no_horizonte_curto", "h4_pico_deslocado", "h7_limite_importacao",
+           "h2_pico_futuro", "h3_pico_no_horizonte_curto", "h5_erro_previsao", "L_REAL_H5", "h4_pico_deslocado", "h7_limite_importacao",
            "h8_indisponibilidade_pcc", "h9_pemfc", "latencias", "modelo", "politica_ajuste", "proc", "serie", "tabela",
            "tarifas_decisao", "termo_longo", "verdade"]
 _ = (EspecGerador, field)

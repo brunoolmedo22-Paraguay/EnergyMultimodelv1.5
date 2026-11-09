@@ -1,4 +1,16 @@
-# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P), commitment dinámico (Piso 3C-1), MPC recedente (Piso 3C-2) y red/intercambio (Piso 3C-3)
+# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P), commitment dinámico (Piso 3C-1), MPC recedente (Piso 3C-2), red/intercambio (Piso 3C-3) y EMS jerárquico (Piso 3C-4)
+
+> **Piso 3C-4 (EMS jerárquico MILP–MPC, perfil `v1.1-3C-4`):** `ems_v2/hierarquia/` (núcleo solo biblioteca estándar)
+> añade un **planificador de largo plazo** que, desde el estado ejecutado y con previsiones/tarifas causalmente
+> disponibles, estima por **reoptimización paramétrica auditada** el **costo de continuación** V^tail en la frontera
+> terminal del MPC corto (lineal por tramos por modo terminal de los generadores; envolvente convexa verificada con dos
+> bancos) y lo transmite en un `SinalValorFuturo` sellado y verificable; `ems_v2/milp/*_3c4.py` (`resolver_3c4`)
+> compone el MILP 3C-3 con el término `custo_futuro_estimado` (separado del costo operativo y nunca contabilizado como
+> costo realizado), con auditor terminal independiente. `ControladorMPCHierarquico` reutiliza el MPC conectado 3C-3 por
+> puntos de extensión (ningún archivo previo de `ems_v2` modificado). Comparadores separan reoptimización, anticipación
+> e información perfecta con condiciones terminales explícitas. Ver [`FORMULACAO_3C4.md`](FORMULACAO_3C4.md),
+> [`MATRIZ_3C4.md`](MATRIZ_3C4.md), [`EVIDENCIA_3C4_EJECUCION.md`](EVIDENCIA_3C4_EJECUCION.md),
+> [`BRECHAS_3C4.md`](BRECHAS_3C4.md) y [`TRANSICAO_3C4_3D.md`](TRANSICAO_3C4_3D.md).
 
 > **Piso 3C-3 (red, intercambio económico y recurso explícito de equilibrio, perfil `v1.1-3C-3`):** `ems_v2/rede/`
 > (núcleo solo biblioteca estándar) declara el **PCC** (modo conectado × isolado declarado, sentidos permitidos, límites

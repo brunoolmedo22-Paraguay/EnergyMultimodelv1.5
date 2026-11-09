@@ -416,9 +416,11 @@ class Planejador3C4:
                 val.append(PontoValidacao(0, ee, vv, aprox, abs(vv - aprox)))
         erro_max = max((v.erro_R for v in val), default=0.0)
         mv = ModoValor(0, modo, "linear_local", (PontoValor(e0, v0, lb0, "otimo"),), (), tuple(el), tuple(eh), True)
-        estado = "valido" if erro_max <= cp.tolerancia_interpolacao_R + 1e-9 or len(e0) == 1 else "indisponivel"
+        estado = "valido" if erro_max <= cp.tolerancia_interpolacao_R + 1e-9 else "indisponivel"
         q = QualidadeSinal(estado, "aproximação LOCAL (diferenças de reotimizações paramétricas)" if estado == "valido"
-                           else "não separável: erro nos eixos > tolerância", erro_max, cp.tolerancia_interpolacao_R,
+                           else f"aproximação linear local NÃO defensável: V não linear em [E_ref − δ, E_ref + δ] (erro "
+                                f"{erro_max:.6g} R$ > tolerância; quebra/descontinuidade ou não separável)",
+                           erro_max, cp.tolerancia_interpolacao_R,
                            None if lb0 is None else abs(v0 - lb0), self.avaliacoes, tuple(val))
         return self._montar(alvo, (mv,), ref, sl, q)
 
