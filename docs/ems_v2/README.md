@@ -1,4 +1,18 @@
-# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P), commitment dinámico (Piso 3C-1) y MPC recedente (Piso 3C-2)
+# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P), commitment dinámico (Piso 3C-1), MPC recedente (Piso 3C-2) y red/intercambio (Piso 3C-3)
+
+> **Piso 3C-3 (red, intercambio económico y recurso explícito de equilibrio, perfil `v1.1-3C-3`):** `ems_v2/rede/`
+> (núcleo solo biblioteca estándar) declara el **PCC** (modo conectado × isolado declarado, sentidos permitidos, límites
+> contratados por intervalo, disponibilidad, medidores), **perfiles tarifarios** por bloques con naturaleza, revisión,
+> emisión y hash, y la política económica; `ems_v2/milp/{modelo,solver,resultado,evidencia}_3c3.py` resuelven el MILP
+> con importación/exportación exclusivas (binaria con coeficientes = límites contratados) y balance M02 extendido y
+> verificado término a término (`resolver_3c3`); el **auditor independiente** compone el auditor 3C-1. En ejecución,
+> el **intercambio programado** se distingue del **realizado**: política de ajuste local del PCC declarada (límites,
+> disponibilidad, sentidos, medición como evidencia), inyección renovable limitada por el potencial observado y
+> liquidación realizada separada (gasto de importación × crédito de exportación). `ControladorMPCConectado` extiende
+> el MPC 3C-2 por puntos de extensión mínimos del orquestador (E1–E8 idénticos). Modelo **algebraico agregado** (no
+> flujo AC, no control primario, tarifas sintéticas). Ver [`FORMULACAO_3C3.md`](FORMULACAO_3C3.md),
+> [`MATRIZ_3C3.md`](MATRIZ_3C3.md), [`EVIDENCIA_3C3_EJECUCION.md`](EVIDENCIA_3C3_EJECUCION.md),
+> [`BRECHAS_3C3.md`](BRECHAS_3C3.md) y [`TRANSICAO_3C3_3C4.md`](TRANSICAO_3C3_3C4.md).
 
 > **Piso 3C-2 (MPC de horizonte recedente, M23):** `ems_v2/mpc/` (núcleo solo biblioteca estándar) ejecuta misiones
 > de varias ventanas: reloj τ_k / N_k / m_k con política terminal explícita, libro de observaciones **append-only**

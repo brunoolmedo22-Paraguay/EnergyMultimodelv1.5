@@ -26,10 +26,8 @@ toda entrada de janela herda o mesmo PCC; observações do PCC numa missão isol
 from __future__ import annotations
 
 import dataclasses
-import math
 from dataclasses import dataclass, replace
 from datetime import timedelta
-from pathlib import Path
 
 from ..compromisso.contrato import hash_entrada_3c1
 from ..contracts import Disponibilidade
@@ -47,7 +45,7 @@ from . import ESQUEMA_3C3, FORMULACAO_3C3, ROTULO_REDE
 from .contrato import (EntradaRede3C3, PerfilTarifario, hash_entrada_3c3, selecionar_perfil_causal,
                        validar_entrada_3c3, validar_perfil)
 from .execucao import (ExecutorAlgebricoConectado3C3, PoliticaAjustePCC, contabilidade_realizada_3c3, hash_plano_rede,
-                       hash_politica_ajuste, plano_de_resultado_3c3, programa_de_plano, validar_politica_ajuste)
+                       plano_de_resultado_3c3, programa_de_plano, validar_politica_ajuste)
 from .registro import gravar_anexo_3c3, hashes_para_registro_3c3, montar_anexo_3c3, preparar_conteudo_anexo_3c3
 
 
@@ -185,6 +183,7 @@ class ResultadoMissaoConectada(ResultadoMissaoMPC):
 
 # ------------------------------------------------------------------------------------------------ controlador
 class ControladorMPCConectado(ControladorMPC):
+    _PERFIL_JANELA = "3C-3"
     def __init__(self, cfg, modelo: EntradaRede3C3, provedor, resolvedor, fontes_disponibilidade: dict,
                  configuracao_rede: ConfiguracaoRedeMPC, *, livro: LivroObservacoes | None = None, **kw):
         c = [x for x in validar_entrada_3c3(modelo).constatacoes if x.severidade != "aviso"]
@@ -386,4 +385,3 @@ class EntornoSimuladoConectado(EntornoSimuladoAlgebrico):
 __all__ = ["ConfiguracaoRedeMPC", "ControladorMPCConectado", "EntornoSimuladoConectado", "RegistroMissaoRede3C3",
            "ResolvedorMILP3C3", "ResultadoMissaoConectada", "VinculoRede3C3", "hash_configuracao_rede", "nome_vinculo",
            "registros_passos_pcc", "validar_configuracao_rede", "verificar_registro_rede"]
-_ = (math, Path)

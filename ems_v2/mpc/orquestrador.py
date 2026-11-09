@@ -372,7 +372,8 @@ class ControladorMPC:
             return self._falhar_sem_plano(jan, tk, inst, cl, str(exc), prev=prev, constat=list(exc.constatacoes))
         rel = self._validar_entrada_janela(e3)
         if not rel.aceito:
-            return self._falhar_sem_plano(jan, tk, inst, "bloqueado_validacao", "Entrada da janela recusada.",
+            return self._falhar_sem_plano(jan, tk, inst, "bloqueado_validacao",
+                                          f"Entrada {self._PERFIL_JANELA} da janela recusada.",
                                           prev=prev, constat=list(rel.bloqueantes()))
         he = self._hash_entrada(e3)
         t_ent = self._t("entrada", t0)
@@ -622,6 +623,8 @@ class ControladorMPC:
     # chamadas do 3C-2 (perfil v1.1-3C-1): o comportamento, os registros e os hashes do 3C-2 não mudam (regressão
     # ``test_ems_v2_3c3_regressao_3c2.py`` compara as impressões de E1–E8 com as da base ``a4c6b1c``). Uma subclasse
     # (``ems_v2.rede.mpc.ControladorMPCConectado``) substitui SÓ estes métodos.
+    _PERFIL_JANELA = "3C-1"         # rótulo das mensagens (texto 3C-2 inalterado)
+
     def _chaves_previsao(self):
         return chaves_de_previsao(self.modelo)
 
