@@ -137,4 +137,16 @@ def construir_modelo_3c3(e: EntradaRede3C3, compromisso_parcial: dict | None = N
     return ModeloConstruido3C3(nuc, True, dois, termos, expr, sp)
 
 
-__all__ = ["ExtensaoM02Incoerente", "ModeloConstruido3C3", "construir_modelo_3c3"]
+def contraprova_relaxacao_sentido(mc: ModeloConstruido3C3, configuracao) -> dict:
+    """SÓ para a contraprova G10 (evidência/testes): resolve o MESMO modelo com o indicador de sentido w RELAXADO a
+    [0, 1] e devolve objetivo e fluxos. Nunca é usado pelo ``resolver_3c3`` (o despacho aceito sempre tem w binária)."""
+    from .solver import _executar_highs
+    m = mc.modelo
+    m.w_pcc.domain = pe.UnitInterval
+    _executar_highs(m, configuracao)["carregar"]()
+    T = range(mc.base.N)
+    return {"objetivo": float(pe.value(m.J)), "P_imp": tuple(float(pe.value(m.P_imp[t])) for t in T),
+            "P_exp": tuple(float(pe.value(m.P_exp[t])) for t in T), "w": tuple(float(pe.value(m.w_pcc[t])) for t in T)}
+
+
+__all__ = ["ExtensaoM02Incoerente", "ModeloConstruido3C3", "construir_modelo_3c3", "contraprova_relaxacao_sentido"]
