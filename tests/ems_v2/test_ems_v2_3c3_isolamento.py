@@ -66,7 +66,9 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr15():
     novos = {ln[1] for ln in linhas if ln[0] == "A"} | set(subprocess.run(
         ["git", "ls-files", "--others", "--exclude-standard", "--", *alvos], cwd=RAIZ, capture_output=True, text=True,
         check=True).stdout.split())
-    from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3, ADICOES_3C4
+    # 3C-4 (contradição C-3C4-02, docs/ems_v2/FORMULACAO_3C4.md §10): adições nominais do EMS hierárquico.
     for f in novos:
-        assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/"))
-                or f in ADICOES_3C3 or f == "ems_v2/fixtures_3c3.py"), f
+        assert (f.startswith(("ems_v2/rede/", "tests/ems_v2/test_ems_v2_3c3_", "tests/ems_v2/dados/",
+                              "ems_v2/hierarquia/", "tests/ems_v2/test_ems_v2_3c4_"))
+                or f in ADICOES_3C3 | ADICOES_3C4 or f in ("ems_v2/fixtures_3c3.py", "ems_v2/fixtures_3c4.py")), f

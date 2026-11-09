@@ -88,10 +88,12 @@ def test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr14():
     novos = {ln[1] for ln in linhas if ln[0] == "A"}
     nao_rastreados = set(subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "ems_v2"], cwd=RAIZ,
                                         capture_output=True, text=True, check=True).stdout.split())
-    from test_ems_v2_ponte_isolamento import ADICOES_3C3
+    from test_ems_v2_ponte_isolamento import ADICOES_3C3, ADICOES_3C4
+    # 3C-4 (contradição C-3C4-02, docs/ems_v2/FORMULACAO_3C4.md §10): adições nominais do EMS hierárquico.
     for f in novos | nao_rastreados:
-        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/")) or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py")
-                or f in ADICOES_3C3), f
+        assert (f.startswith(("ems_v2/mpc/", "ems_v2/rede/", "ems_v2/hierarquia/"))
+                or f in ("ems_v2/fixtures_3c2.py", "ems_v2/fixtures_3c3.py", "ems_v2/fixtures_3c4.py")
+                or f in ADICOES_3C3 | ADICOES_3C4), f
 
 
 def test_adicoes_3c1_da_guarda_anterior_inalteradas():
