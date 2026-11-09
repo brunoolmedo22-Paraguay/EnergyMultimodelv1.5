@@ -1,4 +1,14 @@
-# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A) y primer MILP ejecutable (Piso 3B-P)
+# `ems_v2` — Fundaciones del EMS MILP–MPC (Piso 3A), primer MILP ejecutable (Piso 3B-P) y commitment dinámico (Piso 3C-1)
+
+> **Piso 3C-1 (Unit Commitment dinámico, perfil `v1.1-3C-1`):** `ems_v2/compromisso/` (contrato embrulho por unidad,
+> discretización exacta, memoria, preflight y **auditor independiente**, solo biblioteca estándar) y
+> `ems_v2/milp/{modelo,solver,resultado,evidencia}_3c1.py` resuelven M09–M12 (transiciones y/z, rampas con p_{−1},
+> límites de arranque/parada, permanencias U/D = ⌈T/Δ⌉, obligaciones heredadas, política terminal explícita) y el
+> término `eventos`, con compromiso libre o parcial: `resolver_3c1(entrada_3c1, configuracao, compromisso_parcial)`.
+> `resolver` (3B-P) sin cambios. Integración con la puente en `ems_v2/ponte/compromisso.py` (plan, ejecutor algébrico,
+> transporte de memoria entre ventanas). Sin MPC. Ver [`FORMULACAO_3C1.md`](FORMULACAO_3C1.md),
+> [`MATRIZ_3C1.md`](MATRIZ_3C1.md), [`EVIDENCIA_3C1.md`](EVIDENCIA_3C1.md), [`BRECHAS_3C1.md`](BRECHAS_3C1.md) y
+> [`TRANSICAO_3C1_3C2.md`](TRANSICAO_3C1_3C2.md).
 
 > **Piso 3C-0 (puente científico):** `ems_v2/ponte/` (contratos, solo biblioteca estándar) y `ems_v2/ponte_seeds2/`
 > (lector SOLO LECTURA de microrredes reales) conectan **contractualmente** el EMS V2 con el Gestor de microrredes:

@@ -2,40 +2,33 @@
 
 > **Fuente de continuidad operativa.** Leer junto con [CLAUDE.md](../../CLAUDE.md) antes de comenzar cualquier sesión. Mantener breve, con hechos verificables, fecha y referencias a PRs. El código y los tests son la fuente de verdad funcional.
 
-**Actualización:** 2026-11-08 · **rama:** `ccr-0cc9677c-ydyfl7` · **PR:** [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-0 — Puente científico EMS MILP ↔ microrredes** implementado y verificado en la rama; **no integrado** (sin UI/runtime).
+**Actualización:** 2026-11-09 · **rama:** `claude/sweet-heisenberg-v0opgu` · **PR:** __PR__ contra `main`, sin merge (pendiente de auditoría) · **estado:** **Piso 3C-1 — Unit Commitment dinámico (M09–M12), rampas, permanencias y memoria operativa** implementado y verificado en la rama; **no integrado** (sin UI/runtime, sin MPC).
 
-> **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 8**; arquitectura y decisiones en [`docs/ems_v2/PONTE_3C0.md`](../ems_v2/PONTE_3C0.md); brechas en [`BRECHAS_3C0.md`](../ems_v2/BRECHAS_3C0.md); transición en [`TRANSICAO_3C0_3C1.md`](../ems_v2/TRANSICAO_3C0_3C1.md); evidencia en [`EVIDENCIA_3C0.md`](../ems_v2/EVIDENCIA_3C0.md).
+> **Informe técnico vigente: [`PARAMIJEFE.md`](../../PARAMIJEFE.md) — Entrega 9**; formulación, decisiones y contradicciones en [`docs/ems_v2/FORMULACAO_3C1.md`](../ems_v2/FORMULACAO_3C1.md); trazabilidad en [`MATRIZ_3C1.md`](../ems_v2/MATRIZ_3C1.md); evidencia en [`EVIDENCIA_3C1.md`](../ems_v2/EVIDENCIA_3C1.md); brechas en [`BRECHAS_3C1.md`](../ems_v2/BRECHAS_3C1.md); transición en [`TRANSICAO_3C1_3C2.md`](../ems_v2/TRANSICAO_3C1_3C2.md).
 
 ## 1. Estado actual
 
-- `main` (`3c65d98`): V1.6 + PR #1–#12 (3A y 3B-P integrados). Línea de base medida en esta sesión: **870 passed, 7 warnings, 128 subtests**.
-- Rama `ccr-0cc9677c-ydyfl7` desde `main`: **Piso 3C-0** (sección 2).
-- EMS V1.6, modelos, runtime, `seeds2/`, aplicación, `requirements*.txt`, `ems_v2/milp`, `contracts.py`, `audit.py` y `reference.py` **sin cambios** (test `test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada`). La aplicación sigue sin referenciar `ems_v2`.
+- `main` (`81aa09c`): V1.6 + PR #1–#13 (3A, 3B-P y 3C-0 integrados). Línea de base `tests/ems_v2` medida en esta sesión: **535 passed**.
+- Rama `claude/sweet-heisenberg-v0opgu` desde `main`: **Piso 3C-1** (sección 2).
+- EMS V1.6, modelos, runtime, `seeds2/`, aplicación, `requirements*.txt`, `contracts.py`, `audit.py`, `reference.py` y los archivos existentes de `ems_v2/milp/` **sin cambios byte a byte** (guardia `test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada`, ajustada para admitir solo adiciones nominales — C-3C1-01). La aplicación sigue sin referenciar `ems_v2`.
 
-## 2. Última entrega — Piso 3C-0 (esta rama)
+## 2. Última entrega — Piso 3C-1 (esta rama)
 
-- **Implementado (contratos, sin integración):** `ems_v2/ponte/` (núcleo, solo biblioteca estándar): `inventario`, `requisitos`, `cenario`, `projecao`, `execucao`, `preflight`, `registro`, `instrumentacao`, `canonico`; `ems_v2/ponte_seeds2/leitor.py` (lector SOLO LECTURA de microrredes/escenarios reales por el catálogo); `ems_v2/fixtures_3c0.py` (ensayo sintético). Tipo de procedencia aditivo `declarado_seeds2` en `ems_v2/provenance.py`.
-- **Verificado (2026-11-08):** `tests/ems_v2` **495 passed** (416 + 79 nuevos; sin Pyomo: 354 passed, 5 skipped); suite completa **949 passed, 7 warnings, 128 subtests** (= 870 + 79). Diff de V1.6/aplicación/`seeds2`/núcleo 3A-3B-P vacío. Detalle: `docs/ems_v2/EVIDENCIA_3C0.md`.
-- **Hallazgo principal:** ninguna microrred real puede ejecutar el EMS V2 hoy; la equivalente al V1.6 queda bloqueada con explicación (η, P en barra, autodescarga, P_min/curva PEMFC, previsiones). Cadena completa (preflight → 3A → HiGHS → plan → ejecución algébrica → registro sellado) probada solo en ensayo sintético rotulado.
-- **Decisiones:** D-3C0-01..09 (PONTE_3C0 §5). **Contradicciones:** C-3C0-01 (excepción nominal: único archivo de `ems_v2` que importa `seeds2`, con guardia más estricta; test 3B-P `test_so_o_subpacote_milp_importa_pyomo_ou_highspy` ajustado) — **aceptada condicionalmente por el auditor**; C-3C0-02 (disponibilidad por usina, herencia explícita).
-- **Auditoría del PR #13 (2026-11-08): favorable con correcciones H-01..H-04, aplicadas en la misma rama:**
-  - **H-01:** igualdad previsión = realización ⇒ advertencia; bloqueo solo con evidencia de fuga (hash del contenido realizado, mismo objeto, oráculo falso).
-  - **H-02:** `preflight_ems_v2(..., finalidade="diagnostico"|"otimizacao")` y `apto_para_otimizacao`; sin políticas o sin proyección aceptada no hay autorización para el solver.
-  - **H-03:** `gravar_registro` con creación exclusiva (`os.link`, fallback `O_EXCL`); el arnés multiproceso rompió el código anterior en 8/10 rondas.
-  - **H-04:** `Realizacao.modo` offline/online con `observado_ate_utc`; lo que falta para 3C-2 es la brecha K6 (bloqueante).
-  - Verificado: 31 tests nuevos; 3A 268 y 3B-P 148 sin cambios; `tests/ems_v2` **526 passed**; suite completa **980 passed, 7 warnings, 128 subtests** (392 s) = 949 + 31. Detalle: PARAMIJEFE Entrega 8 §6b; EVIDENCIA_3C0 §5.
-- **Segunda auditoría (base `d74f883`): H-01, H-02 y C-3C0-01 aprobados; cierre C-01..C-03 aplicado:**
-  - **C-01:** preflight online con k = 0 observados es válido (advertencia); k ≥ 1/offline siguen exigiendo series.
-  - **C-02:** barrera temporal `observado_ate_utc` en `executar`, independiente del ejecutor; pausa × inexequible × error de datos diferenciados; reanudación desde checkpoint.
-  - **C-03:** ruta sin hard link = reserva `O_EXCL` + `os.replace` (sin lecturas parciales; reserva huérfana ⇒ error, recuperación manual).
-  - Verificado: `test_ems_v2_ponte_auditoria_pr13.py` 40 passed; `tests/ems_v2` **535 passed**; suite completa **989 passed, 7 warnings, 128 subtests** (370 s) = 980 + 9. Windows no ejecutado. Detalle: PARAMIJEFE Entrega 8 §6c; EVIDENCIA_3C0 §6.
-- **No implementado (fuera de alcance):** commitment dinámico (3C-1), MPC (3C-2), red/economía (3C-3), planificación jerárquica/valor futuro (3C-4), ejecutor físico, persistencia del registro en el banco de la microrred, lectura de previsiones del 2B.
+- **Implementado:** `ems_v2/compromisso/` (contrato embrulho `EntradaCommitment3C1` con base 3B-P, discretización exacta, memoria, preflight, auditor independiente; solo biblioteca estándar); `ems_v2/milp/{modelo,solver,resultado,evidencia}_3c1.py` (`resolver_3c1`); `ems_v2/ponte/compromisso.py` (plan, ejecutor algébrico 3C-1, transporte de memoria, continuación de ventana, costo de eventos incurrido, proyección por unidad); `ems_v2/fixtures_3c1.py`; `CAPACIDADES_3C1` y columnas `status_3C1` del catálogo. Parámetros aditivos (por defecto 3C-0 inalterado): `requisitos.matriz_parametros(perfil=)`, `projecao.montar_entrada(estados_por_unidade=, perfil=)`, `preflight_ems_v2(commitment_3c1=)`.
+- **Verificado (2026-11-09):** 110 tests nuevos (`tests/ems_v2/test_ems_v2_3c1_*.py`); `tests/ems_v2` **645 passed** (sin Pyomo: 463 passed, 9 skipped); suite completa **1099 passed, 7 warnings, 128 subtests** (503 s) = 989 de `main` + 110. Casos A–L de la misión; Caso H igual a la enumeración exhaustiva independiente (R$ 12,7). Detalle: `docs/ems_v2/EVIDENCIA_3C1.md`.
+- **Decisiones:** D-3C1-01..10 (FORMULACAO_3C1 §9). **Contradicciones:** C-3C1-01 (dos guardias ajustadas nominalmente), C-3C1-02 (reinterpretación R$ ≡ R$/evento no verificable por la cadena 3A; tratada solo en la proyección 3C-1).
+- **Hallazgo:** ninguna microrred real puede usar el commitment dinámico hoy (faltan rampa, T_on/T_off, C_SD, estado por unidad y memoria; "Rampa máxima" vacía ≠ sin límite). PEMFC: abstracción instantánea solo en ensayo; D05 pendiente.
+- **No implementado (fuera de alcance):** MPC recedente (3C-2), valor futuro/planificador (3C-4), multimodo PEMFC (M20), M11-EXT, M05, M19, red/tarifas, UI/selector, migraciones, ejecutor físico.
 
 ## 3. Próxima misión propuesta
 
-Piso 3C-1 (commitment dinámico M09–M12) — **no autorizado**; requiere auditoría del 3C-0 y decisión sobre C-3C0-01. Interfaces preparadas en `TRANSICAO_3C0_3C1.md`.
+Piso 3C-2 (MPC recedente, M23) — **no autorizado**; requiere auditoría del 3C-1 y decisiones D-3C1-*. Interfaces preparadas en `TRANSICAO_3C1_3C2.md`.
 
 ---
+
+## Histórico — entrega anterior: Piso 3C-0 · Puente científico (PR #13, integrado en `81aa09c`)
+
+- `ems_v2/ponte/` (inventario por UID, requisitos, escenario/previsión/realización, proyección, plan → ejecución → estado, preflight, registro sellado, instrumentación) y `ems_v2/ponte_seeds2/leitor.py` (solo lectura, C-3C0-01 aceptada condicionalmente); auditorías H-01..H-04 y C-01..C-03 aplicadas. Verificado entonces: `tests/ems_v2` 535 passed; suite 989 passed. Informe: `PARAMIJEFE.md` Entrega 8.
 
 ## Histórico — entrega anterior: Piso 3B-P · Primer MILP Pyomo + HiGHS (PR #12, integrado en `3c65d98`)
 
@@ -128,6 +121,7 @@ Actualizar **este archivo en el mismo PR** con: fecha, rama, PR y commit, alcanc
 - PR [#9](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/9) — Piso 2D-A, Arquivo Científico Portátil + C-03 (merge `3b73971`): `PARAMIJEFE.md` Entrega 4.
 - PR [#10](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/10) — Piso 2D-B, Relatórios Científicos, Excel e Figuras (merge `8556b71`): `PARAMIJEFE.md` Entrega 5.
 - PR [#11](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/11) — Piso 3A (merge `f6d009d`): Entrega 6. PR [#12](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/12) — Piso 3B-P (merge `3c65d98`): Entrega 7.
-- Piso 3C-0 — Puente científico (rama `ccr-0cc9677c-ydyfl7`; PR [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13), pendiente de auditoría): Entrega 8.
+- PR [#13](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/13) — Piso 3C-0, Puente científico (merge `81aa09c`): Entrega 8.
+- Piso 3C-1 — Commitment dinámico (rama `claude/sweet-heisenberg-v0opgu`; PR __PR__, pendiente de auditoría): Entrega 9.
 
 **Lectura obligatoria al entrar:** `CLAUDE.md` → este `HANDOFF.md` → `PARAMIJEFE.md` → estado real de `main` y PRs recientes. En caso de conflicto, reportar; no improvisar decisión científica.

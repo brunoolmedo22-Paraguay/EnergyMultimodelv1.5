@@ -1,0 +1,46 @@
+# Piso 3C-1 — Matriz de trazabilidad requisito → ecuación → implementación → prueba → resultado
+
+Todas las pruebas son **sintéticas/algebraicas** (`synthetic_algebraic`). Las de solver corren contra **HiGHS 1.15.1
+real** (Pyomo 6.10.1) y se saltan explícitamente sin Pyomo. Abreviaturas: `ct::` = `test_ems_v2_3c1_contrato.py`
+(30), `au::` = `test_ems_v2_3c1_auditor.py` (28), `mi::` = `test_ems_v2_3c1_milp.py` (32), `co::` =
+`test_ems_v2_3c1_continuidade.py` (7), `po::` = `test_ems_v2_3c1_ponte.py` (7), `pe::` = `test_ems_v2_3c1_perfil.py`
+(6). Total nuevo: **110**. Módulos en `ems_v2/`.
+
+## Casos obligatorios (orden de la misión §11)
+
+| Caso | Requisito | Ecuación | Implementación | Prueba(s) | Resultado (HiGHS) |
+|---|---|---|---|---|---|
+| A | Transiciones binarias, eventos, M09 | M09, M10 | `milp/modelo_3c1` (M09, M09ex, M09a); `compromisso/auditor` | `mi::test_caso_a_transicoes_e_eventos`, `mi::test_caso_a_custo_de_evento_nao_e_multiplicado_por_h`, `mi::test_caso_a_sem_termo_eventos_…`, `au::test_caso_a_analitico_aceito_e_custos_sem_h` | u = [0,1,1,0], y₁ = z₃ = 1, R$ 7 para Δ = 1/15/60 min; sin término: mismas transiciones, costo 0 |
+| B | Rampa desde p^{-1} y Δ | M11a/b | `M11a`, `M11b` (R·Δ exacto) | `mi::test_caso_b_rampa_desde_p_anterior`, `mi::test_caso_b_rampa_mais_lenta…`, `au::test_caso_k_rampa_violada` | p = [15,20,25,30] (R = 1 kW/min, Δ = 5); R = 0,4 ⇒ [12,14,16,18]; 10→30 kW rechazado (t = 0) |
+| C | T_on mínimo | M12 | `M12on` | `mi::test_caso_c_tempo_minimo_on`, `au::test_caso_k_permanencia_ON_violada…` | U = 3 ⇒ u = [1,1,1,0], R$ 5; T_on = 0 ⇒ [1,0,0,0], R$ 0 |
+| D | T_off mínimo | M12 | `M12off` | `mi::test_caso_d_tempo_minimo_off`, `au::test_caso_k_permanencia_OFF_violada` | D = 3 ⇒ u = [0,0,0,1] (religa tras exactamente 3 OFF), R$ 3,5; sin T_off ⇒ [1,0,0,1], R$ 1 |
+| E | Obligación heredada desde t = 0 | M12 (EST-INI) | `M12ini`; `MemoriaCommitmentUnidade` | `mi::test_caso_e_obrigacao_herdada_desde_t0`, `mi::test_caso_e_obrigacao_maior_que_a_janela…`, `au::test_caso_k_obrigacao_herdada_violada_desde_t0` | OFF heredado ⇒ [0,0,1,1]; ON heredado ⇒ [1,1,0,0]; obligación > ventana ⇒ residual 3600 s transportada |
+| F | Borde del horizonte | M12-TERM | `M12term_y/z`; `compromisso/memoria` | `mi::test_caso_f_borda_cumprir_na_janela`, `mi::test_caso_f_borda_obrigacao_residual_vinculante`, `au::test_caso_k_politica_terminal_e_residual` | cumprir: [0,1,1,1], garantía completa; residual: [0,0,0,1], obligación 1800 s, garantía `residual_vinculante` |
+| G | Unidades del mismo bloque independientes | M09–M12 por UID | `UIDRecurso(eq, k)`; `ponte/compromisso.CondicaoInicialUnidade` | `mi::test_caso_g_…`, `au::test_caso_k_unidades_independentes`, `po::test_projecao_por_unidade_sem_distribuir_agregado` | #1 = 1111, #2 = 0011, memorias propias; sin estado por unidad ⇒ `estado_por_unidade_nao_declarado` |
+| H | Óptimo = enumeración exhaustiva independiente | M09–M12, M14–M16, M21 | `tests/ems_v2/enumeracao_3c1.py` (2⁸ programas × simplex racional exacto, sin Pyomo) | `mi::test_caso_h_otimo_igual_a_enumeracao_exaustiva_independente` | R$ 12,7 = enumeración; u, y, z y p idénticos; segundo mejor R$ 14,7 (óptimo único) |
+| I | Inviabilidad verdadera sin holguras | M11, M12, M02 | sin variables de holgura | `mi::test_caso_i_inviabilidade_sem_folgas[rampa, permanência]`, `mi::test_modelo_sem_variaveis_de_folga…` | `provenInfeasible` ⇒ `inviavel`, sin despacho, sin plan |
+| J | Reanudación / continuidad | M12, EST-INI | `ponte/compromisso` (ejecutor, `memorias_do_estado`, `entrada_de_continuacao`, `estado_inicial_3c1`) | `co::test_caso_j_*` (3), `co::test_executor_recusa…`, `co::test_continuacao_recusa…` | continua = partida por checkpoint (estados y cadena de hashes idénticos); memoria transportada admite exactamente la continuación y rechaza la violación |
+| K | Auditoría adversarial | todas | `compromisso/auditor` | `au::test_caso_k_*` (14), `mi::test_caso_k_solucao_adulterada_apos_highs…` (4), `mi::test_caso_k_discretizacao_sabotada…` | arranque, estado, rampa y permanencia alterados tras HiGHS ⇒ `rejeitado_auditoria` y sin plan; constructor saboteado (U = 1) ⇒ rechazado |
+| L | Retrocompatibilidad 3A/3B-P/3C-0 | — | archivos base intactos; API 3B-P sin cambios | `mi::test_caso_l_api_3bp_inalterada…`, `mi::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp` (6 fixtures), `ct::test_perfil_3c1_explicito…`, los 535 tests anteriores | 535/535 sin cambios de aserciones (2 guardias ajustadas, C-3C1-01); hashes 3A/3B-P idénticos; 3C-1 con estado mantenido = 3B-P (objetivo, u, costos) |
+
+## Requisitos transversales
+
+| Requisito (misión) | Implementación | Prueba(s) | Estado |
+|---|---|---|---|
+| §3 perfil explícito, contratos anteriores sin capacidades | `FORMULACAO_3C1`, embrulho | `ct::test_perfil_3c1_…`, `ct::test_base_deve_ser_3bp…`, `mi::test_caso_l_api_3bp…` | implemented |
+| §3 JSON/hash 3A/3B-P intactos | `contracts.py` sin cambios | `ct::test_json_canonico_proprio…`, pins 3A (`f6d009d`) y 3B-P (`81aa09c`) | implemented |
+| §4.1 sin eventos ficticios, y+z ≤ 1, u ≤ a | M09 | `au::test_caso_k_evento_ficticio_explicito`, `au::test_caso_k_compromisso_parcial_e_indisponibilidade` | implemented |
+| §4.2 unidades kW/min × Δ min; sin rampas ilimitadas; arranque/parada distintos | `discretizar`, D-3C1-02/03 | `ct::test_discretizacao_exata…`, `ct::test_parametro_temporal_ausente_bloqueia`, `ct::test_unidades_e_dominio…`, `au::test_caso_k_transicao_nao_representavel` | implemented |
+| §4.3 regla conservadora ⌈T/Δ⌉ | `discretizar`, auditor `decimal` | `ct::test_discretizacao_exata_e_arredondamento_conservador`, `au::test_discretizacao_do_auditor_independente…` (10) | implemented |
+| §5 memoria y checkpoints | `MemoriaCommitmentUnidade`, `EstadoGeracao.tempo_no_estado_s` sellado | `co::*`, `ct::test_memoria_*` | implemented |
+| §6 commitment por unidad física | expansión `#k`, `CondicaoInicialUnidade` | Caso G | implemented |
+| §7 `futuro_3C1` ⇒ bloqueantes | `requisitos.EXIGIDOS_3C1`, `perfil=` | `po::test_requisitos_futuro_3C1_viram_bloqueantes…`, `po::test_microrrede_real_bloqueada_no_3c1…` | implemented |
+| §8 PEMFC: abstracción declarada, B04, sin multimodo, D05 | aviso, masas, pendientes | `ct::test_pemfc_com_transicoes…`, `ct::test_multimodo_continua_pendente`, `mi::test_pemfc_abstracao_instantanea…` | implemented (abstracción) / physical: **not validated** |
+| §9 costos de evento R$/evento, sin h, sin cero implícito; plan × incurrido | término `eventos`; `custo_eventos_realizado` | `ct::test_custos_de_evento…`, `co::test_custo_de_eventos_realizado…` | implemented |
+| §10 clasificación, timeout, error, objetivo incoherente | reutiliza `resultado.classificar` | `mi::test_objetivo_incoerente_e_terminacoes…`, `mi::test_limite_de_tempo_real…` | implemented |
+| §10 compromiso libre y parcial | `compromisso_parcial` | `mi::test_compromisso_parcial_fixado…`, `ct::test_compromisso_parcial_*` | implemented |
+| §11 MILP lineal, sin SOS | modelo 3C-1 | `mi::test_modelo_sem_variaveis_de_folga_linear_e_sem_sos` | implemented |
+| §11 sin Pyomo ⇒ omitidas explícitamente | `importorskip` | ejecución con Pyomo bloqueado: 463 passed, 9 skipped (EVIDENCIA_3C1 §2) | implemented |
+| Aislamiento: núcleo stdlib; auditor sin Pyomo; 3A/3B-P no conocen 3C-1 | — | `pe::test_modulos_3c1_sem_pyomo…`, `pe::test_nucleo_3a_3bp_nao_conhece_o_3c1`, `au::test_auditor_3c1_sem_pyomo…` | implemented |
+| Catálogo y capacidades coherentes | `CAPACIDADES_3C1`, columnas `status_3C1` | `pe::test_capacidades_3c1_…`, `pe::test_catalogo_3c1_…` (2) | implemented |
+| MPC, valor futuro, multimodo, M11-EXT, M19, red | — | — | **not implemented** (fuera de alcance) |
