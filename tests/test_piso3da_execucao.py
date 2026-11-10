@@ -379,3 +379,14 @@ def test_cenario_v16_nao_e_afetado_pela_camada_v2(tmp_path):
     pf2 = PF.preparar(store, sc)                              # e o preflight V2 recusa um cenário que não o selecionou
     assert not pf2.ok and any(i.area == "motor" for i in pf2.items if i.level == PF.ERROR)
     _ = (io, pd)
+
+
+@requer_solver
+def test_relatorios_do_piso_2db_recusam_a_rodada_v2_em_vez_de_reinterpreta_la(missao):
+    """O dossiê 2D-B é específico do V1.6: uma rodada V2 não tem os recursos V1.6 e é RECUSADA nomeando o recurso —
+    nunca lida como se fosse um despacho V1.6 (os dados V2 ficam em ``v2/…``)."""
+    from seeds2.report import dossier as D
+    assert D.missing_required(missao["run"]) == list(D.REQUIRED_CONCLUDED)
+    with pytest.raises(D.DossierIntegrityError) as exc:
+        D.load(missao["store"], missao["run"].run_uid)
+    assert "entradas/missao.csv" in str(exc.value) and "Nenhum documento é gerado" in str(exc.value)

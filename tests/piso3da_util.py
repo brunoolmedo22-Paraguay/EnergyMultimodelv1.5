@@ -83,8 +83,9 @@ def demanda_sintetica(doc: dict, *, kW: float = 10.0, horas: int = 12, passo_s: 
 
 def criar_cenario_v2(store, *, nome: str = "Cenário V2 de teste", soc0: float = 100.0, horas: int = 12, bloco=None,
                      motor: str | None = E.MOTOR_V2, demanda_kW: float = 10.0, fuso: str | None = "UTC",
-                     mutar=None, **kw_bloco):
-    """Cria e SALVA um cenário V2 (demanda sintética horária, missão de ``horas`` h, estratégia completa)."""
+                     mutar=None, com_estrategia: bool = True, **kw_bloco):
+    """Cria e SALVA um cenário V2 (demanda sintética horária, missão de ``horas`` h, estratégia completa).
+    ``com_estrategia=False``: só estados, previsão e janela (motor e estratégia ficam para a interface)."""
     sc = SV.create(store, name=nome)
     doc = copy.deepcopy(sc.document)
     for eid in E.baterias_do_cenario(doc):
@@ -93,9 +94,10 @@ def criar_cenario_v2(store, *, nome: str = "Cenário V2 de teste", soc0: float =
     assert cand.ok, [f.message for f in cand.analysis.findings]
     doc["forecasts"]["demand"] = cand.entry
     doc["mission"] = SG.default_mission(INICIO_LOCAL, fuso, horas * 60)
-    if motor is not None:
-        doc[E.CHAVE_MOTOR] = motor
-    doc[E.CHAVE_BLOCO] = bloco_h2(doc, K=horas, **kw_bloco) if bloco is None else bloco
+    if com_estrategia:
+        if motor is not None:
+            doc[E.CHAVE_MOTOR] = motor
+        doc[E.CHAVE_BLOCO] = bloco_h2(doc, K=horas, **kw_bloco) if bloco is None else bloco
     if mutar is not None:
         mutar(doc)
     return SV.save(store, doc, sc.version, new_blobs=cand.blobs)

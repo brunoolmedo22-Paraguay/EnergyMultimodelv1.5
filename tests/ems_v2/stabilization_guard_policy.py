@@ -81,4 +81,8 @@ def filter_maintenance_changes(root: Path, changes: list[list[str]]) -> list[lis
         (row[0] == 'A' and row[1] in policy['added_files'])))]
     assert_ci01_context(root)
     from ci01_guard_policy import filter_changes
-    return filter_changes(root, retained)
+    retained = filter_changes(root, retained)
+    # Piso 3D-A (C-3DA-01): exceção NOMINAL da integração operacional autorizada — nomes e status exatos; nenhuma
+    # das exceções anteriores (eólica, estabilização, CI-01) é alterada e os arquivos fixados continuam fixados.
+    from piso3da_guard_policy import filter_changes as filter_piso3da
+    return filter_piso3da(root, retained)

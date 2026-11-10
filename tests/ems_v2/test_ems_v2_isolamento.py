@@ -27,11 +27,18 @@ def test_ems_v2_so_usa_biblioteca_padrao():
 
 
 def test_aplicacao_nao_referencia_ems_v2():
-    """3A: nenhum seletor/integração. Nenhum arquivo Python fora de ems_v2/ e tests/ems_v2/ menciona o pacote."""
+    """3A: nenhum arquivo Python fora de ems_v2/ e tests/ems_v2/ menciona o pacote.
+
+    Piso 3D-A (contradição C-3DA-01): a integração operacional foi AUTORIZADA. A varredura continua global; a única
+    exceção é NOMINAL — a camada de integração ``integracao_v2/`` e os seus testes listados em
+    ``piso3da_guard_policy`` (nenhum outro arquivo da aplicação, de ``seeds2`` ou do V1.6 pode mencionar o motor)."""
+    from piso3da_guard_policy import referencia_autorizada
     achados = []
     for p in RAIZ.rglob("*.py"):
         rel = p.relative_to(RAIZ).as_posix()
         if rel.startswith(("ems_v2/", "tests/ems_v2/", "reference_models/")) or "/." in "/" + rel:
+            continue
+        if referencia_autorizada(rel):
             continue
         try:
             if "ems_v2" in p.read_text(encoding="utf-8", errors="ignore"):
