@@ -1,0 +1,374 @@
+{
+  "Nordex N117/2400": {
+    "true": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 1923,
+      "different_samples": 738,
+      "first_difference": [
+        2,
+        2
+      ],
+      "max_absolute_kw": 2.2737367544323206e-12,
+      "max_relative": 7.618155447531757e-16,
+      "rmse_kw": 5.357302155847729e-13,
+      "energy_difference_kwh": [
+        2.515794979747928e-11,
+        5.031589959495856e-11,
+        3.380288641589383e-11
+      ],
+      "max_ulp": 5,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    },
+    "false": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 1923,
+      "different_samples": 738,
+      "first_difference": [
+        2,
+        2
+      ],
+      "max_absolute_kw": 2.2737367544323206e-12,
+      "max_relative": 7.618155447531757e-16,
+      "rmse_kw": 5.357302155847729e-13,
+      "energy_difference_kwh": [
+        2.515794979747928e-11,
+        5.031589959495856e-11,
+        3.380288641589383e-11
+      ],
+      "max_ulp": 5,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    }
+  },
+  "Vestas V164-7.0 MW": {
+    "true": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2337,
+      "different_samples": 845,
+      "first_difference": [
+        0,
+        0
+      ],
+      "max_absolute_kw": 7.275957614183426e-12,
+      "max_relative": 1.4576933938762075e-15,
+      "rmse_kw": 1.4930452377913831e-12,
+      "energy_difference_kwh": [
+        1.5342986140846428e-11,
+        3.0685972281692856e-11,
+        -1.0042337332076081e-12
+      ],
+      "max_ulp": 10,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    },
+    "false": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2337,
+      "different_samples": 845,
+      "first_difference": [
+        0,
+        0
+      ],
+      "max_absolute_kw": 7.275957614183426e-12,
+      "max_relative": 1.4576933938762075e-15,
+      "rmse_kw": 1.4930452377913831e-12,
+      "energy_difference_kwh": [
+        1.5342986140846428e-11,
+        3.0685972281692856e-11,
+        -1.0042337332076081e-12
+      ],
+      "max_ulp": 10,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    }
+  },
+  "Siemens SWT-3.6-120": {
+    "true": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2252,
+      "different_samples": 818,
+      "first_difference": [
+        0,
+        0
+      ],
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.350580298741929e-16,
+      "rmse_kw": 7.154499642823538e-13,
+      "energy_difference_kwh": [
+        4.2727303177040686e-12,
+        8.545460635408137e-12,
+        -4.888534022029489e-12
+      ],
+      "max_ulp": 6,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    },
+    "false": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2252,
+      "different_samples": 818,
+      "first_difference": [
+        0,
+        0
+      ],
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.350580298741929e-16,
+      "rmse_kw": 7.154499642823538e-13,
+      "energy_difference_kwh": [
+        4.2727303177040686e-12,
+        8.545460635408137e-12,
+        -4.888534022029489e-12
+      ],
+      "max_ulp": 6,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    }
+  },
+  "Vestas V90-3.0 MW": {
+    "true": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2324,
+      "different_samples": 846,
+      "first_difference": [
+        0,
+        0
+      ],
+      "max_absolute_kw": 2.7284841053187847e-12,
+      "max_relative": 1.1400984494869292e-15,
+      "rmse_kw": 5.391445649013732e-13,
+      "energy_difference_kwh": [
+        4.241940132487798e-12,
+        8.483880264975596e-12,
+        -1.4684549872375403e-12
+      ],
+      "max_ulp": 10,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    },
+    "false": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2324,
+      "different_samples": 846,
+      "first_difference": [
+        0,
+        0
+      ],
+      "max_absolute_kw": 2.7284841053187847e-12,
+      "max_relative": 1.1400984494869292e-15,
+      "rmse_kw": 5.391445649013732e-13,
+      "energy_difference_kwh": [
+        4.241940132487798e-12,
+        8.483880264975596e-12,
+        -1.4684549872375403e-12
+      ],
+      "max_ulp": 10,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    }
+  },
+  "EWT DW61-1MW": {
+    "true": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 1821,
+      "different_samples": 718,
+      "first_difference": [
+        1,
+        0
+      ],
+      "max_absolute_kw": 6.821210263296962e-13,
+      "max_relative": 5.721157971235869e-16,
+      "rmse_kw": 1.770127728850119e-13,
+      "energy_difference_kwh": [
+        1.5537201155287523e-12,
+        3.1074402310575047e-12,
+        -3.2590226813529926e-12
+      ],
+      "max_ulp": 4,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    },
+    "false": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 1821,
+      "different_samples": 718,
+      "first_difference": [
+        1,
+        0
+      ],
+      "max_absolute_kw": 6.821210263296962e-13,
+      "max_relative": 5.721157971235869e-16,
+      "rmse_kw": 1.770127728850119e-13,
+      "energy_difference_kwh": [
+        1.5537201155287523e-12,
+        3.1074402310575047e-12,
+        -3.2590226813529926e-12
+      ],
+      "max_ulp": 4,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    }
+  },
+  "WEG AGW 147 / 4.2": {
+    "true": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2079,
+      "different_samples": 772,
+      "first_difference": [
+        0,
+        2
+      ],
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.567440924809532e-16,
+      "rmse_kw": 9.654819055247582e-13,
+      "energy_difference_kwh": [
+        5.608550660933057e-12,
+        1.1217101321866114e-11,
+        -1.0610771520684162e-11
+      ],
+      "max_ulp": 5,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    },
+    "false": {
+      "samples": 1008,
+      "values": 3024,
+      "different_values": 2079,
+      "different_samples": 772,
+      "first_difference": [
+        0,
+        2
+      ],
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.567440924809532e-16,
+      "rmse_kw": 9.654819055247582e-13,
+      "energy_difference_kwh": [
+        5.608550660933057e-12,
+        1.1217101321866114e-11,
+        -1.0610771520684162e-11
+      ],
+      "max_ulp": 5,
+      "nan_counts": [
+        0,
+        0
+      ],
+      "infinity_counts": [
+        0,
+        0
+      ],
+      "different_signed_zeros": 0,
+      "dtype_reference": "<f8",
+      "dtype_current": "<f8"
+    }
+  }
+}

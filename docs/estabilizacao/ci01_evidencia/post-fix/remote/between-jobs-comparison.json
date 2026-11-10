@@ -1,0 +1,164 @@
+{
+  "Nordex N117/2400": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8"
+  },
+  "Vestas V164-7.0 MW": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8"
+  },
+  "Siemens SWT-3.6-120": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8"
+  },
+  "Vestas V90-3.0 MW": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8"
+  },
+  "EWT DW61-1MW": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8"
+  },
+  "WEG AGW 147 / 4.2": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8"
+  }
+}

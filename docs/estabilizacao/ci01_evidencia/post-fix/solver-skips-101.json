@@ -1,0 +1,507 @@
+[
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c1_continuidade",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c1_milp",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c2_milp",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c3_milp",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c3_mpc",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c4_milp",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c4_mpc",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_3c4_planejador",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_milp_auditoria_3b",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_milp_casos",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_milp_integridade",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "",
+    "name": "tests.ems_v2.test_ems_v2_ponte_milp",
+    "reason": "collection skipped"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14",
+    "name": "test_a01_execucao_interrompida_por_indisponibilidade_realizada_e_por_dado_ausente",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14",
+    "name": "test_a02_custo_realizado_pemfc_completo_analitico",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14",
+    "name": "test_a02_sem_dupla_contagem_e_3c0_inalterado",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14",
+    "name": "test_a02_execucao_parcial_e_interrompida_so_eventos_aplicados",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14",
+    "name": "test_a02_custo_realizado_selado_no_registro_separado_do_valor_futuro",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_b",
+    "name": "test_b02_anexo_reconstroi_fontes_estatica_e_observada",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_b",
+    "name": "test_b02_mudar_a_declaracao_de_disponibilidade_altera_a_evidencia",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_b",
+    "name": "test_b02_registro_sem_hashes_3c1_ou_anexo_adulterado_recusados",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_perfil",
+    "name": "test_catalogo_3c1_codigo_pyomo_existe_no_modelo",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c1_ponte",
+    "name": "test_cadeia_3c1_ensaio_completa_com_milp_real",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_missao_valida_aceita_pela_auditoria_integral",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_modo_analitico_parcial_rotulado_nunca_certifica",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_integral_sem_artefatos_reprova[anexos]",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_integral_sem_artefatos_reprova[registros_3c0]",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_integral_sem_artefatos_reprova[registro_rede]",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_registro_3c0_de_outra_execucao",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_anexo_alterado_e_reselado",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_selo_de_janela_diferente_do_registro_historico",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_modelo_pcc_substituido_por_limites_mais_amplos",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_politica_economica_substituida_com_os_mesmos_custos",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_troca_de_evidencias_entre_duas_janelas",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_registro_de_missao_de_rede_adulterado",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c02_janela_sem_plano_nao_exige_artefatos",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c01_comando_invalido_na_planta_e_falha_de_dados_classificada[-5.0]",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c01_comando_invalido_na_planta_e_falha_de_dados_classificada[True]",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16",
+    "name": "test_c01_comando_invalido_na_planta_e_falha_de_dados_classificada['20']",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_h9_3c3_valida_com_normalizacao_aceita_pela_auditoria_integral",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_h9_3c4_valida_aceita_pela_auditoria_integral[hier_ref_dura-1]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_h9_3c4_valida_aceita_pela_auditoria_integral[hier_pwl-0]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_janelas_legitimas_sem_normalizacao_aceitas_sem_obrigacao_nova",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[aviso_ausente_hash_presente-codigos0-3c3]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[aviso_ausente_hash_presente-codigos0-3c4]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[hash_ausente_aviso_presente-codigos1-3c3]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[hash_ausente_aviso_presente-codigos1-3c4]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[aviso_e_hash_ausentes_codigo_presente-codigos2-3c3]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[aviso_e_hash_ausentes_codigo_presente-codigos2-3c4]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[codigo_ausente_aviso_e_hash_presentes-codigos3-3c3]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[codigo_ausente_aviso_e_hash_presentes-codigos3-3c4]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[hash_alterado-codigos4-3c3]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_evidencias_incoerentes_rejeitadas[hash_alterado-codigos4-3c4]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_1_codigo_sem_aviso_nem_hash_em_cadeia_selada_consistente",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_2_normalizacao_injustificada_rejeitada_pela_auditoria_integral_3c3",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_a03_2_auditoria_analitica_parcial_nao_e_afetada",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_a03",
+    "name": "test_registro_historico_3c3_anterior_a_b3c4_10_aceito_sem_obrigacao_nova",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_b01_mesmo_valor_corrigido_na_continuidade_registros_e_auditorias",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_b01_retomada_3c3_usa_o_estado_projetado",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_b01_b10_segundo_artefato_C01_agora_normalizado_pelo_hotfix_b3c4_10",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_b01_h9_cinco_estrategias",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a02_certificado_real_de_cobertura_milp",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a02_h7_h8_exclusao_do_dominio_certificada_e_custos_mantidos[h7_limite_importacao]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a02_h7_h8_exclusao_do_dominio_certificada_e_custos_mantidos[h8_indisponibilidade_pcc]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_missao_valida_aceita",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[contagens]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[contagens_tipo]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[energias_finais_kWh]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[hash_configuracao_planejador]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[hash_configuracao_rede]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[hash_modelo_rede]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[missao_uid]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[tempos_chave_extra]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[tempos_inflado]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[tempos_negativo]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_registro_final_alterado_e_reselado_e_rejeitado[valoracao_terminal_declarada_R]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_tempo_nao_finito_sem_reselo_rejeitado_sem_excecao",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17",
+    "name": "test_a01_objetos_de_configuracao_obrigatorios_e_tempos_apos_retomada",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c3_sem_residuo_identico_e_sem_registro",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c3_residuo_do_solver_normalizado_e_revalidado[g2-P_imp-1]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c3_residuo_do_solver_normalizado_e_revalidado[g1-P_exp-0]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c3_residuo_fora_da_politica_rejeita_a_solucao[-1e-06]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c3_residuo_fora_da_politica_rejeita_a_solucao[-0.001]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c3_residuo_fora_da_politica_rejeita_a_solucao[nan]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_transformacao_que_quebra_balanco_ou_economia_rejeitada[_zera_importacao-familias0]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_transformacao_que_quebra_balanco_ou_economia_rejeitada[_troca_mantendo_balanco-familias1]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_resolver_3c4_normalizacao_maliciosa_rejeitada_pelo_auditor",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_h9_residuo_normalizado_comprometido_e_reconstruido[mpc_sem_sinal]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_h9_residuo_normalizado_comprometido_e_reconstruido[hier_ref_dura]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_h9_auditorias_integrais_aceitam",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_alterada_ou_injustificada[aviso_sem_rehash]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_alterada_ou_injustificada[bruto_fora_da_cota]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_alterada_ou_injustificada[diferenca_incoerente]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_alterada_ou_injustificada[escala_alterada]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_alterada_ou_injustificada[limiar_inflado]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_alterada_ou_injustificada[motivo_trocado]",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_sem_origem_no_solver_e_sem_registro",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_3c4_b3c4_10",
+    "name": "test_auditoria_detecta_normalizacao_injetada_em_janela_com_importacao_real",
+    "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+  },
+  {
+    "class": "tests.ems_v2.test_ems_v2_milp_perfil",
+    "name": "test_catalogo_3BP_codigo_resolvivel",
+    "reason": "could not import 'pyomo': No module named 'pyomo'"
+  }
+]

@@ -64,7 +64,7 @@ python -m pytest tests/test_wind_catalog_expansion.py -k e01 -q
 NPY_DISABLE_CPU_FEATURES=AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL python -m pytest tests/test_wind_catalog_expansion.py -k e01 -q
 ```
 
-El último comando reproduce deliberadamente seis fallos bajo la política original. No es una omisión ni un resultado aceptado. Las suites completas y los dos trabajos finales en verde siguen pendientes de la corrección justificada. **No se declara resuelto CI-01 por estos experimentos locales.**
+El último comando produjo seis fallos antes de corregir, en el HEAD auditado 267ed149. En la rama actual pasa las doce comparaciones. Para reproducir el fallo anterior debe usarse un worktree separado de ese HEAD, con el mismo venv y NPY_DISABLE_CPU_FEATURES; nunca cambiar los fixtures. No se utiliza aquella ejecución fallida como aprobación. Los resultados posteriores están al final de este informe.
 
 ## Cotejo de hashes calculados solicitado al responsable
 
@@ -104,7 +104,7 @@ Las únicas adiciones nominales filtradas son `tests/ems_v2/ci01_guard_policy.py
 
 31 casos nuevos: aceptación de los seis experimentos canónicos y portables; alteración de un punto (1e-6 kW), ganancia (1e-10 relativo), redistribución que conserva energía, perturbación de 32 ULP, dtype, NaN, infinito, forma, signo/cero, hash sustituido y parámetros alterados; un ULP cambiado en boundaries; manipulación de los arrays retenidos; cambios en los cuatro archivos científicos protegidos; cambios adicionales dentro del test, evidencia original, presupuesto, oráculo y adversariales; conservación byte a byte de las demás aserciones; nombres/statuses nominales y modificación del propio soporte de guardia.
 
-Validación enfocada: **291 passed** (14.11 s), ampliación + adversariales + guardias eólicas/estabilización + aislamiento 3C-4. Antes de la corrección, el proceso sin AVX-512 reprodujo seis fallos; con la nueva política, las doce comparaciones pasan. Suites completas con/sin solver, repetición de cuatro algoritmos y aceptación remota de la corrección: pendientes de la ejecución en curso.
+Validación enfocada: **291 passed** (14.11 s), ampliación + adversariales + guardias eólicas/estabilización + aislamiento 3C-4. Antes de la corrección, el proceso sin AVX-512 reprodujo seis fallos; con la nueva política, las doce comparaciones pasan. Suites completas con/sin solver, repetición de cuatro algoritmos y primeros dos trabajos remotos: aprobados; resultados al final. El cotejo numérico remoto ampliado se publica adicionalmente mediante anotaciones.
 
 ### Diagnóstico remoto publicado
 
@@ -114,3 +114,105 @@ Validación enfocada: **291 passed** (14.11 s), ampliación + adversariales + gu
 - regression-solver-true, ID 13733117091, SHA-256 `0bb555f8fe300cc37f8deaf4797c22b03f874cff9ea293fff00b755eda6bd249`.
 
 El cotejo remoto requiere los `ci01/native/metadata.json` y `arrays.npz` de ambos artefactos (o los seis SHA calculados y versiones de los jobs originales). Las páginas públicas permiten observar estados; los logs/descargas autenticados siguen inaccesibles en este entorno. No se convierte esa falta de evidencia en aprobación. El nuevo workflow también compara cada entorno contra el archivo histórico autenticado y escribe CPU, versiones y SHA en su resumen.
+
+
+## Resultados posteriores comprobados
+
+Código correctivo: `5c69543f0f06c024e28ba8cc90d9ec708d3fa609`. La revisión posterior `fef6596` solo publica recibos diagnósticos y conteos en anotaciones; no altera pruebas ni comparaciones.
+
+| Comando / entorno local separado | Resultado | Duración |
+|---|---|---:|
+| energy/bin/python -m pytest tests/ -q -rs | **2075 passed / 0 failed / 0 skipped / 9 warnings** | 517.51 s |
+| energy-no-solver/bin/python -m pytest tests/ -q -rs | **1629 passed / 0 failed / 101 skipped / 9 warnings** | 394.98 s |
+| Eólica histórica + catálogo + ampliación + CI-01 + guardias | **290 passed** | 13.78 s |
+| Ampliación + CI-01 + guardias + aislamiento 3C-4 | **291 passed** | 14.11 s |
+| Doce comparaciones históricas / CPU nativo | **12 passed / 98 deselected** | 0.45 s |
+| Doce comparaciones / sin solver / sin AVX-512 | **12 passed / 98 deselected** | 1.23 s |
+
+Las nueve advertencias son las mismas de la suite anterior: dos sobre atributos ThermalConfig/parseo de fechas y siete sobre pasos SLSQP fuera de cotas; no se silencian. Actions avisa por separado la transición de Node/Ubuntu, sin cambiar el resultado de pytest. Logs y XML completos comprimidos, listas de paquetes, identidades de omisiones, comparación de algoritmos e integridad: `ci01_evidencia/post-fix/`, con SHA en su manifest. Los 101 marcadores omitidos tienen **exactamente las mismas identidades** que el XML anterior a CI-01: 59 casos con razón Pyomo/HiGHS, 27 con import pyomo ausente y 15 módulos omitidos en colección. Estos últimos corresponden a 360 casos; en total 446 casos solver de la suite completa no se ejecutan en el venv sin solver, igual que antes. No se presentan 101 marcadores como si fueran solo 101 casos.
+
+GA/GWO/NGO/SQP: repetido `tools/e2e/capture_stabilization_numbers.py`, incluyendo despachos, balances, SOC, H₂, energía y costos; JSON **exactamente igual** al previo a estabilización y al anterior a CI-01, excluyendo únicamente los tiempos e identidades que ya excluía la comparación original. Costo: GA 20.624746705690317; GWO 20.62474938808517; NGO 20.624746993826953; SQP 20.624746663370345. No se cambió ninguna referencia.
+
+EMS: **98 archivos intactos**, mismo objeto de árbol Git `9a28ed95fc2c5be4267fb296ea0e8a4422b035ed` que main `5e626783`. El diff CI-01 en modelos, catálogos, EMS V1.6/V2, h2_pemfc, simulation, reference_models, requirements y fixtures históricos está vacío. Auditoría explícita `wind_guard_policy.py --audit-mission-base 5e6267833538716678125ab962fc645cfee53eb0`: aprobada, sin historia omitida. `git diff --check`: aprobado.
+
+### Primera aceptación remota del código correctivo
+
+Run [42751027096](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42751027096), HEAD correctivo `5c69543`: estado global **Success**, dos jobs completados. Comprobado en páginas públicas, no inferido de pruebas locales:
+
+- [scientific-regression (true), 129614414822](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42751027096/job/129614414822): **success**.
+- [scientific-regression (false), 129614414476](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42751027096/job/129614414476): **success**.
+
+La descarga autenticada de logs permanece bloqueada por la política efectiva de red de este proceso (`api.github.com` no figura permitido); no se inventan conteos remotos. Para cerrar el cotejo de CPU/versiones/SHA/métricas se publica un recibo JSON de los doce casos y los conteos XML en las anotaciones públicas del siguiente run, además de conservar todos los arrays en los artefactos. Se publican datos científicos sintéticos, paquetes/CPU y controles numéricos en lista explícita: NPY_DISABLE_CPU_FEATURES y cinco opciones de BLAS/threads; no credenciales ni variables ajenas a ese propósito.
+
+### Archivos modificados por la corrección
+
+- Comparación histórica: `tests/test_wind_catalog_expansion.py`, único hunk de una aserción.
+- Soportes nominales de integridad: `tests/ems_v2/wind_guard_policy.py`, `stabilization_guard_policy.py`, `ci01_guard_policy.py`.
+- Comparador y oráculo independientes: `tools/ci/wind_historical_comparison.py`, `wind_decimal_reference.py`.
+- 31 adversariales independientes: `tests/ems_v2/test_ci01_wind_reproducibility.py`.
+- Diagnóstico/CI: `tools/ci/wind_numeric_probe.py`, `.github/workflows/regression.yml`.
+- Informes, continuidad y evidencia sintética: este documento, VEREDICTO_FINAL, PARAMIJEFE, HANDOFF y `ci01_evidencia/`.
+
+No hay diff de producción en CI-01. La política de equivalencia conserva integridad exacta de la ciencia y evidencia histórica más comparación numérica estricta y adversarial. La auditoría matemática independiente y la aprobación de integración siguen correspondiendo al responsable. **Sin merge y sin 3D.**
+
+
+### Comandos de regresión local reproducibles
+
+Los paquetes de ambos venv están listados en `post-fix/environment-*.txt`; Python local 3.12.14. En un checkout con historia completa:
+
+```bash
+python3.12 -m venv /tmp/seeds2-ci01-with
+/tmp/seeds2-ci01-with/bin/python -m pip install -r requirements.txt -r requirements-ems_v2.txt pytest==8.4.2
+/tmp/seeds2-ci01-with/bin/python -m pytest tests/ -q -rs
+python3.12 -m venv /tmp/seeds2-ci01-without
+/tmp/seeds2-ci01-without/bin/python -m pip install -r requirements.txt pytest==8.4.2
+/tmp/seeds2-ci01-without/bin/python -c "import importlib.util; assert importlib.util.find_spec('pyomo') is None; assert importlib.util.find_spec('highspy') is None"
+/tmp/seeds2-ci01-without/bin/python -m pytest tests/ -q -rs
+NPY_DISABLE_CPU_FEATURES=AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL /tmp/seeds2-ci01-without/bin/python -m pytest tests/test_wind_catalog_expansion.py -k e01 -q
+/tmp/seeds2-ci01-with/bin/python tests/ems_v2/wind_guard_policy.py --audit-mission-base 5e6267833538716678125ab962fc645cfee53eb0
+git diff --check
+```
+
+El control de AVX-512 es un proceso de prueba adicional: no cambia el entorno de los jobs de pytest ni se usa para saltar casos. La comparación Decimal independiente y las exportaciones completas se reproducen con los comandos anteriores del diagnóstico.
+
+
+## Cierre verificado — prioridad de entrega
+
+Código final validado: **79cb4540f89020f3b03537578ffeef546c2ead2a**. El commit de cierre solo incorpora documentación y evidencia; no modifica ciencia, comparación, guardias, pruebas ni workflow respecto de ese código. No se repite manualmente la suite completa por cambios documentales.
+
+Requisitos cumplidos: diagnóstico controlado y cuantificación de los seis modelos; doce comparaciones históricas; ampliación completa; 31 adversariales; ambas suites completas locales; 101 omisiones con las mismas identidades; GA/GWO/NGO/SQP exactos; 98 archivos EMS intactos; diff científico vacío; diff --check; publicación en el mismo PR y dos trabajos remotos en success. No hay bloqueo científico conocido en CI-01.
+
+### Entornos remotos y comparación completa
+
+Run [42812301019](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42812301019):
+
+| Trabajo | Resultado publicado en anotaciones | Tiempo pytest |
+|---|---|---:|
+| [true, 129816511858](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42812301019/job/129816511858) | **2075 passed / 0 failed / 0 skipped**, success | 719.494 s |
+| [false, 129816512409](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42812301019/job/129816512409) | **1629 passed / 0 failed / 101 skipped**, success | 561.581 s |
+
+Ambos: Python **3.12.16**, NumPy **2.2.6**, SciPy **1.15.3**, pandas **2.2.3**, glibc **2.43**, AMD EPYC **7763**, AVX512F **false**. NPY_DISABLE_CPU_FEATURES y los cinco controles BLAS/threads registrados: **None**; redondeo fenv **0**. NumPy binario SHA `e6241082eaab01d0f68b2b661522ecb9d5d2160915104df8b112cc161dfa18b4`, igual al local. Exp usa AVX2 y power baseline. True tiene Pyomo 6.10.1/HiGHS 1.15.1 y ejecutó un LP previo; false no tiene ambos. Las fuentes científicas coinciden exactamente en ambos jobs.
+
+**Los doce arrays remotos son idénticos entre entornos con/sin solver.** Sus seis SHA weather coinciden exactamente con los seis reproducidos localmente sin AVX-512; boundaries conserva sus SHA originales y todos los KPI siguen exactos. Por tanto, la diferencia sigue la ruta numérica de CPU, no la instalación del solver. El run anterior 42810749071 registró rutas AVX512_SKX y AVX2/baseline en trabajos distintos; el nombre nominal de CPU no bastaba para fijar las capacidades efectivas. En el nuevo recibo se registran todas las banderas, sin inferirlas del nombre.
+
+| Modelo | Máx. ULP remoto vs histórico, true / false | Valores distintos entre jobs | Máx. abs / RMSE / ΔE entre jobs | KPI históricos |
+|---|---:|---:|---|---|
+| Nordex N117/2400 | 2 / 2 | 0 | 0 / 0 / 0 | Exactos |
+| Vestas V164-7.0 MW | 6 / 6 | 0 | 0 / 0 / 0 | Exactos |
+| Siemens SWT-3.6-120 | 4 / 4 | 0 | 0 / 0 / 0 | Exactos |
+| Vestas V90-3.0 MW | 8 / 8 | 0 | 0 / 0 / 0 | Exactos |
+| EWT DW61-1MW | 2 / 2 | 0 | 0 / 0 / 0 | Exactos |
+| WEG AGW 147 / 4.2 | 4 / 4 | 0 | 0 / 0 / 0 | Exactos |
+
+Las diferencias **respecto del histórico** son exactamente las de la tabla de seis modelos del experimento local: primeros índices, muestras, RMSE y ΔE compensada incluidos. No se confunde diferencia cero **entre jobs con la misma ruta** con diferencia cero respecto de la referencia AVX-512. Cada recibo publica las magnitudes, SHA, dtype, finitud, ceros y KPI; el contraste Decimal independiente se conserva por equipo.
+
+Los arrays completos remotos se exportaron a los dos artefactos. Sin acceso autenticado a su descarga, los bytes se identificaron en las exportaciones locales por sus SHA remotos exactos, para comparar las 3024 potencias de cada equipo. Los NPZ `*-sha-identified-arrays.npz` son esa reconstrucción autenticada, **no descargas** ni nuevos fixtures. Recibos completos, identificación, comparación entre jobs y contra Decimal: `ci01_evidencia/post-fix/remote/`. El script efectivamente usado queda comprimido como evidencia documental; ninguna referencia histórica se regenera. La falta de los logs raw originales 42740857886 se declara: sus conteos proceden del responsable; la comprobación numérica remota nueva es directa y verificable en las anotaciones de 42812301019.
+
+### Pendientes y riesgos
+
+- Ningún defecto científico o fallo de regresión conocido queda abierto en CI-01.
+- El commit documental final puede disparar automáticamente otro workflow; no se presenta como ejecutado antes de que termine. El código de producción, tests y CI es idéntico al HEAD validado 79cb454. No se solicita otra ejecución manual.
+- Un futuro kernel que supere 16 ULP o altere un KPI exacto seguirá fallando y requerirá diagnóstico; no se ajustará el límite automáticamente.
+- La aprobación técnica y la auditoría independiente corresponden al responsable. No se hizo merge ni se inició 3D.
+
+Lista completa de archivos del hotfix, respecto del HEAD auditado 267ed149: `ci01_evidencia/post-fix/CI01_FILES.txt`. Predominan evidencia y documentación; el diff de producción CI-01 es cero. **Dictamen: regresión histórica protegida; hotfix listo para revisión técnica.**

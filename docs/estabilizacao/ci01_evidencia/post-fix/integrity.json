@@ -1,0 +1,25 @@
+{
+  "audited_head": "267ed149f29d2e4fad7d30d49f8e1c463ebfb4fe",
+  "corrective_commit": "5c69543f0f06c024e28ba8cc90d9ec708d3fa609",
+  "base": "5e6267833538716678125ab962fc645cfee53eb0",
+  "ems_base_tree": "9a28ed95fc2c5be4267fb296ea0e8a4422b035ed",
+  "ems_current_tree": "9a28ed95fc2c5be4267fb296ea0e8a4422b035ed",
+  "ems_files": 98,
+  "protected_scope": [
+    "ems_v2",
+    "models",
+    "config",
+    "ems_integration",
+    "h2_pemfc",
+    "simulation",
+    "reference_models",
+    "tests/fixtures",
+    "requirements.txt",
+    "requirements-ems_v2.txt"
+  ],
+  "changes_in_protected_scope": [],
+  "algorithms_identical_to_original_before_stabilization": true,
+  "skipped_identities_equal_to_pre_hotfix": true,
+  "skipped_markers": 101,
+  "unchanged_historical_fixture_sha256": "d148d917cc5dd31271deff689a34117abb8c79f15348299f0c3322b86f686e00"
+}
