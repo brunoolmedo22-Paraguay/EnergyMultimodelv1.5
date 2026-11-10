@@ -138,7 +138,7 @@ def metrics(reference, current, step):
             'dtype_reference': reference.dtype.str, 'dtype_current': current.dtype.str}
 
 
-def compare(paths, output):
+def compare(paths, output, publish_receipt=False):
     left, right = map(Path, paths)
     meta_a = json.loads((left/'metadata.json').read_text())
     meta_b = json.loads((right/'metadata.json').read_text())
@@ -170,6 +170,20 @@ def compare(paths, output):
         with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
             f.write(text)
     print(text)
+    if publish_receipt and os.environ.get('GITHUB_ACTIONS') == 'true':
+        receipt = {'python': meta_b['python'], 'versions': meta_b['versions'],
+                   'cpu': meta_b['cpu_model'], 'ufunc_dispatch': meta_b['ufunc_dispatch'],
+                   'numpy_binary_sha256': meta_b['numpy_binary_sha256'],
+                   'sources_exact': meta_a['source_sha256'] == meta_b['source_sha256'],
+                   'solver_exercised': meta_b['solver_exercised'],
+                   'cases': {name: dict(row, actual_sha256=meta_b['results'][name]['sha256'],
+                                      kpis_exact=meta_b['results'][name]['kpis_exact'])
+                             for name, row in rows.items()}}
+        # Public, synthetic scientific evidence only. Annotations are readable
+        # without Actions API credentials; no environment variables or secrets.
+        message = json.dumps(receipt, separators=(',', ':'), allow_nan=False)
+        message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print('::notice title=CI-01 numerical receipt::'+message)
 
 
 if __name__ == '__main__':
@@ -177,6 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--compare', nargs=2)
     parser.add_argument('--exercise-solver', action='store_true')
+    parser.add_argument('--publish-receipt', action='store_true')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    compare(args.compare, args.output) if args.compare else capture(args.output,args.exercise_solver)
+    compare(args.compare, args.output, args.publish_receipt) if args.compare else capture(args.output,args.exercise_solver)
