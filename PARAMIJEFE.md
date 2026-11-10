@@ -2654,3 +2654,12 @@ Los conflictos de PARAMIJEFE y las tres guardias se resuelven combinando las gar
 Nueva regresión y lista completa de archivos respecto de main: `docs/eolica/INTEGRACAO_3C4_PR18.md`. No se reutiliza el resultado 1765 anterior como evidencia combinada. Los seis aerogeneradores históricos y las siete incorporaciones se mantienen intactos. No se inicia 3D.
 
 **Cierre de la integración combinada:** **2004 passed, 0 failed, 0 skipped, 7 warnings**, 501.77s (0:08:21); 3C-4 **228 passed**, 3C-1/2/3 **545 passed**, sin solver EMS **994 passed/101 skipped** por ausencia de solver y eólica **119 passed**. Conflictos resueltos; producción EMS idéntica al main `19aa3ac`. Detalle y lista completa de archivos relativos al nuevo main en `docs/eolica/INTEGRACAO_3C4_PR18.md`.
+
+
+## Estabilización integral posterior a PR #17 y PR #18 — 2026-11-10
+
+Base real `5e6267833538716678125ab962fc645cfee53eb0`; rama exclusiva `codex/estabilizacion-aceptacion-integral`. Correcciones de producción en `02d898d819e752c0ebd89c8564376eb200db33fd`: bloqueo/rollback/reintento de transferencia, procedencia manual separada, consentimiento de exclusiones por identidad/revisión, cobertura de huella V1.6 y errores controlados de almacenamiento/térmica. Ningún modelo, curva, parámetro ni byte de `ems_v2/` cambió. No se inició 3D.
+
+Nueva aceptación: **2044 passed, 0 failed, 0 skipped, 9 warnings**; EMS separado **1458 passed**; venv real sin solver **1598 passed / 101 marcadores de skip** (446 casos de la suite completa no ejecutados, todos identificados por dependencia de solver). Cuatro algoritmos con series/resumen exactamente iguales antes/después. Chromium real: seis bancadas; Gestor/escenarios/previsiones/Archivo/informes; P0 y consentimiento 24 comprobaciones; catálogo eólico 103; archivos descargados 157. MIX se verificó mediante su ruta legada, sin añadir enlace al shell.
+
+Dossier completo: [auditoría](docs/estabilizacao/AUDITORIA_INTEGRAL.md), [aceptación](docs/estabilizacao/MATRIZ_ACEPTACION.md), [regresión](docs/estabilizacao/REGRESION_CIENTIFICA.md), [navegador](docs/estabilizacao/E2E_NAVEGADOR.md), [límites](docs/estabilizacao/PENDENCIAS_REALES.md), [veredicto](docs/estabilizacao/VEREDICTO_FINAL.md). Logs/XML/hashes y capturas relevantes versionados; datos sintéticos completos en artefacto separado del workspace, sin versionar stores/backups. Rama publicada; creación del PR pendiente de la API GitHub (`Forbidden`). No se realizó merge. La aprobación y auditoría matemática independiente corresponden al responsable.

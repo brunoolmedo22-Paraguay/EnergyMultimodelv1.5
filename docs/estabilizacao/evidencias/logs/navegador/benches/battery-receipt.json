@@ -1,0 +1,154 @@
+{
+  "bench": "battery",
+  "checks": 29,
+  "passed": true,
+  "receipts": [
+    {
+      "charts": [
+        {
+          "title": "<b><b>Tensão terminal do banco</b></b>",
+          "axes": [
+            "V"
+          ],
+          "traces": [
+            {
+              "name": "Tensão",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Estado de carga</b></b>",
+          "axes": [
+            "SOC (%)"
+          ],
+          "traces": [
+            {
+              "name": "SOC",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Corrente do banco</b></b>",
+          "axes": [
+            "A"
+          ],
+          "traces": [
+            {
+              "name": "Corrente",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Potência elétrica</b></b>",
+          "axes": [
+            "kW"
+          ],
+          "traces": [
+            {
+              "name": "Potência",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "battery-tremblay-resultado_bateria_tremblay.csv",
+      "bytes": 9215
+    },
+    {
+      "charts": [
+        {
+          "title": "<b><b>Tensão terminal do banco</b></b>",
+          "axes": [
+            "V"
+          ],
+          "traces": [
+            {
+              "name": "Tensão",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Estado de carga</b></b>",
+          "axes": [
+            "SOC (%)"
+          ],
+          "traces": [
+            {
+              "name": "SOC",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Corrente do banco</b></b>",
+          "axes": [
+            "A"
+          ],
+          "traces": [
+            {
+              "name": "Corrente",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Potência elétrica</b></b>",
+          "axes": [
+            "kW"
+          ],
+          "traces": [
+            {
+              "name": "Potência",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        },
+        {
+          "axes": [
+            "V por célula"
+          ],
+          "traces": [
+            {
+              "name": "OCV",
+              "n": 61,
+              "finite": 61
+            },
+            {
+              "name": "VRC1",
+              "n": 61,
+              "finite": 61
+            },
+            {
+              "name": "VRC2",
+              "n": 61,
+              "finite": 61
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "battery-2rc-resultado_bateria_2rc.csv",
+      "bytes": 9768
+    },
+    {
+      "invalidAlerts": [
+        "Há timestamps inválidos no perfil."
+      ]
+    }
+  ]
+}

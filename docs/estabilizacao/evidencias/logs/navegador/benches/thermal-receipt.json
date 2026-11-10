@@ -1,0 +1,108 @@
+{
+  "bench": "thermal",
+  "checks": 21,
+  "passed": true,
+  "receipts": [
+    {
+      "charts": [
+        {
+          "title": "<b><b>Despacho térmico</b></b>",
+          "axes": [
+            "Potência (MW)"
+          ],
+          "traces": [
+            {
+              "name": "Potência solicitada",
+              "n": 96,
+              "finite": 96
+            },
+            {
+              "name": "Inflexibilidade",
+              "n": 96,
+              "finite": 96
+            },
+            {
+              "name": "Potência considerada/entregue",
+              "n": 96,
+              "finite": 96
+            },
+            {
+              "name": "Violação",
+              "n": 22,
+              "finite": 22
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Custo por intervalo</b></b>",
+          "axes": [
+            "Custo (R$)"
+          ],
+          "traces": [
+            {
+              "name": "Custo variável",
+              "n": 96,
+              "finite": 96
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Custo acumulado</b></b>",
+          "axes": [
+            "Custo acumulado (R$)"
+          ],
+          "traces": [
+            {
+              "name": "Custo acumulado",
+              "n": 96,
+              "finite": 96
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Balanço de energia no período</b></b>",
+          "axes": [
+            "Energia (MWh)"
+          ],
+          "traces": [
+            {
+              "name": "trace 0",
+              "n": 3,
+              "finite": 3
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Potência × custo</b></b>",
+          "axes": [
+            "Potência (MW)",
+            "Custo (R$ / intervalo)"
+          ],
+          "traces": [
+            {
+              "name": "Potência entregue",
+              "n": 96,
+              "finite": 96
+            },
+            {
+              "name": "Custo/intervalo",
+              "n": 96,
+              "finite": 96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "thermal-resultado_termico_usina.csv",
+      "bytes": 19101
+    },
+    {
+      "invalidAlerts": [
+        "🏭Modo ativo: Usina termelétrica de grande porte. Inflexibilidade/must-run habilitada; mínimo técnico e rampas são opcionais.",
+        "2 linhas carregadas",
+        "Não foi possível avaliar o programa: O arquivo não contém timestamp + potência solicitada válidos"
+      ]
+    }
+  ]
+}

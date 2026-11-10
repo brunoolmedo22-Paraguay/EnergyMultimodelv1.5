@@ -1,0 +1,74 @@
+Skip to main content
+
+← FONTES DE ENERGIA
+
+🔋
+BATERIA
+DYNAMIC STORAGE MODELS
+
+MODELO ATIVO
+
+Tremblay–Dessaint
+
+Circuito equivalente · 2 RC
+
+Visão geral
+
+Simulação
+
+Comparação
+
+Exportação
+
+ÚLTIMA EXECUÇÃO
+
+SOC final
+
+87.4 %
+
+Energia entregue
+
+0.014 kWh
+
+Energia absorvida
+
+0.002 kWh
+
+Corrente positiva = descarga · corrente negativa = carga.
+
+CIRCUITO EQUIVALENTE · 2 RC
+Bateria · Simulação temporal
+Configure o banco, forneça a corrente solicitada pelo sistema e calcule a resposta elétrica e o SOC.
+Configuração do banco
+
+Células em série · Ns
+
+Strings em paralelo · Np
+
+SOC inicial
+
+90.00
+
+0.00
+
+100.00
+
+Célula fixa do modelo: Li-Ion 18650 · 3.7 V · 2.35 Ah · banco nominal ≈ 0.417 kWh
+
+Perfil de corrente
+
+Fonte do perfil
+
+Exemplo interno
+
+Carregar CSV
+
+CSV de corrente
+
+upload
+
+Upload
+
+50MB per file • CSV, TXT
+
+CSV mínimo: timestamp,current_A. Corrente positiva = descarga; negativa = carga.

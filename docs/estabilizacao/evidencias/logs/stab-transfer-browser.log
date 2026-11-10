@@ -1,0 +1,15 @@
+PASS no Python exception
+PASS no Python exception
+PASS no Python exception
+PASS no Python exception
+PASS configuration A initially executable
+PASS no Python exception
+PASS partial transfer of real revision B blocks execution
+PASS failure clearly identified
+PASS no Python exception
+PASS no Python exception
+PASS navigation/rerender cannot reopen execution
+PASS no Python exception
+PASS intentional retry applies B and reopens gate
+PASS failure latch cleared after successful retry
+COMPLETE P0 14

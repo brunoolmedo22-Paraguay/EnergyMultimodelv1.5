@@ -1,0 +1,94 @@
+Skip to main content
+keyboard_double_arrow_left
+
+← FONTES DE ENERGIA
+
+☀
+SOLAR
+MULTI-MODEL ENGINE
+NAVEGAÇÃO
+
+Visão geral
+
+Entrada
+
+Modelos
+
+Comparação
+
+Exportação
+
+ESTADO DA EXECUÇÃO
+MÓDULO
+CS7L-580MS (HiKu7)
+JANELA
+12:00–13:59 · 120 min
+MODELOS DISPONÍVEIS
+3 de 3
+● Irradiância
+● NOCT + eficiência
+● SDM
+
+CSV: 120 min · perfil sintético: 120 min ou 24 h · passo de 1 minuto.
+
+ENTRADA · CONFIGURAÇÃO COMUM
+ENTRADA
+DOS MODELOS
+
+▶ RODAR MODELOS
+
+SISTEMA FOTOVOLTAICO · DATASHEET
+
+Módulo fotovoltaico
+
+Módulos em série
+
+Strings em paralelo
+
+Perdas ópticas / sujeira [%]
+
+0.00
+
+0.00
+
+20.00
+
+POTÊNCIA STC
+580 W
+EFICIÊNCIA STC
+20.49 %
+ÁREA
+2.830 m²
+NOCT
+42.0 °C
+Γ PMAX
+-0.340 %/°C
+CÉLULAS ELÉTRICAS
+60
+ARRANJO
+2S × 3P
+MÓDULOS INSTALADOS
+6 módulos
+POTÊNCIA INSTALADA
+3.480 kWp
+Hipótese comum. A coluna selecionada como GHI alimenta os três modelos. Arranjo, perdas e datasheet permanecem idênticos para tornar a comparação consistente.
+
+Execução concluída: os três modelos estão disponíveis nas abas de resultados.
+
+FONTE DOS DADOS · JANELA TEMPORAL
+
+Carregar CSV
+
+Perfil sintético
+
+CSV minuto a minuto
+
+upload
+
+Upload
+
+50MB per file • CSV
+
+Carregue um CSV para detectar automaticamente timestamp, irradiância e temperatura.
+
+⬇️ Baixar CSV de exemplo

@@ -1,0 +1,27 @@
+{
+  "protocol": "2db",
+  "data_dir": "/tmp/seeds2-acceptance-2db-u4abfr61",
+  "phases": [
+    {
+      "phase": "local",
+      "passed": true,
+      "duration_s": 24.61
+    },
+    {
+      "phase": "importar",
+      "passed": true,
+      "duration_s": 21.16
+    },
+    {
+      "phase": "reinicio",
+      "passed": true,
+      "duration_s": 10.76
+    },
+    {
+      "phase": "tablet",
+      "passed": true,
+      "duration_s": 15.89
+    }
+  ],
+  "destination_data_dir": "/tmp/seeds2-acceptance-2db-destination-mzlmyeke"
+}

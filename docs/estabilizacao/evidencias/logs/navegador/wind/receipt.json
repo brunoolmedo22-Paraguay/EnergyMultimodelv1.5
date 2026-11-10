@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "checks": 103,
+  "receipt": [
+    {
+      "key": "Nordex N117/2400",
+      "nodes": 35,
+      "analysisOnly": false
+    },
+    {
+      "key": "Vestas V164-7.0 MW",
+      "nodes": 22,
+      "analysisOnly": false
+    },
+    {
+      "key": "Siemens SWT-3.6-120",
+      "nodes": 23,
+      "analysisOnly": false
+    },
+    {
+      "key": "Vestas V90-3.0 MW",
+      "nodes": 23,
+      "analysisOnly": false
+    },
+    {
+      "key": "EWT DW61-1MW",
+      "nodes": 23,
+      "analysisOnly": false
+    },
+    {
+      "key": "WEG AGW 147 / 4.2",
+      "nodes": 18,
+      "analysisOnly": false
+    },
+    {
+      "key": "Vergnet GEV MP C 275 kW",
+      "nodes": 21,
+      "analysisOnly": false
+    },
+    {
+      "key": "Vestas V47-660 kW",
+      "nodes": 16,
+      "analysisOnly": false
+    },
+    {
+      "key": "Vestas V52-850 kW OptiSpeed",
+      "nodes": 16,
+      "analysisOnly": false
+    },
+    {
+      "key": "Bergey Excel 10",
+      "nodes": 41,
+      "analysisOnly": true
+    },
+    {
+      "key": "Bergey Excel 15",
+      "nodes": 32,
+      "analysisOnly": true
+    },
+    {
+      "key": "Kestrel e400nb",
+      "nodes": 39,
+      "analysisOnly": true
+    },
+    {
+      "key": "SWIFT",
+      "nodes": 48,
+      "analysisOnly": true
+    }
+  ]
+}

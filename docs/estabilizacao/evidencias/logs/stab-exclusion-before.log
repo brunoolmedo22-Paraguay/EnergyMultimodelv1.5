@@ -1,0 +1,28 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_changed_revision_cannot_reuse_exclusion_consent_for_identical_engine_spec _
+
+state = {'mg_ack_fp': 'B', 'mg_plan': namespace(microgrid_uid='B', spec_fingerprint='B', config_revision=3, config_fingerprint...), 'orchestrator_page': 'Otimizador', 'orq_after_run': <function _after_run_hook.<locals>.hook at 0x7fd7a2589bc0>, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fd7a255bdd0>
+
+    def test_changed_revision_cannot_reuse_exclusion_consent_for_identical_engine_spec(state, monkeypatch):
+        a = plan()
+        a.needs_ack, a.excluded = True, ['large thermal A']
+        monkeypatch.setattr(O.A, 'build_plan', lambda *a_, **k: a)
+        monkeypatch.setattr(O, '_apply', successful_transfer(state))
+        state['mg_ack_fp'] = a.spec_fingerprint
+        O.prepare('simulacao')
+        b = deepcopy(a)
+        b.config_revision = 3
+        b.config_fingerprint = 'B-new-excluded-equipment'
+        b.excluded = ['large thermal A', 'large thermal B']
+        monkeypatch.setattr(O.A, 'build_plan', lambda *a_, **k: b)
+        O.prepare('simulacao')
+>       assert not state['orq_run_gate']['ok'], 'a new exclusion requires new conscious consent'
+E       AssertionError: a new exclusion requires new conscious consent
+E       assert not True
+
+tests/estabilizacao/test_operations_fail_closed.py:223: AssertionError
+=========================== short test summary info ============================
+FAILED tests/estabilizacao/test_operations_fail_closed.py::test_changed_revision_cannot_reuse_exclusion_consent_for_identical_engine_spec
+1 failed, 20 deselected in 0.74s

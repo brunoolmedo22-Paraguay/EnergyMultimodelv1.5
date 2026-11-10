@@ -1,0 +1,2238 @@
+{
+  "passed": 1598,
+  "pytest_skip_markers": 101,
+  "module_skip_markers": 15,
+  "full_suite_cases_not_executed": 446,
+  "records": [
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14::test_a01_execucao_interrompida_por_indisponibilidade_realizada_e_por_dado_ausente",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14.py:127: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14::test_a02_custo_realizado_pemfc_completo_analitico",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14.py:127: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14::test_a02_sem_dupla_contagem_e_3c0_inalterado",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14.py:127: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14::test_a02_execucao_parcial_e_interrompida_so_eventos_aplicados",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14.py:127: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14::test_a02_custo_realizado_selado_no_registro_separado_do_valor_futuro",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14.py:127: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_b::test_b02_anexo_reconstroi_fontes_estatica_e_observada",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_b.py:129: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_b::test_b02_mudar_a_declaracao_de_disponibilidade_altera_a_evidencia",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_b.py:129: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_b::test_b02_registro_sem_hashes_3c1_ou_anexo_adulterado_recusados",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_b.py:193: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_evidencia_intacta_reproduzida_do_disco",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[detalhe_h2.custo_eventos_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[detalhe_h2.massa_continua_kg]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[detalhe_h2.massa_eventos_kg]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[detalhe_h2.partidas]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[detalhe_h2.uid]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[disponibilidade_efetiva.indice_plano]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[disponibilidade_efetiva.observado]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[disponibilidade_efetiva.uid]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[disponibilidade_efetiva.valor]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[eventos_aplicados.partidas]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[execucao_uid]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[fonte.justificativa]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_conteudo_adulterado_e_re_selado_rejeitado[fonte.procedencia]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_declaracao_comprometida_e_coerente_com_a_origem",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_integridade_do_registro_verificada_na_comprovacao_conjunta",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_sha256_nao_e_assinatura_re_selar_ambos_so_e_detectado_contra_o_original",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_auditoria_pr14_c::test_b03_coerencia_com_metadados_do_registro_mesmo_com_compromisso_valido",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_auditoria_pr14_c.py', 17, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_caso_j_execucao_continua_igual_a_dividida_por_checkpoint",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_caso_j_memoria_transportada_admite_exatamente_a_continuacao_do_plano_continuo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_caso_j_borda_residual_vinculante_obriga_a_janela_seguinte",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_executor_recusa_transicao_contra_a_memoria_e_memoria_ausente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_custo_de_eventos_realizado_separado_do_planejado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_continuacao_recusa_estado_dessincronizado_ou_de_outra_microrrede",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_continuidade::test_plano_3c1_e_recusado_com_a_entrada_base",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_continuidade.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_a_transicoes_e_eventos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_a_custo_de_evento_nao_e_multiplicado_por_h",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_a_sem_termo_eventos_transicoes_restritas_sem_custo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_b_rampa_desde_p_anterior",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_b_rampa_mais_lenta_reduz_a_contribuicao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_c_tempo_minimo_on",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_d_tempo_minimo_off",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_e_obrigacao_herdada_desde_t0",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_e_obrigacao_maior_que_a_janela_e_transportada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_f_borda_cumprir_na_janela",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_f_borda_obrigacao_residual_vinculante",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_g_unidades_do_mesmo_bloco_independentes",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_h_otimo_igual_a_enumeracao_exaustiva_independente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_i_inviabilidade_sem_folgas[caso_i_rampa]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_i_inviabilidade_sem_folgas[caso_i_permanencia]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_modelo_sem_variaveis_de_folga_linear_e_sem_sos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_pemfc_abstracao_instantanea_com_massas_de_evento",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_compromisso_parcial_fixado_respeitado_e_bloqueios",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_k_solucao_adulterada_apos_highs_rejeitada_e_sem_plano[caso_a-<lambda>-transicao_M09]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_k_solucao_adulterada_apos_highs_rejeitada_e_sem_plano[caso_a-<lambda>-balanco]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_k_solucao_adulterada_apos_highs_rejeitada_e_sem_plano[caso_b-<lambda>-rampa_M11a]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_k_solucao_adulterada_apos_highs_rejeitada_e_sem_plano[caso_c-<lambda>-permanencia_M12]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_k_discretizacao_sabotada_no_milp_e_detectada_pelo_auditor",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_objetivo_incoerente_e_terminacoes_sem_despacho",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_limite_de_tempo_real_e_configuracao_invalida",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_api_3bp_inalterada_rejeita_transicoes_e_3c1",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp[a06]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp[pwl_com_bateria]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp[multi_uid]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp[a08_d]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp[a07]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_milp::test_caso_l_3c1_com_estado_mantido_reproduz_o_3bp[instancia_maior]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_perfil::test_catalogo_3c1_codigo_pyomo_existe_no_modelo",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_perfil.py:84: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c1_ponte::test_cadeia_3c1_ensaio_completa_com_milp_real",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c1_ponte.py:131: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e2_varias_janelas_previsao_reemitida_valores_analiticos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e2_registros_3c0_e_anexos_3c1_verificaveis_e_ligados_a_cadeia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_custo_sem_dupla_contagem_e_planejado_de_janelas_nunca_somado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_missao_de_uma_janela_igual_ao_fluxo_3c1_direto",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_ultimo_bloco_menor_que_m",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_horizonte_estendido_declarado_planeja_mas_nunca_aplica_pos_missao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_politica_cumprir_na_janela_final_e_obrigacoes_nunca_desaparecem",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_previsao_emitida_tarde_bloqueia_sem_comando",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_fuga_deliberada_de_informacao_futura_detectada_por_intervencao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_fuga_com_evidencia_de_hash_bloqueada_pela_auditoria_de_separacao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_adversarial_registro_e_livro_adulterados_e_comando_fora_de_ordem",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e8_revisao_tardia_nao_altera_decisao_passada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_disponibilidade_do_gerador_omitida_parada_segura",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e6_soc_transportado_do_executado_nunca_do_terminal_planejado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e5_memoria_de_commitment_atravessa_tres_janelas",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e5_contraprova_memoria_descartada_e_recusada_pela_planta",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e7_falha_do_solver_nao_reaproveita_plano_anterior",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e7_excecao_do_solver_na_primeira_janela",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e7_rejeicao_do_auditor_nada_e_executado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e7_incumbente_nao_otimo_so_com_politica_declarada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_retomada_de_checkpoint_com_highs",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_reproducao_determinista_com_highs",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e3_open_loop_versus_mpc_em_condicoes_comparaveis",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e3_comparador_recusa_condicoes_diferentes",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e1_oraculo_rotulado_e_excluido_das_comparacoes_causais",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_e4_frequencia_de_reotimizacao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_metricas_de_previsao_computacao_e_confiabilidade",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_realizacao_inviavel_por_falta_de_bateria_e_classificada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c2_milp::test_construcao_com_identidade_divergente_no_meio_da_missao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c2_milp.py', 23, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_missao_valida_aceita_pela_auditoria_integral",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:173: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_modo_analitico_parcial_rotulado_nunca_certifica",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:179: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_integral_sem_artefatos_reprova[anexos]",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:185: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_integral_sem_artefatos_reprova[registros_3c0]",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:185: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_integral_sem_artefatos_reprova[registro_rede]",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:185: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_registro_3c0_de_outra_execucao",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:196: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_anexo_alterado_e_reselado",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:205: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_selo_de_janela_diferente_do_registro_historico",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:216: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_modelo_pcc_substituido_por_limites_mais_amplos",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:224: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_politica_economica_substituida_com_os_mesmos_custos",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:233: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_troca_de_evidencias_entre_duas_janelas",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:244: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_registro_de_missao_de_rede_adulterado",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:252: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c02_janela_sem_plano_nao_exige_artefatos",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:134: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c01_comando_invalido_na_planta_e_falha_de_dados_classificada[-5.0]",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:134: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c01_comando_invalido_na_planta_e_falha_de_dados_classificada[True]",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:134: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16::test_c01_comando_invalido_na_planta_e_falha_de_dados_classificada['20']",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16.py:134: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_registro_valido_tem_exatamente_as_nove_metricas",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_totais_vazios_resselados",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[E_importada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[E_exportada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[E_importada_programada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[E_exportada_programada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[E_desvio_positivo_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[E_desvio_negativo_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[gasto_importacao_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[receita_exportacao_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_ausente[custo_desvio_rede_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[E_importada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[E_exportada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[E_importada_programada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[E_exportada_programada_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[E_desvio_positivo_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[E_desvio_negativo_kWh]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[gasto_importacao_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[receita_exportacao_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_cada_metrica_alterada[custo_desvio_rede_R]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_valor_nao_numerico_ou_nao_finito[nan]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_valor_nao_numerico_ou_nao_finito[inf]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_valor_nao_numerico_ou_nao_finito[-inf]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_valor_nao_numerico_ou_nao_finito[True]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_valor_nao_numerico_ou_nao_finito['1.0']",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_valor_nao_numerico_ou_nao_finito[None]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_metrica_inesperada_rejeitada_mesmo_com_valor_zero[0.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_metrica_inesperada_rejeitada_mesmo_com_valor_zero[1.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_esquema_incompativel[0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_esquema_incompativel[2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_esquema_incompativel[99]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_esquema_incompativel['1']",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_esquema_incompativel[True]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_esquema_incompativel[1.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_perfil_incompativel[v1.1-3C-1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_perfil_incompativel[v1.1-3C-2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_perfil_incompativel[v1.1-3C-3 ]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_perfil_incompativel[]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_perfil_incompativel[v1.2-3C-3]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_rotulo_e_tipo_dos_totais",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_zero_exato_continua_valido",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_missao_sem_intervalo_aplicado_zero_derivado_e_nao_padrao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_ausencia_com_intervalos_aplicados_nunca_vira_zero",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_finalizar_recusa_metrica_ausente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_auditoria_pr16_c03::test_c03_constantes_do_esquema",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_auditoria_pr16_c03.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g1_importacao_necessaria_diferenca_exata_dentro_do_limite",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g1_limite_insuficiente_e_inviavel",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g2_exportacao_remunerada_e_sem_remuneracao_decisao_economica",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g3_exportacao_proibida_excedente_so_com_recursos_autorizados",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g4_pcc_indisponivel_nao_inventa_energia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g9_mudanca_tarifaria_troca_decisoes_com_fisica_igual",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g10_exclusividade_impede_arbitragem_simultanea_e_relaxacao_a_demonstra",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_isolado_declarado_identico_ao_3c1",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_m02_3c3_sem_pcc_coincide_com_m02_do_nucleo_e_modelo_linear_sem_folga",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_nucleo_com_commitment_preservado_com_pcc",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_resolver_3c1_recusa_entrada_3c3_e_resolver_3c3_recusa_3c1",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g14_solucao_alterada_apos_o_solver_e_rejeitada[_adult_pimp-balanco]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g14_solucao_alterada_apos_o_solver_e_rejeitada[_adult_custo-custo]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g14_solucao_alterada_apos_o_solver_e_rejeitada[_adult_simultaneo-pcc_exclusividade]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_milp::test_g14_disponibilidade_e_tarifa_adulteradas_na_auditoria",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_milp.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g5_erro_positivo_de_demanda_ajuste_programado_x_realizado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g6_erro_negativo_reduz_importacao_e_exporta_quando_autorizado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g6_exportacao_proibida_interrompe_classificada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g7_renovavel_superestimado_injecao_limitada_e_pcc_compensa",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g8_saturacao_do_pcc_sem_respaldo_oculto",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g11_mpc_conectado_varias_janelas",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g11_reproducao_determinista",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g11_nao_antecipatividade_por_intervencao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g12_rede_disponivel_versus_isolado_factibilidade_nao_e_beneficio",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_missao_isolada_nao_vira_conectada_e_observacao_do_pcc_rejeitada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g13_retomada_de_checkpoint_identidade_custos_observacoes_e_estados",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g13_retomada_recusa_artefatos_adulterados_e_troca_de_configuracao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g14_auditoria_rejeita_intercambio_tarifa_disponibilidade_e_custos_adulterados",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_g14_medicao_divergente_na_conciliacao_e_integridade",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_comparacao_open_loop_vs_mpc_mesmas_condicoes_sem_veredito",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_comparador_recusa_tarifas_ou_pcc_diferentes",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_construcao_recusa_configuracoes_invalidas",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_mpc::test_tarifa_de_decisao_ausente_na_janela_bloqueia_sem_comando",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_mpc.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E1_hc]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E1_mpc]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E3_mpc]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E3_ol]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E4_m1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E4_m2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E4_m4]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E5]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E7]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E8_interromper]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_experimentos_3c2_identicos_a_base[E8_registrar_sem_reconciliar]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c3_regressao_3c2::test_g15_pins_cobrem_e1_a_e8",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c3_regressao_3c2.py', 15, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_h9_3c3_valida_com_normalizacao_aceita_pela_auditoria_integral",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:139: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_h9_3c4_valida_aceita_pela_auditoria_integral[hier_ref_dura-1]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:149: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_h9_3c4_valida_aceita_pela_auditoria_integral[hier_pwl-0]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:149: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_janelas_legitimas_sem_normalizacao_aceitas_sem_obrigacao_nova",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:161: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[aviso_ausente_hash_presente-codigos0-3c3]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[aviso_ausente_hash_presente-codigos0-3c4]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[hash_ausente_aviso_presente-codigos1-3c3]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[hash_ausente_aviso_presente-codigos1-3c4]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[aviso_e_hash_ausentes_codigo_presente-codigos2-3c3]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[aviso_e_hash_ausentes_codigo_presente-codigos2-3c4]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[codigo_ausente_aviso_e_hash_presentes-codigos3-3c3]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[codigo_ausente_aviso_e_hash_presentes-codigos3-3c4]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[hash_alterado-codigos4-3c3]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_evidencias_incoerentes_rejeitadas[hash_alterado-codigos4-3c4]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:184: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_1_codigo_sem_aviso_nem_hash_em_cadeia_selada_consistente",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:208: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_2_normalizacao_injustificada_rejeitada_pela_auditoria_integral_3c3",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:223: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_a03_2_auditoria_analitica_parcial_nao_e_afetada",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:234: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_a03::test_registro_historico_3c3_anterior_a_b3c4_10_aceito_sem_obrigacao_nova",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_a03.py:253: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_b01_mesmo_valor_corrigido_na_continuidade_registros_e_auditorias",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:99: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_b01_retomada_3c3_usa_o_estado_projetado",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:123: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_b01_b10_segundo_artefato_C01_agora_normalizado_pelo_hotfix_b3c4_10",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:140: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_b01_h9_cinco_estrategias",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:148: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a02_certificado_real_de_cobertura_milp",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:245: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a02_h7_h8_exclusao_do_dominio_certificada_e_custos_mantidos[h7_limite_importacao]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:261: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a02_h7_h8_exclusao_do_dominio_certificada_e_custos_mantidos[h8_indisponibilidade_pcc]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:261: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_missao_valida_aceita",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:305: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[contagens]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[contagens_tipo]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[energias_finais_kWh]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[hash_configuracao_planejador]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[hash_configuracao_rede]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[hash_modelo_rede]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[missao_uid]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[tempos_chave_extra]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[tempos_inflado]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[tempos_negativo]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_registro_final_alterado_e_reselado_e_rejeitado[valoracao_terminal_declarada_R]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:312: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_tempo_nao_finito_sem_reselo_rejeitado_sem_excecao",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:323: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_auditoria_pr17::test_a01_objetos_de_configuracao_obrigatorios_e_tempos_apos_retomada",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_auditoria_pr17.py:331: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c3_sem_residuo_identico_e_sem_registro",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:218: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c3_residuo_do_solver_normalizado_e_revalidado[g2-P_imp-1]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:227: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c3_residuo_do_solver_normalizado_e_revalidado[g1-P_exp-0]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:227: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c3_residuo_fora_da_politica_rejeita_a_solucao[-1e-06]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:241: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c3_residuo_fora_da_politica_rejeita_a_solucao[-0.001]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:241: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c3_residuo_fora_da_politica_rejeita_a_solucao[nan]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:241: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_transformacao_que_quebra_balanco_ou_economia_rejeitada[_zera_importacao-familias0]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:260: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_transformacao_que_quebra_balanco_ou_economia_rejeitada[_troca_mantendo_balanco-familias1]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:260: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_resolver_3c4_normalizacao_maliciosa_rejeitada_pelo_auditor",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:269: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_h9_residuo_normalizado_comprometido_e_reconstruido[mpc_sem_sinal]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:315: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_h9_residuo_normalizado_comprometido_e_reconstruido[hier_ref_dura]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:315: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_h9_auditorias_integrais_aceitam",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:341: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_alterada_ou_injustificada[aviso_sem_rehash]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:401: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_alterada_ou_injustificada[bruto_fora_da_cota]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:401: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_alterada_ou_injustificada[diferenca_incoerente]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:401: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_alterada_ou_injustificada[escala_alterada]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:401: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_alterada_ou_injustificada[limiar_inflado]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:401: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_alterada_ou_injustificada[motivo_trocado]",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:401: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_sem_origem_no_solver_e_sem_registro",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:416: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_b3c4_10::test_auditoria_detecta_normalizacao_injetada_em_janela_com_importacao_real",
+      "kind": "skipped_test",
+      "reason": "Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt) /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_b3c4_10.py:448: Pyomo/HiGHS indispon\u00edveis (requirements-ems_v2.txt)"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_termo_nenhum_equivale_ao_3c3[caso_g1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_termo_nenhum_equivale_ao_3c3[caso_g3]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_termo_nenhum_equivale_ao_3c3[<lambda>0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_termo_nenhum_equivale_ao_3c3[<lambda>1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_phi_linear_e_energia_minima_analiticos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_pwl_nao_convexo_exato_e_minimo_sobre_pontos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_envoltoria_2d_dois_bancos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_selecao_de_modo_pemfc_e_memoria",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_local_dominio_e_referencias",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_h11_regiao_invalida_inalcancavel_e_inviavel",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_h16_adulteracao_pos_solver_rejeitada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_plano_pela_visao_nucleo_e_recusas",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_milp::test_resolvedores_historicos_recusam_entrada_3c4",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h2_h14_comparacao_de_politicas_e_efeitos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h1_tarifa_plana_sem_incentivo_artificial",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h3_pico_dentro_do_horizonte_curto_sem_beneficio_adicional",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h5_erro_de_previsao_mesma_verdade",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h7_h8_valor_de_reserva_por_restricao_fisica[h7_limite_importacao]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h7_h8_valor_de_reserva_por_restricao_fisica[h8_indisponibilidade_pcc]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h9_pemfc_obrigacoes_e_modos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h9_linha_de_base_comparavel_apos_hotfixes_B3C4_01_e_B3C4_10",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h17_dois_bancos_envoltoria_convexa",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h12_causalidade_por_intervencao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h15_retomada_deterministica_com_lote_pendente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h15_h16_retomada_recusa_artefatos_adulterados[coord_sem_reselar]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h15_h16_retomada_recusa_artefatos_adulterados[coord_reselada]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h15_h16_retomada_recusa_artefatos_adulterados[vinculo_lote]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h15_h16_retomada_recusa_artefatos_adulterados[config_planejador]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_h16_auditoria_de_missao_adversarial",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_custo_realizado_nunca_contem_valor_futuro_e_decomposicao",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_mpc::test_reproducao_deterministica",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_mpc.py', 16, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_h10_valores_e_inclinacoes_analiticos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_h6_soc_baixo_medio_alto",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_h10_sensibilidade_local_por_diferenca_central",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_phi_l_linear_declarado_com_cauda_vazia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_h4_deslocamento_do_pico_muda_o_valor_coerentemente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_h13_horizontes_curto_e_longo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_politica_periodica_lote_e_auditoria",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_degradacao_sem_valor_futuro_equivale_ao_mpc_3c3",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_degradacao_interromper",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_degradacao_referencia_por_tolerancia_nao_atingida",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_refinamento_adaptativo_insere_a_quebra",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_3c4_planejador::test_custo_computacional_registrado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_3c4_planejador.py', 19, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (nan,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (inf,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (-inf,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (None,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': ('abc',)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': ('1',)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (0.7,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (1.0,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (True,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (2,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': 1}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': None}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': ((1,),)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': ()}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': (1, 1)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{'syn-ger': {'0': 1}}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[[('syn-ger', (1,))]]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao['syn-ger']",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{1: (1,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_invalido_bloqueia_sem_excecao[{('syn-ger',): (1,)}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_hash_sem_perda_deterministico_e_independente_da_ordem",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_programa_valido_inalterado_e_hash_registrado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b01_auditor_tambem_exige_inteiros_estritos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_z_b_fracionario_com_potencias_e_energia_preservadas",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_z_b_incoerente_com_a_carga",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_segmento_pwl_correto_reportado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_delta_em_segmento_errado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_delta_fracionario",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_theta_fora_do_segmento_selecionado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_theta_fora_de_0_1",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_auxiliar_sem_valor_ou_nao_finito[theta-idx0-None]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_auxiliar_sem_valor_ou_nao_finito[delta-idx1-nan]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_auxiliar_sem_valor_ou_nao_finito[delta-idx2-None]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_auxiliar_sem_valor_ou_nao_finito[z_b-idx3-inf]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_verificador_direto_rejeita_testemunho_ausente_ou_incoerente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[a01]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[a05_opt]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[duas_baterias]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[exclusividade]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[multi_uid]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[pwl_com_bateria]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_testemunho_integro_nas_solucoes_legitimas[instancia_maior]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b02_integridade_usa_as_tolerancias_provisorias_sem_relaxar",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_opcao_highs_invalida_vira_erro_controlado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_excecao_do_solver_vira_erro_controlado[<lambda>-falha_solver0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_excecao_do_solver_vira_erro_controlado[<lambda>-falha_solver1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_excecao_do_solver_vira_erro_controlado[<lambda>-falha_solver2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_excecao_do_carregador_vira_erro_controlado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[None]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[42]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao['abc']",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[3.5]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[[('mip_max_nodes', 1)]]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[('x',)]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[True]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_opcoes_highs_invalidas_bloqueiam_sem_excecao_e_sem_reinterpretacao[{'time_limit': 5}]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_configuracao_de_tipo_errado_registrada_sem_excecao[NoneType]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_configuracao_de_tipo_errado_registrada_sem_excecao[dict]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_configuracao_de_tipo_errado_registrada_sem_excecao[object]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_configuracao_de_tipo_errado_registrada_sem_excecao[int]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_auditoria_3b::test_c3b03_registro_de_configuracao_valida_inalterado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_auditoria_3b.py', 10, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_ambiente_registrado_no_resultado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a01_sessenta_intervalos_sem_energia_terminal",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a02_um_sexto_de_kWh",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a03_descarga_com_eficiencia[60-1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a03_descarga_com_eficiencia[1-60]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a03_descarga_com_eficiencia[15-4]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a04_carga_com_eficiencia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_b01a_indisponibilidade_sem_penalidade",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_b01b_custo_operacional_reconstruido",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a05_feas_carregar_e_verter_sao_ambos_factiveis_com_objetivo_nulo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a05_opt_solver_encontra_a_carga",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a06_pwl_sintetica_milp",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a06_on_a_5_kW_e_inviavel_e_off_tem_p_q_nulos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[10.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[11.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[13.5]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[14.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[15.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[16.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[17.2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_quatro_vertices_vazao_exata[20.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_com_bateria_igual_a_enumeracao[0.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_com_bateria_igual_a_enumeracao[0.2]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_com_bateria_igual_a_enumeracao[1.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_com_bateria_igual_a_enumeracao[1.5]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_pwl_nao_convexa_com_bateria_igual_a_enumeracao[3.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a07_minimo_tecnico_sem_sumidouro_e_inviavel",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a08_servico_duro_inviavel",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_a08_servico_degradado_minima_ens_5_kWh",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_duas_baterias_heterogeneas_analitico",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_exclusividade_impede_ciclar_para_esconder_vertimento",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_casos::test_varios_uids_distintos",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_casos.py', 12, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_classificacao_exaustiva_sobre_os_enums_do_pyomo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_convencao_de_gap",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_limite_de_tempo_real_sem_incumbente_nenhum_despacho",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_limite_de_nos_real_sem_incumbente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_incumbente_real_nao_otimo_e_auditado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_modelo_inviavel_trivial_sem_chamar_o_solver",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_limite_de_tempo_simulado_com_incumbente_aceito_como_nao_otimo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_limite_de_tempo_simulado_sem_incumbente_nao_carrega_valores",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_estados_nao_despachaveis[algoNovo-optimal-desconhecido]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_estados_nao_despachaveis[unbounded-feasible-ilimitado]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_estados_nao_despachaveis[error-noSolution-erro]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_estados_nao_despachaveis[licensingProblems-noSolution-erro]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_estados_nao_despachaveis[infeasibleOrUnbounded-noSolution-inviavel_ou_ilimitado]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_estados_nao_despachaveis[convergenceCriteriaSatisfied-noSolution-desconhecido]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_valores_nao_carregados_nunca_viram_nan_no_despacho",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_solucao_adulterada_apos_resolver_e_rejeitada[f-renovavel]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_solucao_adulterada_apos_resolver_e_rejeitada[f-bess_energia]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_solucao_adulterada_apos_resolver_e_rejeitada[f-bess_exclusividade]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_integralidade_violada_rejeitada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_pwl_com_segmento_errado_rejeitada",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_objetivo_incoerente_com_os_valores_rejeitado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_parametro_economico_ausente_bloqueia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_parametro_fisico_ausente_bloqueia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_entrada_3A_nao_ganha_capacidades_implicitamente",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_degradado_sem_criterio_ens_bloqueia",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_compromisso_livre_ou_com_transicao_bloqueado[cp0-compromisso_livre_nao_suportado_3BP]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_compromisso_livre_ou_com_transicao_bloqueado[cp1-transicao_nao_modelada_3BP]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_compromisso_livre_ou_com_transicao_bloqueado[cp2-compromisso_invalido]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_compromisso_livre_ou_com_transicao_bloqueado[cp3-compromisso_invalido]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_compromisso_livre_ou_com_transicao_bloqueado[cp4-compromisso_uid_desconhecido]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[time_limit_s--1.0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[time_limit_s-nan]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[threads-0]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[rel_gap-inf]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[abs_gap--1e-09]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[semente--1]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_configuracao_invalida_bloqueia[opcoes_highs-valor6]",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_solver_indisponivel_sem_falha",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_highs_recusa_sos_e_nao_linearidade",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_reprodutibilidade_das_fixtures_e_das_solucoes",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_integridade::test_tamanho_do_modelo_e_variaveis_por_intervalo",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_integridade.py', 7, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_milp_perfil::test_catalogo_3BP_codigo_resolvivel",
+      "kind": "skipped_test",
+      "reason": "could not import 'pyomo': No module named 'pyomo' /workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_milp_perfil.py:198: could not import 'pyomo': No module named 'pyomo'"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_ponte_milp::test_cadeia_completa_com_milp_real",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_ponte_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_ponte_milp::test_reproducao_deterministica_do_plano_e_da_trajetoria",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_ponte_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_ponte_milp::test_erro_de_previsao_interrompe_execucao_e_registra_apenas_o_executado",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_ponte_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_ponte_milp::test_solucao_inviavel_nao_vira_plano",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_ponte_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    },
+    {
+      "test": "tests.ems_v2.test_ems_v2_ponte_milp::test_tempos_medidos_sao_registrados_sem_meta_de_desempenho",
+      "kind": "not_collected_solver_module",
+      "reason": "('/workspace/EnergyMultimodelv1.5/tests/ems_v2/test_ems_v2_ponte_milp.py', 14, \"Skipped: could not import 'pyomo': No module named 'pyomo'\")"
+    }
+  ]
+}

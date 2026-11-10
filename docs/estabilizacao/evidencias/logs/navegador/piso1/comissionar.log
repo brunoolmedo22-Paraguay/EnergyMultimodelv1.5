@@ -1,0 +1,42 @@
+[comissionar] ok — geolocalização negada é informada
+[comissionar] ok — negada: nenhuma coordenada é preenchida
+[comissionar] ok — posição indisponível é informada
+[comissionar] ok — primeiro acesso abre o Gestor vazio
+[comissionar] ok — ＋ NOVA MICRORREDE abre o comissionamento
+[comissionar] ok — nenhuma leitura de posição sem clique do usuário
+[comissionar] ok — uma única leitura de posição após o clique
+[comissionar] ok — precisão estimada exibida
+[comissionar] ok — latitude preenchida pelo navegador
+[comissionar] ok — cidade NÃO é inferida das coordenadas
+[comissionar] ok — endereço NÃO é inferido
+[comissionar] ok — etapa 02 após salvar identificação
+[comissionar] ok — catálogo de tecnologias com 5 cartões
+[comissionar] ok — 'Voltar às tecnologias' retorna ao catálogo sem registrar
+[comissionar] ok — P STC do arranjo homogêneo (20 × 590 Wp)
+[comissionar] ok — potência total da usina = calculada + declarada
+[comissionar] ok — curva de potência (Plotly) exibida
+[comissionar] ok — pontos tabulados distinguidos na legenda
+[comissionar] ok — curva digitalizada identificada
+[comissionar] ok — capacidade derivada como estimativa
+[comissionar] ok — SOC mínimo padrão 20 %
+[comissionar] ok — SOC máximo padrão 80 %
+[comissionar] ok — aviso: SOC inicial é condição da rodada
+[comissionar] ok — confirmação de equipamento incompleto
+[comissionar] ok — 'Voltar à configuração' preserva os dados
+[comissionar] ok — catálogo SEEDS2 é a origem padrão
+[comissionar] ok — link do ModelLab correto
+[comissionar] ok — ModelLab abre em nova aba
+[comissionar] ok — quatro equipamentos no inventário
+[comissionar] ok — stepper navega para a etapa 03
+[comissionar] ok — balanço agregado renderizado
+[comissionar] ok — sem topologia elétrica fictícia
+[comissionar] ok — aviso: déficit ≠ compra da rede
+[comissionar] ok — rede declarada aparece fora do balanço modelado
+[comissionar] ok — etapa 05 mostra a verificação técnica
+[comissionar] ok — ZIP exportado: seeds2_Laboratorio_de_Microrredes_Bloco_C_f7b7540e_20261110_0132.seeds2backup.zip
+[comissionar] ok — PDF preliminar baixado
+[comissionar] ok — ativação leva ao Centro de Operação (Piso 2A)
+[comissionar] ok — nenhuma leitura adicional de posição (sem rastreamento)
+[comissionar] ok — comissionamento: nenhuma exceção na página
+[comissionar] ok — sem erros de JavaScript: []
+[comissionar] CONCLUÍDO

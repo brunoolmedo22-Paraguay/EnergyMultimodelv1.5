@@ -1,0 +1,41 @@
+[operar] ok — etapa real no Centro: ABRIR INICIALIZAÇÃO
+[operar] ok — etapa real no Centro: ABRIR PREVISÕES
+[operar] ok — etapa real no Centro: ABRIR ESTRATÉGIA EMS
+[operar] ok — etapa real no Centro: ABRIR EXECUÇÃO
+[operar] ok — nenhuma etapa 'Não implementado'
+[operar] ok — EXECUTAR não aparece no painel
+[operar] ok — preflight da versão salva: não executável (sem estratégia)
+[operar] ok — função objetivo única identificada
+[operar] ok — sem seletor multiobjetivo
+[operar] ok — algoritmos existentes do motor V1.6
+[operar] ok — estratégia gravada como versão 3 do cenário
+[operar] ok — estratégia: nenhuma exceção
+[operar] ok — horizonte disponível dos perfis
+[operar] ok — passo do motor informado (não editável)
+[operar] ok — EXECUTAR bloqueado com alterações não salvas
+[operar] ok — janela gravada (versão 4)
+[operar] ok — resumo de preparação da versão salva
+[operar] ok — fusos convertidos para UTC (demanda × clima)
+[operar] ok — interpolação registrada, sem extrapolação
+[operar] ok — PEMFC: equivalência exata com o motor
+[operar] ok — EXECUTAR habilitado para o cenário compatível
+[operar] rodada concluiu antes de o progresso ser amostrado
+[operar] ok — rodada concluída com custo R$ 423,00
+[operar] ok — energia atendida, não atendida e excedente
+[operar] ok — consumo de H₂
+[operar] ok — curva de demanda (121 passos)
+[operar] ok — potência por fonte
+[operar] ok — curva de SOC
+[operar] ok — URL identifica a rodada (?run=)
+[operar] ok — recarga: a mesma rodada é reaberta com o mesmo custo
+[operar] ok — recarga não criou nova rodada (1 concluída no histórico)
+[operar] ok — SOC 15 % gravado (advertência, não bloqueio)
+[operar] ok — relatório: não executável
+[operar] ok — motivo: limites de SOC efetivos do EMS V1.6
+[operar] ok — EXECUTAR bloqueado (incompatível)
+[operar] ok — incompatível: nenhuma exceção
+[operar] ok — missão de 700 min gravada (versão 7)
+[operar] ok — rodada longa em andamento (o servidor será derrubado agora)
+[operar] ok — sem erros de JavaScript: []
+KILL_NOW
+[operar] CONCLUÍDO — 38 verificações

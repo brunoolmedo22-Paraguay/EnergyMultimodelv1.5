@@ -1,0 +1,62 @@
+Skip to main content
+
+← FONTES DE ENERGIA
+
+H₂
+HIDROGÊNIO
+PEMFC · ~66 kW
+
+Visão geral
+
+Simulação
+
+Caracterização
+
+Exportação
+
+ÚLTIMA EXECUÇÃO
+
+Energia entregue
+
+2.85 kWh
+
+H₂ consumido
+
+0.206 kg
+
+Déficit máximo
+
+13.00 kW
+
+Modelo PEMFC Horizon equivalente; uso preliminar em estudos de EMS.
+
+INTEGRAÇÃO EMS
+H₂ · Operação por potência solicitada
+Forneça a potência requerida ao fuel cell. O modelo resolve a resposta dinâmica, limites de rampa, potência líquida e consumo de hidrogênio.
+Configuração temporal
+
+Passo interno da simulação [s]
+
+Passos menores representam melhor as rampas e transições, mas aumentam o número de pontos calculados.
+
+Contrato
+timestamp,P_FC_requested_kW
+2026-08-03 13:00:00,10
+2026-08-03 13:01:00,30
+Perfil de despacho
+
+Fonte do perfil
+
+Exemplo interno
+
+Carregar CSV
+
+CSV do EMS
+
+upload
+
+Upload
+
+50MB per file • CSV
+
+CSV mínimo: timestamp,P_FC_requested_kW. Opcionais: FC_enable,T_ambient_C,T_coolant_in_C,V_bus_V.

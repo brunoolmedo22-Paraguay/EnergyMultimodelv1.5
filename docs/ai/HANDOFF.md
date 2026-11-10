@@ -188,3 +188,12 @@ Los conflictos de PARAMIJEFE y las tres guardias se resuelven combinando las gar
 Nueva regresión y lista completa de archivos respecto de main: `docs/eolica/INTEGRACAO_3C4_PR18.md`. No se reutiliza el resultado 1765 anterior como evidencia combinada. Los seis aerogeneradores históricos y las siete incorporaciones se mantienen intactos. No se inicia 3D.
 
 **Cierre de la integración combinada:** **2004 passed, 0 failed, 0 skipped, 7 warnings**, 501.77s (0:08:21); 3C-4 **228 passed**, 3C-1/2/3 **545 passed**, sin solver EMS **994 passed/101 skipped** por ausencia de solver y eólica **119 passed**. Conflictos resueltos; producción EMS idéntica al main `19aa3ac`. Detalle y lista completa de archivos relativos al nuevo main en `docs/eolica/INTEGRACAO_3C4_PR18.md`.
+
+
+## Estabilización integral posterior a PR #17/#18 — 2026-11-10
+
+Base comprobada `5e6267833538716678125ab962fc645cfee53eb0`; rama `codex/estabilizacion-aceptacion-integral`; producción en `02d898d819e752c0ebd89c8564376eb200db33fd`. Transferencia fallida bloqueada con rollback/reintento; manual separado del store; consentimiento de exclusiones vinculado a identidad/revisión; huella cubre preparación V1.6; errores de arranque/térmica controlados. Solo cuatro archivos de aplicación; EMS, modelos, catálogos y datos históricos intactos. Guardias científicas activas; nuevas excepciones nominales verificadas mediante evidencia independiente, sin directorios/tolerancias ni cambios de fixtures anteriores.
+
+Resultado nuevo: **2044 passed / 0 failed / 0 skipped / 9 warnings**; EMS separado **1458 passed**; sin solver real **1598 passed / 101 skips**, con lista individual de 446 casos no ejecutados. Cuatro algoritmos antes/después exactos. Navegador real en seis bancadas y protocolos completos del Gestor, escenarios, reinicios/interrupción, Archivo e informes. P0/consentimiento: 24 verificaciones; catálogo: 103; descargas: 157.
+
+[Dictamen y evidencias](../estabilizacao/VEREDICTO_FINAL.md). Conservados los límites: cuatro eólicas solo curvas, MIX sin enlace normal, V2 experimental sin integración operativa, backup convencional distinto del científico, uso local/de confianza. Rama publicada; API GitHub `Forbidden` impide confirmar la creación del PR. Próximo paso: abrir/revisar el PR y auditoría matemática independiente; **sin merge y sin 3D**. Esta sección no sustituye ninguna entrega científica previa.

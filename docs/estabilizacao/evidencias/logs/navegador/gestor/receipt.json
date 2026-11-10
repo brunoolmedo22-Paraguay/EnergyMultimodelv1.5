@@ -1,0 +1,21 @@
+{
+  "protocol": "gestor",
+  "data_dir": "/tmp/seeds2-acceptance-gestor-cc2qlova",
+  "phases": [
+    {
+      "phase": "multi",
+      "passed": true,
+      "duration_s": 39.6
+    },
+    {
+      "phase": "reinicio",
+      "passed": true,
+      "duration_s": 5.8
+    },
+    {
+      "phase": "tablet",
+      "passed": true,
+      "duration_s": 10.11
+    }
+  ]
+}

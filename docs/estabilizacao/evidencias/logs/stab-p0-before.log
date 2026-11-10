@@ -1,0 +1,21 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_unsolicited_partial_transfer_error_cannot_enable_manual_execution ____
+
+state = {'mg_apply_error': 'Não foi possível transferir a configuração ao orquestrador: controlled B transfer error', 'mg_plan...), 'orchestrator_page': 'Otimizador', 'orq_after_run': <function _after_run_hook.<locals>.hook at 0x7fae87433060>, ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fae877ce4e0>
+
+    def test_unsolicited_partial_transfer_error_cannot_enable_manual_execution(state,monkeypatch):
+        before=deepcopy(state['orq_result_item'])
+        def fail(p):
+            state['orq_model_spec']=p.spec
+            raise OSError('controlled B transfer error')
+        monkeypatch.setattr(O,'_apply',fail)
+        O.prepare('simulacao')
+>       assert not state['orq_run_gate']['ok']
+E       assert not True
+
+tests/estabilizacao/test_operations_fail_closed.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED tests/estabilizacao/test_operations_fail_closed.py::test_unsolicited_partial_transfer_error_cannot_enable_manual_execution
+1 failed in 0.67s

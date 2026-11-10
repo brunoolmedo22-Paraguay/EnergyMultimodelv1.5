@@ -1,0 +1,127 @@
+{
+  "bench": "mix",
+  "checks": 16,
+  "passed": true,
+  "receipts": [
+    {
+      "charts": [
+        {
+          "title": "<b>Potência por fonte e balanço do sistema</b>",
+          "axes": [
+            "kW"
+          ],
+          "traces": [
+            {
+              "name": "Solar",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Eólica",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Térmica entregue",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Bateria",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "H₂ entregue",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Total líquido",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Demanda",
+              "n": 121,
+              "finite": 121
+            }
+          ]
+        },
+        {
+          "title": "<b>Consignas do otimizador × resposta física</b>",
+          "axes": [
+            "kW"
+          ],
+          "traces": [
+            {
+              "name": "Térmica · solicitada",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Térmica · entregue",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Bateria · solicitada",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Bateria · entregue",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "H₂ · solicitada",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "H₂ · entregue",
+              "n": 121,
+              "finite": 121
+            }
+          ]
+        },
+        {
+          "title": "<b>Excedente e déficit</b>",
+          "axes": [
+            "kW"
+          ],
+          "traces": [
+            {
+              "name": "Excedente",
+              "n": 121,
+              "finite": 121
+            },
+            {
+              "name": "Déficit",
+              "n": 121,
+              "finite": 121
+            }
+          ]
+        },
+        {
+          "title": "<b>Estado de carga da bateria</b>",
+          "axes": [
+            "SOC [%]"
+          ],
+          "traces": [
+            {
+              "name": "SOC",
+              "n": 121,
+              "finite": 121
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "mix-mix_resultado.csv",
+      "bytes": 30578
+    }
+  ]
+}

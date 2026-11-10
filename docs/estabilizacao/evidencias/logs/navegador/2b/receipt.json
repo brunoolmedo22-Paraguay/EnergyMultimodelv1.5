@@ -1,0 +1,21 @@
+{
+  "protocol": "2b",
+  "data_dir": "/tmp/seeds2-acceptance-2b-jwggk1_r",
+  "phases": [
+    {
+      "phase": "operar",
+      "passed": true,
+      "duration_s": 42.67
+    },
+    {
+      "phase": "reinicio",
+      "passed": true,
+      "duration_s": 8.45
+    },
+    {
+      "phase": "tablet",
+      "passed": true,
+      "duration_s": 21.31
+    }
+  ]
+}

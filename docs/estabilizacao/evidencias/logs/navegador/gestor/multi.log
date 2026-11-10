@@ -1,0 +1,40 @@
+[multi] ok — a aplicação começa no Gestor de microrredes
+[multi] ok — estado vazio no primeiro acesso
+[multi] ok — nenhuma microrrede criada automaticamente
+[multi] ok — nova microrrede abre o comissionamento (Microrrede A — Solar)
+[multi] ok — formulário da nova microrrede começa vazio
+[multi] ok — etapa 02 de Microrrede A — Solar
+[multi] ok — barra superior mostra a microrrede ativa (Microrrede A — Solar)
+[multi] ok — A: um equipamento
+[multi] ok — TROCAR MICRORREDE volta ao Gestor
+[multi] ok — Gestor lista A
+[multi] ok — nova microrrede abre o comissionamento (Microrrede B — Eólica)
+[multi] ok — formulário da nova microrrede começa vazio
+[multi] ok — etapa 02 de Microrrede B — Eólica
+[multi] ok — barra superior mostra a microrrede ativa (Microrrede B — Eólica)
+[multi] ok — B começa sem os equipamentos de A
+[multi] ok — TROCAR MICRORREDE volta ao Gestor
+[multi] ok — Gestor lista A e B
+[multi] ok — dois armazenamentos independentes em microgrids/
+[multi] ok — A reabre exatamente na etapa onde estava
+[multi] ok — inventário de A preservado
+[multi] ok — nenhum equipamento de B aparece em A
+[multi] ok — TROCAR MICRORREDE volta ao Gestor
+[multi] ok — ZIP de A com nome legível + identificador: seeds2_Microrrede_A_Solar_9c5d25a4_20261110_0054.seeds2backup.zip
+[multi] ok — PDF de B gerado pelo Gestor
+[multi] ok — exportar/relatório não abrem a microrrede
+[multi] ok — backup inspecionado
+[multi] ok — identidade coincidente detectada
+[multi] ok — cópia independente criada
+[multi] ok — Gestor lista A, B e a cópia de A
+[multi] ok — cópia identificada pela origem
+[multi] ok — diálogo de exclusão com resumo
+[multi] ok — botão bloqueado sem o nome
+[multi] ok — nome de OUTRA microrrede não libera a exclusão
+[multi] ok — exclusão confirmada
+[multi] ok — B removida; A e cópia permanecem
+[multi] ok — diretório de B removido do disco; os outros dois intactos
+[multi] ok — A reaberta intacta após excluir B
+[multi] ok — multi: nenhuma exceção
+[multi] ok — sem erros de JavaScript: []
+[multi] CONCLUÍDO

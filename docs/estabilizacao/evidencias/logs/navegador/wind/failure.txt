@@ -1,0 +1,231 @@
+13 options available.
+5 options available.
+1 option available.
+13 options available.
+Skip to main content
+keyboard_double_arrow_left
+
+← FONTES DE ENERGIA
+
+🌬
+EÓLICA
+POWER CURVE ENGINE
+NAVEGAÇÃO
+
+Visão geral
+
+Simulação
+
+Catálogo de aerogeradores
+
+Exportação
+
+ESTADO DA EXECUÇÃO
+AEROGERADOR
+Vergnet GEV MP C 275 kW
+DADOS
+perfil_eolico_sintetico_ceara_1_semana_10min.csv
+JANELA
+17/08 00:00–23/08 23:50
+
+V1: medições assumidas na altura do cubo · sem wake · direção não penaliza a potência.
+
+EÓLICA · SIMULAÇÃO
+PERFIL DE POTÊNCIA E ENERGIA
+Selecione o aerogerador, carregue o perfil meteorológico e calcule a semana.
+1 · CONFIGURAÇÃO DO SISTEMA
+
+Aerogerador
+
+Quantidade de aerogeradores
+
+Descontar 3% até o ponto de inserção à rede
+
+REFERÊNCIA UNITÁRIA
+275,000 kW
+REFERÊNCIA INSTALADA
+275,000 kW
+ROTOR
+32 m
+Ρ REF.
+1,225 kg/m³
+Fronteira de perdas. Não se aplicam eficiências adicionais de rotor, caixa ou gerador sobre a curva do fabricante. O switch acima é o único desconto elétrico externo da V1.
+2 · DADOS METEOROLÓGICOS
+
+Fonte
+
+Carregar CSV
+
+Exemplo sintético · Ceará
+
+Arquivo CSV
+
+upload
+
+Upload
+
+50MB per file • CSV, TXT
+
+Carregue um CSV ou use o exemplo sintético para habilitar o cálculo.
+
+3 · EXECUÇÃO
+Lógica de densidade. P + T + UR → ar úmido; P + T → ar seco; caso falte P ou T → ρ = 1,225 kg/m³. A direção é informativa e não altera a potência nesta versão.
+
+▶ CALCULAR PERFIL EÓLICO
+
+✓ Temperatura✓ Pressão✓ Umidade✓ Direção
+
+Energia bruta
+
+19.36 MWh
+
+Energia após perdas
+
+19.36 MWh
+
+FC bruto
+
+41.90 %
+
+FC líquido
+
+41.90 %
+
+P média
+
+0.12 MW
+
+P máxima
+
+0.28 MW
+
+Vento médio
+
+8.43 m/s
+
+ρ média
+
+1.160 kg/m³
+
+Horas equivalentes
+
+70.4 h
+
+Horas gerando
+
+168.0 h
+
+Abaixo de cut-in
+
+0.0 h
+
+Em potência nominal
+
+1.2 h
+
+Sem desconto externo: potência líquida = potência elétrica da curva do aerogerador.
+
+Densidade: Ar úmido · P + T + UR · úmido 1008 pontos · seco 0 · referência 0.
+
+Resultados temporais
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+4
+6
+8
+10
+12
+Vento medido
+Vento equivalente
+Perfil de velocidade do vento
+Tempo
+Velocidade (m/s)
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+Potência elétrica no período
+Tempo
+Potência (MW)
+5
+10
+15
+20
+25
+0
+0.05
+0.1
+0.15
+0.2
+0.25
+Curva parametrizada
+Pontos operativos
+Curva de potência · Vergnet GEV MP C 275 kW
+Velocidade do vento (m/s)
+Potência unitária (MW)
+cut-in
+nominal
+cut-out
+0°
+45°
+90°
+135°
+180°
+225°
+270°
+315°
+0
+10
+20
+30
+40
+50
+60
+Rosa dos ventos
+Frequência (%)
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+0
+1
+2
+3
+4
+Energia por dia
+Dia
+Energia (MWh)
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+24
+25
+26
+27
+28
+29
+30
+1.1486
+1.15255
+1.1565
+1.16044
+1.16439
+1.16834
+1.17228
+Temperatura (°C)
+Densidade (kg/m³)
+Condições atmosféricas
+Temperatura (°C)
+Densidade (kg/m³)
+keyboard_arrow_right
+
+Tabela detalhada da simulação

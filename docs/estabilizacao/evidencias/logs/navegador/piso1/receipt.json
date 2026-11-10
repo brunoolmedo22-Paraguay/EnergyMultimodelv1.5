@@ -1,0 +1,21 @@
+{
+  "protocol": "piso1",
+  "data_dir": "/tmp/seeds2-acceptance-piso1-0dxrrg43",
+  "phases": [
+    {
+      "phase": "comissionar",
+      "passed": true,
+      "duration_s": 71.09
+    },
+    {
+      "phase": "reabrir",
+      "passed": true,
+      "duration_s": 45.02
+    },
+    {
+      "phase": "tablet",
+      "passed": true,
+      "duration_s": 22.79
+    }
+  ]
+}

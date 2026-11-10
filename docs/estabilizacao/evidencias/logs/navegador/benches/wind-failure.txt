@@ -1,0 +1,222 @@
+Skip to main content
+
+← FONTES DE ENERGIA
+
+🌬
+EÓLICA
+POWER CURVE ENGINE
+NAVEGAÇÃO
+
+Visão geral
+
+Simulação
+
+Catálogo de aerogeradores
+
+Exportação
+
+ESTADO DA EXECUÇÃO
+AEROGERADOR
+Nordex N117/2400
+DADOS
+perfil_eolico_sintetico_ceara_1_semana_10min.csv
+JANELA
+17/08 00:00–23/08 23:50
+
+V1: medições assumidas na altura do cubo · sem wake · direção não penaliza a potência.
+
+EÓLICA · SIMULAÇÃO
+PERFIL DE POTÊNCIA E ENERGIA
+Selecione o aerogerador, carregue o perfil meteorológico e calcule a semana.
+1 · CONFIGURAÇÃO DO SISTEMA
+
+Aerogerador
+
+Quantidade de aerogeradores
+
+Descontar 3% até o ponto de inserção à rede
+
+REFERÊNCIA UNITÁRIA
+2,40 MW
+REFERÊNCIA INSTALADA
+2,40 MW
+ROTOR
+117 m
+Ρ REF.
+1,225 kg/m³
+Fronteira de perdas. Não se aplicam eficiências adicionais de rotor, caixa ou gerador sobre a curva do fabricante. O switch acima é o único desconto elétrico externo da V1.
+2 · DADOS METEOROLÓGICOS
+
+Fonte
+
+Carregar CSV
+
+Exemplo sintético · Ceará
+
+Arquivo CSV
+
+upload
+
+Upload
+
+50MB per file • CSV, TXT
+
+Carregue um CSV ou use o exemplo sintético para habilitar o cálculo.
+
+3 · EXECUÇÃO
+Lógica de densidade. P + T + UR → ar úmido; P + T → ar seco; caso falte P ou T → ρ = 1,225 kg/m³. A direção é informativa e não altera a potência nesta versão.
+
+▶ CALCULAR PERFIL EÓLICO
+
+✓ Temperatura✓ Pressão✓ Umidade✓ Direção
+
+Energia bruta
+
+268.75 MWh
+
+Energia após perdas
+
+268.75 MWh
+
+FC bruto
+
+66.65 %
+
+FC líquido
+
+66.65 %
+
+P média
+
+1.60 MW
+
+P máxima
+
+2.40 MW
+
+Vento médio
+
+8.43 m/s
+
+ρ média
+
+1.160 kg/m³
+
+Horas equivalentes
+
+112.0 h
+
+Horas gerando
+
+168.0 h
+
+Abaixo de cut-in
+
+0.0 h
+
+Em potência nominal
+
+9.7 h
+
+Sem desconto externo: potência líquida = potência elétrica da curva do aerogerador.
+
+Densidade: Ar úmido · P + T + UR · úmido 1008 pontos · seco 0 · referência 0.
+
+Resultados temporais
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+4
+6
+8
+10
+12
+Perfil de velocidade do vento
+Tempo
+Velocidade (m/s)
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+0.5
+1
+1.5
+2
+2.5
+Potência elétrica no período
+Tempo
+Potência (MW)
+5
+10
+15
+20
+0
+0.5
+1
+1.5
+2
+2.5
+Curva parametrizada
+Pontos operativos
+Curva de potência · Nordex N117/2400
+Velocidade do vento (m/s)
+Potência unitária (MW)
+cut-in
+nominal
+0°
+45°
+90°
+135°
+180°
+225°
+270°
+315°
+0
+10
+20
+30
+40
+50
+60
+Rosa dos ventos
+Frequência (%)
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+0
+10
+20
+30
+40
+50
+Energia por dia
+Dia
+Energia (MWh)
+Aug 172026
+Aug 19
+Aug 21
+Aug 23
+24
+25
+26
+27
+28
+29
+30
+1.1486
+1.15255
+1.1565
+1.16044
+1.16439
+1.16834
+1.17228
+Temperatura (°C)
+Densidade (kg/m³)
+Condições atmosféricas
+Temperatura (°C)
+Densidade (kg/m³)
+keyboard_arrow_right
+
+Tabela detalhada da simulação

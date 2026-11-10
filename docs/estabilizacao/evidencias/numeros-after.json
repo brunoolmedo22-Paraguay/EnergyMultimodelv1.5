@@ -1,0 +1,294 @@
+{
+  "GA": {
+    "excluded_timing_columns": [],
+    "series_columns": [
+      "timestamp_utc",
+      "timestamp_local",
+      "timestamp_runtime",
+      "t_min",
+      "P_carga_kW",
+      "P_solar_kW",
+      "P_eolica_kW",
+      "P_renovavel_vertida_kW",
+      "P_carga_liquida_kW",
+      "P_fc_kW",
+      "P_fc_meta_kW",
+      "n_fc",
+      "P_bateria_kW",
+      "P_bateria_meta_kW",
+      "SOC_bateria",
+      "deficit_kW",
+      "excesso_despachavel_kW",
+      "h2_kg",
+      "custo_rs",
+      "J_meta_rs",
+      "J_refino_rs",
+      "violacao_meta",
+      "P_renovavel_disponivel_kW",
+      "custo_partida_rs",
+      "violacao_refino",
+      "n_combinacoes",
+      "Pmax_unid_fc_kW",
+      "Pmax_unid_bateria_kW"
+    ],
+    "series_rows": 13,
+    "series_sha256": "645cc579b68507e6a7c01ee88b5df181bfd1ee00dacb5cbc10fd7f6d4a3fb744",
+    "summary": {
+      "N": 3,
+      "Ts_s": 60.0,
+      "algoritmo": "GA",
+      "avisos": [],
+      "custo_por_fonte_rs": {
+        "bateria": 0.8241739775902717,
+        "fc": 19.80057265680585
+      },
+      "custo_total_rs": 20.624746705690317,
+      "energia_atendida_kWh": 23.88693333191184,
+      "energia_demanda_kWh": 23.88693333333333,
+      "energia_eolica_kWh": 0.0,
+      "energia_excedente_despachavel_kWh": 4.394015509679866e-10,
+      "energia_excedente_kWh": 4.394015509679866e-10,
+      "energia_excedente_renovavel_kWh": 0.0,
+      "energia_nao_atendida_kWh": 1.4214898819033152e-09,
+      "energia_por_fonte_kWh": {
+        "bateria": 10.115902931272224,
+        "fc": 12.464930444104361
+      },
+      "energia_solar_kWh": 1.9047692087666666,
+      "fontes": [
+        "fc",
+        "bateria"
+      ],
+      "h2_kg": 0.792022906272234,
+      "h2_kg_validacao_dinamica": null,
+      "partidas": {
+        "bateria": 0,
+        "fc": 2
+      },
+      "passos": 13,
+      "passos_inviaveis": 0,
+      "soc_final": {
+        "bateria": 0.5499999999947377
+      }
+    }
+  },
+  "GWO": {
+    "excluded_timing_columns": [],
+    "series_columns": [
+      "timestamp_utc",
+      "timestamp_local",
+      "timestamp_runtime",
+      "t_min",
+      "P_carga_kW",
+      "P_solar_kW",
+      "P_eolica_kW",
+      "P_renovavel_vertida_kW",
+      "P_carga_liquida_kW",
+      "P_fc_kW",
+      "P_fc_meta_kW",
+      "n_fc",
+      "P_bateria_kW",
+      "P_bateria_meta_kW",
+      "SOC_bateria",
+      "deficit_kW",
+      "excesso_despachavel_kW",
+      "h2_kg",
+      "custo_rs",
+      "J_meta_rs",
+      "J_refino_rs",
+      "violacao_meta",
+      "P_renovavel_disponivel_kW",
+      "custo_partida_rs",
+      "violacao_refino",
+      "n_combinacoes",
+      "Pmax_unid_fc_kW",
+      "Pmax_unid_bateria_kW"
+    ],
+    "series_rows": 13,
+    "series_sha256": "d4f0c2b07c3dc2428f9260f20fd3c15071af7a98b887e08316e1b54a5832d155",
+    "summary": {
+      "N": 3,
+      "Ts_s": 60.0,
+      "algoritmo": "GWO",
+      "avisos": [],
+      "custo_por_fonte_rs": {
+        "bateria": 0.8241739771024222,
+        "fc": 19.800575375186007
+      },
+      "custo_total_rs": 20.62474938808517,
+      "energia_atendida_kWh": 23.88693333261829,
+      "energia_demanda_kWh": 23.88693333333333,
+      "energia_eolica_kWh": 0.0,
+      "energia_excedente_despachavel_kWh": 8.944284987465513e-11,
+      "energia_excedente_kWh": 8.944284987465513e-11,
+      "energia_excedente_renovavel_kWh": 0.0,
+      "energia_nao_atendida_kWh": 7.15040331144568e-10,
+      "energia_por_fonte_kWh": {
+        "bateria": 10.11590292788884,
+        "fc": 12.46493044162403
+      },
+      "energia_solar_kWh": 1.9047692087666666,
+      "fontes": [
+        "fc",
+        "bateria"
+      ],
+      "h2_kg": 0.7920230150074403,
+      "h2_kg_validacao_dinamica": null,
+      "partidas": {
+        "bateria": 0,
+        "fc": 2
+      },
+      "passos": 13,
+      "passos_inviaveis": 0,
+      "soc_final": {
+        "bateria": 0.5499999999982249
+      }
+    }
+  },
+  "NGO": {
+    "excluded_timing_columns": [],
+    "series_columns": [
+      "timestamp_utc",
+      "timestamp_local",
+      "timestamp_runtime",
+      "t_min",
+      "P_carga_kW",
+      "P_solar_kW",
+      "P_eolica_kW",
+      "P_renovavel_vertida_kW",
+      "P_carga_liquida_kW",
+      "P_fc_kW",
+      "P_fc_meta_kW",
+      "n_fc",
+      "P_bateria_kW",
+      "P_bateria_meta_kW",
+      "SOC_bateria",
+      "deficit_kW",
+      "excesso_despachavel_kW",
+      "h2_kg",
+      "custo_rs",
+      "J_meta_rs",
+      "J_refino_rs",
+      "violacao_meta",
+      "P_renovavel_disponivel_kW",
+      "custo_partida_rs",
+      "violacao_refino",
+      "n_combinacoes",
+      "Pmax_unid_fc_kW",
+      "Pmax_unid_bateria_kW"
+    ],
+    "series_rows": 13,
+    "series_sha256": "f0237b08ce53ddcc6e56a29d2f7857b58293f0bc61eefbdfee6fe3e9a892e3bb",
+    "summary": {
+      "N": 3,
+      "Ts_s": 60.0,
+      "algoritmo": "NGO",
+      "avisos": [],
+      "custo_por_fonte_rs": {
+        "bateria": 0.8241739777806448,
+        "fc": 19.80057264256893
+      },
+      "custo_total_rs": 20.624746993826953,
+      "energia_atendida_kWh": 23.88693332588604,
+      "energia_demanda_kWh": 23.88693333333333,
+      "energia_eolica_kWh": 0.0,
+      "energia_excedente_despachavel_kWh": 2.2256444031991536e-09,
+      "energia_excedente_kWh": 2.2256444031991536e-09,
+      "energia_excedente_renovavel_kWh": 0.0,
+      "energia_nao_atendida_kWh": 7.44729099243733e-09,
+      "energia_por_fonte_kWh": {
+        "bateria": 10.115902931948249,
+        "fc": 12.464930437687736
+      },
+      "energia_solar_kWh": 1.9047692087666666,
+      "fontes": [
+        "fc",
+        "bateria"
+      ],
+      "h2_kg": 0.7920229057027572,
+      "h2_kg_validacao_dinamica": null,
+      "partidas": {
+        "bateria": 0,
+        "fc": 2
+      },
+      "passos": 13,
+      "passos_inviaveis": 0,
+      "soc_final": {
+        "bateria": 0.5499999999998356
+      }
+    }
+  },
+  "SQP": {
+    "excluded_timing_columns": [],
+    "series_columns": [
+      "timestamp_utc",
+      "timestamp_local",
+      "timestamp_runtime",
+      "t_min",
+      "P_carga_kW",
+      "P_solar_kW",
+      "P_eolica_kW",
+      "P_renovavel_vertida_kW",
+      "P_carga_liquida_kW",
+      "P_fc_kW",
+      "P_fc_meta_kW",
+      "n_fc",
+      "P_bateria_kW",
+      "P_bateria_meta_kW",
+      "SOC_bateria",
+      "deficit_kW",
+      "excesso_despachavel_kW",
+      "h2_kg",
+      "custo_rs",
+      "J_meta_rs",
+      "J_refino_rs",
+      "violacao_meta",
+      "P_renovavel_disponivel_kW",
+      "custo_partida_rs",
+      "violacao_refino",
+      "n_combinacoes",
+      "Pmax_unid_fc_kW",
+      "Pmax_unid_bateria_kW"
+    ],
+    "series_rows": 13,
+    "series_sha256": "33b213ef8c1f926736087f399484ae99e95ce847d307656f9074e9d7341d1945",
+    "summary": {
+      "N": 3,
+      "Ts_s": 60.0,
+      "algoritmo": "SQP",
+      "avisos": [],
+      "custo_por_fonte_rs": {
+        "bateria": 0.824173977734529,
+        "fc": 19.800572664877794
+      },
+      "custo_total_rs": 20.624746663370345,
+      "energia_atendida_kWh": 23.886933332918524,
+      "energia_demanda_kWh": 23.88693333333333,
+      "energia_eolica_kWh": 0.0,
+      "energia_excedente_despachavel_kWh": 3.5175208040443214e-11,
+      "energia_excedente_kWh": 3.5175208040443214e-11,
+      "energia_excedente_renovavel_kWh": 0.0,
+      "energia_nao_atendida_kWh": 4.148087404813409e-10,
+      "energia_por_fonte_kWh": {
+        "bateria": 10.11590293183172,
+        "fc": 12.464930448381976
+      },
+      "energia_solar_kWh": 1.9047692087666666,
+      "fontes": [
+        "fc",
+        "bateria"
+      ],
+      "h2_kg": 0.7920229065951117,
+      "h2_kg_validacao_dinamica": null,
+      "partidas": {
+        "bateria": 0,
+        "fc": 2
+      },
+      "passos": 13,
+      "passos_inviaveis": 0,
+      "soc_final": {
+        "bateria": 0.5499999999981271
+      }
+    }
+  }
+}
