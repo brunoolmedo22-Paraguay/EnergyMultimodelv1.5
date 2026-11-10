@@ -101,7 +101,7 @@ def efeito(nome: str, a: LinhaEstrategia | None, b: LinhaEstrategia | None, prec
         return Efeito(nome, a.estrategia, b.estrategia, d, True, "condições terminais iguais (energia, ON/OFF, "
                                                                  "obrigações): diferença de custo comparável")
     dE = math.fsum(a.energias_finais_kWh.values()) - math.fsum(b.energias_finais_kWh.values())
-    aj = {f"{p:g}": d + p * dE for p in precos}              # custo − p·E_final ⇒ (Ca − pEa) − (Cb − pEb)
+    aj = {f"{p:g}": d - p * dE for p in precos}              # custo − p·E_final ⇒ (Ca − pEa) − (Cb − pEb)
     sinais = {(v > 1e-9) - (v < -1e-9) for v in aj.values()}
     ger = a.geradores_finais != b.geradores_finais or a.obrigacoes_pendentes_s or b.obrigacoes_pendentes_s
     return Efeito(nome, a.estrategia, b.estrategia, d, False,
