@@ -1,5 +1,7 @@
 # Veredicto final de estabilización
 
+**Actualización CI-01 (PR #19): aceptación remota pendiente.** El run `42740857886` aprobó el trabajo con solver y falló seis hashes eólicos `weather` sin solver, según los logs oficiales comunicados por el responsable. La reproducción local aísla la selección de kernels de CPU de NumPy; no se ha autorizado ni aplicado un cambio de equivalencia. No declarar CI-01 resuelto hasta que ambos trabajos remotos del hotfix terminen con success. Véase [diagnóstico CI-01](HOTFIX_CI01_REPRODUCIBILIDAD_EOLICA.md). Los resultados anteriores de abajo siguen siendo el registro local de la estabilización, no una aprobación del incidente remoto.
+
 **Dictamen operativo:** apto para revisión técnica del PR de estabilización y para pasar a la auditoría matemática independiente, en uso local/de investigación con usuarios de confianza y dentro de los límites declarados. No es certificación industrial ni autorización de despliegue público. No se realizó merge ni se inició 3D.
 
 1. **¿Arranca correctamente? Sí.** Inicio limpio en Chromium; sin escritura, mensaje claro y detención controlada. Reinicios y URL directas recuperan el contexto previsto.

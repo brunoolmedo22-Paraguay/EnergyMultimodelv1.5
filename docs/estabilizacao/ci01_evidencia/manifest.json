@@ -1,0 +1,17 @@
+{
+  "decimal/decimal-comparison.json": "5901630093f45c67b9e311eb2f838f6471b48f2f19fe8e8f8351059f79d40747",
+  "decimal/decimal-reference.npz": "2845d545952bc75d7fdd21a18f9c278e9f7ba1d6c956ee99894b1d6a3d444e84",
+  "formal-comparison/comparison.json": "3b45cc9b977e552e3a5f752adf8b3f395d6b4f2bd046dc2f5d8f2e98e0b12cce",
+  "formal-comparison/comparison.md": "5a2d7753c7c905cfbf17ac1bdcabc35ef0f2442b8d02add237c966808fbe8fb1",
+  "formal-no-avx512/arrays.npz": "3c9a598991573aa2f3914fdbb5b2c9b873d721aee3cff7cb8dd3e09d77cf25c3",
+  "formal-no-avx512/metadata.json": "a6b6022178664f89161669f1d05d26f6e0292a3965d0d6c62c3666fe4ac02155",
+  "formal-no-solver/arrays.npz": "2dc74606f9a59da9a81bc2cb136cd15df642f96686532d44044734df4f6775d4",
+  "formal-no-solver/metadata.json": "a0065780b2528b294e146491cefbb4fc2816abc85996a67e2620fa6f8b5b17b9",
+  "formal-solver/arrays.npz": "2dc74606f9a59da9a81bc2cb136cd15df642f96686532d44044734df4f6775d4",
+  "formal-solver/metadata.json": "15f842221ec4aa51bdabdbc280ac8b797f73ee3f8288c1ebc42e8129d7c7a443",
+  "formal-solver-vs-no-solver/comparison.json": "96123047108039b404deb0825e9898d40a92697a8b341eeea7200b377e53eed0",
+  "formal-solver-vs-no-solver/comparison.md": "1b3dd780d1ddcc228149fb7d31afe7c253ed0b87fe34c099461de404a6e16c3b",
+  "historical-native.log": "bae5720f5e5be670fb6da61d555dadb3dc838ccffab1cc8964ed45a2cf477549",
+  "historical-no-avx512-before.log.gz": "dfbf70a9242b866bac7c592ad313dff31a7ce37981ab15ce9d73e98c74c76a24",
+  "stage-control.json": "5bd462046854a9d4d8d8ffca5ebc8d91e728db998a32212e37ae56a3643c12cc"
+}

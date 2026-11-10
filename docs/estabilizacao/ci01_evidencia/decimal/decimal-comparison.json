@@ -1,0 +1,86 @@
+{
+  "Nordex N117/2400": {
+    "/tmp/ci01/formal-solver": {
+      "max_absolute_kw": 2.2737367544323206e-12,
+      "max_relative": 7.618155447531757e-16,
+      "max_ulp": 5,
+      "rmse_kw": 5.366707904657947e-13
+    },
+    "/tmp/ci01/formal-no-avx512": {
+      "max_absolute_kw": 2.2737367544323206e-12,
+      "max_relative": 7.618155447531757e-16,
+      "max_ulp": 5,
+      "rmse_kw": 5.357302155847729e-13
+    }
+  },
+  "Vestas V164-7.0 MW": {
+    "/tmp/ci01/formal-solver": {
+      "max_absolute_kw": 7.275957614183426e-12,
+      "max_relative": 1.4576933938762075e-15,
+      "max_ulp": 10,
+      "rmse_kw": 1.4951506509464615e-12
+    },
+    "/tmp/ci01/formal-no-avx512": {
+      "max_absolute_kw": 7.275957614183426e-12,
+      "max_relative": 1.4576933938762075e-15,
+      "max_ulp": 10,
+      "rmse_kw": 1.4930452377913831e-12
+    }
+  },
+  "Siemens SWT-3.6-120": {
+    "/tmp/ci01/formal-solver": {
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.350580298741929e-16,
+      "max_ulp": 6,
+      "rmse_kw": 7.134728522707277e-13
+    },
+    "/tmp/ci01/formal-no-avx512": {
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.350580298741929e-16,
+      "max_ulp": 6,
+      "rmse_kw": 7.154499642823538e-13
+    }
+  },
+  "Vestas V90-3.0 MW": {
+    "/tmp/ci01/formal-solver": {
+      "max_absolute_kw": 2.7284841053187847e-12,
+      "max_relative": 9.86181447753528e-16,
+      "max_ulp": 8,
+      "rmse_kw": 5.375000844441479e-13
+    },
+    "/tmp/ci01/formal-no-avx512": {
+      "max_absolute_kw": 2.7284841053187847e-12,
+      "max_relative": 1.1400984494869292e-15,
+      "max_ulp": 10,
+      "rmse_kw": 5.391445649013732e-13
+    }
+  },
+  "EWT DW61-1MW": {
+    "/tmp/ci01/formal-solver": {
+      "max_absolute_kw": 6.821210263296962e-13,
+      "max_relative": 5.721157971235869e-16,
+      "max_ulp": 4,
+      "rmse_kw": 1.7709726153924028e-13
+    },
+    "/tmp/ci01/formal-no-avx512": {
+      "max_absolute_kw": 6.821210263296962e-13,
+      "max_relative": 5.721157971235869e-16,
+      "max_ulp": 4,
+      "rmse_kw": 1.770127728850119e-13
+    }
+  },
+  "WEG AGW 147 / 4.2": {
+    "/tmp/ci01/formal-solver": {
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.567440924809532e-16,
+      "max_ulp": 5,
+      "rmse_kw": 9.64596129932635e-13
+    },
+    "/tmp/ci01/formal-no-avx512": {
+      "max_absolute_kw": 4.547473508864641e-12,
+      "max_relative": 9.567440924809532e-16,
+      "max_ulp": 5,
+      "rmse_kw": 9.654819055247582e-13
+    }
+  }
+}
