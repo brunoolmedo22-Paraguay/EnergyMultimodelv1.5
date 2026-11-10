@@ -279,7 +279,8 @@ def rebase(doc: dict, current_config: dict, revision: int, fingerprint: str) -> 
 STAGES = (
     ("inicializacao", "Inicialização", "Estados iniciais dos equipamentos"),
     ("previsoes", "Previsões", "Demanda e clima: perfis manuais, CSV, sintéticos ou de referência"),
-    ("estrategia", "Estratégia EMS", "Função objetivo, algoritmo, horizonte N e parâmetros do motor V1.6"),
+    ("estrategia", "Estratégia EMS", "Motor V1.6 (função objetivo, algoritmo, horizonte N) ou motor V2 experimental "
+                                     "MILP–MPC (declarações com procedência)"),
     ("execucao", "Execução", "Janela da missão, verificação de compatibilidade, rodada EMS e resultados gravados"),
 )
 
