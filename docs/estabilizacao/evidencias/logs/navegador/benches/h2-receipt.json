@@ -1,0 +1,95 @@
+{
+  "bench": "h2",
+  "checks": 20,
+  "passed": true,
+  "receipts": [
+    {
+      "charts": [
+        {
+          "title": "<b><b>Potência PEMFC</b></b>",
+          "axes": [
+            "kW"
+          ],
+          "traces": [
+            {
+              "name": "Solicitada",
+              "n": 361,
+              "finite": 361
+            },
+            {
+              "name": "Entregue",
+              "n": 361,
+              "finite": 361
+            },
+            {
+              "name": "Déficit",
+              "n": 361,
+              "finite": 361
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Consumo instantâneo de H₂</b></b>",
+          "axes": [
+            "kg/h"
+          ],
+          "traces": [
+            {
+              "name": "H₂",
+              "n": 361,
+              "finite": 361
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Eficiência elétrica líquida · PCI</b></b>",
+          "axes": [
+            "%"
+          ],
+          "traces": [
+            {
+              "name": "Eficiência líquida",
+              "n": 361,
+              "finite": 361
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Corrente do stack</b></b>",
+          "axes": [
+            "A"
+          ],
+          "traces": [
+            {
+              "name": "Corrente",
+              "n": 361,
+              "finite": 361
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Tensão do stack</b></b>",
+          "axes": [
+            "V"
+          ],
+          "traces": [
+            {
+              "name": "Tensão",
+              "n": 361,
+              "finite": 361
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "h2-resultado_h2_pemfc_66kw.csv",
+      "bytes": 74212
+    },
+    {
+      "invalidAlerts": [
+        "timestamp contém valores inválidos."
+      ]
+    }
+  ]
+}

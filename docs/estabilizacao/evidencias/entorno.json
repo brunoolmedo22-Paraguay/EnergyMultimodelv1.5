@@ -1,0 +1,15 @@
+{
+  "base_commit": "5e6267833538716678125ab962fc645cfee53eb0",
+  "branch": "codex/estabilizacion-aceptacion-integral",
+  "recorded_utc": "2026-11-10T01:37:19.472994+00:00",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "machine": "x86_64",
+  "python": "3.12.14",
+  "node": "v24.22.1",
+  "playwright": "1.62.1",
+  "chromium": "156.0.8078.79",
+  "solver_venv": "/workspace/.venvs/energy",
+  "no_solver_venv": "/workspace/.venvs/energy-no-solver",
+  "browser_data": "temporary independent directories only",
+  "git": "git version 2.52.0"
+}

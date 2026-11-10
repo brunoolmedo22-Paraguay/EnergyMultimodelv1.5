@@ -1,0 +1,24 @@
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS rendered numeric chart traces
+PASS tablet: no page horizontal overflow
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS downloaded result series modelo_solar_irradiancia_120min.csv
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS invalid temperature bounds rejected
+PASS no unhandled Python exception
+PASS reload remains usable
+PASS no unhandled Python exception
+PASS navigation continues after reload
+COMPLETE solar: 23 checks

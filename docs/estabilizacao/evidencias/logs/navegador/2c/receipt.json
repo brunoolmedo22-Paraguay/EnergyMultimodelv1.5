@@ -1,0 +1,21 @@
+{
+  "protocol": "2c",
+  "data_dir": "/tmp/seeds2-acceptance-2c-b19f9lzc",
+  "phases": [
+    {
+      "phase": "operar",
+      "passed": true,
+      "duration_s": 40.69
+    },
+    {
+      "phase": "reinicio",
+      "passed": true,
+      "duration_s": 8.87
+    },
+    {
+      "phase": "tablet",
+      "passed": true,
+      "duration_s": 27.77
+    }
+  ]
+}

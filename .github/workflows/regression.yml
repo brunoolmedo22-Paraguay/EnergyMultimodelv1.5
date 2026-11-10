@@ -1,0 +1,77 @@
+name: SEEDS2 regression
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scientific-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        solver: [true, false]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Active 3C-4 numerical isolation checks require historical Git objects.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install application and tests
+        run: python -m pip install -r requirements.txt pytest==8.4.2
+      - name: Install optional solver
+        if: matrix.solver
+        run: python -m pip install -r requirements-ems_v2.txt
+      - name: Verify absence of optional solver
+        if: ${{ !matrix.solver }}
+        run: python -c "import importlib.util; assert importlib.util.find_spec('pyomo') is None; assert importlib.util.find_spec('highspy') is None"
+      - name: CI-01 export numerical environments and complete wind arrays
+        shell: bash
+        run: |
+          if [[ '${{ matrix.solver }}' == 'true' ]]; then
+            python tools/ci/wind_numeric_probe.py --output ci01/native --exercise-solver
+          else
+            python tools/ci/wind_numeric_probe.py --output ci01/native
+          fi
+          # Controlled child process only: pytest keeps the native CPU policy.
+          NPY_DISABLE_CPU_FEATURES=AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL python tools/ci/wind_numeric_probe.py --output ci01/no-avx512
+          python tools/ci/wind_numeric_probe.py --compare ci01/native ci01/no-avx512 --output ci01/comparison
+          python tools/ci/wind_numeric_probe.py --compare docs/estabilizacao/ci01_evidencia/formal-solver ci01/native --output ci01/historical-comparison --publish-receipt
+          python tools/ci/wind_decimal_reference.py --captures ci01/native ci01/no-avx512 --output ci01/decimal
+      - name: Run complete suite
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -o pipefail
+          python -m pip freeze > environment.txt
+          python -m pytest tests/ -q -rs --junitxml=regression.xml | tee regression.log
+          git diff --check
+      - name: Publish regression counts
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import xml.etree.ElementTree as ET
+          path = Path('regression.xml')
+          if path.exists():
+              suite = ET.parse(path).getroot().find('testsuite')
+              counts = {key: suite.attrib[key] for key in ('tests', 'failures', 'errors', 'skipped', 'time')}
+              print('::notice title=CI-01 regression counts::'+json.dumps(counts))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-solver-${{ matrix.solver }}
+          path: |
+            environment.txt
+            regression.xml
+            regression.log
+            ci01/

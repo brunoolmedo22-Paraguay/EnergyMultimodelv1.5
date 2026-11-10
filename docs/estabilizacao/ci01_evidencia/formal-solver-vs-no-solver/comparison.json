@@ -1,0 +1,374 @@
+{
+  "weather_0": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Nordex N117/2400",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "weather_1": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Vestas V164-7.0 MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "weather_2": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Siemens SWT-3.6-120",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "weather_3": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Vestas V90-3.0 MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "weather_4": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "EWT DW61-1MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "weather_5": {
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "WEG AGW 147 / 4.2",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "boundaries_0": {
+    "samples": 601,
+    "values": 1803,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Nordex N117/2400",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "boundaries_1": {
+    "samples": 601,
+    "values": 1803,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Vestas V164-7.0 MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "boundaries_2": {
+    "samples": 601,
+    "values": 1803,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Siemens SWT-3.6-120",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "boundaries_3": {
+    "samples": 601,
+    "values": 1803,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Vestas V90-3.0 MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "boundaries_4": {
+    "samples": 601,
+    "values": 1803,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "EWT DW61-1MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  },
+  "boundaries_5": {
+    "samples": 601,
+    "values": 1803,
+    "different_values": 0,
+    "different_samples": 0,
+    "first_difference": null,
+    "max_absolute_kw": 0.0,
+    "max_relative": 0.0,
+    "rmse_kw": 0.0,
+    "energy_difference_kwh": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max_ulp": 0,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "WEG AGW 147 / 4.2",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": true
+  }
+}

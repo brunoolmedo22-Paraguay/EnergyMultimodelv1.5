@@ -1,0 +1,94 @@
+2026-11-10 00:57:07.120 Uvicorn server started on :::8612
+2026-11-10 00:57:07.199 Did not auto detect external IP.
+Please go to https://docs.streamlit.io/ for debugging hints.
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8612
+  Network URL: http://172.26.91.242:8612
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/EnergyMultimodelv1.5/models/thermal_model.py:159: UserWarning:
+
+Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+/workspace/EnergyMultimodelv1.5/models/thermal_model.py:159: UserWarning:
+
+Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+
+/workspace/.venvs/energy/lib/python3.12/site-packages/streamlit/dataframe_util.py:998: UserWarning:
+
+Could not serialize pd.DataFrame.attrs: Object of type ThermalConfig is not JSON serializable, defaulting to empty attributes.
+
+  Stopping...

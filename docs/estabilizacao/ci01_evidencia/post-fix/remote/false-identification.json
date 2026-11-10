@@ -1,0 +1,146 @@
+{
+  "weather_5": {
+    "remote_power_sha256": "f1c4e7995bad051deaead5e35db4586ac97a1c9cc46b5cef6adc6c1583a6554f",
+    "matching_captures": [
+      "formal-no-avx512"
+    ],
+    "shape": [
+      1008,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "weather_4": {
+    "remote_power_sha256": "d153d50693ed4019c31a2e2b306fdda852ee8414417ea14b9f75eea41c2c50fb",
+    "matching_captures": [
+      "formal-no-avx512"
+    ],
+    "shape": [
+      1008,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "weather_3": {
+    "remote_power_sha256": "50fcac430c482ef85c17d3f75e3595ffc1328eab5fda3598f381a160db0a0d00",
+    "matching_captures": [
+      "formal-no-avx512"
+    ],
+    "shape": [
+      1008,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "weather_2": {
+    "remote_power_sha256": "f798debde5fa692508485775d7ef858f6a76c091ccbf023819de2c8c73309510",
+    "matching_captures": [
+      "formal-no-avx512"
+    ],
+    "shape": [
+      1008,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "weather_1": {
+    "remote_power_sha256": "fc065e601db0a4e9e5f5bd63b4dc6627ab2ee666a1c6c2b7cc5a2e97f5bfcef5",
+    "matching_captures": [
+      "formal-no-avx512"
+    ],
+    "shape": [
+      1008,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "weather_0": {
+    "remote_power_sha256": "d27880cda883ee398af6650747a1b552e78006fe89c9963b5103bebf754820dc",
+    "matching_captures": [
+      "formal-no-avx512"
+    ],
+    "shape": [
+      1008,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "boundaries_0": {
+    "remote_power_sha256": "31339303919f3c40694495a50b47f36acde742ac40f2d9d2b9acdd100bb4709f",
+    "matching_captures": [
+      "formal-solver",
+      "formal-no-solver",
+      "formal-no-avx512"
+    ],
+    "shape": [
+      601,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "boundaries_1": {
+    "remote_power_sha256": "deb7cc17c2f1db84f60a8f0b90588f39a7273f4df3572b1ddda803c86dff4359",
+    "matching_captures": [
+      "formal-solver",
+      "formal-no-solver",
+      "formal-no-avx512"
+    ],
+    "shape": [
+      601,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "boundaries_2": {
+    "remote_power_sha256": "81f6502fa34ce86edd11b72c2da55a65ffa0502a6c51c3180fdd71b6d96488cb",
+    "matching_captures": [
+      "formal-solver",
+      "formal-no-solver",
+      "formal-no-avx512"
+    ],
+    "shape": [
+      601,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "boundaries_3": {
+    "remote_power_sha256": "0cb2c6fc17da3a6e3320f3c418c863a7307e321913c77b0cbcbb994cba727a76",
+    "matching_captures": [
+      "formal-solver",
+      "formal-no-solver",
+      "formal-no-avx512"
+    ],
+    "shape": [
+      601,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "boundaries_4": {
+    "remote_power_sha256": "b0767e5a7dce9ea5510966b81cc3cb34df691115e47514f71c60a7fb4f2e3eae",
+    "matching_captures": [
+      "formal-solver",
+      "formal-no-solver",
+      "formal-no-avx512"
+    ],
+    "shape": [
+      601,
+      3
+    ],
+    "dtype": "<f8"
+  },
+  "boundaries_5": {
+    "remote_power_sha256": "1b9221bd4f5fe157b76fab0fc0ba81286d62d7846a6886ba86488f93995cc41e",
+    "matching_captures": [
+      "formal-solver",
+      "formal-no-solver",
+      "formal-no-avx512"
+    ],
+    "shape": [
+      601,
+      3
+    ],
+    "dtype": "<f8"
+  }
+}

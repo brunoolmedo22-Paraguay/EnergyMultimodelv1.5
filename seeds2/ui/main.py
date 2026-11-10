@@ -5,6 +5,7 @@ A microrrede ativa é escolhida por sessão de navegador; "TROCAR MICRORREDE" vo
 """
 from __future__ import annotations
 
+import sqlite3
 from typing import Callable
 
 import streamlit as st
@@ -41,7 +42,7 @@ def render(legacy_css: Callable[[], None]) -> None:
     ss = st.session_state
     try:
         session.registry()
-    except StoreError as exc:
+    except (StoreError, OSError, sqlite3.Error) as exc:
         shell.global_css()
         st.error(f"Armazenamento do SEEDS2 indisponível: {shell.md(exc)}")
         st.stop()

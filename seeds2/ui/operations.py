@@ -67,7 +67,14 @@ def _apply(plan: A.SimulationPlan) -> None:
 def _after_run_hook(plan: A.SimulationPlan | None) -> Callable[[dict], None]:
     def hook(item: dict) -> None:
         origin = item.get("origem") or {}
+        # Manual results remain in console session history, never in the active
+        # microgrid store. A switched session must not write an old run into B.
+        if origin.get("origin") != "microrrede":
+            return
         r = item["resultado"]
+        if plan is None or origin.get("microgrid_uid") != plan.microgrid_uid or session.active_uid() != plan.microgrid_uid:
+            r.setdefault("avisos", []).append("Microrrede ativa mudou; resultado preservado na sessão, sem registro em outra microrrede.")
+            return
         rel = r["rel"]
         summary = {"microgrid_uid": origin.get("microgrid_uid"), "algoritmo": r.get("algoritmo"),
                    "carga": r.get("carga_descricao"), "k_validos": int(r["k_validos"]),
@@ -102,6 +109,16 @@ def _sync_view_with_page(view: str) -> str:
     return view
 
 
+def _ack_token(plan: A.SimulationPlan) -> str:
+    """Consent belongs to this saved revision, including excluded equipment.
+
+    Two inventories may produce the same effective engine spec while excluding
+    different devices. Its spec fingerprint alone cannot identify consent.
+    """
+    identity = (plan.microgrid_uid, plan.config_revision, plan.config_fingerprint, plan.spec_fingerprint)
+    return hashlib.sha256(C.canonical_json(identity).encode()).hexdigest()
+
+
 def prepare(view: str) -> str:
     """Executa ANTES da barra superior: sincroniza a página V1.6 com a vista e aplica a configuração salva."""
     view = _sync_view_with_page(view)
@@ -110,32 +127,58 @@ def prepare(view: str) -> str:
     plan = A.build_plan(saved.config, revision=saved.revision, fingerprint=saved.fingerprint) if saved else None
     ss["mg_plan"] = plan
     applied = ss.get("orq_mg_applied") or {}
-    if plan is not None and (plan.spec_fingerprint != applied.get("spec_fingerprint")
-                             or plan.microgrid_uid != applied.get("microgrid_uid")):
+    target = ((plan.microgrid_uid, plan.spec_fingerprint, plan.config_revision, plan.config_fingerprint)
+              if plan is not None else None)
+    previous = tuple(applied.get(k) for k in ("microgrid_uid", "spec_fingerprint", "config_revision", "config_fingerprint"))
+    retry = bool(ss.pop("mg_retry_transfer", False))
+    failed = ss.get("mg_failed_transfer") == target and bool(ss.get("mg_apply_error"))
+    if plan is not None and target != previous and (not failed or retry):
+        # _apply may fail after changing one field. Roll back only transfer state,
+        # never result/history or persisted microgrid data.
+        keys = ("orq_model_spec", "orq_load", "orq_load_mode", "orq_climate_raw", "orq_mg_applied", "orq_manual")
+        before = {k: copy.deepcopy(ss[k]) for k in keys if k in ss}
         try:
             _apply(plan)
         except Exception as exc:  # noqa: BLE001
+            for k in keys:
+                if k in before:
+                    ss[k] = before[k]
+                else:
+                    ss.pop(k, None)
+            ss["mg_failed_transfer"] = target
             ss["mg_apply_error"] = f"Não foi possível transferir a configuração ao orquestrador: {exc}"
         else:
             ss.pop("mg_apply_error", None)
+            ss.pop("mg_failed_transfer", None)
+    failed = bool(ss.get("mg_apply_error"))
     applied = ss.get("orq_mg_applied") or {}
-    manual = bool(applied) and _state_hash() != applied.get("state_hash")
-    if manual:
-        ss["orq_manual"] = True
-    if plan is None or ss.get("orq_manual") or ss.get("mg_apply_error"):
-        ss["orq_spec_origin"] = {"origin": "manual", "config_revision": None, "config_fingerprint": None,
-                                 "spec_fingerprint": hashlib.sha256(_state_hash().encode()).hexdigest(), "excluded": []}
-        ss["orq_run_gate"] = {"ok": True, "message": ""}
+    if failed or (plan is None and session.active_uid() is not None):
+        # An unsolicited transfer error is NEVER an intentional manual choice.
+        ss.pop("orq_manual", None)
+        ss["orq_spec_origin"] = {"origin": "indisponivel", "microgrid_uid": None,
+                                 "config_revision": None, "config_fingerprint": None,
+                                 "spec_fingerprint": None, "excluded": []}
+        ss["orq_run_gate"] = {"ok": False, "message":
+            "Execução bloqueada: a configuração salva não foi transferida. Reintente a transferência no painel acima."}
     else:
-        ss["orq_spec_origin"] = plan.provenance()
-        ack = ss.get("mg_ack_fp") == plan.spec_fingerprint
-        if not plan.runnable:
-            ss["orq_run_gate"] = {"ok": False, "message": "Simulação bloqueada: " + " ".join(plan.blockers)}
-        elif plan.needs_ack and not ack:
-            ss["orq_run_gate"] = {"ok": False, "message": f"{len(plan.excluded)} equipamento(s) instalado(s) não entram nesta "
-                                  "rodada. Confirme a exclusão no painel 'Configuração aplicada' acima."}
-        else:
+        # Preserve the established manual workflow: a deliberate console edit
+        # AFTER a successful transfer detaches the run from the microgrid.
+        if applied and _state_hash() != applied.get("state_hash"):
+            ss["orq_manual"] = True
+        if plan is None or ss.get("orq_manual"):
+            ss["orq_spec_origin"] = {"origin": "manual", "config_revision": None, "config_fingerprint": None,
+                                     "spec_fingerprint": hashlib.sha256(_state_hash().encode()).hexdigest(), "excluded": []}
             ss["orq_run_gate"] = {"ok": True, "message": ""}
+        else:
+            ss["orq_spec_origin"] = plan.provenance()
+            ack = ss.get("mg_ack_fp") == _ack_token(plan)
+            if not plan.runnable:
+                ss["orq_run_gate"] = {"ok": False, "message": "Simulação bloqueada: " + " ".join(plan.blockers)}
+            elif plan.needs_ack and not ack:
+                ss["orq_run_gate"] = {"ok": False, "message": f"{len(plan.excluded)} equipamento(s) instalado(s) não entram nesta "
+                                      "rodada. Confirme a exclusão no painel 'Configuração aplicada' acima."}
+            else:
+                ss["orq_run_gate"] = {"ok": True, "message": ""}
     ss["orq_after_run"] = _after_run_hook(plan)
     return view
 
@@ -177,19 +220,24 @@ def panel(view: str) -> None:
         return
     if ss.get("mg_apply_error"):
         shell.callout(escape(ss["mg_apply_error"]), "bad")
+        if st.button("Reintentar transferência da configuração salva", key="ops_retry_transfer", type="primary"):
+            ss["mg_retry_transfer"] = True
+            st.rerun()
     if session.is_dirty():
         shell.callout("Há <b>edição pendente</b> em Gestão da Microrrede. A simulação usa somente a configuração "
                       f"<b>salva</b> (revisão {saved.revision if saved else '—'}).", "warn")
     if plan is None:
         return
     run_conditions_editor(saved, plan)
+    ack_token = _ack_token(plan)
     manual = bool(ss.get("orq_manual"))
-    title = ("Especificação MANUAL no console V1.6" if manual else
+    title = ("Transferência BLOQUEADA — configuração não aplicada" if ss.get("mg_apply_error") else
+             "Especificação MANUAL no console V1.6" if manual else
              f"Configuração aplicada · revisão {plan.config_revision} · {str(plan.config_fingerprint)[:12]}…")
-    with st.expander(title, expanded=manual or not plan.runnable or (plan.needs_ack and ss.get("mg_ack_fp") != plan.spec_fingerprint)):
+    with st.expander(title, expanded=manual or not plan.runnable or (plan.needs_ack and ss.get("mg_ack_fp") != ack_token)):
         if manual:
             shell.callout("Os modelos ou a carga foram alterados nas páginas do console V1.6. As próximas rodadas serão "
-                          "registradas como <b>manuais</b>, não como a microrrede configurada.", "warn")
+                          "mantidas na sessão como <b>manuais</b>, sem atribuição ou registro na microrrede configurada.", "warn")
             if st.button("Reaplicar a configuração salva da microrrede", key="ops_reapply", type="primary"):
                 ss.pop("orq_mg_applied", None)
                 ss.pop("orq_manual", None)
@@ -206,9 +254,9 @@ def panel(view: str) -> None:
         st.html("".join(rows) or "<span class='sd-muted'>Nenhum equipamento registrado.</span>")
         if plan.runnable and plan.needs_ack and not manual:
             ack = st.checkbox(f"Confirmo executar esta rodada SEM os {len(plan.excluded)} equipamento(s) excluído(s) acima "
-                              "(a exclusão fica registrada na rodada).", value=ss.get("mg_ack_fp") == plan.spec_fingerprint,
-                              key=f"ops_ack_{plan.spec_fingerprint[:12]}")
-            new = plan.spec_fingerprint if ack else None
+                              "(a exclusão fica registrada na rodada).", value=ss.get("mg_ack_fp") == ack_token,
+                              key=f"ops_ack_{ack_token}")
+            new = ack_token if ack else None
             if new != ss.get("mg_ack_fp"):
                 ss["mg_ack_fp"] = new
                 st.rerun()

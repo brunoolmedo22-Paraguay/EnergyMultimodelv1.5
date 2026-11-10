@@ -1,0 +1,30 @@
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS rendered numeric chart traces
+PASS tablet: no page horizontal overflow
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS downloaded result series resultado_bateria_tremblay.csv
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS rendered numeric chart traces
+PASS tablet: no page horizontal overflow
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS downloaded result series resultado_bateria_2rc.csv
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS invalid input rejected with visible message
+PASS no unhandled Python exception
+PASS reload remains usable
+PASS no unhandled Python exception
+PASS navigation continues after reload
+COMPLETE battery: 29 checks

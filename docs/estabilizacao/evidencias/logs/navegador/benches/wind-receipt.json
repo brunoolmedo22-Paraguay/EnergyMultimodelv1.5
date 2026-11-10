@@ -1,0 +1,108 @@
+{
+  "bench": "wind",
+  "checks": 22,
+  "passed": true,
+  "receipts": [
+    {
+      "charts": [
+        {
+          "title": "<b><b>Perfil de velocidade do vento</b></b>",
+          "axes": [
+            "Velocidade (m/s)"
+          ],
+          "traces": [
+            {
+              "name": "Vento medido",
+              "n": 1008,
+              "finite": 1008
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Potência elétrica no período</b></b>",
+          "axes": [
+            "Potência (MW)"
+          ],
+          "traces": [
+            {
+              "name": "Potência do aerogerador",
+              "n": 1008,
+              "finite": 1008
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Curva de potência · Nordex N117/2400</b></b>",
+          "axes": [
+            "Potência unitária (MW)"
+          ],
+          "traces": [
+            {
+              "name": "Curva parametrizada",
+              "n": 35,
+              "finite": 35
+            },
+            {
+              "name": "Pontos operativos",
+              "n": 504,
+              "finite": 504
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Rosa dos ventos</b></b>",
+          "axes": [],
+          "traces": [
+            {
+              "name": "Frequência",
+              "n": 0,
+              "finite": 0
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Energia por dia</b></b>",
+          "axes": [
+            "Energia (MWh)"
+          ],
+          "traces": [
+            {
+              "name": "Bruta",
+              "n": 7,
+              "finite": 7
+            }
+          ]
+        },
+        {
+          "title": "<b><b>Condições atmosféricas</b></b>",
+          "axes": [
+            "Temperatura (°C)",
+            "Densidade (kg/m³)"
+          ],
+          "traces": [
+            {
+              "name": "Temperatura (°C)",
+              "n": 1008,
+              "finite": 1008
+            },
+            {
+              "name": "Densidade (kg/m³)",
+              "n": 1008,
+              "finite": 1008
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "wind-resultado_eolico_Nordex_N117-2400.csv",
+      "bytes": 153714
+    },
+    {
+      "invalidAlerts": [
+        "2 linhas carregadas · 2 colunas",
+        "Não foi possível executar o modelo: Velocidade do vento negativa encontrada no arquivo"
+      ]
+    }
+  ]
+}

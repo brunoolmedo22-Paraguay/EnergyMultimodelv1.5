@@ -1,0 +1,44 @@
+[operar] ok — microrrede comissionada abre no Centro de Operação
+[operar] ok — barra superior: nome da microrrede ativa
+[operar] ok — barra superior: avatar com iniciais
+[operar] ok — barra superior: ID curto e revisão
+[operar] ok — TROCAR MICRORREDE dentro do controle de identidade
+[operar] ok — navegação: operação · gestão física · resultados (Centro de Operação | Simulação | Gestão da Microrrede | Resultados)
+[operar] ok — grupos da navegação separados visualmente
+[operar] ok — microrrede e Alcance não são itens da navegação principal
+[operar] ok — Alcance acessível como documentação secundária
+[operar] ok — Centro de Operação marcado como atual
+[operar] ok — estado vazio de cenários
+[operar] ok — etapa identificada: Previsões
+[operar] ok — etapa identificada: Estratégia EMS
+[operar] ok — etapa identificada: Execução
+[operar] ok — etapa 02 Previsões com ABRIR PREVISÕES (Piso 2B)
+[operar] ok — etapa 03 Estratégia EMS real (Piso 2C)
+[operar] ok — etapa 04 Execução real (Piso 2C)
+[operar] ok — nenhum botão de execução fora da etapa 04
+[operar] ok — cenário criado e vinculado à revisão 1
+[operar] ok — card do inventário de referência
+[operar] ok — prontidão decidida pelo preflight (cenário incompleto não executável)
+[operar] ok — um controle de SOC por banco instalado
+[operar] ok — unidade térmica do inventário listada
+[operar] ok — SOC 10 % fora da restrição: advertência
+[operar] ok — SOC fora da restrição: incompatibilidade do EMS V1.6 registrada como pendente
+[operar] ok — PEMFC desligada com 25 kW: erro de coerência
+[operar] ok — estado contraditório não é gravado
+[operar] ok — sem avisos de partida (nenhum estado 'em partida')
+[operar] ok — cenário salvo com advertências (versão 2)
+[operar] ok — inicialização: nenhuma exceção
+[operar] ok — nome sugerido da cópia
+[operar] ok — cópia independente criada
+[operar] ok — cenário original continua na versão 2
+[operar] ok — sessão 1 salva a versão 3
+[operar] ok — sessão 2 recebe conflito explícito
+[operar] ok — edição da sessão 2 preservada na tela
+[operar] ok — sessão 2 recarrega a versão salva pela sessão 1
+[operar] ok — bancadas V1.6 acessíveis no Centro de Operação
+[operar] ok — console V1.6 (Simulação) acessível
+[operar] ok — simulação: nenhuma exceção
+[operar] ok — Alcance abre como documentação
+[operar] ok — TROCAR MICRORREDE volta ao Gestor
+[operar] ok — sem erros de JavaScript: []
+[operar] CONCLUÍDO — 43 verificações

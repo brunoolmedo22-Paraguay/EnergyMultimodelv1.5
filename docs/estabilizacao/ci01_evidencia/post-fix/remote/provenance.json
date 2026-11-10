@@ -1,0 +1,15 @@
+{
+  "verified_commit": "79cb4540f89020f3b03537578ffeef546c2ead2a",
+  "run": 42812301019,
+  "job_urls": {
+    "true": "https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42812301019/job/129816511858",
+    "false": "https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/actions/runs/42812301019/job/129816512409"
+  },
+  "conclusions": {
+    "true": "success",
+    "false": "success"
+  },
+  "receipt_origin": "public GitHub Actions numerical/count annotations",
+  "array_origin": "local complete exports identified byte-for-byte by the SHA-256 published in each remote receipt; not downloaded artifacts or replacement fixtures",
+  "raw_remote_exports": "ci01/native/arrays.npz in regression-solver-true/false artifacts of run 42812301019"
+}

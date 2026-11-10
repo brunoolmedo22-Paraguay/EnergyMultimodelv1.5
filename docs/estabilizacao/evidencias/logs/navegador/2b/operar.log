@@ -1,0 +1,46 @@
+[operar] ok — etapa 02 Previsões disponível no Centro
+[operar] ok — Piso 2C: as quatro etapas são reais (nenhuma 'Não implementado')
+[operar] ok — nenhum botão fictício de execução
+[operar] ok — aba Demanda elétrica
+[operar] ok — aba Clima
+[operar] ok — aviso: previsões alimentam a Execução (Piso 2C)
+[operar] ok — CSV malformado recusado com mensagem
+[operar] ok — CSV malformado: nenhuma pré-visualização (nem a anterior)
+[operar] ok — CSV malformado: incorporação bloqueada
+[operar] ok — CSV malformado: nenhuma exceção
+[operar] ok — pré-visualização Plotly da demanda renderizada
+[operar] ok — curva pendente = 121 valores do CSV (vírgula decimal)
+[operar] ok — eixo Y único em kW
+[operar] ok — fuso do arquivo identificado (UTC-03:00)
+[operar] ok — resolução original 1 min regular
+[operar] ok — energia (kWh) separada da potência
+[operar] ok — hover mostra valor com unidade (2026-09-01 10:56:00115.0 kW)
+[operar] ok — zoom altera o intervalo do eixo X
+[operar] ok — reset preserva todos os valores de demanda
+[operar] ok — reset mostra todo o domínio original
+[operar] ok — duplo clique restaura o encuadre
+[operar] ok — demanda incorporada (ainda não salva)
+[operar] ok — perfil do cenário mostra a curva incorporada
+[operar] ok — clima: conjunto compartilhado identificado
+[operar] ok — clima: tecnologias do inventário (FV + eólica) nomeadas
+[operar] ok — clima: bloqueado até mapear/confirmar
+[operar] ok — unidade detectada no cabeçalho sinalizada
+[operar] ok — unidades confirmadas pelo usuário sinalizadas
+[operar] ok — clima: incorporável após confirmar
+[operar] ok — clima: um painel por grandeza (W/m², °C, m/s, °)
+[operar] ok — clima: nenhum eixo Y sobreposto
+[operar] ok — GHI pendente = valores do CSV
+[operar] ok — direção 350°→5° interpolada pelo menor arco (nunca 180°)
+[operar] ok — SALVAR CENÁRIO grava a versão 2
+[operar] ok — clima salvo (v2)
+[operar] ok — demanda salva (v2)
+[operar] ok — sintético rotulado como hipotético
+[operar] ok — perfil salvo continua o do CSV
+[operar] ok — pré-visualização mostra a NOVA curva pendente
+[operar] ok — reprodutibilidade verificada (SHA-256)
+[operar] ok — painel: Previsões definidas
+[operar] ok — Inicialização abre normalmente
+[operar] ok — Inicialização: controles de SOC dos 2 bancos
+[operar] ok — operar: nenhuma exceção
+[operar] ok — sem erros de JavaScript: []
+[operar] CONCLUÍDO — 45 verificações

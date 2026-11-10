@@ -1,0 +1,62 @@
+{
+  "evidencias/logs/stab-final-global.log": {
+    "compressed": "evidencias/logs/stab-final-global.log.gz",
+    "raw_sha256": "9976d08d345c6808638abaac108805a01e105adda1b662d5be50fed28afea5ae",
+    "raw_bytes": 4392,
+    "gzip_sha256": "69453983d22f717a34eb6ea2bebe0736c2ddcb7384dcf5f97a9abcebbdc38b79"
+  },
+  "evidencias/logs/stab-final-no-solver.log": {
+    "compressed": "evidencias/logs/stab-final-no-solver.log.gz",
+    "raw_sha256": "bd2059f95efbc800a0d1e493dc2eb880c2b5965645ca2fab7fd964d22b373dba",
+    "raw_bytes": 10764,
+    "gzip_sha256": "1e4d54c24212a2935936314486fbac6751f38ab2937853a67e394a888fb1924e"
+  },
+  "evidencias/logs/stab-bench-server-final.log": {
+    "compressed": "evidencias/logs/stab-bench-server-final.log.gz",
+    "raw_sha256": "4e518f77ab368494773bf6a2a688d56319bf7dd920d3837e66786cd8542cc50d",
+    "raw_bytes": 1931,
+    "gzip_sha256": "23a4e545a3eb807e9bb440b75ff701a5b6411ae2d76d13d8a60f3a3393300ba6"
+  },
+  "evidencias/logs/stab-consent-corrections.log": {
+    "compressed": "evidencias/logs/stab-consent-corrections.log.gz",
+    "raw_sha256": "4b587c5a5564ee868b055d58769a9b488af971edbafc42e55f4d49a2a50a723b",
+    "raw_bytes": 1079,
+    "gzip_sha256": "1ca5c5bef606cf9158addc9b75fd0ee233d9c4e701a84c56804fc901491404e4"
+  },
+  "evidencias/logs/stab-push-code.log": {
+    "compressed": "evidencias/logs/stab-push-code.log.gz",
+    "raw_sha256": "9d45a1ffc342eac730b653676a422c2e8aae479f90531a5d1a653a95bf4ebcaf",
+    "raw_bytes": 553,
+    "gzip_sha256": "72ba7493b3ffbc7a0bafbda6afa872b8726d69319ce0276308fb43a4679696c7"
+  },
+  "evidencias/logs/stab-corrections-intermedia.log": {
+    "compressed": "evidencias/logs/stab-corrections-intermedia.log.gz",
+    "raw_sha256": "4cb629301cfd7d99c507c08f88487faa980065cbe0a3e54b363e0275aa805f03",
+    "raw_bytes": 998,
+    "gzip_sha256": "fb1d5aee89bcfb13e0026f35a2de517765cf42f655d5c43f564be4ae58062a8b"
+  },
+  "evidencias/logs/stab-corrections-final.log": {
+    "compressed": "evidencias/logs/stab-corrections-final.log.gz",
+    "raw_sha256": "4b587c5a5564ee868b055d58769a9b488af971edbafc42e55f4d49a2a50a723b",
+    "raw_bytes": 1079,
+    "gzip_sha256": "1ca5c5bef606cf9158addc9b75fd0ee233d9c4e701a84c56804fc901491404e4"
+  },
+  "evidencias/logs/stab-clean-baseline-global.log": {
+    "compressed": "evidencias/logs/stab-clean-baseline-global.log.gz",
+    "raw_sha256": "30a791f84bf4edffc0c1a6b7723dd8a046bc56836fec600a353905b24c4f6897",
+    "raw_bytes": 3497,
+    "gzip_sha256": "1431021cb42d2b156b3ae9cbe30f9457e77930c12cd126b310b43b25ac9ca694"
+  },
+  "evidencias/logs/stab-transfer-server.log": {
+    "compressed": "evidencias/logs/stab-transfer-server.log.gz",
+    "raw_sha256": "3a7badfca621a8307013da0f80fb25b5b21a9857289cf60974c2fde4a8b0cdb6",
+    "raw_bytes": 310,
+    "gzip_sha256": "2ae151fda5642f302fd407be35f5d3d523d3adc56f8e42fac33425e9b8abeb1d"
+  },
+  "evidencias/logs/navegador/2c/server-operar.log": {
+    "compressed": "evidencias/logs/navegador/2c/server-operar.log.gz",
+    "raw_sha256": "1d570dca6f8f8e538749bdb8765d481d4910b055170de78cfd83b657044e3752",
+    "raw_bytes": 310,
+    "gzip_sha256": "a806480f31f28381dd02f57794d72281e80f4413f2ff0a245d3b5d8ff891eee1"
+  }
+}

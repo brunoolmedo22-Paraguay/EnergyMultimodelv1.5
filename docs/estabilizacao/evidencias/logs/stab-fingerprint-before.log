@@ -1,0 +1,214 @@
+FFFFFF....                                                               [100%]
+=================================== FAILURES ===================================
+_ test_each_execution_dependency_changes_the_fingerprint[seeds2/operation/mission.py] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-22/test_each_execution_dependency0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8f0b5be330>
+path = 'seeds2/operation/mission.py'
+
+    @pytest.mark.parametrize('path', [
+        'seeds2/operation/mission.py', 'seeds2/operation/preflight.py',
+        'seeds2/operation/runner.py', 'seeds2/microgrid/adapter.py',
+        'seeds2/microgrid/config.py', 'seeds2/microgrid/references.py',
+        'config/wind_curves/manifest.json', 'models/wind_model.py',
+        'ems_integration/despacho.py'])
+    def test_each_execution_dependency_changes_the_fingerprint(tmp_path, monkeypatch, path):
+        for rel in R.SCIENCE_PATHS:
+            p = tmp_path / rel
+            if Path(rel).suffix:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('baseline')
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                (p/'module.py').write_text('baseline')
+        p = tmp_path/path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('before')
+        monkeypatch.setattr(R, 'ROOT', tmp_path)
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+        before = R.science_fingerprint()
+        p.write_text('after')
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+>       assert R.science_fingerprint()['sha256'] != before['sha256'], path
+E       AssertionError: seeds2/operation/mission.py
+E       assert 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b' != 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b'
+
+tests/estabilizacao/test_science_fingerprint.py:32: AssertionError
+_ test_each_execution_dependency_changes_the_fingerprint[seeds2/operation/preflight.py] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-22/test_each_execution_dependency1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8f0b5ed5b0>
+path = 'seeds2/operation/preflight.py'
+
+    @pytest.mark.parametrize('path', [
+        'seeds2/operation/mission.py', 'seeds2/operation/preflight.py',
+        'seeds2/operation/runner.py', 'seeds2/microgrid/adapter.py',
+        'seeds2/microgrid/config.py', 'seeds2/microgrid/references.py',
+        'config/wind_curves/manifest.json', 'models/wind_model.py',
+        'ems_integration/despacho.py'])
+    def test_each_execution_dependency_changes_the_fingerprint(tmp_path, monkeypatch, path):
+        for rel in R.SCIENCE_PATHS:
+            p = tmp_path / rel
+            if Path(rel).suffix:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('baseline')
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                (p/'module.py').write_text('baseline')
+        p = tmp_path/path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('before')
+        monkeypatch.setattr(R, 'ROOT', tmp_path)
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+        before = R.science_fingerprint()
+        p.write_text('after')
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+>       assert R.science_fingerprint()['sha256'] != before['sha256'], path
+E       AssertionError: seeds2/operation/preflight.py
+E       assert 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b' != 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b'
+
+tests/estabilizacao/test_science_fingerprint.py:32: AssertionError
+_ test_each_execution_dependency_changes_the_fingerprint[seeds2/operation/runner.py] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-22/test_each_execution_dependency2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8f0b5ed010>
+path = 'seeds2/operation/runner.py'
+
+    @pytest.mark.parametrize('path', [
+        'seeds2/operation/mission.py', 'seeds2/operation/preflight.py',
+        'seeds2/operation/runner.py', 'seeds2/microgrid/adapter.py',
+        'seeds2/microgrid/config.py', 'seeds2/microgrid/references.py',
+        'config/wind_curves/manifest.json', 'models/wind_model.py',
+        'ems_integration/despacho.py'])
+    def test_each_execution_dependency_changes_the_fingerprint(tmp_path, monkeypatch, path):
+        for rel in R.SCIENCE_PATHS:
+            p = tmp_path / rel
+            if Path(rel).suffix:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('baseline')
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                (p/'module.py').write_text('baseline')
+        p = tmp_path/path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('before')
+        monkeypatch.setattr(R, 'ROOT', tmp_path)
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+        before = R.science_fingerprint()
+        p.write_text('after')
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+>       assert R.science_fingerprint()['sha256'] != before['sha256'], path
+E       AssertionError: seeds2/operation/runner.py
+E       assert 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b' != 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b'
+
+tests/estabilizacao/test_science_fingerprint.py:32: AssertionError
+_ test_each_execution_dependency_changes_the_fingerprint[seeds2/microgrid/adapter.py] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-22/test_each_execution_dependency3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8f270b0ad0>
+path = 'seeds2/microgrid/adapter.py'
+
+    @pytest.mark.parametrize('path', [
+        'seeds2/operation/mission.py', 'seeds2/operation/preflight.py',
+        'seeds2/operation/runner.py', 'seeds2/microgrid/adapter.py',
+        'seeds2/microgrid/config.py', 'seeds2/microgrid/references.py',
+        'config/wind_curves/manifest.json', 'models/wind_model.py',
+        'ems_integration/despacho.py'])
+    def test_each_execution_dependency_changes_the_fingerprint(tmp_path, monkeypatch, path):
+        for rel in R.SCIENCE_PATHS:
+            p = tmp_path / rel
+            if Path(rel).suffix:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('baseline')
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                (p/'module.py').write_text('baseline')
+        p = tmp_path/path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('before')
+        monkeypatch.setattr(R, 'ROOT', tmp_path)
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+        before = R.science_fingerprint()
+        p.write_text('after')
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+>       assert R.science_fingerprint()['sha256'] != before['sha256'], path
+E       AssertionError: seeds2/microgrid/adapter.py
+E       assert 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b' != 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b'
+
+tests/estabilizacao/test_science_fingerprint.py:32: AssertionError
+_ test_each_execution_dependency_changes_the_fingerprint[seeds2/microgrid/config.py] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-22/test_each_execution_dependency4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8f0b5ed4f0>
+path = 'seeds2/microgrid/config.py'
+
+    @pytest.mark.parametrize('path', [
+        'seeds2/operation/mission.py', 'seeds2/operation/preflight.py',
+        'seeds2/operation/runner.py', 'seeds2/microgrid/adapter.py',
+        'seeds2/microgrid/config.py', 'seeds2/microgrid/references.py',
+        'config/wind_curves/manifest.json', 'models/wind_model.py',
+        'ems_integration/despacho.py'])
+    def test_each_execution_dependency_changes_the_fingerprint(tmp_path, monkeypatch, path):
+        for rel in R.SCIENCE_PATHS:
+            p = tmp_path / rel
+            if Path(rel).suffix:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('baseline')
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                (p/'module.py').write_text('baseline')
+        p = tmp_path/path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('before')
+        monkeypatch.setattr(R, 'ROOT', tmp_path)
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+        before = R.science_fingerprint()
+        p.write_text('after')
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+>       assert R.science_fingerprint()['sha256'] != before['sha256'], path
+E       AssertionError: seeds2/microgrid/config.py
+E       assert 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b' != 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b'
+
+tests/estabilizacao/test_science_fingerprint.py:32: AssertionError
+_ test_each_execution_dependency_changes_the_fingerprint[seeds2/microgrid/references.py] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-22/test_each_execution_dependency5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f8f0b5ed580>
+path = 'seeds2/microgrid/references.py'
+
+    @pytest.mark.parametrize('path', [
+        'seeds2/operation/mission.py', 'seeds2/operation/preflight.py',
+        'seeds2/operation/runner.py', 'seeds2/microgrid/adapter.py',
+        'seeds2/microgrid/config.py', 'seeds2/microgrid/references.py',
+        'config/wind_curves/manifest.json', 'models/wind_model.py',
+        'ems_integration/despacho.py'])
+    def test_each_execution_dependency_changes_the_fingerprint(tmp_path, monkeypatch, path):
+        for rel in R.SCIENCE_PATHS:
+            p = tmp_path / rel
+            if Path(rel).suffix:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text('baseline')
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                (p/'module.py').write_text('baseline')
+        p = tmp_path/path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text('before')
+        monkeypatch.setattr(R, 'ROOT', tmp_path)
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+        before = R.science_fingerprint()
+        p.write_text('after')
+        monkeypatch.setattr(R, '_SCIENCE_FP', None)
+>       assert R.science_fingerprint()['sha256'] != before['sha256'], path
+E       AssertionError: seeds2/microgrid/references.py
+E       assert 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b' != 'ca745fbe51f5cbdc13b8c498dbe87e4b851ec7f1e6609e7490cb07549623197b'
+
+tests/estabilizacao/test_science_fingerprint.py:32: AssertionError
+=========================== short test summary info ============================
+FAILED tests/estabilizacao/test_science_fingerprint.py::test_each_execution_dependency_changes_the_fingerprint[seeds2/operation/mission.py]
+FAILED tests/estabilizacao/test_science_fingerprint.py::test_each_execution_dependency_changes_the_fingerprint[seeds2/operation/preflight.py]
+FAILED tests/estabilizacao/test_science_fingerprint.py::test_each_execution_dependency_changes_the_fingerprint[seeds2/operation/runner.py]
+FAILED tests/estabilizacao/test_science_fingerprint.py::test_each_execution_dependency_changes_the_fingerprint[seeds2/microgrid/adapter.py]
+FAILED tests/estabilizacao/test_science_fingerprint.py::test_each_execution_dependency_changes_the_fingerprint[seeds2/microgrid/config.py]
+FAILED tests/estabilizacao/test_science_fingerprint.py::test_each_execution_dependency_changes_the_fingerprint[seeds2/microgrid/references.py]
+6 failed, 4 passed in 0.58s

@@ -1,0 +1,26 @@
+{
+  "Nordex N117/2400": {
+    "fixed_inputs_interpolation_exact": true,
+    "fixed_density_equivalent_wind_different": null
+  },
+  "Vestas V164-7.0 MW": {
+    "fixed_inputs_interpolation_exact": true,
+    "fixed_density_equivalent_wind_different": 16
+  },
+  "Siemens SWT-3.6-120": {
+    "fixed_inputs_interpolation_exact": true,
+    "fixed_density_equivalent_wind_different": 16
+  },
+  "Vestas V90-3.0 MW": {
+    "fixed_inputs_interpolation_exact": true,
+    "fixed_density_equivalent_wind_different": 16
+  },
+  "EWT DW61-1MW": {
+    "fixed_inputs_interpolation_exact": true,
+    "fixed_density_equivalent_wind_different": 16
+  },
+  "WEG AGW 147 / 4.2": {
+    "fixed_inputs_interpolation_exact": true,
+    "fixed_density_equivalent_wind_different": 16
+  }
+}

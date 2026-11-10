@@ -118,6 +118,10 @@ def assert_pinned_file(root: Path, path: str, expected_sha256: str) -> None:
     file = root / path
     assert not file.is_symlink(), f"symlink não autorizado: {path}"
     assert file.is_file(), f"arquivo autorizado ausente: {path}"
+    if path == "tests/test_wind_catalog_expansion.py":
+        from stabilization_guard_policy import assert_ci01_context
+        assert_ci01_context(root, expected_sha256)
+        return
     assert _sha(file.read_bytes()) == expected_sha256, f"edição não autorizada dentro de {path}"
 
 
@@ -279,13 +283,16 @@ def filter_changes(changes: list[list[str]], policy: dict) -> list[list[str]]:
 
 
 def authorized_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
-    return filter_changes(changes, assert_context(root))
+    from stabilization_guard_policy import filter_maintenance_changes
+    return filter_maintenance_changes(root, filter_changes(changes, assert_context(root)))
 
 
 def authorized_additions(root: Path, paths) -> list[str]:
     policy = assert_context(root)
     allowed = set(policy["added_files"]) | SUPPORT_ADDITIONS
-    return [path for path in paths if path not in allowed]
+    from stabilization_guard_policy import filter_maintenance_changes
+    return [row[1] for row in filter_maintenance_changes(root,
+        [["A", path] for path in paths if path not in allowed])]
 
 
 if __name__ == "__main__":

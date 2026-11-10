@@ -188,3 +188,23 @@ Los conflictos de PARAMIJEFE y las tres guardias se resuelven combinando las gar
 Nueva regresión y lista completa de archivos respecto de main: `docs/eolica/INTEGRACAO_3C4_PR18.md`. No se reutiliza el resultado 1765 anterior como evidencia combinada. Los seis aerogeneradores históricos y las siete incorporaciones se mantienen intactos. No se inicia 3D.
 
 **Cierre de la integración combinada:** **2004 passed, 0 failed, 0 skipped, 7 warnings**, 501.77s (0:08:21); 3C-4 **228 passed**, 3C-1/2/3 **545 passed**, sin solver EMS **994 passed/101 skipped** por ausencia de solver y eólica **119 passed**. Conflictos resueltos; producción EMS idéntica al main `19aa3ac`. Detalle y lista completa de archivos relativos al nuevo main en `docs/eolica/INTEGRACAO_3C4_PR18.md`.
+
+
+## Estabilización integral posterior a PR #17/#18 — 2026-11-10
+
+Base comprobada `5e6267833538716678125ab962fc645cfee53eb0`; rama `codex/estabilizacion-aceptacion-integral`; producción en `02d898d819e752c0ebd89c8564376eb200db33fd`. Transferencia fallida bloqueada con rollback/reintento; manual separado del store; consentimiento de exclusiones vinculado a identidad/revisión; huella cubre preparación V1.6; errores de arranque/térmica controlados. Solo cuatro archivos de aplicación; EMS, modelos, catálogos y datos históricos intactos. Guardias científicas activas; nuevas excepciones nominales verificadas mediante evidencia independiente, sin directorios/tolerancias ni cambios de fixtures anteriores.
+
+Resultado nuevo: **2044 passed / 0 failed / 0 skipped / 9 warnings**; EMS separado **1458 passed**; sin solver real **1598 passed / 101 skips**, con lista individual de 446 casos no ejecutados. Cuatro algoritmos antes/después exactos. Navegador real en seis bancadas y protocolos completos del Gestor, escenarios, reinicios/interrupción, Archivo e informes. P0/consentimiento: 24 verificaciones; catálogo: 103; descargas: 157.
+
+[Dictamen y evidencias](../estabilizacao/VEREDICTO_FINAL.md). Conservados los límites: cuatro eólicas solo curvas, MIX sin enlace normal, V2 experimental sin integración operativa, backup convencional distinto del científico, uso local/de confianza. Rama publicada; API GitHub `Forbidden` impide confirmar la creación del PR. Próximo paso: abrir/revisar el PR y auditoría matemática independiente; **sin merge y sin 3D**. Esta sección no sustituye ninguna entrega científica previa.
+
+
+## Hotfix CI-01 — reproducibilidad eólica, PR #19 — 2026-11-10
+
+Diagnóstico controlado: con/sin Pyomo/HiGHS los doce hashes y KPI son exactos en la misma CPU; desactivar AVX-512 reproduce seis divergencias weather, máximo 8 ULP / 5.4569682106375694e-12 kW, con los doce KPI exactos. Se conserva el JSON histórico, las curvas y todo código científico. Revisión nominal de la comparación weather: SHA canónico primero; en otra ruta CPU, máximo 16 ULP tanto contra los arrays autenticados por el SHA original como contra Decimal independiente de 80 dígitos; KPI estrictos y boundaries exactos. 31 nuevos adversariales y soporte de guardia con archivos explícitos, sin actualizar hashes anteriores ni tocar las tres guardias históricas/EMS. Validación enfocada: 291 passed; completas y aceptación remota pendientes. [Informe CI-01](docs/estabilizacao/HOTFIX_CI01_REPRODUCIBILIDAD_EOLICA.md) (ruta desde raíz). Misma rama/PR #19, sin merge ni 3D. Esta sección preserva las entregas científicas anteriores.
+
+
+**CI-01 — resultados comprobados:** código correctivo `5c69543`; suite nueva **2075 passed**, venv sin solver **1629 passed / 101 skips**, mismas identidades de omisión y nueve advertencias. 31 adversariales añadidos; cuatro algoritmos con series/resumen exactos; 98 archivos EMS intactos. Run remoto `42751027096`: true y false **success**. Publicación adicional de recibos numéricos/CPU y conteos en anotaciones para verificar el diagnóstico sin API. Informe HOTFIX_CI01_REPRODUCIBILIDAD_EOLICA y evidencia post-fix, mismo PR #19, sin merge.
+
+
+**Cierre CI-01:** HEAD científico/CI validado `79cb4540f89020f3b03537578ffeef546c2ead2a`, run `42812301019`, ambos jobs success: true **2075 passed**, false **1629 passed / 101 skips**. EPYC 7763 sin AVX-512, mismo binario NumPy y arrays exactos entre jobs; seis SHA weather identifican la reproducción portátil, KPI y boundaries históricos exactos. Evidencia completa y comparaciones en HOTFIX_CI01_REPRODUCIBILIDAD_EOLICA.md y ci01_evidencia/post-fix/remote. Commit final solo documental, sin nueva suite manual; workflow automático documental no se declara terminado anticipadamente. Sin bloqueos científicos conocidos, sin merge.

@@ -1,0 +1,143 @@
+Skip to main content
+EM
+ENERGY MULTIMODEL
+UNIFIED EMS CONSOLE
+NAVEGAÇÃO
+
+▦ Visão Geral
+
+⌁ Módulo de Carga
+
+◈ Modelos
+
+◎ Otimizador
+
+◫ Resultados do Otimizador
+
+▤ Resultados dos Modelos
+
+⇩ Exportar Resultados
+
+ESTADO DO SISTEMA
+CARGA
+120 min · pico 178 kW
+MODELOS ATIVOS
+3 · Solar · Bateria · H₂ / PEMFC
+OTIMIZADOR
+Aguardando execução · N=3
+ÚLTIMA RODADA
+—
+
+Um único estado: carga, modelos, EMS, resultados e exportação compartilham a mesma rodada.
+
+keyboard_arrow_right
+
+Condições da rodada — SOC inicial das baterias
+
+keyboard_arrow_down
+
+Configuração aplicada · revisão 3 · 645044c6b372…
+
+✓
+Arranjo FV 1 · Arranjo 01 (Solar fotovoltaica) — Representado no EMS: agregado com 1 unidade(s) idêntica(s)
+✓
+Arranjo FV 2 · Arranjo 01 (Solar fotovoltaica) — Representado no EMS: agregado com 1 unidade(s) idêntica(s)
+✓
+Banco de baterias 1 (Bateria) — Representado no EMS: agregado com 1 unidade(s) idêntica(s)
+✓
+Banco de baterias 2 (Bateria) — Representado no EMS: agregado com 1 unidade(s) idêntica(s)
+✓
+Bloco PEMFC A (H₂ / PEMFC) — Representado no EMS: agregado com 1 unidade(s) idêntica(s)
+✓
+Bloco PEMFC B (H₂ / PEMFC) — Representado no EMS: agregado com 1 unidade(s) idêntica(s)
+✕
+Exclusión de prueba rev. 2 (Térmica) — Não representável no EMS V1.6: Dinâmica 'Usina termelétrica de grande porte' não é suportada pelo runtime integrado V1.6 (que usa a pequena unidade geradora). Disponível apenas na bancada Térmica.
+!
+Solar/eólica usarão o clima SINTÉTICO diário (demonstração), não medições da instalação.
+
+Confirmo executar esta rodada SEM os 1 equipamento(s) excluído(s) acima (a exclusão fica registrada na rodada).
+
+Abrir Gestão da Microrrede
+
+Impressão digital da especificação: 9e3bf2cecbbfff4c…
+
+CÉREBRO DO SISTEMA
+OTIMIZADOR
+Configura o EMS e executa a rodada usando a carga e os modelos já salvos na aplicação. Este botão é o ponto em que toda a arquitetura conversa de verdade.
+FLUXO ÚNICO
+1 · Carga
+define a missão
+FLUXO ÚNICO
+2 · Modelos
+ativa e parametriza fontes
+FLUXO ÚNICO
+3 · Otimizador
+configura e roda o EMS
+FLUXO ÚNICO
+4 · Resultado EMS
+despacho e custos
+FLUXO ÚNICO
+5 · Modelos
+resposta física da rodada
+FLUXO ÚNICO
+6 · Exportação
+pacote auditável
+
+Carga
+
+120 min
+
+pico 178 kW
+
+Modelos ativos
+
+3
+
+Solar · Bateria · H₂ / PEMFC
+
+Despacháveis
+
+2
+
+H₂ · bateria · térmica
+
+Entrada do EMS nesta rodada: a aplicação calculará os modelos ativos com a missão acima, extrairá envelopes/custos/restrições e enviará esse contrato ao solver. A saída volta para Resultados do Otimizador e Resultados dos Modelos.
+Método
+
+Algoritmo
+
+GWO · Grey Wolf Optimizer
+
+NGO · Northern Goshawk Optimization
+
+GA · Algoritmo genético
+
+Só SQP (sem metaheurística)
+
+Metaheurística com penalidade de restrições
+
+Validar H₂ no modelo dinâmico PEMFC após o despacho
+
+Horizonte
+
+Horizonte N [min]
+
+Semente aleatória
+
+Tolerância SOC-alvo (±)
+
+keyboard_arrow_right
+
+Parâmetros econômicos e conversores
+
+1 equipamento(s) instalado(s) não entram nesta rodada. Confirme a exclusão no painel 'Configuração aplicada' acima.
+
+▶ CALCULAR MODELOS E RODAR OTIMIZAÇÃO
+
+keyboard_arrow_right
+
+Pendências metodológicas para conversar com Marília
+
+ACEPTACIÓN: guardar B y fallar transferencia
+
+ACEPTACIÓN: agregar equipo excluido

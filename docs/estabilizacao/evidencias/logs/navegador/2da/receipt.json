@@ -1,0 +1,27 @@
+{
+  "protocol": "2da",
+  "data_dir": "/tmp/seeds2-acceptance-2da-drrrtxkw",
+  "phases": [
+    {
+      "phase": "exportar",
+      "passed": true,
+      "duration_s": 8.88
+    },
+    {
+      "phase": "importar",
+      "passed": true,
+      "duration_s": 59.96
+    },
+    {
+      "phase": "reinicio",
+      "passed": true,
+      "duration_s": 12.52
+    },
+    {
+      "phase": "tablet",
+      "passed": true,
+      "duration_s": 24.81
+    }
+  ],
+  "destination_data_dir": "/tmp/seeds2-acceptance-2da-destination-l300shai"
+}

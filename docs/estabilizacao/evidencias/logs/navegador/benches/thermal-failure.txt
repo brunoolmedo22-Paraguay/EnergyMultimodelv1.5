@@ -1,0 +1,240 @@
+Skip to main content
+
+← FONTES DE ENERGIA
+
+🔥
+TÉRMICA
+OPERATION + COST ENGINE
+
+TIPO DE RECURSO TÉRMICO
+
+🏭 USINA TERMELÉTRICA
+
+🛢️ PEQUENA UNIDADE GERADORA
+
+Modo ativo: Usina termelétrica de grande porte
+
+Visão geral
+
+Simulação
+
+Exportação
+
+ÚLTIMA EXECUÇÃO
+
+Energia entregue
+
+8014.15 MWh
+
+Custo total
+
+R$ 3.365.943
+
+FC do período
+
+55.65 %
+
+V1.2: modelo operacional-econômico; não modela caldeira/ciclo termodinâmico.
+
+SIMULAÇÃO
+Térmica · Usina termelétrica de grande porte
+Configure o recurso, carregue o despacho solicitado e avalie custo e factibilidade.
+🏭
+
+Modo ativo: Usina termelétrica de grande porte. Inflexibilidade/must-run habilitada; mínimo técnico e rampas são opcionais.
+
+1 · RECURSO TÉRMICO
+
+Potência máxima disponível [MW]
+
+Definição do CVU
+
+Preset acadêmico por combustível
+
+CVU manual
+
+Combustível
+
+CVU utilizado [R$/MWh]
+
+Preset acadêmico. Substituir pelo CVU específico da usina/período.
+
+Inflexibilidade / must-run
+
+Usar curva do arquivo quando disponível
+
+Fallback / inflexibilidade constante [MW]
+
+Considerar mínimo técnico
+
+Considerar limites de rampa
+
+CVU acadêmico. O valor real deve ser informado para cada equipamento/usina. Combustível, eficiência, logística, transporte, armazenamento e O&M podem alterar substancialmente o custo.
+2 · PROGRAMA SOLICITADO
+
+Fonte dos dados
+
+Exemplo interno
+
+Carregar CSV
+
+CSV
+
+invalid.csv
+39.0B
+add icon
+add
+
+2 linhas carregadas
+
+keyboard_arrow_down
+
+Mapeamento de colunas
+
+Timestamp *
+
+Potência solicitada *
+
+Inflexibilidade
+
+3 · EXECUTAR AVALIAÇÃO
+
+▶ CALCULAR MODELO TÉRMICO
+
+ValueError: O arquivo não contém timestamp + potência solicitada válidos
+Traceback:
+File "/workspace/EnergyMultimodelv1.5/thermal_app.py", line 324, in _render_simulation
+    profile = prepare_thermal_profile(raw, mapping)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/workspace/EnergyMultimodelv1.5/models/thermal_model.py", line 169, in prepare_thermal_profile
+    raise ValueError("O arquivo não contém timestamp + potência solicitada válidos")
+Copy
+Ask Google
+Ask ChatGPT
+Indicadores do período
+
+Energia entregue
+
+8014.15 MWh
+
+Custo variável
+
+R$ 3.365.943
+
+Custo total
+
+R$ 3.365.943
+
+CVU
+
+R$ 420.00/MWh
+
+FC do período
+
+55.65 %
+
+Energia inflexível
+
+5040.00 MWh
+
+Energia flexível
+
+2974.15 MWh
+
+Violações inflex.
+
+19
+
+Violações Pmax
+
+3
+
+Violações rampa
+
+0
+
+Programa abaixo do contrato em 19 intervalos. Para restaurar a inflexibilidade seriam necessários +123.30 MWh. equivalentes a aproximadamente R$ 51.786 de CVU adicional.
+00:00Sep 1, 2026
+12:00
+00:00Sep 2, 2026
+12:00
+50
+100
+150
+200
+250
+300
+Potência solicitada
+Inflexibilidade
+Potência considerada/entregue
+Violação
+Despacho térmico
+Tempo
+Potência (MW)
+Pmax
+00:00Sep 1, 2026
+12:00
+00:00Sep 2, 2026
+12:00
+0
+10k
+20k
+30k
+40k
+50k
+60k
+Custo por intervalo
+Tempo
+Custo (R$)
+00:00Sep 1, 2026
+12:00
+00:00Sep 2, 2026
+12:00
+0
+0.5M
+1M
+1.5M
+2M
+2.5M
+3M
+3.5M
+Custo acumulado
+Tempo
+Custo acumulado (R$)
+Inflexível
+Flexível
+Não atendida
+0
+1000
+2000
+3000
+4000
+5000
+Balanço de energia no período
+Energia (MWh)
+00:00Sep 1, 2026
+06:00
+12:00
+18:00
+00:00Sep 2, 2026
+06:00
+12:00
+18:00
+100
+150
+200
+250
+300
+21k
+31.5k
+42k
+52.5k
+63k
+Potência entregue
+Custo/intervalo
+Potência × custo
+Potência (MW)
+Custo (R$ / intervalo)
+keyboard_arrow_down
+
+Violações e tabela detalhada

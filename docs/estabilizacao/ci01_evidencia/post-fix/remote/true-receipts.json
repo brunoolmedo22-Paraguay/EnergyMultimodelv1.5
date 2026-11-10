@@ -1,0 +1,460 @@
+[
+  {
+    "tests": "2075",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "719.494"
+  },
+  {
+    "ci01": "boundaries",
+    "cases": {
+      "boundaries_0": {
+        "actual_sha256": "31339303919f3c40694495a50b47f36acde742ac40f2d9d2b9acdd100bb4709f",
+        "current_matches_history": true,
+        "kpis_exact": true,
+        "max_ulp": 0,
+        "different_values": 0,
+        "nan_counts": [
+          0,
+          0
+        ],
+        "infinity_counts": [
+          0,
+          0
+        ],
+        "different_signed_zeros": 0
+      },
+      "boundaries_1": {
+        "actual_sha256": "deb7cc17c2f1db84f60a8f0b90588f39a7273f4df3572b1ddda803c86dff4359",
+        "current_matches_history": true,
+        "kpis_exact": true,
+        "max_ulp": 0,
+        "different_values": 0,
+        "nan_counts": [
+          0,
+          0
+        ],
+        "infinity_counts": [
+          0,
+          0
+        ],
+        "different_signed_zeros": 0
+      },
+      "boundaries_2": {
+        "actual_sha256": "81f6502fa34ce86edd11b72c2da55a65ffa0502a6c51c3180fdd71b6d96488cb",
+        "current_matches_history": true,
+        "kpis_exact": true,
+        "max_ulp": 0,
+        "different_values": 0,
+        "nan_counts": [
+          0,
+          0
+        ],
+        "infinity_counts": [
+          0,
+          0
+        ],
+        "different_signed_zeros": 0
+      },
+      "boundaries_3": {
+        "actual_sha256": "0cb2c6fc17da3a6e3320f3c418c863a7307e321913c77b0cbcbb994cba727a76",
+        "current_matches_history": true,
+        "kpis_exact": true,
+        "max_ulp": 0,
+        "different_values": 0,
+        "nan_counts": [
+          0,
+          0
+        ],
+        "infinity_counts": [
+          0,
+          0
+        ],
+        "different_signed_zeros": 0
+      },
+      "boundaries_4": {
+        "actual_sha256": "b0767e5a7dce9ea5510966b81cc3cb34df691115e47514f71c60a7fb4f2e3eae",
+        "current_matches_history": true,
+        "kpis_exact": true,
+        "max_ulp": 0,
+        "different_values": 0,
+        "nan_counts": [
+          0,
+          0
+        ],
+        "infinity_counts": [
+          0,
+          0
+        ],
+        "different_signed_zeros": 0
+      },
+      "boundaries_5": {
+        "actual_sha256": "1b9221bd4f5fe157b76fab0fc0ba81286d62d7846a6886ba86488f93995cc41e",
+        "current_matches_history": true,
+        "kpis_exact": true,
+        "max_ulp": 0,
+        "different_values": 0,
+        "nan_counts": [
+          0,
+          0
+        ],
+        "infinity_counts": [
+          0,
+          0
+        ],
+        "different_signed_zeros": 0
+      }
+    }
+  },
+  {
+    "ci01": "weather",
+    "case": "weather_5",
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 51,
+    "different_samples": 17,
+    "first_difference": [
+      16,
+      0
+    ],
+    "max_absolute_kw": 3.637978807091713e-12,
+    "max_relative": 6.903211063766749e-16,
+    "rmse_kw": 2.45591638698589e-13,
+    "energy_difference_kwh": [
+      1.1368683772161603e-12,
+      2.2737367544323206e-12,
+      2.2737367544323206e-12
+    ],
+    "max_ulp": 4,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "WEG AGW 147 / 4.2",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": false,
+    "actual_sha256": "f1c4e7995bad051deaead5e35db4586ac97a1c9cc46b5cef6adc6c1583a6554f",
+    "kpis_exact": true
+  },
+  {
+    "ci01": "weather",
+    "case": "weather_4",
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 51,
+    "different_samples": 17,
+    "first_difference": [
+      16,
+      0
+    ],
+    "max_absolute_kw": 4.547473508864641e-13,
+    "max_relative": 3.498583270548887e-16,
+    "rmse_kw": 3.65171260022874e-14,
+    "energy_difference_kwh": [
+      1.7053025658242404e-13,
+      3.410605131648481e-13,
+      3.600083194517841e-13
+    ],
+    "max_ulp": 2,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "EWT DW61-1MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": false,
+    "actual_sha256": "d153d50693ed4019c31a2e2b306fdda852ee8414417ea14b9f75eea41c2c50fb",
+    "kpis_exact": true
+  },
+  {
+    "ci01": "weather",
+    "case": "weather_3",
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 51,
+    "different_samples": 17,
+    "first_difference": [
+      16,
+      0
+    ],
+    "max_absolute_kw": 1.8189894035458565e-12,
+    "max_relative": 9.009892521740466e-16,
+    "rmse_kw": 1.3817816525842575e-13,
+    "energy_difference_kwh": [
+      8.621251860555882e-13,
+      1.7242503721111764e-12,
+      1.6484591469634324e-12
+    ],
+    "max_ulp": 8,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Vestas V90-3.0 MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": false,
+    "actual_sha256": "50fcac430c482ef85c17d3f75e3595ffc1328eab5fda3598f381a160db0a0d00",
+    "kpis_exact": true
+  },
+  {
+    "ci01": "weather",
+    "case": "weather_2",
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 51,
+    "different_samples": 17,
+    "first_difference": [
+      16,
+      0
+    ],
+    "max_absolute_kw": 2.7284841053187847e-12,
+    "max_relative": 6.919427667345878e-16,
+    "rmse_kw": 1.6625347189662421e-13,
+    "energy_difference_kwh": [
+      1.0421293457814802e-12,
+      2.0842586915629604e-12,
+      2.0084674664152163e-12
+    ],
+    "max_ulp": 4,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Siemens SWT-3.6-120",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": false,
+    "actual_sha256": "f798debde5fa692508485775d7ef858f6a76c091ccbf023819de2c8c73309510",
+    "kpis_exact": true
+  },
+  {
+    "ci01": "weather",
+    "case": "weather_1",
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 51,
+    "different_samples": 17,
+    "first_difference": [
+      16,
+      0
+    ],
+    "max_absolute_kw": 5.4569682106375694e-12,
+    "max_relative": 8.025341188505339e-16,
+    "rmse_kw": 3.9273598873332463e-13,
+    "energy_difference_kwh": [
+      2.3495279795800643e-12,
+      4.699055959160129e-12,
+      5.078012084898849e-12
+    ],
+    "max_ulp": 6,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Vestas V164-7.0 MW",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": false,
+    "actual_sha256": "fc065e601db0a4e9e5f5bd63b4dc6627ab2ee666a1c6c2b7cc5a2e97f5bfcef5",
+    "kpis_exact": true
+  },
+  {
+    "ci01": "weather",
+    "case": "weather_0",
+    "samples": 1008,
+    "values": 3024,
+    "different_values": 6,
+    "different_samples": 2,
+    "first_difference": [
+      16,
+      0
+    ],
+    "max_absolute_kw": 9.094947017729282e-13,
+    "max_relative": 2.4502635741725857e-16,
+    "rmse_kw": 2.7736748306453285e-14,
+    "energy_difference_kwh": [
+      -1.1368683772161603e-13,
+      -2.2737367544323206e-13,
+      -2.2737367544323206e-13
+    ],
+    "max_ulp": 2,
+    "nan_counts": [
+      0,
+      0
+    ],
+    "infinity_counts": [
+      0,
+      0
+    ],
+    "different_signed_zeros": 0,
+    "dtype_reference": "<f8",
+    "dtype_current": "<f8",
+    "key": "Nordex N117/2400",
+    "kpis_exact_between_runs": true,
+    "reference_matches_history": true,
+    "current_matches_history": false,
+    "actual_sha256": "d27880cda883ee398af6650747a1b552e78006fe89c9963b5103bebf754820dc",
+    "kpis_exact": true
+  },
+  {
+    "ci01": "environment",
+    "python": "3.12.16 (main, Oct 26 2026, 02:48:44) [GCC 15.2.0]",
+    "versions": {
+      "numpy": "2.2.6",
+      "scipy": "1.15.3",
+      "pandas": "2.2.3",
+      "pyomo": "6.10.1",
+      "highspy": "1.15.1"
+    },
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "ufunc_dispatch": {
+      "exp": {
+        "dd": {
+          "current": "AVX2",
+          "available": "AVX512_SKX AVX512F AVX2 baseline(SSE SSE2 SSE3)"
+        }
+      },
+      "exp2": {
+        "dd": {
+          "current": "baseline(SSE SSE2 SSE3)",
+          "available": "AVX512_SKX baseline(SSE SSE2 SSE3)"
+        }
+      },
+      "expm1": {
+        "dd": {
+          "current": "baseline(SSE SSE2 SSE3)",
+          "available": "AVX512_SKX baseline(SSE SSE2 SSE3)"
+        }
+      },
+      "power": {
+        "ddd": {
+          "current": "baseline(SSE SSE2 SSE3)",
+          "available": "AVX512_SKX baseline(SSE SSE2 SSE3)"
+        }
+      },
+      "frexp": {
+        "ddi": {
+          "current": "AVX2",
+          "available": "AVX512_SKX AVX512F AVX2 baseline(SSE SSE2 SSE3)"
+        }
+      },
+      "ldexp": {
+        "did": {
+          "current": "AVX2",
+          "available": "AVX512_SKX AVX512F AVX2 baseline(SSE SSE2 SSE3)"
+        }
+      }
+    },
+    "cpu_features": {
+      "MMX": true,
+      "SSE": true,
+      "SSE2": true,
+      "SSE3": true,
+      "SSSE3": true,
+      "SSE41": true,
+      "POPCNT": true,
+      "SSE42": true,
+      "AVX": true,
+      "F16C": true,
+      "XOP": false,
+      "FMA4": false,
+      "FMA3": true,
+      "AVX2": true,
+      "AVX512F": false,
+      "AVX512CD": false,
+      "AVX512ER": false,
+      "AVX512PF": false,
+      "AVX5124FMAPS": false,
+      "AVX5124VNNIW": false,
+      "AVX512VPOPCNTDQ": false,
+      "AVX512VL": false,
+      "AVX512BW": false,
+      "AVX512DQ": false,
+      "AVX512VNNI": false,
+      "AVX512IFMA": false,
+      "AVX512VBMI": false,
+      "AVX512VBMI2": false,
+      "AVX512BITALG": false,
+      "AVX512FP16": false,
+      "AVX512_KNL": false,
+      "AVX512_KNM": false,
+      "AVX512_SKX": false,
+      "AVX512_CLX": false,
+      "AVX512_CNL": false,
+      "AVX512_ICL": false,
+      "AVX512_SPR": false,
+      "VSX": false,
+      "VSX2": false,
+      "VSX3": false,
+      "VSX4": false,
+      "VX": false,
+      "VXE": false,
+      "VXE2": false,
+      "NEON": false,
+      "NEON_FP16": false,
+      "NEON_VFPV4": false,
+      "ASIMD": false,
+      "FPHP": false,
+      "ASIMDHP": false,
+      "ASIMDDP": false,
+      "ASIMDFHM": false,
+      "SVE": false,
+      "RVV": false
+    },
+    "disabled": null,
+    "math_environment": {
+      "OPENBLAS_NUM_THREADS": null,
+      "OPENBLAS_CORETYPE": null,
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "GLIBC_TUNABLES": null
+    },
+    "fenv_round": 0,
+    "libc": [
+      "glibc",
+      "2.43"
+    ],
+    "numpy_binary_sha256": "e6241082eaab01d0f68b2b661522ecb9d5d2160915104df8b112cc161dfa18b4",
+    "sources_exact": true,
+    "solver_exercised": true
+  }
+]

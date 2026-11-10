@@ -1,0 +1,22 @@
+[local] ok — rodada concluída aberta (somente leitura)
+[local] ok — custo original exibido (R$ 88,32)
+[local] ok — nada é gerado ao abrir a rodada (sob demanda)
+[local] ok — painel Exportações científicas visível
+[local] ok — painel declara: documento derivado, sem executar o motor
+[local] ok — EXPORTAR RELATÓRIO PDF: nome de arquivo seguro (seeds2_relatorio_Alta_demanda_E2E_v2_8706b150.pdf)
+[local] ok — PDF baixado (313031 bytes)
+[local] ok — EXPORTAR DADOS EXCEL: nome de arquivo seguro (seeds2_dados_Alta_demanda_E2E_v2_8706b150.xlsx)
+[local] ok — Excel baixado (151538 bytes)
+[local] ok — C-04.2: precisão do Excel explicada (arquivo × Microsoft Excel)
+[local] ok — EXPORTAR FIGURAS: nome de arquivo seguro (seeds2_figuras_Alta_demanda_E2E_v2_8706b150.zip)
+[local] ok — ZIP de figuras baixado (970905 bytes)
+[local] ok — figura individual SVG baixada (01_demanda_potencia_por_fonte.svg)
+[local] ok — rodada local: nenhuma exceção
+[local] ok — rodada falha aberta
+[local] ok — falha: figuras desabilitadas (sem séries)
+[local] ok — EXPORTAR DIAGNÓSTICO PDF: nome de arquivo seguro (seeds2_diagnostico_Alta_demanda_E2E_v3_93657f11.pdf)
+[local] ok — diagnóstico PDF baixado (seeds2_diagnostico_Alta_demanda_E2E_v3_93657f11.pdf)
+[local] ok — estudo exportado (.seeds2study.zip)
+[local] ok — local: nenhuma exceção
+[local] ok — sem erros de JavaScript: []
+[local] CONCLUÍDO — 21 verificações

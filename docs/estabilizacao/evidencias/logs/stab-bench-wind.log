@@ -1,0 +1,23 @@
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS rendered numeric chart traces
+PASS tablet: no page horizontal overflow
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS downloaded result series resultado_eolico_Nordex_N117-2400.csv
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS invalid input rejected with visible message
+PASS no unhandled Python exception
+PASS reload remains usable
+PASS no unhandled Python exception
+PASS navigation continues after reload
+COMPLETE wind: 22 checks

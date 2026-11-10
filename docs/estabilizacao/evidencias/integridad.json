@@ -1,0 +1,66 @@
+{
+  "base_commit": "5e6267833538716678125ab962fc645cfee53eb0",
+  "unchanged_scientific_paths": {
+    "ems_v2": {
+      "files": 98,
+      "sha256": "04dfa9947f86b83cdc02cf2eac45e55b058601a4f52779e7e2913fac4bfe9a6d"
+    },
+    "models": {
+      "files": 18,
+      "sha256": "990227caf1fe02e454aec5b98c5117043fdf1703aa146fc34d59f31f2f356936"
+    },
+    "config": {
+      "files": 20,
+      "sha256": "e9f5c8062351af7731589d90901118fe8ebc55bb218703990484f9dd6a976d6d"
+    },
+    "simulation": {
+      "files": 12,
+      "sha256": "f85532d6efe1d8bd59aecd3c49a15f250a253a735e86a4d85829510c4fc3edf8"
+    },
+    "h2_pemfc": {
+      "files": 55,
+      "sha256": "1c949a4c4a8dbda71726fd5f41ea78b3c5de62ef131fa1856593d397dfb13a77"
+    },
+    "ems_integration": {
+      "files": 18,
+      "sha256": "3822396822420a5e079563f566fb4907d0560ed283a24110f86435edc33d5cce"
+    },
+    "reference_models": {
+      "files": 50,
+      "sha256": "8f82f98bc904f15f25220a8d032b0b910069f6eab62cb2ad3d3121d258ebcc63"
+    }
+  },
+  "changed_production_files": {
+    "seeds2/ui/operations.py": {
+      "base_sha256": "89a33d7de4dfb246923efaf99276231799b713d6d75d65a16b6ea3cd41e7c414",
+      "new_sha256": "f581bc7f82beae2e5c7f59e8c61305ab6a35e14d0464c71478a9d8cbb5620543"
+    },
+    "seeds2/ui/main.py": {
+      "base_sha256": "079c143caf8d1a0f0ded43440e1153bb3a9cbdabefa348e271b7acdb1296bd1b",
+      "new_sha256": "b2752042b86f6983257b8e48f6a37c5450d51639a5e5e896e3edf7ac0541cf82"
+    },
+    "seeds2/operation/runner.py": {
+      "base_sha256": "f1596a076e78b2a09543c94f386702aee6da4e8d1a283b788d41c657ddcc7c49",
+      "new_sha256": "e52fecfcf36a258c7e2435c72cf5703ea0a3ca4ed2f84ed546c472ecab2db311"
+    },
+    "thermal_app.py": {
+      "base_sha256": "95a27797a14fea9be295d4b1b16dbd11d20eda7dfc168a3459fd6fe555e62bd2",
+      "new_sha256": "27bafb0b3df502731c4c6016767adf26c4ceae8f3483fcebf2b22b8ad89cc606"
+    }
+  },
+  "ems_tree_oid": "9a28ed95fc2c5be4267fb296ea0e8a4422b035ed",
+  "historical_fixtures_changed": [],
+  "preserved_document_prefixes": {
+    "PARAMIJEFE.md": {
+      "original_bytes": 244045,
+      "original_sha256": "a76f47d987a00a247938059a6d2ed1f57a28af60daa430145ae0670da0ae3f78",
+      "exact_prefix_preserved": true
+    },
+    "docs/ai/HANDOFF.md": {
+      "original_bytes": 31035,
+      "original_sha256": "8756b7d374344b17151185e1395f1d3d92a2f0e6f740790cb322b8da2d04f07d",
+      "exact_prefix_preserved": true
+    }
+  },
+  "historical_fixture_files": 8
+}

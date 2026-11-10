@@ -1,0 +1,231 @@
+[
+  {
+    "file": "benches/battery-2rc-resultado_bateria_2rc.csv",
+    "rows": 61,
+    "columns": [
+      "\ufefftimestamp",
+      "current_A",
+      "voltage_V",
+      "power_W",
+      "soc_percent",
+      "cell_current_A",
+      "cell_voltage_V",
+      "limit_flag",
+      "model",
+      "ocv_V_cell",
+      "V_RC1_V_cell",
+      "V_RC2_V_cell"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "b42835ac242afb2fa2b83f3c70f1332d9fa4ae75cbb963d00d4cad8f9f1ab92c"
+  },
+  {
+    "file": "benches/battery-tremblay-resultado_bateria_tremblay.csv",
+    "rows": 61,
+    "columns": [
+      "\ufefftimestamp",
+      "current_A",
+      "voltage_V",
+      "power_W",
+      "soc_percent",
+      "cell_current_A",
+      "cell_voltage_V",
+      "limit_flag",
+      "model",
+      "filtered_current_A_cell",
+      "exponential_voltage_V_cell"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "b772d7229bfc0717755cd9c2ece0b88cb7449b6b279d58711da2ecca6ba26afe"
+  },
+  {
+    "file": "benches/h2-resultado_h2_pemfc_66kw.csv",
+    "rows": 361,
+    "columns": [
+      "\ufefftimestamp",
+      "P_FC_requested_kW",
+      "P_FC_delivered_kW",
+      "P_deficit_kW",
+      "state",
+      "current_A",
+      "V_stack_V",
+      "P_stack_kW",
+      "hydrogen_supplied_kg_h",
+      "net_electrical_efficiency_LHV_percent",
+      "P_aux_equivalent_kW",
+      "P_dc_dc_loss_kW",
+      "limitation_flag",
+      "limitation_reason",
+      "T_ambient_C",
+      "T_coolant_in_C",
+      "V_bus_V"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "7cc828c6ddf0e11ceb43eac07e1bdddc9b43d6fbab0e02a04293e76ba95dd6a2"
+  },
+  {
+    "file": "benches/mix-mix_resultado.csv",
+    "rows": 121,
+    "columns": [
+      "\ufefftimestamp",
+      "P_demand_kW",
+      "P_solar_kW",
+      "P_wind_kW",
+      "P_thermal_requested_kW",
+      "P_thermal_delivered_kW",
+      "P_battery_requested_kW",
+      "P_battery_delivered_kW",
+      "SOC_battery_pct",
+      "P_H2_requested_kW",
+      "P_H2_delivered_kW",
+      "H2_consumption_kg_h",
+      "P_total_generated_kW",
+      "P_balance_kW",
+      "P_excess_kW",
+      "P_deficit_kW",
+      "curtailment_required",
+      "battery_charge_opportunity",
+      "mix_recommendation"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "d8335f65be16d8f2a59aabad94ed1f511e8d5c0b80595105bd4aa97f8cfbea27"
+  },
+  {
+    "file": "benches/solar-modelo_solar_irradiancia_120min.csv",
+    "rows": 120,
+    "columns": [
+      "\ufefftimestamp",
+      "potencia_gerada_W"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "f3b732cdf5dec9e44130995d46509603a27dee1eacbed6ddb09f830eca4ff133"
+  },
+  {
+    "file": "benches/thermal-resultado_termico_usina.csv",
+    "rows": 96,
+    "columns": [
+      "\ufefftimestamp",
+      "interval_hours",
+      "power_requested_mw",
+      "inflexibility_mw",
+      "contractual_target_mw",
+      "power_delivered_mw",
+      "power_unmet_mw",
+      "ramp_rate_mw_min",
+      "start_event",
+      "energy_delivered_mwh",
+      "energy_unmet_mwh",
+      "variable_cost_rs",
+      "startup_cost_rs",
+      "total_cost_rs",
+      "cumulative_cost_rs",
+      "violation_below_inflexibility",
+      "violation_above_pmax",
+      "violation_below_pmin",
+      "violation_ramp_up",
+      "violation_ramp_down"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [
+      "ramp_rate_mw_min"
+    ],
+    "sha256": "84e66fbb270358cd07ffea7eec3ca3eb1daedabaa201692f5f1db193beab6126"
+  },
+  {
+    "file": "benches/wind-resultado_eolico_Nordex_N117-2400.csv",
+    "rows": 1008,
+    "columns": [
+      "\ufefftimestamp",
+      "wind_speed_mps",
+      "wind_direction_deg",
+      "temperature_c",
+      "pressure_hpa",
+      "humidity_pct",
+      "air_density_kg_m3",
+      "density_mode",
+      "equivalent_wind_speed_mps",
+      "power_unit_kw",
+      "power_gross_kw",
+      "power_net_kw",
+      "wind_power_available_kw",
+      "apparent_wind_to_electric_efficiency"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "15bf9f573d283f1b5b704db88c1e9b8d2b4c570fe9bb810cf9d66b1c64172eb8"
+  },
+  {
+    "file": "wind/Vergnet_GEV_MP_C_275_kW-energy.csv",
+    "rows": 1008,
+    "columns": [
+      "\ufefftimestamp",
+      "wind_speed_mps",
+      "wind_direction_deg",
+      "temperature_c",
+      "pressure_hpa",
+      "humidity_pct",
+      "air_density_kg_m3",
+      "density_mode",
+      "equivalent_wind_speed_mps",
+      "power_unit_kw",
+      "power_gross_kw",
+      "power_net_kw",
+      "wind_power_available_kw",
+      "apparent_wind_to_electric_efficiency"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "853a18620616089b0687b18d74f229f895948a9e599ae9e354dbc3553fc623f4"
+  },
+  {
+    "file": "wind/Vestas_V47_660_kW-energy.csv",
+    "rows": 1008,
+    "columns": [
+      "\ufefftimestamp",
+      "wind_speed_mps",
+      "wind_direction_deg",
+      "temperature_c",
+      "pressure_hpa",
+      "humidity_pct",
+      "air_density_kg_m3",
+      "density_mode",
+      "equivalent_wind_speed_mps",
+      "power_unit_kw",
+      "power_gross_kw",
+      "power_net_kw",
+      "wind_power_available_kw",
+      "apparent_wind_to_electric_efficiency"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "856a53eb9f8645e750cffa0be7cff5a577cd75c7e3dc17b706e5c6d992f3f169"
+  },
+  {
+    "file": "wind/Vestas_V52_850_kW_OptiSpeed-energy.csv",
+    "rows": 1008,
+    "columns": [
+      "\ufefftimestamp",
+      "wind_speed_mps",
+      "wind_direction_deg",
+      "temperature_c",
+      "pressure_hpa",
+      "humidity_pct",
+      "air_density_kg_m3",
+      "density_mode",
+      "equivalent_wind_speed_mps",
+      "power_unit_kw",
+      "power_gross_kw",
+      "power_net_kw",
+      "wind_power_available_kw",
+      "apparent_wind_to_electric_efficiency"
+    ],
+    "timestamp_column": null,
+    "null_numeric_columns": [],
+    "sha256": "e92edebbf96e8766d39340304db65dbbe8b6835cd7abe52dc877de57aeded340"
+  }
+]

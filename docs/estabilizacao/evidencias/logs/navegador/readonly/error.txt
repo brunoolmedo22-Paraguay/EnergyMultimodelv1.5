@@ -1,0 +1,3 @@
+Skip to main content
+
+Armazenamento do SEEDS2 indisponível: [Errno 13] Permission denied: '/tmp/seeds2-acceptance-readonly-9iuiimjp/microgrids'

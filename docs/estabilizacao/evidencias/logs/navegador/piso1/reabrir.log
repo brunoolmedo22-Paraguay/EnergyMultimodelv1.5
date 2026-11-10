@@ -1,0 +1,23 @@
+[reabrir] ok — após reiniciar, a sessão nova começa no Gestor
+[reabrir] ok — após reiniciar o servidor, abre a mesma microrrede
+[reabrir] ok — o assistente não se repete
+[reabrir] ok — Gestão mostra os 4 equipamentos persistidos
+[reabrir] ok — edição abre o editor (sem catálogo)
+[reabrir] ok — dados do datasheet persistidos
+[reabrir] ok — banco parametrizado para o modelo
+[reabrir] ok — indicador mostra edição pendente
+[reabrir] ok — indicador volta a 'salvo' após gravar revisão
+[reabrir] ok — painel mostra a configuração aplicada ao EMS
+[reabrir] exclusões confirmadas (arranjo FV declarado sem módulo)
+[reabrir] ok — resultado identifica a revisão da microrrede
+[reabrir] ok — simulação: nenhuma exceção na página
+[reabrir] ok — PDF da configuração ativada baixado
+[reabrir] ok — backup baixado: seeds2_Laboratorio_de_Microrredes_Bloco_C_f7b7540e_20261110_0133.seeds2backup.zip
+[reabrir] ok — backup inspecionado e aceito
+[reabrir] ok — histórico registra a revisão de restauração
+[reabrir] ok — importação inválida é rejeitada com mensagem
+[reabrir] ok — gestão/backup: nenhuma exceção na página
+[reabrir] ok — conteúdo restaurado idêntico: resultado continua válido
+[reabrir] ok — resultado antigo identificado como obsoleto após mudança
+[reabrir] ok — sem erros de JavaScript: []
+[reabrir] CONCLUÍDO

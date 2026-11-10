@@ -1,0 +1,98 @@
+{
+  "bench": "solar",
+  "checks": 23,
+  "passed": true,
+  "receipts": [
+    {
+      "charts": [
+        {
+          "axes": [
+            "Potência do arranjo [W]"
+          ],
+          "traces": [
+            {
+              "name": "Modelo 1 · Irradiância",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 2 · NOCT + eficiência",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 3 · Single Diode Model",
+              "n": 120,
+              "finite": 120
+            }
+          ]
+        },
+        {
+          "axes": [
+            "Energia acumulada [kWh]"
+          ],
+          "traces": [
+            {
+              "name": "Modelo 1 · Irradiância",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 2 · NOCT + eficiência",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 3 · Single Diode Model",
+              "n": 120,
+              "finite": 120
+            }
+          ]
+        },
+        {
+          "axes": [
+            "Eficiência [%]"
+          ],
+          "traces": [
+            {
+              "name": "Modelo 1 · Irradiância",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 2 · NOCT + eficiência",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 3 · Single Diode Model",
+              "n": 120,
+              "finite": 120
+            }
+          ]
+        },
+        {
+          "axes": [
+            "Diferença de potência vs SDM [%]"
+          ],
+          "traces": [
+            {
+              "name": "Modelo 1 · Irradiância",
+              "n": 120,
+              "finite": 120
+            },
+            {
+              "name": "Modelo 2 · NOCT + eficiência",
+              "n": 120,
+              "finite": 120
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "download": "solar-modelo_solar_irradiancia_120min.csv",
+      "bytes": 3871
+    }
+  ]
+}

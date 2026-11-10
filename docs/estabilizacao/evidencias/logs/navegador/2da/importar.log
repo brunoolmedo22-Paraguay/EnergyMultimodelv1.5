@@ -1,0 +1,35 @@
+[importar] ok — instalação limpa: nenhuma microrrede
+[importar] ok — sem microrrede: só importar e consultar
+[importar] ok — arquivo vazio
+[importar] ok — relatório de verificação exibido
+[importar] ok — relatório: Alta demanda E2E
+[importar] ok — relatório: Industrial A — E2E 2D-A
+[importar] ok — relatório: 2 (1 concluída, 1 falhou)
+[importar] ok — relatório: 2.0.0-piso2db
+[importar] ok — relatório: compactado
+[importar] ok — relatório: Não é uma assinatura digital
+[importar] ok — importação exige confirmação explícita
+[importar] ok — estudo importado na lista (somente leitura)
+[importar] ok — consulta histórica declarada
+[importar] ok — configuração: Inventário de referência
+[importar] ok — configuração: Estados iniciais
+[importar] ok — configuração: Estratégia EMS
+[importar] ok — configuração: GWO
+[importar] ok — configuração: Janela temporal da missão
+[importar] ok — previsão de demanda desenhada (31 pontos)
+[importar] ok — previsão de clima desenhada (irradiância e temperatura)
+[importar] ok — duas rodadas no histórico
+[importar] ok — rodada falha: estado original preservado
+[importar] ok — rodada falha: motivo original
+[importar] ok — rodada falha: nenhuma curva inventada
+[importar] ok — custo idêntico à origem (R$ 88,32)
+[importar] ok — séries completas (31 passos) da rodada original
+[importar] ok — SOC original desenhado
+[importar] ok — valores lidos do estudo, não recalculados
+[importar] ok — verificação de integridade aprovada
+[importar] ok — recarga da página: mesmo estudo, mesma rodada, mesmo custo
+[importar] ok — reimportação reconhecida como duplicata (nada duplicado)
+[importar] ok — importação não criou nem restaurou microrredes
+[importar] ok — importar: nenhuma exceção
+[importar] ok — sem erros de JavaScript: []
+[importar] CONCLUÍDO — 34 verificações

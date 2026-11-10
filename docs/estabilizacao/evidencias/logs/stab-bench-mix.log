@@ -1,0 +1,17 @@
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS rendered numeric chart traces
+PASS tablet: no page horizontal overflow
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS downloaded result series mix_resultado.csv
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS no unhandled Python exception
+PASS incomplete MIX proposal cannot run
+PASS no unhandled Python exception
+PASS reload remains usable
+COMPLETE mix: 16 checks
