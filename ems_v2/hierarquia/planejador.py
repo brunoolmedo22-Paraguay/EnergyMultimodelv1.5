@@ -315,6 +315,11 @@ class Planejador3C4:
         cauda = max(0, self.fim - b)
         ref = self._referencia(alvo)
         if cauda == 0 or b >= self.fim:
+            K = ctx.cfg.malha.intervalos_missao
+            if self.fim < K:          # MATH-01 P1-2: cauda esgotada ANTES do fim da missão ≠ cauda vazia legítima
+                return self._indisponivel(alvo, f"cauda esgotada prematuramente: fronteira b = {b} >= fim do "
+                                                f"planejamento emitido em k = {ctx.k} ({self.fim}) < K_M = {K}; Φ_L "
+                                                "não é custo de continuação (sem extrapolação)", ref)
             return self._sinal_cauda_vazia(alvo, ref)
         combos, p_ref, cm = self.modos(alvo)
         if cm:
