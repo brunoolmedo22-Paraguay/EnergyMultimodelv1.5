@@ -173,6 +173,9 @@ def compare(paths, output, publish_receipt=False):
     if publish_receipt and os.environ.get('GITHUB_ACTIONS') == 'true':
         receipt = {'python': meta_b['python'], 'versions': meta_b['versions'],
                    'cpu': meta_b['cpu_model'], 'ufunc_dispatch': meta_b['ufunc_dispatch'],
+                   'cpu_features': meta_b['cpu_features'], 'disabled': meta_b['disabled'],
+                   'math_environment': meta_b['environment'], 'fenv_round': meta_b['fenv_round'],
+                   'libc': meta_b['libc'],
                    'numpy_binary_sha256': meta_b['numpy_binary_sha256'],
                    'sources_exact': meta_a['source_sha256'] == meta_b['source_sha256'],
                    'solver_exercised': meta_b['solver_exercised'],
