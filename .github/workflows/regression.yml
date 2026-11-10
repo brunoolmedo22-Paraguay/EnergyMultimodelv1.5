@@ -1,0 +1,50 @@
+name: SEEDS2 regression
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scientific-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        solver: [true, false]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Active 3C-4 numerical isolation checks require historical Git objects.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install application and tests
+        run: python -m pip install -r requirements.txt pytest==8.4.2
+      - name: Install optional solver
+        if: matrix.solver
+        run: python -m pip install -r requirements-ems_v2.txt
+      - name: Verify absence of optional solver
+        if: ${{ !matrix.solver }}
+        run: python -c "import importlib.util; assert importlib.util.find_spec('pyomo') is None; assert importlib.util.find_spec('highspy') is None"
+      - name: Run complete suite
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -o pipefail
+          python -m pip freeze > environment.txt
+          python -m pytest tests/ -q -rs --junitxml=regression.xml | tee regression.log
+          git diff --check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-solver-${{ matrix.solver }}
+          path: |
+            environment.txt
+            regression.xml
+            regression.log

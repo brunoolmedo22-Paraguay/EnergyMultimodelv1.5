@@ -44,7 +44,7 @@ async function section(p, name) {
   await p.locator('[data-testid="stRadio"] label').filter({ hasText: name }).first().click(); await ready(p);
 }
 async function visible(p, text) { return p.getByText(text, { exact: false }).first().isVisible().catch(() => false); }
-async function chart(p, titlePart) {
+async function chart(p, titlePart, expected = true) {
   // o Streamlit só desenha um gráfico Plotly quando ele entra na área visível: rolar até cada um antes de inspecionar
   const n = await p.locator('[data-testid="stPlotlyChart"]').count();
   for (let i = 0; i < n; i++) {
@@ -52,6 +52,8 @@ async function chart(p, titlePart) {
     await p.waitForTimeout(250);
   }
   await p.waitForTimeout(500);
+  if (expected) await p.waitForFunction(t => [...document.querySelectorAll('.js-plotly-plot')].some(
+    g => g._fullLayout && String(g.layout?.title?.text || '').includes(t)), titlePart, {timeout:60000});
   return p.evaluate((t) => {
     const g = [...document.querySelectorAll(".js-plotly-plot")].find((el) => el.layout && el.layout.title &&
       String(el.layout.title.text || "").includes(t) && el.offsetParent !== null);
@@ -155,7 +157,7 @@ async function importar(b) {
   await consultar(p, 0);                                     // mais recente = a que falhou
   assert(await visible(p, "Rodada falhou"), "rodada falha: estado original preservado");
   assert(await visible(p, "otimizador indisponível"), "rodada falha: motivo original");
-  assert(await chart(p, "Demanda e potência por fonte") === null, "rodada falha: nenhuma curva inventada");
+  assert(await chart(p, "Demanda e potência por fonte", false) === null, "rodada falha: nenhuma curva inventada");
   await consultar(p, 1);                                     // a concluída
   assert(await kpi(p, "Custo total") === cost(), `custo idêntico à origem (${cost()})`);
   const pw = await chart(p, "Demanda e potência por fonte");

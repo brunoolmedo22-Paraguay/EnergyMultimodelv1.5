@@ -59,6 +59,12 @@ const panel = (p) => p.locator('[role="tabpanel"]:visible');
 async function tab(p, name) { await p.getByRole("tab", { name }).click(); await ready(p); }
 // Gráfico Plotly identificado pelo título (os dados vêm do próprio objeto do Plotly no DOM)
 async function chart(p, titlePart) {
+  // Plotly is mounted lazily by Streamlit, after the Python run has ended.
+  // Bring available containers into view before inspecting their JS state.
+  for (const container of await p.locator('[data-testid="stPlotlyChart"]').all()) {
+    await container.scrollIntoViewIfNeeded();
+    await p.waitForTimeout(350);
+  }
   return p.evaluate((t) => {
     const g = [...document.querySelectorAll(".js-plotly-plot")].find((el) => el.layout && el.layout.title &&
       String(el.layout.title.text || "").includes(t) && el.offsetParent !== null);
@@ -127,6 +133,14 @@ async function operar(b) {
   await p.mouse.move(box.x + box.w * 0.6, box.y + box.h * 0.5, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(800);
   const r1 = (await chart(p, "PRÉ-VISUALIZAÇÃO")).layout.xrange;
   assert(JSON.stringify(r1) !== JSON.stringify(r0), "zoom altera o intervalo do eixo X");
+  await p.mouse.dblclick(box.x + box.w * 0.5, box.y + box.h * 0.5); await p.waitForTimeout(800);
+  const reset = await chart(p, "PRÉ-VISUALIZAÇÃO");
+  assert(same(finite(reset.traces[0].y), demandaCSV), "reset preserva todos os valores de demanda");
+  assert(Date.parse(reset.layout.xrange[0]) <= Date.parse(pv.traces[0].x[0]) &&
+         Date.parse(reset.layout.xrange[1]) >= Date.parse(pv.traces[0].x.at(-1)), "reset mostra todo o domínio original");
+  // Plotly defaults to reset+autosize: successive double clicks cycle between
+  // reset and autosize (their marker padding may differ by subpixel rounding).
+  // Exercise both modes, retaining the original exact reset assertion below.
   await p.mouse.dblclick(box.x + box.w * 0.5, box.y + box.h * 0.5); await p.waitForTimeout(800);
   const r2 = (await chart(p, "PRÉ-VISUALIZAÇÃO")).layout.xrange;
   assert(JSON.stringify(r2) === JSON.stringify(r0), "duplo clique restaura o encuadre");

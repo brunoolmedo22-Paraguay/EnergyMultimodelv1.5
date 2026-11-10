@@ -339,6 +339,9 @@ def _render_simulation() -> None:
                 st.session_state["thermal_config"] = cfg
                 st.session_state["thermal_source_name"] = source_name
                 st.success("Modelo térmico calculado.")
+            except ValueError as exc:
+                st.error(f"Não foi possível avaliar o programa: {exc}")
+                return  # preserve prior results in session; do not show them as this failed input
             except Exception as exc:
                 st.exception(exc)
 

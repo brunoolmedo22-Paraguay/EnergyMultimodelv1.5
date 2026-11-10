@@ -58,7 +58,11 @@ _LIVE: dict[str, threading.Thread | None] = {}       # rodadas deste processo (N
 _LIVE_LOCK = threading.Lock()
 _SCIENCE_FP: dict | None = None
 ROOT = Path(__file__).resolve().parents[2]
-SCIENCE_PATHS = ("models", "h2_pemfc", "simulation", "ems_integration", "config", "orchestrator_runtime.py")
+# Preparation/validation determines the actual engine inputs, too. Include it
+# in provenance without importing unrelated experimental dispatch implementations.
+SCIENCE_PATHS = ("models", "h2_pemfc", "simulation", "ems_integration", "config", "orchestrator_runtime.py",
+                 "seeds2/operation", "seeds2/microgrid/adapter.py", "seeds2/microgrid/config.py",
+                 "seeds2/microgrid/references.py")
 
 
 class PreflightError(StoreError):
