@@ -58,7 +58,9 @@ def test_e01_historical_entries_and_outputs_bit_for_bit(key, mode):
     else:
         p = profile(np.linspace(0, 30, 601))
     r, k, _ = run_wind_model(p, key, 2, True)
-    assert hashlib.sha256(r[['power_unit_kw', 'power_gross_kw', 'power_net_kw']].to_numpy().tobytes()).hexdigest() == BASE[mode][key]['power_sha256']
+    from tools.ci.wind_historical_comparison import assert_historical_power
+    assert_historical_power(r[['power_unit_kw', 'power_gross_kw', 'power_net_kw']].to_numpy(),
+                            key, mode, p, entry, BASE[mode][key]['power_sha256'])
     assert k == BASE[mode][key]['kpis']
 
 

@@ -42,6 +42,7 @@ jobs:
           # Controlled child process only: pytest keeps the native CPU policy.
           NPY_DISABLE_CPU_FEATURES=AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL python tools/ci/wind_numeric_probe.py --output ci01/no-avx512
           python tools/ci/wind_numeric_probe.py --compare ci01/native ci01/no-avx512 --output ci01/comparison
+          python tools/ci/wind_numeric_probe.py --compare docs/estabilizacao/ci01_evidencia/formal-solver ci01/native --output ci01/historical-comparison
           python tools/ci/wind_decimal_reference.py --captures ci01/native ci01/no-avx512 --output ci01/decimal
       - name: Run complete suite
         shell: bash

@@ -151,11 +151,20 @@ def compare(paths, output):
                    current_matches_history=meta_b['results'][name]['matches_history'])
         rows[name] = row
     (output/'comparison.json').write_text(json.dumps(rows,indent=2,allow_nan=False)+'\n')
-    text = '## CI-01 wind numerical diagnostic\n\nDiagnostic export only; regression assertions are unchanged.\n\n'
+    text = '## CI-01 wind numerical diagnostic\n\nComplete arrays and metadata are in the regression artifact.\n\n'
+    text += '| Environment | Python | NumPy / SciPy / pandas | CPU | Disabled features |\n|---|---|---|---|---|\n'
+    for label, meta in [('reference', meta_a), ('current', meta_b)]:
+        versions = ' / '.join(str(meta['versions'][p]) for p in ('numpy', 'scipy', 'pandas'))
+        text += f"| {label} | {meta['python'].split()[0]} | {versions} | {meta['cpu_model']} | {meta['disabled']} |\n"
+    text += '\n'
     text += '| Model / weather | Different values | max abs kW | max ULP | KPIs exact |\n|---|---:|---:|---:|---|\n'
     for name,row in rows.items():
         if name.startswith('weather'):
             text += f"| {row['key']} | {row['different_values']} | {row['max_absolute_kw']:.17g} | {row['max_ulp']} | {row['kpis_exact_between_runs']} |\n"
+    text += '\n| Current / weather | Actual SHA-256 | Original SHA exact | Original KPIs exact |\n|---|---|---|---|\n'
+    for name, record in meta_b['results'].items():
+        if name.startswith('weather'):
+            text += f"| {record['key']} | `{record['sha256']}` | {record['matches_history']} | {record['kpis_exact']} |\n"
     (output/'comparison.md').write_text(text)
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
