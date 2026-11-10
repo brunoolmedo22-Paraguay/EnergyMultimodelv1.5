@@ -181,9 +181,22 @@ def compare(paths, output, publish_receipt=False):
                              for name, row in rows.items()}}
         # Public, synthetic scientific evidence only. Annotations are readable
         # without Actions API credentials; no environment variables or secrets.
-        message = json.dumps(receipt, separators=(',', ':'), allow_nan=False)
-        message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-        print('::notice title=CI-01 numerical receipt::'+message)
+        def notice(title, record):
+            message = json.dumps(record, separators=(',', ':'), allow_nan=False)
+            # GitHub truncates an individual annotation near 4096 characters.
+            assert len(message.encode()) < 4000
+            message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+            print(f'::notice title=CI-01 {title}::'+message)
+        cases = receipt.pop('cases')
+        notice('environment', dict(ci01='environment', **receipt))
+        for name, row in cases.items():
+            if name.startswith('weather'):
+                notice(name, dict(ci01='weather', case=name, **row))
+        fields = ('actual_sha256', 'current_matches_history', 'kpis_exact', 'max_ulp',
+                  'different_values', 'nan_counts', 'infinity_counts', 'different_signed_zeros')
+        notice('boundaries', {'ci01': 'boundaries', 'cases': {
+            name: {key: row[key] for key in fields} for name, row in cases.items()
+            if name.startswith('boundaries')}})
 
 
 if __name__ == '__main__':
