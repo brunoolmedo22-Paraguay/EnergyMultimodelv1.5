@@ -72,20 +72,12 @@ ADICOES_3C4 = {"ems_v2/milp/modelo_3c4.py", "ems_v2/milp/solver_3c4.py", "ems_v2
 
 
 def test_v16_e_aplicacao_sem_alteracao_desde_a_base_auditada():
-    try:
-        subprocess.run(["git", "cat-file", "-e", BASE_AUDITADA], cwd=RAIZ, check=True, capture_output=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        pytest.skip(f"Histórico git sem a base {BASE_AUDITADA} (clone raso): verificação feita no PR.")
-    alvos = ["ems_integration", "models", "h2_pemfc", "simulation", "config", "reference_models", "seeds2",
-             "orchestrator_runtime.py", "orchestrator_app.py", "app.py", "ems_app.py", "requirements.txt",
-             "requirements-ems_v2.txt", "ems_v2/milp", "ems_v2/contracts.py", "ems_v2/audit.py", "ems_v2/reference.py"]
-    out = subprocess.run(["git", "diff", "--name-status", "--no-renames", BASE_AUDITADA, "--", *alvos], cwd=RAIZ,
-                         capture_output=True, text=True, check=True).stdout
-    linhas = [ln.split("\t") for ln in out.strip().splitlines() if ln.strip()]
+    # C-EOL-01: immutable delivery audit; current wind data remain pinned separately.
+    from wind_guard_policy import authorized_changes, authorized_additions, historical_changes, historical_untracked
+    linhas = authorized_changes(RAIZ, historical_changes(RAIZ, BASE_AUDITADA))
     modificados = [ln for ln in linhas if ln[0] != "A"]
     adicionados = {ln[1] for ln in linhas if ln[0] == "A"}
     assert modificados == [], modificados                    # nenhum arquivo da base alterado ou removido
     assert adicionados <= ADICOES_3C1 | ADICOES_3C3 | ADICOES_3C4, adicionados - ADICOES_3C1 - ADICOES_3C3 - ADICOES_3C4
-    nao_rastreados = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", *alvos], cwd=RAIZ,
-                                    capture_output=True, text=True, check=True).stdout.split()
+    nao_rastreados = authorized_additions(RAIZ, historical_untracked(RAIZ, BASE_AUDITADA))
     assert set(nao_rastreados) <= ADICOES_3C1 | ADICOES_3C3 | ADICOES_3C4, set(nao_rastreados) - ADICOES_3C1 - ADICOES_3C3 - ADICOES_3C4

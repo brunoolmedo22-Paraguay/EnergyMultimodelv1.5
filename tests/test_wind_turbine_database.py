@@ -1,8 +1,8 @@
-from config.wind_turbine_database import TURBINE_DB, get_power_curve, validate_database
+from config.wind_turbine_database import HISTORICAL_TURBINE_KEYS, TURBINE_DB, get_power_curve, validate_database
 
 
 def test_catalog_has_six_primary_turbines():
-    assert len(TURBINE_DB) == 6
+    assert len({k: TURBINE_DB[k] for k in HISTORICAL_TURBINE_KEYS}) == 6
 
 
 def test_database_invariants():

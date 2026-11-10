@@ -1,0 +1,164 @@
+[
+  {
+    "key": "Vergnet GEV MP C 275 kW",
+    "errors": [],
+    "csv_sha256": "0b0a1665ade82a117fbaa496eaecb041f8643b01c50170116aa5f74a69b3cccc",
+    "point_count": 21,
+    "domain_mps": [
+      2.5,
+      25.0
+    ],
+    "minimum_net_power_kw": 0.0,
+    "curve_peak_power_kw": 275.0,
+    "reference_power_kw": 275,
+    "rating_basis": {
+      "kind": "manufacturer_nominal",
+      "relative_tolerance": 0.01
+    },
+    "interpolated_power_at_reference_speed_kw": null,
+    "relative_reference_error": 0.0,
+    "within_numerical_screen_tolerance": true,
+    "reference_approval": "manufacturer_table_verified_against_work",
+    "integration_status": "restricted_domain"
+  },
+  {
+    "key": "Vestas V47-660 kW",
+    "errors": [],
+    "csv_sha256": "3a7afbfe22b48409e3056f498973bc18217828e5face9c8826514e3760591171",
+    "point_count": 16,
+    "domain_mps": [
+      4.0,
+      25.0
+    ],
+    "minimum_net_power_kw": 2.9,
+    "curve_peak_power_kw": 660.0,
+    "reference_power_kw": 660,
+    "rating_basis": {
+      "kind": "manufacturer_nominal",
+      "relative_tolerance": 0.01
+    },
+    "interpolated_power_at_reference_speed_kw": null,
+    "relative_reference_error": 0.0,
+    "within_numerical_screen_tolerance": true,
+    "reference_approval": "manufacturer_table_verified_against_work",
+    "integration_status": "restricted_domain"
+  },
+  {
+    "key": "Vestas V52-850 kW OptiSpeed",
+    "errors": [],
+    "csv_sha256": "5efdf48fdf02356ac8b1176437f83023d89ea7db5a78e43edbf9b584e11ca52f",
+    "point_count": 16,
+    "domain_mps": [
+      4.0,
+      25.0
+    ],
+    "minimum_net_power_kw": 25.5,
+    "curve_peak_power_kw": 850.0,
+    "reference_power_kw": 850,
+    "rating_basis": {
+      "kind": "manufacturer_nominal",
+      "relative_tolerance": 0.01
+    },
+    "interpolated_power_at_reference_speed_kw": null,
+    "relative_reference_error": 0.0,
+    "within_numerical_screen_tolerance": true,
+    "reference_approval": "manufacturer_table_verified_against_work",
+    "integration_status": "restricted_domain"
+  },
+  {
+    "key": "Bergey Excel 10",
+    "errors": [],
+    "csv_sha256": "794d45b30da9ae3745a46a37fda0e2256a8673262a8592f09805752932ad90b3",
+    "point_count": 41,
+    "domain_mps": [
+      0.5,
+      20.5
+    ],
+    "minimum_net_power_kw": -0.012,
+    "curve_peak_power_kw": 12.555,
+    "reference_power_kw": 8.9,
+    "rating_basis": {
+      "kind": "archive_reference_at_wind_speed",
+      "wind_speed_mps": 11.0,
+      "relative_tolerance": 0.01,
+      "verification_status": "pending_primary_document"
+    },
+    "interpolated_power_at_reference_speed_kw": 8.863,
+    "relative_reference_error": 0.004157303370786607,
+    "within_numerical_screen_tolerance": true,
+    "reference_approval": "pending_primary_document",
+    "integration_status": "curve_analysis_only"
+  },
+  {
+    "key": "Bergey Excel 15",
+    "errors": [],
+    "csv_sha256": "d5eb6ccf68ba9de4e30fd01dd5bb481c097eb141ca1c04d94d58707176d82cc5",
+    "point_count": 32,
+    "domain_mps": [
+      1.0,
+      16.47
+    ],
+    "minimum_net_power_kw": -0.029,
+    "curve_peak_power_kw": 20.611,
+    "reference_power_kw": 15.6,
+    "rating_basis": {
+      "kind": "archive_reference_at_wind_speed",
+      "wind_speed_mps": 11.0,
+      "relative_tolerance": 0.01,
+      "verification_status": "pending_primary_document"
+    },
+    "interpolated_power_at_reference_speed_kw": 15.5898,
+    "relative_reference_error": 0.0006538461538461104,
+    "within_numerical_screen_tolerance": true,
+    "reference_approval": "pending_primary_document",
+    "integration_status": "curve_analysis_only"
+  },
+  {
+    "key": "Kestrel e400nb",
+    "errors": [],
+    "csv_sha256": "4f6f8be33910a653e2ba115cd27865ce7a1b4ca9462da51bea1a522dc48fcfc5",
+    "point_count": 39,
+    "domain_mps": [
+      0.59,
+      19.49
+    ],
+    "minimum_net_power_kw": -0.001,
+    "curve_peak_power_kw": 3.025,
+    "reference_power_kw": 2.5,
+    "rating_basis": {
+      "kind": "archive_reference_at_wind_speed",
+      "wind_speed_mps": 11.0,
+      "relative_tolerance": 0.01,
+      "verification_status": "pending_primary_document"
+    },
+    "interpolated_power_at_reference_speed_kw": 2.54216,
+    "relative_reference_error": 0.01686399999999999,
+    "within_numerical_screen_tolerance": false,
+    "reference_approval": "pending_primary_document",
+    "integration_status": "curve_analysis_only"
+  },
+  {
+    "key": "SWIFT",
+    "errors": [],
+    "csv_sha256": "d151168e38e2798f60bcc0689610c8fc5e43257361409df4bf5d8d03e2705d57",
+    "point_count": 48,
+    "domain_mps": [
+      0.54,
+      23.99
+    ],
+    "minimum_net_power_kw": -0.01,
+    "curve_peak_power_kw": 1.43,
+    "reference_power_kw": 1,
+    "rating_basis": {
+      "kind": "archive_reference_at_wind_speed",
+      "wind_speed_mps": 11.0,
+      "relative_tolerance": 0.01,
+      "verification_status": "pending_primary_document"
+    },
+    "interpolated_power_at_reference_speed_kw": 0.9023529411764706,
+    "relative_reference_error": 0.09764705882352942,
+    "within_numerical_screen_tolerance": false,
+    "reference_approval": "pending_primary_document",
+    "integration_status": "curve_analysis_only"
+  }
+]

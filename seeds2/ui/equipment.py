@@ -210,7 +210,8 @@ def _wind_editor(draft: dict, kp: str) -> None:
     spec = wind_spec(key)
     hub = spec.get("hub_height_m") or ", ".join(f"{h:g}" for h in spec.get("hub_height_options_m") or []) or None
     _table([("Fabricante e modelo", f"{spec.get('manufacturer', '')} {spec.get('model', '')}".strip()),
-            ("Potência nominal", forms.fmt(spec.get("rated_power_kw"), 0, "kW")),
+            ("Potência nominal / referência", forms.fmt(spec.get("rated_power_kw"), 2, "kW")),
+            ("Pico documentado da curva", forms.fmt(spec.get("curve_peak_power_kw", max(p for _, p in curve["points"]) if curve else None), 3, "kW")),
             ("Diâmetro do rotor", forms.fmt(spec.get("rotor_diameter_m"), 1, "m")),
             ("Altura do cubo", f"{hub} m" if hub else "não informada no catálogo"),
             ("Classe IEC", spec.get("wind_class_iec") or "não informada"),
@@ -222,6 +223,10 @@ def _wind_editor(draft: dict, kp: str) -> None:
     if curve is None:
         st.info("Este aerogerador não possui curva de potência utilizável no catálogo. Nenhuma curva é gerada.")
         return
+    if curve.get("integration_limitation"):
+        st.warning(curve["integration_limitation"])
+    if curve.get("curve_valid_wind_range_mps"):
+        st.caption(f"Domínio válido [m/s]: {curve['curve_valid_wind_range_mps']} · referência: {spec.get('power_rating_basis')}")
     import plotly.graph_objects as go
 
     v = [p[0] for p in curve["points"]]
@@ -231,7 +236,7 @@ def _wind_editor(draft: dict, kp: str) -> None:
                              line=dict(dash="dot", width=1.6, color="#2F6FED"), hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=v, y=pw, mode="markers", name="Pontos tabulados do catálogo",
                              marker=dict(size=7, color="#0E7C86", line=dict(width=1, color="white")),
-                             hovertemplate="%{x:.1f} m/s → %{y:,.0f} kW<extra></extra>"))
+                             hovertemplate="%{x:.1f} m/s → %{y:,.3f} kW<extra></extra>"))
     fig.update_layout(height=320, margin=dict(l=10, r=10, t=36, b=10), hovermode="closest",
                       title=dict(text=f"Curva de potência · {key}", font=dict(size=14)),
                       xaxis=dict(title="Velocidade do vento [m/s]", zeroline=False),

@@ -1,0 +1,2 @@
+# Verbatim secondary-archive evidence; retain original whitespace and checksums.
+*.yaml -text whitespace=-blank-at-eol

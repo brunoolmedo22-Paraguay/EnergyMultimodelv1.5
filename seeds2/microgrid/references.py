@@ -86,13 +86,21 @@ def wind_references() -> dict[str, Reference]:
                      "Altura do cubo [m]": spec.get("hub_height_m"), "Classe IEC": spec.get("wind_class_iec"),
                      "Curva de potência": (entry.get("quality") or {}).get("power_curve")},
             provenance=f"{prov} — config/wind_turbine_database.py (curvas originais preservadas).",
-            category="documentação de fabricante",
+            category=("arquivo técnico secundário · ensaio atribuído, verificação primária pendente"
+                      if entry.get("integration_status") == "curve_analysis_only" else "documentação de fabricante"),
             notes=str(spec.get("notes", "")),
         )
+        if entry.get("schema_version") == 2:
+            out[key].summary.update({"P_máxima da curva [kW]": spec["curve_peak_power_kw"],
+                                     "Base da potência de referência": spec["power_rating_basis"],
+                                     "Domínio da curva [m/s]": entry["curve"]["curve_valid_wind_range_mps"],
+                                     "Integração": entry["integration_status"],
+                                     "Limitação": entry.get("integration_limitation")})
     return out
 
 
 CURVE_SOURCE_LABELS = {
+    "third_party_archive_table_v1": "Tabela de arquivo técnico secundário NREL/NatLabRockies (atribuição a ensaio; confirmação primária pendente)",
     "manufacturer_table": "Tabela de potência do fabricante (valores exatos do documento)",
     "datasheet_graph_digitized": "Curva digitalizada de gráfico do fabricante (aproximada; não é medição certificada)",
 }
@@ -111,7 +119,11 @@ def wind_curve(key: str) -> dict | None:
     stype = curve.get("source_type", "")
     return {"points": [(float(v), float(p)) for v, p in pts], "source_type": stype,
             "source_label": CURVE_SOURCE_LABELS.get(stype, f"Procedência da curva: {stype or 'não informada'}"),
-            "digitized": stype != "manufacturer_table",
+            "digitized": stype != "manufacturer_table",  # legacy non-manufacturer flag
+            "graph_digitized": stype == "datasheet_graph_digitized",
+            "curve_valid_wind_range_mps": curve.get("curve_valid_wind_range_mps"),
+            "integration_status": entry.get("integration_status", "legacy"),
+            "integration_limitation": entry.get("integration_limitation"),
             "reference_density_kg_m3": curve.get("reference_density_kg_m3"),
             "quality": (entry.get("quality") or {}).get("power_curve"), "notes": str(curve.get("notes") or ""),
             "document": src.get("document"), "reference": src.get("reference"), "pages": src.get("pages")}

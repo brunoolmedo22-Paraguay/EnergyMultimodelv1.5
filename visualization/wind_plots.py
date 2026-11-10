@@ -77,9 +77,10 @@ def plot_power_curve_with_operation(result: pd.DataFrame, turbine_key: str) -> g
 def plot_catalog_curve(turbine_key: str) -> go.Figure:
     entry = get_turbine(turbine_key)
     curve = entry["curve"]["points"]
+    divisor, unit = (1., "kW") if max(p[1] for p in curve) < 1000 else (1000., "MW")
     fig = go.Figure(go.Scatter(
         x=[p[0] for p in curve],
-        y=[p[1] / 1000.0 for p in curve],
+        y=[p[1] / divisor for p in curve],
         mode="lines+markers",
         name=turbine_key,
     ))
@@ -87,16 +88,18 @@ def plot_catalog_curve(turbine_key: str) -> go.Figure:
     for value, label in ((spec.get("cut_in_mps"), "V cut-in"), (spec.get("rated_wind_speed_mps"), "V nominal"), (spec.get("cut_out_mps"), "V cut-out")):
         if value is not None:
             fig.add_vline(x=float(value), line_dash="dash", opacity=0.5, annotation_text=label, annotation_position="top")
-    fig.update_layout(**PLOT_LAYOUT, title="Curva de potência parametrizada", xaxis_title="Velocidade do vento (m/s)", yaxis_title="Potência (MW)")
+    fig.update_layout(**PLOT_LAYOUT, title="Curva de potência parametrizada", xaxis_title="Velocidade do vento (m/s)", yaxis_title=f"Potência ({unit})")
     return fig
 
 
 def plot_catalog_comparison(keys: list[str]) -> go.Figure:
+    peak = max((max(p for _, p in get_turbine(key)["curve"]["points"]) for key in keys), default=0)
+    divisor, unit = (1., "kW") if peak < 1000 else (1000., "MW")
     fig = go.Figure()
     for key in keys:
         curve = get_turbine(key)["curve"]["points"]
-        fig.add_trace(go.Scatter(x=[p[0] for p in curve], y=[p[1] / 1000.0 for p in curve], mode="lines", name=key))
-    fig.update_layout(**PLOT_LAYOUT, title="Comparação das curvas do catálogo", xaxis_title="Velocidade do vento (m/s)", yaxis_title="Potência (MW)")
+        fig.add_trace(go.Scatter(x=[p[0] for p in curve], y=[p[1] / divisor for p in curve], mode="lines", name=key))
+    fig.update_layout(**PLOT_LAYOUT, title="Comparação das curvas do catálogo", xaxis_title="Velocidade do vento (m/s)", yaxis_title=f"Potência ({unit})")
     return fig
 
 

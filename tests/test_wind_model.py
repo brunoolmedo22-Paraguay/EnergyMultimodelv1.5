@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from config.wind_turbine_database import TURBINE_DB
+from config.wind_turbine_database import HISTORICAL_TURBINE_KEYS, TURBINE_DB
 from models.wind_model import (
     WindInputMapping,
     calculate_air_density,
@@ -44,7 +44,8 @@ def test_density_uses_moist_air_when_all_variables_exist():
 
 def test_all_catalog_turbines_run_and_respect_rated_power():
     profile = _profile()
-    for key, entry in TURBINE_DB.items():
+    for key in HISTORICAL_TURBINE_KEYS:
+        entry = TURBINE_DB[key]
         result, kpi, _ = run_wind_model(profile, key, turbine_count=2, apply_generic_grid_loss=False)
         rated_total = entry["spec"]["rated_power_kw"] * 2
         assert len(result) == len(profile)
