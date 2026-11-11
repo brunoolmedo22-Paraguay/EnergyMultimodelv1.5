@@ -2913,3 +2913,35 @@ H₂ a 10 R$/kg). Misión concluida y auditada; energía no atendida 0.
 
 **Validación (resultados comprobados):** ver la tabla de cierre debajo; se completa con la regresión global sobre el HEAD
 final.
+
+### Entrega 15 — addendum: correcciones de la auditoría externa del PR #23 (revisión de `68fd055`) — 2026-11-11
+
+El responsable no autorizó el merge ni la aprobación definitiva B04. Pidió revisar cuatro puntos con correcciones
+focalizadas, tests adversariales y evidencia reproducible. Todo se publica en el mismo Draft PR #23. B04 sigue PENDIENTE.
+
+| Punto | Diagnóstico | Corrección | Evidencia |
+|---|---|---|---|
+| A — masa de H₂ por evento (B05) | La masa de arranque (0,00233 kg, consumo en STARTUP) se sumaba a q̂(p)·Δ, que YA cubre el intervalo entero: doble conteo | m_SU/m_SD = masa ADICIONAL por integración TEMPORAL del modelo dinámico: δ = ∫q(intervalo con evento) − ∫q(mismo intervalo en régimen); m = máx(0, máx_p δ). Arranque: δ < 0 en todo el dominio ⇒ m_SU = 0. Parada (ocurre en el intervalo apagado): m_SD = 0,0064 kg | Descomposición exacta M_EMS − M_din = (q̂ − q)·Δ + (m − δ) ≥ 0, probada en arranque, parada y permanencia encendida con escalones |
+| B — algebraico × dinámico | Una misión podía concluir con verificación dinámica incoherente sin estado propio | Estados SEPARADOS en `summary.execution.aceitacao` (algebraica, dinámica, física siempre `nao_validada`). La verificación dinámica usa la contabilidad exacta del MILP. La reapertura recalcula la coherencia y confiere rótulo y H₂. La UI alerta «DINAMICAMENTE INCOERENTE» | Tests negativos: consigna < IDLE, arranque frío, Δ corto. Misión incoherente forzada concluye algebraicamente y nunca se presenta como validada. Rótulo y coherencia adulterados ⇒ verificación falla |
+| C — autoridad B04 | Un certificado podía traer su propia política «aprobada» con umbrales arbitrarios | El núcleo reconoce SOLO políticas congeladas en `POLITICAS_B04_NUCLEO`, identificadas por el SHA-256 del contenido (sin `situacao`) y con la situación fijada en el código. Política desconocida, alterada o con situación divergente ⇒ error. Aprobar = commit revisado en el núcleo | 18 tests del certificado (6 nuevos adversariales); verificación cuantitativa preservada |
+| D — restricciones físicas | P_min < IDLE y rampa > modelo eran solo WARNING | Ahora BLOQUEAN: P_min < IDLE (10 kW), rampa > 120 kW/min y transitorios incompatibles con Δ/T_amb según análisis a priori con el modelo dinámico (arranque frío de 600 s ⇒ bloqueo; Δ ≤ 15 min ⇒ bloqueo) | Tests de preflight por código |
+
+**E2E del flujo completo con la política aprobada** (aprobación SIMULADA solo en el servidor de prueba):
+
+- fase de bloqueo con la política del repositorio: 8 verificaciones;
+- flujo: declaraciones PEMFC cargadas por la interfaz → preflight → misión → corrida con aceptación separada: 14
+  verificaciones;
+- reapertura en servidor nuevo SIN solver y con los modelos saboteados: 9 verificaciones, registro de llamadas VACÍO.
+
+**Caso híbrido recalculado:**
+
+| Indicador | Valor |
+|---|---|
+| Costo | R$ 116,02 (H₂ R$ 65,72) |
+| H₂ del EMS | 6,5717 kg |
+| H₂ del modelo dinámico | 6,5452 kg (nunca subestimado; residuo 0,4 %) |
+| Aceptación | algebraica aprobada · dinámica coherente · física no validada |
+
+**Regresión sobre el código final** (`d0bee62`; luego solo documentación): em execução no fechamento deste commit (resultado registrado no commit seguinte).
+
+**Decisiones nuevas a confirmar:** C-3DA2H-08 a C-3DA2H-11 (`docs/ems_v2/INTEGRACAO_3DA2H.md` §9).

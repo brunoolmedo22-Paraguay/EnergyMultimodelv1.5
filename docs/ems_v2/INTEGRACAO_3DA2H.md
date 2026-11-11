@@ -3,6 +3,10 @@
 Base `main` `0c9df80` (merge do PR #22). Ramo `claude/adoring-newton-jzfmfx`. PR independente contra `main`, **sem merge**.
 Térmica (3D-A2-T) e dashboard (3D-B) **não** foram iniciados.
 
+> **Auditoria externa do PR #23 (pontos A–D) aplicada:** massa por evento sem dupla contagem (§5), aceitação algébrica ×
+> dinâmica × física separada (§7), autoridade B04 no núcleo (§3) e restrições físicas que bloqueiam (§5–6). B04 continua
+> PENDENTE.
+>
 > **Estado em uma frase.** A integração está implementada e foi demonstrada de ponta a ponta. A curva q_H₂(P_líq) é
 > derivada do modelo físico, gerada uma vez e reutilizada em toda a missão, e a evidência é verificável sem modelo nem
 > solver. Mas **a PEMFC continua BLOQUEADA em produção**: a política B04 que certifica a curva está *congelada e pendente
@@ -154,8 +158,20 @@ utilização de H₂ de 97 % NÃO é tratada como ±3 %.
   - independência dos pontos de validação em relação aos vértices;
   - domínio;
   - monotonia;
-  - que a política esteja `aprovada_pelo_responsavel`.
+  - a AUTORIDADE da política (auditoria do PR #23, ponto C — abaixo).
 - A classificação `real` continua `pendente`.
+
+**Autoridade da política (auditoria do PR #23, C).** O campo `situacao` do certificado NÃO tem autoridade:
+
+- a identidade da política é o SHA-256 do seu CONTEÚDO (versão + limiares + mínimo de pontos, sem `situacao`);
+- o núcleo reconhece SÓ as políticas congeladas em `ems_v2.contracts.POLITICAS_B04_NUCLEO`, com a situação fixada no
+  código. Hoje há uma: `b04-proposta-2` (`412863021aee…`), situação `proposta_congelada_pendente_de_aprovacao`;
+- política desconhecida (p. ex. autodeclarada «aprovada» com limiares arbitrários) ⇒ erro `politica_b04_desconhecida`;
+  versão conhecida com conteúdo alterado ⇒ `politica_b04_alterada`; situação declarada diferente da do núcleo ⇒
+  `politica_b04_situacao_divergente`; conhecida e pendente ⇒ `politica_b04_nao_aprovada` (pendente);
+- a verificação quantitativa (pontos independentes e perfis temporais) continua obrigatória mesmo com a política aprovada;
+- **aprovar** = mudar a situação dessa entrada para `aprovada_pelo_responsavel` num commit revisado e autorizado. Os testes
+  e o E2E simulam a aprovação SÓ nesse registro (`tests/piso3da2h_util.politica_aprovada_no_teste`).
 - A reabertura re-registra o certificado a partir de `v2/pemfc.json`, recomputando os critérios.
 
 ## 4. Alteração do núcleo autorizada (C-3DA2H-01) e extensão a CONFIRMAR
@@ -185,35 +201,67 @@ intacto).
 **Separação.**
 
 - O modelo ESTACIONÁRIO gera a curva do MILP.
-- O modelo DINÂMICO (`Equivalent65kWHorizonDynamicModel`) é reutilizado para dois fins:
-  1. massas de partida e parada;
-  2. verificação A POSTERIORI das consignas aplicadas.
+- O modelo DINÂMICO (`Equivalent65kWHorizonDynamicModel`) é reutilizado para três fins:
+  1. massas ADICIONAIS de partida e parada (B05);
+  2. análise transitória A PRIORI, que BLOQUEIA configurações incompatíveis no preflight;
+  3. verificação A POSTERIORI das consignas aplicadas.
 
-  A verificação não altera o despacho nem a planta algébrica.
+  A verificação não altera o despacho nem a planta algébrica. IDLE, rampas, durações e o limiar de partida fria são LIDOS
+  da configuração do modelo, nunca redigitados.
 
 O modelo dinâmico sempre avalia a resposta estática nas condições PADRÃO. `pemfc_dinamica._PotenciaNasCondicoes` é
-apenas um ADAPTADOR (subclasse) que fixa as condições declaradas em cada chamada, sem duplicar equações.
+apenas um ADAPTADOR (subclasse) que fixa as condições declaradas em cada chamada, sem duplicar equações. As respostas
+estáticas já resolvidas são reutilizadas por potência solicitada (idênticas bit a bit às do modelo; só evitam repetir o
+brentq).
 
 **D05, resolução conceitual.**
 
-- O MILP usa a abstração DECLARADA `instantanea_unidade_quente` (contexto «ensaio»), com aviso no preflight.
-- A partida quente de 30 s até IDLE e as rampas de 2/3,5 kW/s são conferidas a posteriori, por intervalo:
-  - energia: |E_entregue − E_solicitada| ≤ máx(2 %, 0,5 kWh);
-  - H₂: |m_dinâmico − m_EMS| ≤ máx(2 %, 0,02 kg).
-- Fora dessas tolerâncias, a consigna é «NÃO coerente com a dinâmica». Nunca é declarada «fisicamente executável».
+- O MILP usa a abstração DECLARADA `instantanea_unidade_quente` (contexto «ensaio»).
+- Ela só é admitida se a análise transitória A PRIORI (pior caso de partida, parada e rampas P_mín ↔ P_máx no domínio,
+  no Δ e na T_amb declarados) couber nas tolerâncias; caso contrário o preflight BLOQUEIA (§6).
+- As consignas aplicadas são conferidas a posteriori, por intervalo (tolerâncias absolutas como MÉDIAS por unidade de
+  tempo, para não afrouxar em Δ curtos; em Δ = 60 min valem 0,5 kWh e 0,02 kg):
+  - energia: |E_entregue − E_solicitada| ≤ máx(2 %, 0,5 kW·Δ);
+  - H₂: |m_dinâmico − m_EMS| ≤ máx(2 %, 0,02 kg/h·Δ), com m_EMS = q̂(p)·Δ·u + m_SU·y + m_SD·z (a contabilidade do MILP).
+- Fora dessas tolerâncias, a consigna é INCOERENTE com a dinâmica e a rodada é classificada como tal (§7). Nunca é
+  declarada «fisicamente executável».
 - **D05 em contexto OPERACIONAL continua pendente** (só «ensaio» é admitido).
 
-**Massas por evento.** H₂ integrado nos estados STARTUP e SHUTDOWN, com passo interno de 1 s e condições declaradas.
-Medido: m_SU ≈ 0,00233 kg (30 s). Na abstração instantânea, o MILP conta q(p)·Δt no intervalo inteiro E m_SU: os
-segundos de partida entram duas vezes (conservador).
+**Massa de H₂ por evento (B05) — auditoria do PR #23, ponto A.** A abstração instantânea JÁ conta q̂(p)·Δ no intervalo
+de partida inteiro. Por isso m_SU/m_SD são massas ADICIONAIS, definidas pela integração TEMPORAL do modelo dinâmico:
 
-**Nada é inventado.**
+- δ_SU(p) = ∫ q_din(intervalo com partida em p) dt − ∫ q_din(mesmo intervalo em regime em p) dt;
+- δ_SD(p) = ∫ q_din(intervalo após a parada a partir de p) dt − 0 (em regime desligado o consumo é nulo);
+- constante por evento: m = máx(0, máx_p δ(p)) numa malha de 9 potências em [P_mín, P_máx].
 
-- P_mín, T_on/T_off, custos, preço, estados iniciais e condições são DECLARADOS.
-- Avisos (não bloqueios):
-  - P_mín < 10 kW, que é o IDLE do modelo e também uma hipótese do modelo;
-  - rampa > 120 kW/min, que é o limite do modelo dinâmico.
-- A rampa única do inventário vale para subida E descida (interpretação registrada na procedência).
+Resultado nominal (T_amb 25 °C, partida quente de 30 s):
+
+| Evento | δ(p) no domínio | m adotado | Superestimação máx. |
+|---|---|---|---|
+| Partida | −0,0027 kg (10 kW) … −0,0390 kg (50 kW): sempre NEGATIVO | **0** | 0,039 kg |
+| Parada | +0,00015 kg (10 kW) … +0,0064 kg (50 kW) | **0,0064 kg** | 0,0063 kg |
+
+A semântica anterior (m_SU = massa no estado STARTUP ≈ 0,00233 kg) era dupla contagem: o consumo do STARTUP e da rampa até
+p já está dentro de ∫ q_din, e mesmo assim ∫ q_din < q̂(p)·Δ. A decomposição exata, verificada nos testes em partida,
+parada e permanência ligada (com degraus), é
+
+M_EMS − M_din = (q̂(p) − q(p))·Δ + (m − δ(p)) ≥ 0,
+
+isto é, o erro B04 da PWL (≥ 0, limitado) mais o resíduo do evento (≥ 0, limitado pela superestimação registrada). Em
+operação contínua com degrau, o resíduo é o da rampa (−0,009 kg na subida 10 → 50 kW; +0,004 kg na descida), coberto pela
+tolerância. Partida fria (T_amb ≤ 5 °C, 600 s): δ_SU de −0,05 a −0,30 kg e déficit de energia de 0,8 a 7,6 kWh por partida
+⇒ inadmissível com a abstração instantânea (§6).
+
+**Restrições físicas — auditoria do PR #23, ponto D.** Agora BLOQUEIAM (antes só avisavam):
+
+- P_mín < IDLE do modelo dinâmico (10 kW, hipótese do manual ≤ 10 kW): em RUN uma consigna menor é entregue como IDLE
+  (`IDLE_MINIMUM_ENFORCED`) ⇒ excesso de energia e de H₂;
+- rampa declarada > 60·mín(subida, descida) = 120 kW/min: a rampa ÚNICA vale nos dois sentidos e o modelo sobe a 2 kW/s;
+- transitórios incompatíveis com Δ e T_amb (análise a priori): p. ex. partida fria, ou Δ ≤ 15 min com partida quente.
+  Com `transicoes_bloqueadas` só as rampas se aplicam.
+
+**Nada é inventado.** P_mín, T_on/T_off, custos, preço, estados iniciais e condições são DECLARADOS. A rampa única do
+inventário vale para subida E descida (interpretação registrada na procedência).
 
 ## 6. Preflight V2 com PEMFC (bloqueios legíveis)
 
@@ -226,6 +274,9 @@ segundos de partida entram duas vezes (conservador).
 | `pemfc_curva_invalida` | condições recusadas pelo modelo; P_mín ≥ P_máx; P_mín antes da rama |
 | `pemfc_curva_divergente_do_modelo` | reverificação contra o modelo falhou |
 | `pemfc_perfil_nao_suportado` | perfil de modelo diferente do suportado |
+| `pemfc_pmin_abaixo_do_idle` | P_mín declarado < IDLE do modelo dinâmico (auditoria PR #23, D) |
+| `pemfc_rampa_acima_do_modelo_dinamico` | rampa declarada > capacidade do modelo dinâmico nos dois sentidos (D) |
+| `pemfc_transitorio_incompativel` | partida/parada/rampa a priori fora das tolerâncias no Δ e na T_amb declarados (D) |
 
 **Outras regras:**
 
@@ -249,15 +300,21 @@ segundos de partida entram duas vezes (conservador).
   - documento da curva: inicialização, identidade e impressão, pontos de ajuste e de validação (com corrente), vértices,
     métricas, estado B04, diagnóstico da rama, hipóteses e perfis temporais;
   - certificado B04 do núcleo e seu hash;
-  - temperatura ambiente, massas por evento e declaração.
+  - temperatura ambiente, massas ADICIONAIS por evento com a análise transitória que as sustenta, admissibilidade a
+    priori e declaração.
 
   É comprometido no manifesto ANTES da execução (`hashes["pemfc"]`).
-- `v2/pemfc_dinamica.json`: por unidade e intervalo:
-  - potência solicitada, potência média entregue e energias;
-  - déficit e excesso;
-  - H₂ do modelo dinâmico × H₂ da PWL;
-  - estados, limitações e coerência;
+- `v2/pemfc_dinamica.json` (versão 2): por unidade e intervalo:
+  - evento (partida, parada, ligada, desligada);
+  - potência solicitada, potência média entregue e energias; déficit e excesso;
+  - H₂ do modelo dinâmico × H₂ do EMS (contabilidade do MILP com as massas de evento);
+  - tolerâncias aplicadas, estados, limitações, coerência e a lista de incoerências;
   - totais.
+- **Aceitação SEPARADA** em `summary.execution.aceitacao` (auditoria do PR #23, B): `algebrica` (missão completa +
+  auditoria integral), `dinamica` (`coerente` × `incoerente` × `nao_aplicavel`), `fisica` (sempre `nao_validada`),
+  `classificacao` e `rotulo`. `concluida` no armazenamento significa só evidência ALGÉBRICA completa e auditada; uma
+  rodada `algebrica_aprovada_dinamica_incoerente` é exibida com o alerta «DINAMICAMENTE INCOERENTE» e o rótulo «NÃO
+  representa operação executável».
 
 **Colunas por unidade em `v2/intervalos.csv`:** `<eq-…#k>|{u, p_kW, partida, parada, q_h2_kg_h, m_h2_kg, m_h2_acum_kg,
 custo_h2_R, custo_eventos_R}`. Detalhes:
@@ -275,6 +332,9 @@ custo_h2_R, custo_eventos_R}`. Detalhes:
   - registro de certificados VAZIO.
 - O certificado é re-registrado RECOMPUTANDO os critérios e os vértices são conferidos.
 - As consignas do documento dinâmico precisam ser as aplicadas seladas.
+- O H₂ do EMS no documento dinâmico precisa ser a coluna selada `m_h2_kg` de cada intervalo.
+- A coerência é RECALCULADA dos valores e das tolerâncias gravados (sem modelo) e o rótulo de aceitação do resumo precisa
+  ser o recalculado: rótulo ou coerência adulterados ⇒ verificação falha.
 - Qualquer adulteração (curva, certificado ou dinâmica) ⇒ verificação falha.
 - Sem aprovação da política, a reabertura **não** certifica a curva.
 
@@ -286,11 +346,11 @@ do H₂ 10 R$/kg; Δ = 60 min; N = 3; H_L = 10.
 **Resultado:** missão concluída e auditada, 12 janelas, energia não atendida 0, resíduo de balanço 0, reabertura
 verificada.
 
-**Custo realizado: R$ 116,00.**
+**Custo realizado: R$ 116,02** (com as massas ADICIONAIS por evento; antes da correção A: R$ 116,00).
 
 | Componente | Valor |
 |---|---|
-| H₂ | R$ 65,70 |
+| H₂ | R$ 65,72 |
 | Importação | R$ 50,00 |
 | Throughput | R$ 0,30 |
 | Valor futuro | nunca somado |
@@ -298,15 +358,16 @@ verificada.
 **PEMFC:**
 
 - 100,54 kWh;
-- 6,570 kg de H₂ (= 6,565 kg da PWL + 2 × m_SU);
+- 6,5717 kg de H₂ (= 6,5653 kg da PWL + 2 × m_SU (= 0) + 1 × m_SD (0,0064 kg));
 - 2 partidas, 1 parada, 6 h ligada.
 
-**Verificação dinâmica (coerente):**
+**Aceitação:** algébrica aprovada · dinâmica COERENTE · física não validada.
 
-| Grandeza | Modelo dinâmico | EMS / PWL |
+| Grandeza | Modelo dinâmico | EMS |
 |---|---|---|
 | Energia | 100,27 kWh entregues | 100,54 kWh solicitados |
-| H₂ | 6,545 kg | 6,565 kg |
+| H₂ | 6,5452 kg | 6,5717 kg (nunca subestimado; resíduo 0,4 %) |
+| Intervalo da parada | 0,00015 kg | 0,0064 kg (superestimação limitada) |
 
 ## 9. Decisões e contradições registradas
 
@@ -316,9 +377,13 @@ verificada.
 | C-3DA2H-02 | `massas_h2_eventos` opcional (§4) | **a confirmar** |
 | C-3DA2H-03 | Rampa única do inventário aplicada à subida e à descida | a confirmar |
 | C-3DA2H-04 | D05: abstração instantânea em «ensaio» + verificação dinâmica a posteriori com tolerâncias declaradas | a confirmar; operacional pendente |
-| C-3DA2H-05 | IDLE de 10 kW do modelo dinâmico (hipótese) × P_mín declarado: só aviso abaixo de 10 kW | a confirmar |
+| C-3DA2H-05 | IDLE de 10 kW do modelo dinâmico (hipótese do manual) × P_mín: P_mín < IDLE agora BLOQUEIA (auditoria PR #23, D) | implementado; a confirmar |
 | C-3DA2H-06 | Estratégia formato 3 e contrato de dados v3 (aditivos; formatos 1/2 e contratos v1/v2 legíveis) | registrado |
 | C-3DA2H-07 | Testes do 3D-A2-R ajustados NOMINALMENTE (versão vigente; versões anteriores continuam testadas) | registrado |
+| C-3DA2H-08 | Massas por evento = massas ADICIONAIS pela integração temporal; m = máx(0, máx_p δ) (auditoria PR #23, A) | implementado; a confirmar |
+| C-3DA2H-09 | Aceitação separada algébrica × dinâmica × física; rodada dinamicamente incoerente continua `concluida` no armazenamento, rotulada e com alerta (B) | implementado; a confirmar |
+| C-3DA2H-10 | Autoridade B04 = registro `POLITICAS_B04_NUCLEO` por identidade do conteúdo; aprovação = commit no núcleo (C) | implementado; a confirmar |
+| C-3DA2H-11 | Tolerâncias dinâmicas absolutas como médias por unidade de tempo (iguais às anteriores em Δ = 60 min) | implementado; a confirmar |
 | B04 | Aprovação definitiva da política e habilitação de `real_certificada_b04` | **pendente do responsável** |
 
 **Auditorias explícitas anteriores.** São opt-in, por missão: `piso3da_guard_policy.py` e `piso3da2r_guard_policy.py`
@@ -333,7 +398,10 @@ corretamente os 4 arquivos do C-3DA2H-01 e `h2_app.py`, que são alterações de
 - Uma curva por registro: unidades idênticas do mesmo registro compartilham a curva.
 - Quantidade disponível de H₂ (tanque) não modelada.
 - Multimodo M20 e curva com IDLE como modo próprio não implementados.
-- A verificação dinâmica não realimenta o despacho: a realização algébrica continua igual à consigna.
+- A verificação dinâmica não realimenta o despacho: a realização algébrica continua igual à consigna. Uma rodada
+  dinamicamente incoerente só é ROTULADA (não é reotimizada); em produção, as configurações incompatíveis conhecidas são
+  bloqueadas antes (§6).
+- Uma constante por evento não reproduz δ(p) exatamente: a superestimação fica limitada e registrada.
 - Relatórios 2D-B continuam recusando rodadas V2.
 - Modelo físico aproximado: sem validação (b) nem (c).
 
@@ -343,7 +411,13 @@ corretamente os 4 arquivos do C-3DA2H-01 e `h2_app.py`, que são alterações de
 PYTHONDONTWRITEBYTECODE=1 python -m pytest -q tests/test_piso3da2h_curva.py tests/ems_v2/test_ems_v2_b04_certificado.py
 PYTHONDONTWRITEBYTECODE=1 python -m pytest -q tests/test_piso3da2h_execucao.py tests/test_piso3da2h_app.py   # requer Pyomo/HiGHS
 PYTHONDONTWRITEBYTECODE=1 python tests/ems_v2/piso3da2h_guard_policy.py
-bash tools/e2e/run_piso3da2h.sh <python com Pyomo/HiGHS> <pasta vazia>
+PYTHONDONTWRITEBYTECODE=1 python -m pytest -q tests/test_piso3da2h_auditoria_pr23.py                      # A, B, D (missões: Pyomo/HiGHS)
+bash tools/e2e/run_piso3da2h.sh <python com Pyomo/HiGHS> <pasta vazia> <python SEM solver>
 ```
 
-Evidência do navegador: `docs/ems_v2/evidencia_3da2h/e2e_bancada_e_bloqueio.log` (8 verificações).
+Evidência do navegador em `docs/ems_v2/evidencia_3da2h/`:
+
+- `e2e_bloqueio.log`: política do repositório, 8 verificações;
+- `e2e_fluxo.log`: aprovação SIMULADA, declarações PEMFC pela interface, missão e rodada, 14 verificações;
+- `e2e_reabrir.log`: servidor novo sem solver, modelos sabotados, 9 verificações;
+- `e2e_aprovacao_simulada_e_chamadas.log`: ativações da aprovação simulada e registro de chamadas (vazio).

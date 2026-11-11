@@ -292,4 +292,11 @@ congelada). PR contra `main` sem merge. Base `main` `0c9df80`.
   - verificação dinâmica não realimenta o despacho;
   - modelo aproximado, sem validação física;
   - relatórios 2D-B recusam rodadas V2.
-- **Próximo passo:** auditoria externa do PR e decisão B04; 3D-A2-T/3D-B só com nova autorização.
+- **Auditoria externa do PR #23 (revisão de `68fd055`) — aplicada em `0a2a6e5`, `0055e68` e `d0bee62`:**
+  - A: massas por evento ADICIONAIS pela integração temporal do modelo dinâmico (m_SU = 0, m_SD = 0,0064 kg; antes
+    dupla contagem na partida);
+  - B: aceitação SEPARADA algébrica × dinâmica × física, testes negativos, rótulo verificado na reabertura;
+  - C: autoridade B04 = registro do núcleo por identidade do conteúdo (autodeclaração rejeitada);
+  - D: P_mín < IDLE, rampa acima do modelo e transitórios incompatíveis BLOQUEIAM;
+  - E2E do fluxo completo com aprovação SIMULADA (8 + 14 + 9 verificações). Detalhes: `RELEVO_3DA2H.md` §2b.
+- **Próximo passo:** nova revisão externa do PR #23 e decisão B04; 3D-A2-T/3D-B só com nova autorização.
