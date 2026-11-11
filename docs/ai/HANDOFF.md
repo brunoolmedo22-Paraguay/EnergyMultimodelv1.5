@@ -1,4 +1,4 @@
-> **PISO 3D-A2-R (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `7eb29e5`, PR contra `main` SIN merge):** FV (por arranjo) e eólica (por registro) no EMS V2, com potencial derivado pelos modelos físicos do SEEDS2 sobre o clima previsto, persistência v2 por UID e reabertura sem modelos nem solver. Relevo: [`RELEVO_3DA2.md`](RELEVO_3DA2.md); documento técnico: [`INTEGRACAO_3DA2R.md`](../ems_v2/INTEGRACAO_3DA2R.md); seção «Piso 3D-A2-R» no fim deste arquivo. 3D-A2-H, 3D-A2-T e 3D-B NÃO autorizados.
+> **PISO 3D-A2-R (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `7eb29e5`, PR [#22](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/22) contra `main` SIN merge):** FV (por arranjo) e eólica (por registro) no EMS V2, com potencial derivado pelos modelos físicos do SEEDS2 sobre o clima previsto, persistência v2 por UID e reabertura sem modelos nem solver. Relevo: [`RELEVO_3DA2.md`](RELEVO_3DA2.md); documento técnico: [`INTEGRACAO_3DA2R.md`](../ems_v2/INTEGRACAO_3DA2R.md); seção «Piso 3D-A2-R» no fim deste arquivo. 3D-A2-H, 3D-A2-T e 3D-B NÃO autorizados.
 
 > **PISO 3D-A — PUBLICADO COMO DRAFT, SIN MERGE (2026-11-11):** rama `claude/adoring-newton-jzfmfx` desde `main` `a636350`; **PR Draft [#21](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/21)**. Integración operativa del EMS V2 jerárquico (GATE 0 + GATE 1 del paquete maestro 3D). Relevo completo para otro agente: [`RELEVO_3DA.md`](RELEVO_3DA.md); resumen en la sección **«Piso 3D-A — integración operativa del EMS V2»** al final de este archivo. Desarrollo DETENIDO por orden del responsable: la auditoría y las correcciones siguientes se coordinan externamente. No iniciar 3D-B/3D-C; sin merge.
 
@@ -232,7 +232,7 @@ Diagnóstico controlado: con/sin Pyomo/HiGHS los doce hashes y KPI son exactos e
 
 ## Piso 3D-A2-R — FV e eólica no EMS V2 — 2026-11-11
 
-**Estado:** implementado e validado localmente; PR contra `main` sem merge (número no relevo/PR). Base `main` `7eb29e5`.
+**Estado:** implementado e validado localmente; PR [#22](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/22) contra `main` sem merge. Base `main` `7eb29e5`.
 `ems_v2/`, modelos físicos, `seeds2/` e V1.6 intactos.
 
 - **Implementado:**
@@ -249,7 +249,7 @@ Diagnóstico controlado: con/sin Pyomo/HiGHS los doce hashes y KPI son exactos e
   - guardas: 203 passed, 2 skipped;
   - auditoria explícita do diff: aprovada;
   - E2E: 43 verificações, exit 0, registro de chamadas a motor/modelos vazio;
-  - regressão completa com solver <<REG_SOLVER>>; sem solver <<REG_NOSOLVER>>.
+  - regressão completa com solver **2157 passed, 2 skipped**, 9 warnings (719 s); sem solver **1678 passed, 136 skipped**, 9 warnings (509 s).
 - **Decisões pendentes do responsável:** C-3DA2R-01 (exceção nominal) e C-3DA2R-02…08 (`INTEGRACAO_3DA2R.md` §8).
 - **Limites:**
   - realização renovável = previsão;

@@ -2786,8 +2786,8 @@ técnico completo: [`docs/ems_v2/INTEGRACAO_3DA2R.md`](docs/ems_v2/INTEGRACAO_3D
 | Guardias de aislamiento | 203 passed, 2 skipped |
 | Auditoría explícita del diff (`python tests/ems_v2/piso3da2r_guard_policy.py`) | aprobada |
 | E2E navegador (`tools/e2e/run_piso3da2r.sh`) | 43 verificaciones, exit 0; registro de llamadas a motor/modelos VACÍO |
-| Regresión completa `tests/` con solver | <<REG_SOLVER>> |
-| Regresión completa `tests/` sin solver | <<REG_NOSOLVER>> |
+| Regresión completa `tests/` con solver | **2157 passed, 2 skipped**, 9 warnings (719 s) |
+| Regresión completa `tests/` sin solver | **1678 passed, 136 skipped**, 9 warnings (509 s) |
 
 **Caso híbrido de referencia (sintético).** 12 h, demanda 40 kW, banco 20 kWh, PCC solo importación de 50 kW.
 

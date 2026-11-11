@@ -9,7 +9,7 @@ e **3D-B** (dashboard) **NÃO** foram iniciados e exigem nova autorização apó
 |---|---|
 | Base | `main` `7eb29e590a75f79ef7ab2a608727645c73960f50` (merge do PR #21, Piso 3D-A) |
 | Rama | `claude/adoring-newton-jzfmfx` (reiniciada a partir de `main` após o merge do PR #21) |
-| PR | ver `docs/ai/HANDOFF.md` (aberto contra `main`, sem merge) |
+| PR | **#22** — https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/22 (Draft, contra `main`, sem merge) |
 | Checkpoints | `db7ca7e` (adaptador, preflight, persistência), `e3e87b6` (testes), `16938ec` (UI e guarda), `4b6c1fd` (E2E), `a2bf8ae` (docs) + commit final de relevo |
 | `ems_v2/` | árvore `58cc13b6de0abff0f0cff824d469f2fb3f4ed3d7`, idêntica à base |
 | Modelos físicos | `models/`, `simulation/`, `config/`, `h2_pemfc/`, `ems_integration/` idênticos à base |
@@ -110,7 +110,7 @@ PNG não são versionadas.
 | `tests/test_piso3da2r_app.py` + `tests/test_piso3da_app.py` | 7 passed | — |
 | 3D-A focalizados + guardas | 40 passed, 1 skipped | — |
 | Guardas de isolamento (`tests/ems_v2 -k isolamento/guarda/…`) | 203 passed, 2 skipped | — |
-| Regressão completa `tests/` | <<REG_SOLVER>> | <<REG_NOSOLVER>> |
+| Regressão completa `tests/` | **2157 passed, 2 skipped**, 9 warnings (719 s) | **1678 passed, 136 skipped**, 9 warnings (509 s) |
 | CI remoto (`SEEDS2 regression`, solver true/false) | ver PR | ver PR |
 
 ## 7. Comandos
