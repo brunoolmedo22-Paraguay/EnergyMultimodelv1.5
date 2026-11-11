@@ -1,0 +1,20 @@
+# E2E navegador real (Playwright/Chromium) — Piso 3D-A2-H — fase reabrir — política B04 do REPOSITÓRIO (aprovada), SEM aprovação simulada
+# comando: bash tools/e2e/run_piso3da2h.sh <python COM Pyomo/HiGHS> <pasta> <python SEM solver>
+# data: 2026-11-11T13:43:53Z
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): evidência verificada (hashes, vistas regeneradas, auditoria, B04)
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): nenhuma falha de integridade
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): aceitação SEPARADA exibida
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): algébrica APROVADA · dinâmica COERENTE
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): física NÃO VALIDADA (modelo aproximado)
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): nenhum alerta de incoerência dinâmica
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): tabela PEMFC por unidade
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): subestimação de H₂ reportada (sem cota global)
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): tabela renovável por UID (FV e eólica)
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos sabotados): atendimento da carga inclui PEMFC e renováveis
+[3da2h:reabrir] ok — custo REALIZADO idêntico após reinício (R$ 116,02)
+[3da2h:reabrir] ok — rodada legada (contrato v1) continua legível e verificada
+[3da2h:reabrir] ok — rodada legada v1: sem PEMFC (nada inventado)
+[3da2h:reabrir] ok — rodada legada (contrato v2) continua legível e verificada
+[3da2h:reabrir] ok — rodada legada v2: sem PEMFC (nada inventado)
+[3da2h:reabrir] ok — sem erros de JavaScript: []
+[3da2h:reabrir] CONCLUÍDO — 16 verificações

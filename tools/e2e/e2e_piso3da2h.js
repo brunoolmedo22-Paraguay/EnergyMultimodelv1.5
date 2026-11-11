@@ -180,7 +180,7 @@ async function fluxo(b) {
     await p.getByRole("button", { name: /EXECUTAR MISSÃO V2/ }).click();
     await waitRun(p); await ready(p);
     await conferirRodada(p, "rodada");
-    assert(await kpi(p, "Não atendida") === "0.000 kWh", "energia não atendida = 0 (balanço fechado)");
+    assert(await kpi(p, "Não atendida") === "0,000 kWh", "energia não atendida = 0 (balanço fechado)");
     fs.writeFileSync(runFile, JSON.stringify({ link: p.url(), custo: await kpi(p, "Custo REALIZADO") }));
     await p.getByText("Critério de aceitação", { exact: false }).first().scrollIntoViewIfNeeded();
     await p.screenshot({ path: path.join(outDir, "p3da2h_06_rodada_aceitacao.png") });
