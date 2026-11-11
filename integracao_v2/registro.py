@@ -49,6 +49,7 @@ from ems_v2.ponte.canonico import de_json, json_canonico
 from ems_v2.ponte.registro import SUFIXO_ARQUIVO, RegistroExecucaoEMS
 from ems_v2.rede.contrato import EntradaRede3C3, hash_entrada_3c3
 from ems_v2.rede.mpc import ConfiguracaoRedeMPC, RegistroMissaoRede3C3, hash_configuracao_rede
+from ems_v2.reference import vazao_pwl
 from ems_v2.rede.registro import SUFIXO_ANEXO_3C3, AnexoExecucao3C3
 
 from seeds2.microgrid.store import StoreError
@@ -56,16 +57,19 @@ from seeds2.operation import mission as M
 
 from . import estrategia as E
 
-FORMATO, VERSAO = "seeds2-milp-mpc-run-data", 2
+FORMATO, VERSAO = "seeds2-milp-mpc-run-data", 3
 # Versão 1 = Piso 3D-A (sem renováveis). Versão 2 = Piso 3D-A2-R: colunas por recurso renovável e ``v2/renovaveis.json``
 # quando o modelo tem renováveis; sem renováveis, as vistas e o resumo da versão 2 são IDÊNTICOS aos da versão 1.
-VERSOES_LEGIVEIS = (1, 2)
+VERSOES_LEGIVEIS = (1, 2, 3)
+# Versão 3 = Piso 3D-A2-H: colunas por unidade PEMFC, ``v2/pemfc.json`` (curva + certificado B04, comprometido no
+# manifesto) e ``v2/pemfc_dinamica.json`` (verificação dinâmica a posteriori); sem PEMFC, idêntica à versão 2.
 PREFIXO = "v2/"
 N_SELADOS, N_MODELO, N_INDICE = "v2/registros_selados.zip", "v2/modelo.json", "v2/indice.json"
 N_INTERVALOS, N_FRONTEIRAS, N_JANELAS, N_PLANOS = ("v2/intervalos.csv", "v2/fronteiras.csv", "v2/janelas.csv",
                                                    "v2/planos.csv")
 N_COORD, N_AUDITORIA, N_PREFLIGHT = "v2/coordenacoes.json", "v2/auditoria.json", "v2/preflight.json"
 N_RENOV = "v2/renovaveis.json"                        # só quando o modelo tem renováveis (versão 2)
+N_PEMFC, N_PEMFC_DIN = "v2/pemfc.json", "v2/pemfc_dinamica.json"   # só com PEMFC (versão 3)
 VISTAS = (N_INTERVALOS, N_FRONTEIRAS, N_JANELAS, N_PLANOS, N_COORD)
 OBRIGATORIOS = (N_INDICE, N_SELADOS, N_MODELO, *VISTAS, N_AUDITORIA, N_PREFLIGHT)
 _NOME_SELADO = re.compile(r"[0-9a-f]{32}\.[A-Za-z0-9._\-]{1,80}\.json")
@@ -85,8 +89,10 @@ CONVENCOES = {
 LIMITACOES = (
     "Simulação offline ALGÉBRICA em contexto de ensaio: não é controle de equipamentos, SCADA, validação física nem fatura.",
     "Planta = executor algébrico de referência do ems_v2 (balanço ativo agregado): sem fluxo AC, tensão, reativo ou perdas.",
-    "Somente demanda agregada crítica + baterias + FV/eólica (potencial dos modelos físicos do SEEDS2) + PCC declarado; "
-    "PEMFC e térmica não são representáveis (Pisos 3D-A2-H/3D-A2-T).",
+    "Demanda agregada crítica + baterias + FV/eólica (potencial dos modelos físicos do SEEDS2) + PEMFC (curva do modelo "
+    "físico aproximado com certificado B04 verificado) + PCC declarado; térmica NÃO representável (M19).",
+    "PEMFC: commitment INSTANTÂNEO (abstração declarada D05); a partida física é avaliada a posteriori pelo modelo "
+    "dinâmico (v2/pemfc_dinamica.json) — o despacho MILP não é declarado fisicamente executável fora das tolerâncias.",
     "Potencial renovável REALIZADO = previsto (mesmo modelo e clima): a simulação não tem erro de previsão renovável.",
     "Trajetória de convergência do HiGHS NÃO é registrada: só terminação, objetivo, limite dual, gap e tamanho do modelo.",
     "Restrições ativas/preços duais NÃO são registrados (duais de MILP não são preços-sombra).",
@@ -305,11 +311,23 @@ def _proximo(a: float, b: float) -> bool:
 
 def _contexto(ev: Evidencia) -> dict:
     base = ev.modelo.base
-    if base.geradores:
-        raise IntegridadeV2Error("As vistas V2 não cobrem geradores despacháveis (modelo fora do escopo dos Pisos 3D-A/A2-R).")
+    if any(g.tecnologia != "pemfc" for g in base.geradores):
+        raise IntegridadeV2Error("As vistas V2 não cobrem geradores térmicos (modelo fora do escopo: M19).")
     malha = ev.cfg.malha
+    termos = set(ev.modelo.termos)
+    uni = {str(u.uid): u for u in ev.modelo.compromisso.unidades}
     return {"dems": [str(d.uid) for d in base.demandas], "bats": [str(b.uid) for b in base.baterias],
             "rens": [str(r.uid) for r in base.renovaveis],
+            "gers": [str(g.uid) for g in base.geradores],
+            "curva": {str(g.uid): g.curva_h2.vertices for g in base.geradores if g.curva_h2 is not None},
+            "cH": {str(g.uid): float(g.preco_h2.valor) for g in base.geradores
+                   if g.preco_h2 is not None and "combustivel_h2" in termos},
+            "u0": {str(e.uid): bool(e.ligado) for e in base.estados_geradores},
+            "mev": {k: (0.0 if u.massa_h2_partida_kg is None else float(u.massa_h2_partida_kg.valor),
+                        0.0 if u.massa_h2_parada_kg is None else float(u.massa_h2_parada_kg.valor)) for k, u in uni.items()},
+            "cev": {k: (float(u.custo_partida.valor) if u.custo_partida is not None and "eventos" in termos else 0.0,
+                        float(u.custo_parada.valor) if u.custo_parada is not None and "eventos" in termos else 0.0)
+                    for k, u in uni.items()},
             "tec": {str(r.uid): r.tecnologia for r in base.renovaveis},
             "base": {str(r.uid): r.base_potencial for r in base.renovaveis},
             "cap": {str(b.uid): float(b.capacidade_kWh.valor) for b in base.baterias},
@@ -340,8 +358,9 @@ def _demanda_prevista(c, cx: dict, i: int) -> float | None:
 
 def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[dict]]:
     cx = _contexto(ev)
-    h, pcc, bats, rens = cx["h"], cx["pcc"], cx["bats"], cx["rens"]
-    col_b = [f"{b}|{g}" for b in bats for g in ("P_c_kW", "P_d_kW")] + [f"{r}|{g}" for r in rens for g in COLS_RENOV]
+    h, pcc, bats, rens, gers = cx["h"], cx["pcc"], cx["bats"], cx["rens"], cx["gers"]
+    col_b = [f"{b}|{g}" for b in bats for g in ("P_c_kW", "P_d_kW")] + [f"{r}|{g}" for r in rens for g in COLS_RENOV] + [
+        f"{u}|{g}" for u in gers for g in COLS_GER]
     cols = (["intervalo", "janela", "indice_no_plano", "inicio_utc", "fim_utc", "inicio_local", "demanda_prevista_kW",
              "demanda_realizada_kW", "demanda_nao_atendida_kW", "demanda_atendida_kW"] + col_b +
             ["pcc_importacao_programada_kW", "pcc_importacao_realizada_kW", "pcc_exportacao_programada_kW",
@@ -353,6 +372,8 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
     linhas: list[dict] = []
     acum = 0.0
     e_ren = {r: 0.0 for r in rens}
+    u_ant = dict(cx["u0"])
+    m_acum = {u: 0.0 for u in gers}
     for r in ev.registros:
         c = r.conteudo
         an = cx["anexo"].get(c.execucao_uid)
@@ -378,6 +399,24 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
                            f"{u}|A_observada_kW": A, f"{u}|disponibilidade_observada": a, f"{u}|A_utilizavel_kW": util,
                            f"{u}|P_R_kW": pr, f"{u}|vertimento_kW": util - pr, f"{u}|E_aproveitada_acum_kWh": e_ren[u]})
                 inj += pr
+            c_h2 = c_ev = 0.0
+            for u in gers:
+                ug, pg = float(ap[f"{u}|u"]) > 0.5, float(ap[f"{u}|p"])
+                part, par = int(ug and not u_ant.get(u, False)), int((not ug) and u_ant.get(u, False))
+                u_ant[u] = ug
+                q = float(vazao_pwl(cx["curva"][u], pg, True)) if ug and u in cx["curva"] else 0.0
+                msu, msd = cx["mev"].get(u, (0.0, 0.0))
+                m = h * q + msu * part + msd * par
+                m_acum[u] += m
+                ch = cx["cH"][u] * m if u in cx["cH"] else 0.0
+                csu, csd = cx["cev"].get(u, (0.0, 0.0))
+                ce = csu * part + csd * par
+                c_h2 += ch
+                c_ev += ce
+                ln.update({f"{u}|u": int(ug), f"{u}|p_kW": pg, f"{u}|partida": part, f"{u}|parada": par,
+                           f"{u}|q_h2_kg_h": q, f"{u}|m_h2_kg": m, f"{u}|m_h2_acum_kg": m_acum[u],
+                           f"{u}|custo_h2_R": ch if u in cx["cH"] else None, f"{u}|custo_eventos_R": ce})
+                inj += pg
             for b in bats:
                 pc, pd_ = float(ap.get(f"{b}|P_c", 0.0)), float(ap.get(f"{b}|P_d", 0.0))
                 ln[f"{b}|P_c_kW"], ln[f"{b}|P_d_kW"] = pc, pd_
@@ -408,7 +447,7 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
                            "preco_importacao_liquidacao_R_kWh": lq.preco_importacao,
                            "preco_exportacao_liquidacao_R_kWh": lq.preco_exportacao,
                            "custo_importacao_R": gasto, "receita_exportacao_R": rec, "custo_desvio_rede_R": cdes})
-            tot = gasto - rec + cdes + thr
+            tot = gasto - rec + cdes + thr + c_h2 + c_ev
             soma += tot
             acum += tot
             ln.update({"custo_throughput_R": thr if tem_thr else None, "custo_realizado_intervalo_R": tot,
@@ -421,6 +460,7 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
     return cols, linhas
 
 
+COLS_GER = ("u", "p_kW", "partida", "parada", "q_h2_kg_h", "m_h2_kg", "m_h2_acum_kg", "custo_h2_R", "custo_eventos_R")
 COLS_RENOV = ("A_prevista_kW", "A_observada_kW", "disponibilidade_observada", "A_utilizavel_kW", "P_R_kW", "vertimento_kW",
               "E_aproveitada_acum_kWh")
 
@@ -591,13 +631,14 @@ def resumo(ev: Evidencia, fuso: str | None) -> dict:
                                   ind.get("E_bess_descarga_kWh", 0.0))):
         raise IntegridadeV2Error("Energia carregada/descarregada por banco não reproduz os indicadores selados da missão.")
     ren = _resumo_renovaveis(cx, ints, ind)
+    pem = _resumo_pemfc(cx, ints, ind)
     cr = rm.custo_realizado_acumulado
     gaps = [r.conteudo.resolucao.gap_rel for r in ev.registros
             if r.conteudo.resolucao is not None and r.conteudo.resolucao.gap_rel is not None]
     rh = ev.registro_hierarquico
     dem, ens = float(ind.get("E_demanda_realizada_kWh", 0.0)), float(ind.get("E_nao_suprida_kWh", 0.0))
     completa = rm.desfecho == "concluida" and rm.intervalos_aplicados == rm.K_M
-    extra = {"renovaveis": ren} if ren else {}
+    extra = {**({"renovaveis": ren} if ren else {}), **({"pemfc": pem} if pem else {})}
     return {**extra,
         "engine": E.MOTOR_V2, "formulacao": FORMULACAO_3C4, "missao_uid": ev.missao_uid,
         "situacao_missao": rm.desfecho, "classe_falha": rm.classe_falha, "missao_completa": completa,
@@ -647,6 +688,27 @@ def _resumo_renovaveis(cx: dict, ints: list[dict], ind: dict) -> dict:
     return out
 
 
+def _resumo_pemfc(cx: dict, ints: list[dict], ind: dict) -> dict:
+    """Por unidade PEMFC: energia, H₂ (contínuo + eventos), custo, partidas/paradas — energia conferida contra o
+    indicador SELADO ``E_geracao_kWh[uid]``. Vazio sem PEMFC."""
+    out = {}
+    h = cx["h"]
+    for u in cx["gers"]:
+        e = h * math.fsum(float(x[f"{u}|p_kW"]) for x in ints)
+        sel = ind.get(f"E_geracao_kWh[{u}]")
+        if ints and sel is not None and not _proximo(e, float(sel)):
+            raise IntegridadeV2Error(f"Energia da PEMFC {u} não reproduz o indicador selado da missão.")
+        on = [x for x in ints if x[f"{u}|u"]]
+        out[u] = {"energia_kWh": e, "massa_h2_kg": math.fsum(float(x[f"{u}|m_h2_kg"]) for x in ints),
+                  "custo_h2_R": math.fsum(float(x[f"{u}|custo_h2_R"] or 0.0) for x in ints),
+                  "custo_eventos_R": math.fsum(float(x[f"{u}|custo_eventos_R"]) for x in ints),
+                  "partidas": sum(int(x[f"{u}|partida"]) for x in ints), "paradas": sum(int(x[f"{u}|parada"]) for x in ints),
+                  "horas_ligada": h * len(on),
+                  "potencia_media_ligada_kW": (math.fsum(float(x[f"{u}|p_kW"]) for x in on) / len(on)) if on else None}
+        out[u]["consumo_especifico_kg_kWh"] = out[u]["massa_h2_kg"] / e if e > 0 else None
+    return out
+
+
 # ====================================================================== dicionário de colunas e índice
 def _dicionario(ev: Evidencia) -> dict:
     cx = _contexto(ev)
@@ -693,6 +755,16 @@ def _dicionario(ev: Evidencia) -> dict:
                      "aproveitada)", D),
                  col(f"{u}|E_aproveitada_acum_kWh", "kWh", "intervalo (acumulado no fim)", "energia aproveitada acumulada "
                      "até o fim do intervalo (Σ P_R·Δ)", D)]
+    for u in cx["gers"]:
+        ints += [col(f"{u}|u", "0/1", "intervalo", f"commitment APLICADO da unidade PEMFC {u}", S),
+                 col(f"{u}|p_kW", "kW", "intervalo", "potência líquida SOLICITADA/aplicada pelo EMS (>= 0; injeta)", S),
+                 col(f"{u}|partida", "0/1", "intervalo", "partida (u_t = 1 e u_{t−1} = 0; u_{−1} = estado inicial)", D),
+                 col(f"{u}|parada", "0/1", "intervalo", "parada (u_t = 0 e u_{t−1} = 1)", D),
+                 col(f"{u}|q_h2_kg_h", "kg/h", "intervalo", "vazão de H₂ SUPRIDO prevista pela curva PWL certificada", D),
+                 col(f"{u}|m_h2_kg", "kg", "intervalo", "massa de H₂ = q·Δt + m_SU·partida + m_SD·parada", D),
+                 col(f"{u}|m_h2_acum_kg", "kg", "intervalo (acumulado no fim)", "massa de H₂ acumulada", D),
+                 col(f"{u}|custo_h2_R", "R$", "intervalo", "c_H × massa de H₂ (termo combustivel_h2)", D),
+                 col(f"{u}|custo_eventos_R", "R$", "intervalo", "C_SU·partida + C_SD·parada (termo eventos)", D)]
     fr = [col("fronteira", "", "fronteira", "índice GLOBAL k da fronteira de estado (N + 1 fronteiras)", S)]
     for b in cx["bats"]:
         fr += [col(f"{b}|energia_kWh", "kWh", "fronteira", f"energia armazenada EXECUTADA do banco {b}", S),
@@ -724,6 +796,10 @@ PAPEIS = {
     N_COORD: ("vista_derivada", "Coordenações 3C-4 por janela: sinal V(E), modos, domínio, qualidade, degradação"),
     N_AUDITORIA: ("auditoria", "Auditoria integral independente da missão (sem solver)"),
     N_PREFLIGHT: ("contexto", "Preflight V2 e matriz fonte → transformação → validação → registro → vista"),
+    N_PEMFC: ("contexto", "Curva q(P) da PEMFC derivada do modelo físico (inicialização, pontos do modelo, vértices, erros) "
+                          "e certificado B04 do núcleo; comprometido no manifesto antes da execução"),
+    N_PEMFC_DIN: ("verificacao", "Consignas aplicadas avaliadas a posteriori pelo modelo dinâmico da PEMFC (potência "
+                                 "solicitada × entregue, H₂ do modelo × H₂ da PWL, estados, tolerâncias)"),
     N_RENOV: ("contexto", "Potencial renovável por UID derivado pelos modelos físicos do SEEDS2 (parâmetros, clima, "
                           "hipóteses, séries); conferido contra a previsão e a realização seladas"),
 }
@@ -748,7 +824,8 @@ def indice_doc(ev: Evidencia, data: dict[str, tuple[bytes, str]], run_uid: str, 
 
 
 def dados_da_rodada(ev: Evidencia, cfg_mpc, auditoria, preflight_doc: dict, run_uid: str, fuso: str | None,
-                    origem: dict, renovaveis_doc: dict | None = None) -> dict[str, tuple[bytes, str]]:
+                    origem: dict, renovaveis_doc: dict | None = None, pemfc_doc: dict | None = None,
+                    pemfc_dinamica_doc: dict | None = None) -> dict[str, tuple[bytes, str]]:
     """Todos os itens de ``scenario_run_data`` de uma rodada V2 concluída (nome → (bytes, media type))."""
     J, C_, Z = "application/json", "text/csv", "application/zip"
     data: dict[str, tuple[bytes, str]] = {
@@ -761,13 +838,19 @@ def dados_da_rodada(ev: Evidencia, cfg_mpc, auditoria, preflight_doc: dict, run_
         if renovaveis_doc is None:
             raise IntegridadeV2Error("Modelo com renováveis sem o documento de derivação do potencial (v2/renovaveis.json).")
         data[N_RENOV] = (_json(renovaveis_doc), J)
+    if ev.modelo.base.geradores:
+        if pemfc_doc is None or pemfc_dinamica_doc is None:
+            raise IntegridadeV2Error("Modelo com PEMFC sem a curva/certificado (v2/pemfc.json) ou a verificação dinâmica.")
+        data[N_PEMFC] = (_json(pemfc_doc), J)
+        data[N_PEMFC_DIN] = (_json(pemfc_dinamica_doc), J)
     for nome, b in vistas(ev, fuso).items():
         data[nome] = (b, J if nome.endswith(".json") else C_)
     data[N_INDICE] = (_json(indice_doc(ev, data, run_uid, fuso, origem)), J)
     return data
 
 
-def evidencia_parcial_doc(ev: Evidencia, cfg_mpc, auditoria, fuso: str | None, renovaveis_doc: dict | None = None) -> dict:
+def evidencia_parcial_doc(ev: Evidencia, cfg_mpc, auditoria, fuso: str | None, renovaveis_doc: dict | None = None,
+                          pemfc_doc: dict | None = None) -> dict:
     """Evidência de uma missão NÃO concluída, para o ``outcome`` da rodada (rotulada parcial; mesmos textos canônicos)."""
     def tabela(cols, linhas):
         return {"colunas": cols, "linhas": [[ln.get(c) for c in cols] for ln in linhas]}
@@ -784,7 +867,7 @@ def evidencia_parcial_doc(ev: Evidencia, cfg_mpc, auditoria, fuso: str | None, r
             "selados": dict(ev.textos),
             "modelo": modelo_doc(ev.modelo, cfg_mpc, ev.configuracao_rede, ev.configuracao_planejador),
             "vistas": v, "coordenacoes": [para_dict(co) for co in ev.coordenacoes],
-            "renovaveis": renovaveis_doc,
+            "renovaveis": renovaveis_doc, "pemfc": pemfc_doc,
             "auditoria": None if auditoria is None else auditoria_doc(auditoria)}
 
 
@@ -846,9 +929,11 @@ def verificar(source, run) -> Verificacao:
             f"Índice no formato esperado (versão {ind.get('versao')!r}) e vinculado a esta rodada")
         ver(set(arqs) == set(brutos) - {N_INDICE} and all(arqs[n]["sha256"] == _sha(brutos[n]) for n in arqs if n in brutos),
             "Índice lista exatamente os itens gravados, com os mesmos SHA-256")
+        _pemfc_registrar(run, brutos.get(N_PEMFC), ver)
         ev = evidencia_de_textos(desempacotar(brutos[N_SELADOS]), json.loads(brutos[N_MODELO].decode("utf-8")), run.run_uid)
         _identidade(run, ev, ver)
         _renovaveis_verificar(run, ev, brutos, ind.get("versao"), ver)
+        _pemfc_verificar(run, ev, brutos, ind.get("versao"), ver)
         fuso = _fuso(run)
         regen = vistas(ev, fuso)
         dif = [n for n in VISTAS if regen[n] != brutos[n]]
@@ -899,7 +984,8 @@ def _renovaveis_verificar(run, ev: Evidencia, brutos: dict, versao, ver) -> None
     if not rens:
         ver(N_RENOV not in brutos, "Modelo sem renováveis e sem documento de derivação renovável")
         return
-    if not ver(versao == 2 and N_RENOV in brutos, "Modelo com renováveis: documento v2/renovaveis.json presente (versão 2)"):
+    if not ver(versao in (2, 3) and N_RENOV in brutos,
+               "Modelo com renováveis: documento v2/renovaveis.json presente (versão >= 2)"):
         return
     h = ((run.manifest.get("engine_inputs") or {}).get("hashes")) or {}
     try:
@@ -930,6 +1016,64 @@ def _renovaveis_verificar(run, ev: Evidencia, brutos: dict, versao, ver) -> None
         "Potencial REALIZADO observado na conciliação = série derivada declarada como realização (bit a bit)")
 
 
+def _pemfc_registrar(run, bruto, ver) -> dict | None:
+    """Re-registra os certificados B04 persistidos ANTES da auditoria (que revalida a entrada): o contrato RECOMPUTA os
+    critérios a partir destes dados — nenhum modelo é reexecutado e um rótulo/hash sozinho não basta."""
+    if bruto is None:
+        return None
+    from ems_v2 import contracts as K
+    try:
+        doc = json.loads(bruto.decode("utf-8")) if isinstance(bruto, bytes) else bruto
+        h_man = (((run.manifest.get("engine_inputs") or {}).get("hashes")) or {}).get("pemfc")
+        from . import renovaveis as RN
+        ver(RN.sha_documento(doc) == h_man, "Curva/certificado PEMFC gravados = os comprometidos no manifesto ANTES da "
+                                            "execução (SHA-256)")
+        oks = []
+        for uid, x in doc["registros"].items():
+            cert = K.de_dict(K.CertificadoB04, x["certificado_b04"], "CertificadoB04")
+            h, cs = K.registrar_certificado_b04(cert)
+            oks.append(not [c for c in cs if c.severidade in ("erro", "pendente")] and h == x["hash_certificado_b04"]
+                       and [list(v) for v in cert.vertices] == x["curva"]["vertices_kW_kg_h"])
+        ver(all(oks), f"Certificado(s) B04 re-registrado(s) com critérios RECOMPUTADOS dos dados gravados ({len(oks)})")
+        return doc
+    except (KeyError, TypeError, ValueError, UnicodeDecodeError) as exc:
+        ver(False, f"Curva/certificado PEMFC ilegíveis: {type(exc).__name__}")
+        return None
+
+
+def _pemfc_verificar(run, ev: Evidencia, brutos: dict, versao, ver) -> None:
+    gers = {str(g.uid): g for g in ev.modelo.base.geradores}
+    if not gers:
+        ver(N_PEMFC not in brutos and N_PEMFC_DIN not in brutos, "Modelo sem PEMFC e sem documentos PEMFC")
+        return
+    if not ver(versao == 3 and N_PEMFC in brutos and N_PEMFC_DIN in brutos,
+               "Modelo com PEMFC: v2/pemfc.json e v2/pemfc_dinamica.json presentes (versão 3)"):
+        return
+    try:
+        doc = json.loads(brutos[N_PEMFC].decode("utf-8"))
+        din = json.loads(brutos[N_PEMFC_DIN].decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        ver(False, "Documentos PEMFC ilegíveis")
+        return
+    reg_v = {u: [tuple(v) for v in x["curva"]["vertices_kW_kg_h"]] for u, x in doc["registros"].items()}
+    ok = all(tuple((float(a), float(b)) for a, b in g.curva_h2.vertices) == tuple(reg_v.get(u.split("#")[0], ()))
+             for u, g in gers.items())
+    ver(ok, "Curva de cada unidade no modelo selado = curva certificada gravada (mesma curva para toda a missão)")
+    aplicados = {}
+    for r in ev.registros:
+        for p in r.conteudo.passos:
+            for u in gers:
+                aplicados.setdefault(u, {})[p.indice_global] = (int(float(p.aplicado[f"{u}|u"]) > 0.5),
+                                                                float(p.aplicado[f"{u}|p"]))
+    ok = True
+    for u, v in (din.get("unidades") or {}).items():
+        for x in v["intervalos"]:
+            uu, pp = aplicados.get(u, {}).get(x["intervalo"], (None, None))
+            ok &= x["u"] == uu and (x["p_solicitada_kW"] == (pp if uu else 0.0))
+    ver(ok and set(din.get("unidades") or {}) == set(gers),
+        "Verificação dinâmica gravada avalia EXATAMENTE as consignas aplicadas seladas (por unidade e intervalo)")
+
+
 def _verificar_parcial(run, itens, ver) -> Verificacao:
     evd = (run.outcome or {}).get("evidence")
     if not isinstance(evd, dict) or not evd.get("selados"):
@@ -937,6 +1081,8 @@ def _verificar_parcial(run, itens, ver) -> Verificacao:
         ver(True, "Sem evidência de missão: a falha ocorreu antes de qualquer janela (ver o diagnóstico da rodada)")
         return Verificacao(all(ok for ok, _ in itens), itens)
     ver(evd.get("parcial") is True and not run.data, "Evidência rotulada PARCIAL e fora dos dados de rodada concluída")
+    if evd.get("pemfc"):
+        _pemfc_registrar(run, evd["pemfc"], ver)
     ev = evidencia_de_textos(dict(evd["selados"]), evd["modelo"], run.run_uid)
     _identidade(run, ev, ver)
     rm = ev.registro_missao.conteudo
@@ -951,7 +1097,8 @@ def _verificar_parcial(run, itens, ver) -> Verificacao:
 
 
 __all__ = ["CONVENCOES", "Evidencia", "FORMATO", "IntegridadeV2Error", "LIMITACOES", "N_AUDITORIA", "N_COORD",
-           "N_FRONTEIRAS", "N_INDICE", "N_INTERVALOS", "N_JANELAS", "N_MODELO", "N_PLANOS", "N_PREFLIGHT", "N_RENOV",
+           "N_FRONTEIRAS", "N_INDICE", "N_INTERVALOS", "N_JANELAS", "N_MODELO", "N_PEMFC", "N_PEMFC_DIN", "N_PLANOS",
+           "N_PREFLIGHT", "N_RENOV",
            "N_SELADOS", "OBRIGATORIOS", "VERSAO", "VERSOES_LEGIVEIS", "VISTAS", "Verificacao", "auditar", "auditoria_doc", "dados_da_rodada",
            "desempacotar", "e_v2", "empacotar", "evidencia_de_textos", "evidencia_do_resultado", "evidencia_parcial_doc",
            "ler_csv", "ler_json", "linhas_fronteiras", "linhas_intervalos", "linhas_janelas", "linhas_planos", "modelo_doc",

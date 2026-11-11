@@ -252,6 +252,9 @@ def preparar(store, stored) -> PreflightV2:
     pem = _pemfc(pf, bloco, inv, stored)
     if pf.count(ERROR) or pem is None:
         return pf
+    tabela, verdade, prev_nucleo, real_nucleo = _com_disponibilidade_geradores(
+        [u for x in pf.represented if x["kind"] == "pemfc" for u in x["uids"]], tabela, verdade, prev_nucleo, real_nucleo,
+        tempo, stored, bloco)
     # ---- 7. inventário efetivo e projeção pela ponte (sem relaxação)
     inv_ef = MT.inventario_efetivo(inv, bloco, stored, excl)
     proc_pol = MT.proc_declarada(bloco["declarante"], "declarante", stored)
@@ -794,6 +797,30 @@ def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
     if pf.count(ERROR):
         return None
     return out
+
+
+def _com_disponibilidade_geradores(uids, tabela, verdade, prev_nucleo, real_nucleo, t: MT.Tempo, stored, bloco):
+    """Disponibilidade a = 1 POR UNIDADE geradora (disponível no cenário) na previsão do provedor e na realização — a
+    mesma condição ESTÁTICA declarada às fontes de disponibilidade da execução (nenhuma herança implícita)."""
+    if not uids:
+        return tabela, verdade, prev_nucleo, real_nucleo
+    um = [1.0] * t.K
+    emis = bloco["demanda"]["emissao_utc"]
+    tabela = dict(tabela)
+    vs, vr, vp = list(verdade.series), list(real_nucleo.series), list(prev_nucleo.series)
+    for u in uids:
+        p_a = Procedencia("declarado_seeds2", f"SEEDS2 · cenário {stored.scenario_uid} v{stored.version}",
+                          f"initialization.equipment[{u.split('#')[0]}].availability", sha256=stored.fingerprint,
+                          observacoes="Série a = 1 por UNIDADE derivada da disponibilidade estática do cenário (disponível)")
+        tabela[(u, "disponibilidade")] = MT.serie("disponibilidade", t, um, p_a, emis)
+        vp.append(CN.SerieRecurso(u, "disponibilidade", tabela[(u, "disponibilidade")]))
+        for lista in (vs, vr):
+            lista.append(CN.SerieRecurso(u, "disponibilidade", MT.serie("disponibilidade", t, um, verdade.procedencia, None)))
+    def ordem(xs):
+        return tuple(sorted(xs, key=lambda x: (x.uid, x.grandeza)))
+    return (tabela, CN.Realizacao(verdade.realizacao_uid, verdade.natureza, ordem(vs), verdade.procedencia),
+            CN.ConjuntoPrevisao(prev_nucleo.conjunto_uid, prev_nucleo.emissao_utc, ordem(vp), prev_nucleo.procedencia),
+            CN.Realizacao(real_nucleo.realizacao_uid, real_nucleo.natureza, ordem(vr), real_nucleo.procedencia))
 
 
 def documento_pemfc(pem: dict) -> dict:
