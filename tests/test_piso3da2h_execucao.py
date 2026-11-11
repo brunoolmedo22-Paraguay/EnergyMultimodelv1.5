@@ -288,3 +288,23 @@ def test_sem_aprovacao_a_reabertura_nao_certifica_a_curva(hibrida, monkeypatch):
             return json.dumps(doc).encode() if nome == RG.N_PEMFC else store.run_data(uid, nome)
     v = RG.verificar(Fonte(), run)
     assert not v.ok
+
+
+@requer_solver
+def test_rodada_renovavel_gravada_no_contrato_v2_continua_legivel(tmp_path, monkeypatch):
+    """Rodada FV + eólica (sem PEMFC) gravada EXATAMENTE como o Piso 3D-A2-R gravava (v2): verificada no contrato v3."""
+    reg = MicrogridRegistry(tmp_path / "dados", adopt_legacy=False)
+    cfg = R.config_hibrida()
+    reg.create(cfg)
+    store = reg.open(cfg["installation"]["uid"])
+    sc = R.criar_cenario_hibrido(store, demanda_kW=40.0, clima=_clima)
+    atual = RG.VERSAO
+    monkeypatch.setattr(RG, "VERSAO", 2)
+    run = X.submit(store, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
+    monkeypatch.undo()
+    assert run.state == "concluida", run.error
+    assert atual == 3 and 2 in RG.VERSOES_LEGIVEIS
+    assert RG.ler_json(store, run, RG.N_INDICE)["versao"] == 2
+    assert RG.N_RENOV in run.data and RG.N_PEMFC not in run.data
+    v = RG.verificar(store, run)
+    assert v.ok, v.falhas()

@@ -25,10 +25,11 @@ MODIFICADOS = frozenset({
     "tests/ems_v2/test_piso3da2r_guardas.py",    # identidade do núcleo vs. base 3D-A2-R passa a admitir SÓ o C-3DA2H-01
     "tests/test_piso3da2r_renovaveis.py",        # bloco novo = formato 3 (PEMFC); formato 2 continua legível (testado)
     "tests/test_piso3da2r_app.py",               # idem na interface
+    "tests/test_piso3da2r_execucao.py",          # contrato de dados v3 (aditivo): versão vigente nominal; v1/v2 legíveis
 }) | NUCLEO_AUTORIZADO
 # Arquivos NOVOS do 3D-A2-H dentro dos alvos das guardas anteriores (somente adição).
-TESTES_3DA2H = ("tests/test_piso3da2h_curva.py", "tests/test_piso3da2h_preflight.py", "tests/test_piso3da2h_execucao.py",
-                "tests/test_piso3da2h_app.py", "tests/piso3da2h_util.py")
+TESTES_3DA2H = ("tests/test_piso3da2h_curva.py", "tests/test_piso3da2h_execucao.py", "tests/test_piso3da2h_app.py",
+                "tests/piso3da2h_util.py")
 ADICIONADOS = frozenset({
     *TESTES_3DA2H, "tests/ems_v2/piso3da2h_guard_policy.py", "tests/ems_v2/test_ems_v2_b04_certificado.py",
 })
