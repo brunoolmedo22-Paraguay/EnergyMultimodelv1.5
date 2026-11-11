@@ -102,7 +102,7 @@ Na época da auditoria a B04 estava pendente; a aprovação veio depois, por dec
 | Verificação A — `python tests/verificacao_massas_3da2h.py` (6 configurações, malha 0,5 kW, pares a cada 2,5 kW) | sem subestimação em partidas, paradas e rampas de subida; rampas de descida ≤ 0,0044 kg (`docs/ems_v2/evidencia_3da2h/verificacao_massas_eventos.*`) |
 | Verificação B — `bash tools/e2e/run_piso3da2h.sh <py solver> <pasta> <py sem solver>` (política do repositório, aprovada) | bancada 6 + fluxo 20 + reabrir 16 + conferência 18; chamadas ao motor/modelos VAZIO |
 | Suítes 3D-A2-H após a aprovação (certificado, curva, execução, app, auditoria, verificação A) | 77 passed; guardas 190 passed, 2 skipped; auditoria da missão aprovada |
-| Regressão completa sobre o código final após a decisão (`0058902`; depois só documentação) | em execução no fechamento deste commit (resultado no commit seguinte) |
+| Regressão completa sobre o código final após a decisão (`0058902`; depois só documentação) | com solver **2234 passed, 2 skipped**, 9 warnings (887 s); sem solver **1741 passed, 150 skipped**, 9 warnings (586 s); 0 falhas |
 | Regressão completa com e sem solver sobre `d0bee62` (antes da aprovação) | com solver **2229 passed, 2 skipped**, 9 warnings (885 s); sem solver **1736 passed, 150 skipped**, 9 warnings (578 s); 0 falhas (as 2 omitidas com solver são as auditorias explícitas de diff condicionadas por variável) |
 
 ## 5. Decisões do responsável (PR #23)

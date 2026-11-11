@@ -308,5 +308,7 @@ congelada). PR contra `main` sem merge. Base `main` `0c9df80`.
     (C-3DA2H-12, a decidir);
   - B (`0058902`): E2E sem aprovação simulada — bancada 6 + fluxo 20 + reabertura 16 + conferência 18; chamadas VAZIO;
     rodadas legadas v1/v2 legíveis.
+  - regressão completa sobre `0058902` (depois só documentação): com solver **2234 passed, 2 skipped**; sem solver
+    **1741 passed, 150 skipped**; 0 falhas.
 - **Próximo passo:** revisão final do PR #23 e decisão de integração em `main` (sem merge automático); 3D-A2-T/3D-B só
   com nova autorização.

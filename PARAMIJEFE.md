@@ -2998,4 +2998,4 @@ Registro de llamadas al motor y a los modelos: VACÍO.
 | Dinámica | coherente |
 | Mayor subestimación de H₂ en un intervalo | 0,0006 kg |
 
-**Regresión sobre el código final** (`0058902`; luego solo documentación): en ejecución al cierre de este commit (resultado en el commit siguiente).
+**Regresión sobre el código final** (`0058902`; luego solo documentación): con solver **2234 passed, 2 skipped**, 9 warnings (887 s); sin solver **1741 passed, 150 skipped**, 9 warnings (586 s); 0 fallos.
