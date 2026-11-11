@@ -482,6 +482,10 @@ def _configuration(view: StudyView) -> None:
     else:
         st.caption("Sem estados iniciais nesta versão.")
     st.markdown('<div class="sd-section">Estratégia EMS</div>', unsafe_allow_html=True)
+    if doc.get("engine") is not None or doc.get("milp_mpc") is not None:      # Piso 3D-A: motor V2 experimental
+        from integracao_v2 import ui as V2UI
+
+        V2UI.estrategia_arquivada(doc)
     sg = doc.get("ems_strategy")
     if not sg:
         st.caption("Estratégia não definida nesta versão.")
@@ -565,9 +569,10 @@ def _runs(view: StudyView, base_view: str) -> None:
     if sel not in {r.run_uid for r in runs}:
         sel = None
     for r in runs:
-        s = r.summary or {}
         c1, c2 = st.columns([5, 1.1], vertical_alignment="center")
-        cost = f"R$ {forms.fmt(s.get('custo_total_rs'), 2)}" if r.state == "concluida" else ""
+        from .execution_ui import run_cost_text
+
+        cost = run_cost_text(r)
         c1.html(f'<div class="op-row" style="justify-content:flex-start;gap:.6rem">'
                 f'{_pill(contracts.RUN_STATE_LABELS.get(r.state, r.state), STATE_TONE.get(r.state, "off"))}'
                 f'<span class="op-m">{escape(r.run_uid[:8])}…</span><span>v{r.scenario_version} · '

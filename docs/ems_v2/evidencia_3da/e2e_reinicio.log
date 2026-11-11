@@ -1,0 +1,15 @@
+[reinicio] ok — após kill -9 + reinício: custo REALIZADO R$ 50,20
+[reinicio] ok — após kill -9 + reinício: custo rotulado sem valor futuro
+[reinicio] ok — após kill -9 + reinício: rodada identificada como motor V2 experimental
+[reinicio] ok — após kill -9 + reinício: alcance declarado (simulação offline, não é validação física)
+[reinicio] ok — após kill -9 + reinício: evidência verificada na reabertura (sem otimizador)
+[reinicio] ok — após kill -9 + reinício: nenhuma falha de integridade
+[reinicio] ok — microrrede 'Microrrede E2E 3D-A' listada no Gestor
+[reinicio] ok — microrrede aberta: Microrrede E2E 3D-A
+[reinicio] ok — cenário selecionado: Missão longa V2
+[reinicio] ok — a rodada derrubada está 'Interrompida' (nunca concluída)
+[reinicio] ok — executar volta a ser possível após a recuperação
+[reinicio] ok — rodada interrompida sem resultados concluídos
+[reinicio] ok — rodada interrompida não apresenta custo de missão
+[reinicio] ok — reinício: nenhuma exceção
+[reinicio] CONCLUÍDO — 14 verificações

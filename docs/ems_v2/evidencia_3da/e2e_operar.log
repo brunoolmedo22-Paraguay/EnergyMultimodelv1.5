@@ -1,0 +1,68 @@
+[operar] ok — microrrede 'Microrrede E2E 3D-A' listada no Gestor
+[operar] ok — microrrede aberta: Microrrede E2E 3D-A
+[operar] ok — cenário selecionado: Experimento V2 pela interface
+[operar] ok — cenário versionado da microrrede registrada selecionado
+[operar] ok — seletor de motor na etapa 03
+[operar] ok — motor V1.6 selecionado por omissão (nenhuma troca implícita)
+[operar] ok — motor V2 selecionado explicitamente
+[operar] ok — alcance: simulação offline, sem promessa física
+[operar] ok — declaração criada com campos científicos ausentes
+[operar] ok — eficiência da bateria VAZIA (nenhum parâmetro físico pré-preenchido)
+[operar] ok — seleção do motor V2 gravada como versão 3 do cenário
+[operar] ok — painel: preflight V2 da versão salva não executável
+[operar] ok — preflight V2 bloqueia o cenário incompleto
+[operar] ok — bloqueio explica o parâmetro ausente da bateria
+[operar] ok — bloqueio explica o PCC não declarado
+[operar] ok — EXECUTAR MISSÃO V2 desabilitado
+[operar] ok — sem botão do motor V1.6 para um cenário V2
+[operar] ok — todas as declarações feitas pela interface, com procedência
+[operar] ok — estratégia V2 completa gravada como versão 4
+[operar] ok — estratégia V2: nenhuma exceção
+[operar] ok — painel: preflight V2 pronto
+[operar] ok — preflight V2 da versão salva v4
+[operar] ok — preflight V2 apto
+[operar] ok — malha N intervalos / N + 1 fronteiras
+[operar] ok — previsão causal (emitida antes do início)
+[operar] ok — dados sintéticos rotulados (ensaio)
+[operar] ok — matriz de dados disponível
+[operar] ok — EXECUTAR MISSÃO V2 habilitado
+[operar] progresso real da missão observado
+[operar] ok — rodada: custo REALIZADO R$ 50,20
+[operar] ok — rodada: custo rotulado sem valor futuro
+[operar] ok — rodada: rodada identificada como motor V2 experimental
+[operar] ok — rodada: alcance declarado (simulação offline, não é validação física)
+[operar] ok — rodada: evidência verificada na reabertura (sem otimizador)
+[operar] ok — rodada: nenhuma falha de integridade
+[operar] ok — déficit e importação exibidos
+[operar] ok — gráfico: demanda realizada (12 intervalos)
+[operar] ok — gráfico: composição por recurso
+[operar] ok — gráfico: energia em 13 fronteiras (N + 1)
+[operar] ok — URL identifica a rodada (?run=)
+[operar] ok — 10 dados gravados disponíveis para download
+[operar] ok — recarga: custo REALIZADO R$ 50,20
+[operar] ok — recarga: custo rotulado sem valor futuro
+[operar] ok — recarga: rodada identificada como motor V2 experimental
+[operar] ok — recarga: alcance declarado (simulação offline, não é validação física)
+[operar] ok — recarga: evidência verificada na reabertura (sem otimizador)
+[operar] ok — recarga: nenhuma falha de integridade
+[operar] ok — rodada V2: nenhuma exceção
+[operar] ok — histórico: rodada V2 rotulada com o custo realizado
+[operar] ok — estudo exportado (190171 bytes)
+[operar] ok — microrrede 'Microrrede E2E 3D-A · B' listada no Gestor
+[operar] ok — microrrede aberta: Microrrede E2E 3D-A · B
+[operar] ok — microrrede B: preflight V2 apto
+[operar] ok — microrrede B: a rodada da microrrede A não aparece
+[operar] ok — microrrede B: custo REALIZADO R$ 55,10
+[operar] ok — microrrede B: custo rotulado sem valor futuro
+[operar] ok — microrrede B: rodada identificada como motor V2 experimental
+[operar] ok — microrrede B: alcance declarado (simulação offline, não é validação física)
+[operar] ok — microrrede B: evidência verificada na reabertura (sem otimizador)
+[operar] ok — microrrede B: nenhuma falha de integridade
+[operar] ok — microrrede 'Microrrede E2E 3D-A' listada no Gestor
+[operar] ok — microrrede aberta: Microrrede E2E 3D-A
+[operar] ok — cenário selecionado: Missão longa V2
+[operar] ok — missão longa (48 intervalos) selecionada
+[operar] ok — missão longa em andamento (intervalo 2 de 48) — progresso real lido do banco
+[operar] ok — sem erros de JavaScript: []
+KILL_NOW
+[operar] CONCLUÍDO — 65 verificações

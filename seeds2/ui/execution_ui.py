@@ -33,7 +33,7 @@ from seeds2.operation import strategy as SG
 from . import forms, report_exports as RX, run_charts as RC, session, shell
 
 TAB_STRATEGY, TAB_EXEC, TAB_RUN = "estrategia", "execucao", "rodada"
-STATE_PREFIXES = ("op_ex_", "opw_sg_", "opw_ex_", "op_run_uid", "rx_")
+STATE_PREFIXES = ("op_ex_", "opw_sg_", "opw_ex_", "op_run_uid", "rx_", "op_v2_")
 STATE_TONE = {"em_execucao": "info", "concluida": "ok", "falhou": "bad", "interrompida": "warn"}
 LEVEL_TONE = {P.ERROR: "bad", P.WARNING: "warn", P.CHECK: "info", P.OK: "ok", P.INFO: "off"}
 LEVEL_GLYPH = {P.ERROR: "✕", P.WARNING: "!", P.CHECK: "◷", P.OK: "✓", P.INFO: "i"}
@@ -60,6 +60,31 @@ def _oc():
     from . import operation_center as OC
 
     return OC
+
+
+def _v2():
+    """Camada de integração do motor V2 experimental (Piso 3D-A) — importada só quando um cenário/rodada o seleciona
+    ou quando a etapa 03 oferece a escolha do motor."""
+    from integracao_v2 import ui as V2UI
+
+    return V2UI
+
+
+def _is_v2_doc(doc) -> bool:
+    return S.engine(doc) != "legacy_v16"
+
+
+def _is_v2_run(run) -> bool:
+    return isinstance(run.manifest, dict) and ((run.manifest.get("engine") or {}).get("id") or "legacy_v16") != "legacy_v16"
+
+
+def run_cost_text(run) -> str:
+    """Custo de uma rodada CONCLUÍDA para listas, rotulado pelo motor (V1.6: função objetivo; V2: custo realizado)."""
+    if run.state != "concluida":
+        return ""
+    if _is_v2_run(run):
+        return _v2().custo_texto(run)
+    return f"R$ {forms.fmt((run.summary or {}).get('custo_total_rs'), 2)}"
 
 
 def clear_state() -> None:
@@ -108,6 +133,8 @@ def preflight(store, cur) -> P.Preflight:
 
 def stage_state(store, cur) -> tuple[str, str, str]:
     """Estado da etapa 04 no painel (preflight da versão salva)."""
+    if _is_v2_doc(cur.document):
+        return _v2().stage_state(store, cur)
     try:
         pf = preflight(store, cur)
     except StoreError as exc:
@@ -130,6 +157,9 @@ def render_strategy(store, cur) -> None:
         return
     doc = oc.work()
     tok = int(_ss().get("op_token") or 0)
+    if _is_v2_doc(doc):                               # Piso 3D-A: estratégia declarativa do motor V2 experimental
+        _v2().render_estrategia(store, cur, oc)
+        return
     tone, label, detail = S.strategy_status(doc)
     shell.hero("Estratégia EMS", doc["name"],
                "Parâmetros do otimizador para as rodadas deste cenário — somente opções existentes e verificadas do motor "
@@ -137,6 +167,7 @@ def render_strategy(store, cur) -> None:
                [("Cenário", f"v{cur.version}" + (" · alterações não salvas" if oc.is_dirty() else "")),
                 ("Estratégia", label + (f" · {detail}" if detail else "")),
                 ("Inventário de referência", f"rev. {doc['inventory_ref']['config_revision']}")])
+    _v2().seletor_motor(doc, tok)                     # seleção EXPLÍCITA do motor (padrão: V1.6; nunca troca implícita)
     with st.container(border=True):
         st.html(f'<div class="op-k">Função objetivo</div><div class="op-t">{escape(SG.OBJECTIVE_LABEL)}</div>'
                 '<p class="op-d">Única função objetivo implementada no motor V1.6 (sem seletor multiobjetivo). Termos '
@@ -342,7 +373,9 @@ def _live(store, run_uid: str) -> None:
                 f'{_pill("Em execução", "info")}</div><p class="op-d">Cenário v{run.scenario_version} · iniciada '
                 f'{escape(shell.fmt_time(run.created_at))}. A execução continua no servidor mesmo que esta página seja '
                 'recarregada ou fechada.</p>')
-        if phase == "otimizador" and p.get("n"):
+        if _is_v2_run(run):
+            _v2().progresso(run)
+        elif phase == "otimizador" and p.get("n"):
             k, n = int(p.get("k", 0)), int(p["n"])
             st.progress(min(k / n, 1.0), text=f"{PHASES['otimizador']} · passo {k} de {n}")
         else:
@@ -367,8 +400,9 @@ def _history(store, cur, *, all_scenarios: bool) -> None:
     for r in runs:
         s = r.summary or {}
         c1, c2 = st.columns([5, 1.1], vertical_alignment="center")
-        cost = f"R$ {forms.fmt(s.get('custo_total_rs'), 2)}" if r.state == "concluida" else ""
-        uns = f" · não atendida {forms.fmt(s.get('energia_nao_atendida_kWh'), 2, 'kWh')}" if r.state == "concluida" else ""
+        cost = run_cost_text(r)
+        uns = (f" · não atendida {forms.fmt(s.get('energia_nao_atendida_kWh'), 2, 'kWh')}"
+               if r.state == "concluida" and not _is_v2_run(r) else "")
         who = f"{escape(names.get(r.scenario_uid, ''))} " if all_scenarios else ""
         c1.html(f'<div class="op-row" style="justify-content:flex-start;gap:.6rem">'
                 f'{_pill(contracts.RUN_STATE_LABELS[r.state], STATE_TONE[r.state])}'
@@ -389,8 +423,10 @@ def render_execution(store, cur) -> None:
     doc = oc.work()
     dirty = oc.is_dirty()
     shell.hero("Execução do cenário", doc["name"],
-               "Seleção da janela, verificação científica de compatibilidade e rodada EMS (modelos físicos → contrato → "
-               "otimizador V1.6). Cada rodada é imutável e fica gravada nesta microrrede.",
+               "Seleção da janela, verificação científica de compatibilidade e rodada EMS ("
+               + ("motor V2 experimental MILP–MPC: preflight V2 → HiGHS → auditoria independente"
+                  if _is_v2_doc(doc) else "modelos físicos → contrato → otimizador V1.6")
+               + "). Cada rodada é imutável e fica gravada nesta microrrede.",
                [("Cenário (editável)", f"v{cur.version}" + (" · alterações não salvas" if dirty else "")),
                 ("Inventário de referência", f"rev. {doc['inventory_ref']['config_revision']}"),
                 ("Rodadas deste cenário", str(len(store.list_runs(cur.scenario_uid, limit=1000))))])
@@ -403,6 +439,12 @@ def render_execution(store, cur) -> None:
         shell.callout(f"Há <b>alterações não salvas</b> neste cenário. A verificação e a execução usam sempre a versão "
                       f"<b>salva</b> v{cur.version}: salve para incluir as alterações.", "warn")
     oc._save_bar(store, cur, I.summarize(S.findings(doc)))
+    if _is_v2_doc(cur.document):                      # Piso 3D-A: preflight e runner PRÓPRIOS do motor V2 (versão salva)
+        _v2().render_execucao(store, cur, dirty, _active_run(store), _live)
+        st.markdown('<div class="sd-section">Rodadas registradas</div>', unsafe_allow_html=True)
+        every = st.toggle("Mostrar rodadas de todos os cenários desta microrrede", key="op_ex_all")
+        _history(store, cur, all_scenarios=every)
+        return
     try:
         pf = preflight(store, cur)
     except StoreError as exc:
@@ -479,6 +521,7 @@ def render_run(store, cur) -> None:
                [("Estado", contracts.RUN_STATE_LABELS[run.state]), ("Rodada", run.run_uid),
                 ("Iniciada", shell.fmt_time(run.created_at)), ("Finalizada", shell.fmt_time(run.finished_at) or "—"),
                 ("Inventário", f"rev. {run.config_revision} · {run.config_fingerprint[:10]}…"),
+                ("Motor · MILP–MPC hierárquico", str((m.get("engine") or {}).get("id"))) if _is_v2_run(run) else
                 ("Algoritmo", f"{eng.get('algoritmo', (m.get('strategy') or {}).get('algorithm'))} · N = "
                               f"{(m.get('strategy') or {}).get('N')}")])
     if cur is not None and cur.scenario_uid == run.scenario_uid and cur.version != run.scenario_version:
@@ -493,6 +536,9 @@ def render_run(store, cur) -> None:
 def run_results(source, run, *, key: str) -> None:
     """Resultados de uma rodada FINALIZADA lidos de ``source`` (``MicrogridStore`` da microrrede ou, no Piso 2D-A, um
     estudo arquivado — mesmo contrato ``run_data``). Nunca chama modelos nem o otimizador. ``key`` prefixa os widgets."""
+    if _is_v2_run(run):                               # Piso 3D-A: leitura da evidência do motor V2 (sem otimizador)
+        _v2().run_results(source, run, key=key)
+        return
     m = run.manifest
     if run.state != "concluida":
         err = run.error or {}
@@ -562,4 +608,4 @@ def _provenance(run) -> None:
 
 
 __all__ = ["TAB_EXEC", "TAB_RUN", "TAB_STRATEGY", "clear_state", "open_run", "preflight", "render_execution", "render_run",
-           "render_strategy", "run_results", "stage_state"]
+           "render_strategy", "run_cost_text", "run_results", "stage_state"]

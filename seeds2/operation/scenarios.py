@@ -24,6 +24,10 @@ Estrutura::
      "ems_strategy": None | {...},   # Piso 2C — strategy.default_strategy() (opções existentes do motor V1.6)
      "mission": None | {...},        # Piso 2C — janela da missão (strategy.default_mission); chave opcional:
                                      #   documentos anteriores ao 2C não a têm (= None) e mantêm a impressão digital
+     "engine": "legacy_v16" | "milp_mpc_v1",   # Piso 3D-A — motor das rodadas; chave OPCIONAL (ausente = V1.6:
+                                     #   documentos anteriores mantêm a impressão digital; nunca há troca implícita)
+     "milp_mpc": {...},              # Piso 3D-A — estratégia declarativa do motor V2 experimental (chave opcional;
+                                     #   esquema e validação em ``integracao_v2.estrategia``)
      "lineage": {"created_at": iso, "duplicated_from": None | {"scenario_uid", "version", "name"}}}
 """
 from __future__ import annotations
@@ -163,7 +167,24 @@ def structural_errors(doc: Any) -> list[str]:
     errs += contracts.forecast_errors(doc.get("forecasts"))
     errs += SG.strategy_errors(doc.get("ems_strategy"))       # Piso 2C (None = ainda não definida)
     errs += SG.mission_errors(doc.get("mission"))
+    errs += _engine_errors(doc)                               # Piso 3D-A (chaves opcionais; ausentes = motor V1.6)
     return errs
+
+
+def _engine_errors(doc: dict) -> list[str]:
+    """Seleção de motor e estratégia MILP–MPC (Piso 3D-A). Documentos sem essas chaves não são tocados (nem a camada
+    de integração é importada)."""
+    if doc.get("engine") is None and doc.get("milp_mpc") is None:
+        return []
+    from integracao_v2 import estrategia as E2
+
+    return E2.erros_documento(doc)
+
+
+def engine(doc: dict) -> str:
+    """Motor das rodadas do cenário: ``legacy_v16`` (chave ausente) ou ``milp_mpc_v1`` (seleção explícita)."""
+    v = doc.get("engine") if isinstance(doc, dict) else None
+    return "legacy_v16" if v is None else str(v)
 
 
 def findings(doc: dict) -> list[I.Finding]:
@@ -258,12 +279,17 @@ def rebase(doc: dict, current_config: dict, revision: int, fingerprint: str) -> 
 STAGES = (
     ("inicializacao", "Inicialização", "Estados iniciais dos equipamentos"),
     ("previsoes", "Previsões", "Demanda e clima: perfis manuais, CSV, sintéticos ou de referência"),
-    ("estrategia", "Estratégia EMS", "Função objetivo, algoritmo, horizonte N e parâmetros do motor V1.6"),
+    ("estrategia", "Estratégia EMS", "Motor V1.6 (função objetivo, algoritmo, horizonte N) ou motor V2 experimental "
+                                     "MILP–MPC (declarações com procedência)"),
     ("execucao", "Execução", "Janela da missão, verificação de compatibilidade, rodada EMS e resultados gravados"),
 )
 
 
 def strategy_status(doc: dict) -> tuple[str, str, str]:
+    if engine(doc) != "legacy_v16":
+        from integracao_v2 import estrategia as E2
+
+        return E2.status_estrategia(doc)
     s = doc.get("ems_strategy")
     if s is None:
         return "warn", "Não definida", "defina e salve os parâmetros do otimizador"
@@ -309,5 +335,5 @@ def readiness(doc: dict, fs: list[I.Finding], d: Drift | None) -> dict:
 
 
 __all__ = ["Drift", "SCHEMA", "SCHEMA_VERSION", "STAGES", "ScenarioValidationError", "check_for_save", "drift", "duplicate",
-           "equipment_fingerprint", "findings", "inventory_fingerprint", "inventory_reference", "new_scenario",
+           "engine", "equipment_fingerprint", "findings", "inventory_fingerprint", "inventory_reference", "new_scenario",
            "execution_status", "readiness", "rebase", "strategy_status", "structural_errors"]

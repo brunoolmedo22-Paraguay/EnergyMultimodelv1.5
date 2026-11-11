@@ -141,6 +141,12 @@ def prepare(store, stored) -> Preflight:
     if store.incarnation is not None and mg.get("incarnation") not in (None, store.incarnation):
         pf.add(ERROR, "cenario", "O cenário foi definido para outra incarnação desta microrrede.")
         return pf
+    # ---- Piso 3D-A: um cenário que seleciona o motor V2 NUNCA é executado pelo motor V1.6 (sem recaída silenciosa)
+    if S.engine(doc) != "legacy_v16":
+        pf.add(ERROR, "estrategia", f"Este cenário seleciona o motor '{S.engine(doc)}' (EMS V2 experimental MILP–MPC): a "
+               "execução pelo motor V1.6 é recusada. Use a execução do motor V2 (etapa 04) ou selecione o motor V1.6 e "
+               "salve uma nova versão do cenário.")
+        return pf
     # ---- revisão do inventário de referência (imutável)
     ref = doc["inventory_ref"]
     try:
