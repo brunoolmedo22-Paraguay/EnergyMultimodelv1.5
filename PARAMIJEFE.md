@@ -2945,3 +2945,57 @@ focalizadas, tests adversariales y evidencia reproducible. Todo se publica en el
 **Regresión sobre el código final** (`d0bee62`; luego solo documentación): con solver **2229 passed, 2 skipped**, 9 warnings (885 s); sin solver **1736 passed, 150 skipped**, 9 warnings (578 s); 0 fallos (las 2 omitidas con solver son las auditorías explícitas de diff condicionadas por variable).
 
 **Decisiones nuevas a confirmar:** C-3DA2H-08 a C-3DA2H-11 (`docs/ems_v2/INTEGRACAO_3DA2H.md` §9).
+
+### Entrega 15 — addendum 2: decisión del responsable sobre el PR #23 y verificaciones finales — 2026-11-11
+
+**Decisiones del responsable.**
+
+- **B04 aprobada:** política `b04-proposta-2`, en commit independiente y auditable `8be5de4`.
+  - Solo cambia la situación, en `ems_v2/contracts.py` y `integracao_v2/curva_h2.py`. Umbrales, identidad
+    `412863021aee…` y versión quedan iguales.
+  - Alcance: certificación MATEMÁTICA de la PWL frente al modelo PEMFC existente. No es validación experimental del
+    modelo Horizon ni certificación de operación física.
+  - Cada curva sigue sujeta a su propia verificación B04, con criterios recalculados por el núcleo.
+- **Aprobadas con alcance delimitado:** C-3DA2H-02 a 05 y 08 a 11.
+
+**Verificación A — masas adicionales en malla densa** (`tests/verificacao_massas_3da2h.py`, independiente de la rutina
+del preflight). Método:
+
+- intervalos COMPLETOS de 60 min en secuencias continuas;
+- integración propia;
+- malla de 0,5 kW y pares cada 2,5 kW;
+- 6 configuraciones físicas admisibles.
+
+| Caso | Resultado |
+|---|---|
+| Arranques, paradas y rampas de subida | nunca subestiman (residuos ≤ 2·10⁻¹³ kg = redondeo) |
+| Rampas de BAJADA en operación continua | SUBESTIMACIÓN encontrada: hasta 0,0044 kg por rampa (≤ 0,72 % de la masa del intervalo); peor caso siempre P_máx → P_mín, igual al del análisis a priori y dentro de la tolerancia |
+
+- No se declara garantía global de no subestimación.
+- La subestimación no proviene de las masas por evento sino de la ausencia de un término de rampa en el MILP. Corregirla
+  exigiría cambiar la formulación (no autorizado); una constante arbitraria está prohibida.
+- Ahora se informa por corrida (documento dinámico, resumen, interfaz) y se recalcula en la reapertura.
+- **Nueva decisión C-3DA2H-12:** aceptarla como residuo identificado o autorizar un término de rampa.
+
+**Verificación B — flujo completo con B04 REALMENTE aprobada.** Sin `politica_aprovada_no_teste` (eliminada) ni
+`sitecustomize` de autorización. Microrred FV + eólica + batería + PEMFC + PCC configurada desde Streamlit.
+
+| Fase | Verificaciones |
+|---|---|
+| Banco | 6 |
+| Flujo: declaraciones por la interfaz, preflight normal, misión HiGHS, corrida con aceptación coherente | 20 |
+| Reapertura tras reiniciar, SIN solver y con modelos saboteados; corridas legadas v1/v2 legibles | 16 |
+| Comprobación cuantitativa (balance, despacho, H₂, costos, aceptación, B04) | 18 |
+
+Registro de llamadas al motor y a los modelos: VACÍO.
+
+**Resultado de la misión:**
+
+| Indicador | Valor |
+|---|---|
+| Costo | R$ 116,02 (H₂ R$ 65,72) |
+| PEMFC | 100,54 kWh; 6,5717 kg de H₂ |
+| Dinámica | coherente |
+| Mayor subestimación de H₂ en un intervalo | 0,0006 kg |
+
+**Regresión sobre el código final** (`0058902`; luego solo documentación): en ejecución al cierre de este commit (resultado en el commit siguiente).
