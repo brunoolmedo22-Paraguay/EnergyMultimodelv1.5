@@ -626,7 +626,8 @@ class ResultadoProjecao3C1:
 
 
 def montar_entrada_3c1(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPrevisao, dt: DefinicaoTemporal,
-                       pol: PoliticasDeclaradas, decl: DeclaracaoCommitment3C1, *, contexto: str = "operacional"
+                       pol: PoliticasDeclaradas, decl: DeclaracaoCommitment3C1, *, contexto: str = "operacional",
+                       curvas_h2: dict | None = None, massas_h2_eventos: dict | None = None
                        ) -> tuple[EntradaCommitment3C1 | None, tuple[Constatacao, ...], ResultadoProjecao]:
     c: list[Constatacao] = []
     if pol.versao_formulacao != FORMULACAO_3BP:
@@ -676,7 +677,8 @@ def montar_entrada_3c1(inv: InventarioMicrorrede, cen: CenarioEMS, prev: Conjunt
             continue
         usadas[k] = cu
         estados[k] = EstadoGerador(r, cu.estado_discreto == "em_operacao", cu.potencia_kW)
-    proj = montar_entrada(inv, cen, prev, dt, pol, contexto=contexto, estados_por_unidade=estados, perfil=FORMULACAO_3C1)
+    proj = montar_entrada(inv, cen, prev, dt, pol, contexto=contexto, estados_por_unidade=estados, perfil=FORMULACAO_3C1,
+                          curvas_h2=curvas_h2)                       # curvas_h2: C-3DA2H-01 (None = inalterado)
     c += list(proj.constatacoes)
     termos = frozenset(pol.objetivo.termos) | frozenset(decl.termos_adicionais)
     if proj.entrada is None:
@@ -684,7 +686,8 @@ def montar_entrada_3c1(inv: InventarioMicrorrede, cen: CenarioEMS, prev: Conjunt
     from .requisitos import matriz_parametros
     mat = matriz_parametros(inv, termos=termos, contexto=contexto, perfil=FORMULACAO_3C1)
     from .requisitos import constatacoes as constatacoes_matriz
-    c += [x for x in constatacoes_matriz(mat) if x not in c]
+    from .projecao import sem_curva_declarada
+    c += [x for x in sem_curva_declarada(constatacoes_matriz(mat), curvas_h2) if x not in c]
     unidades, memorias = [], []
     for d, r in gers:
         k = str(r)
@@ -703,11 +706,16 @@ def montar_entrada_3c1(inv: InventarioMicrorrede, cen: CenarioEMS, prev: Conjunt
             rampa = replace(rampa, procedencia=replace(rampa.procedencia, observacoes=(
                 (rampa.procedencia.observacoes or "") + " · rampa única do inventário aplicada à subida E à descida "
                 "(interpretação do campo 'Rampa máxima')").strip(" ·"))) if rampa.procedencia else rampa
+        # C-3DA2H-01: massas de H₂ por evento declaradas por quem integra (None = comportamento INALTERADO); só onde a
+        # adenda B05 as exige (PEMFC que transita com o termo combustivel_h2)
+        m_ev = (massas_h2_eventos or {}).get(d.uid) if (d.tipo == "pemfc" and abst == "instantanea_unidade_quente"
+                                                       and "combustivel_h2" in termos) else None
         unidades.append(EspecCommitmentUnidade(
             r, abst, lim, rampa, rampa, _par3c1(mat, d.uid, "t_on_min"), _par3c1(mat, d.uid, "t_off_min"),
             custo_partida=_par3c1(mat, d.uid, "C_SU") if "eventos" in termos else None,
             custo_parada=_par3c1(mat, d.uid, "C_SD") if "eventos" in termos else None,
-            justificativa_abstracao=decl.justificativa))
+            justificativa_abstracao=decl.justificativa,
+            **({} if m_ev is None else {"massa_h2_partida_kg": m_ev[0], "massa_h2_parada_kg": m_ev[1]})))
         cu = usadas.get(k)
         tempo = cu.tempo_no_estado_s if cu is not None else None
         st = estados.get(k)

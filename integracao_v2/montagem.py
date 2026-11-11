@@ -69,7 +69,11 @@ FIXOS = {
                            "cenário; média aritmética das subamostras por intervalo; base 'antes_da_disponibilidade'",
     "realizacao_renovavel": "igual ao potencial previsto (mesmo modelo, mesmo clima: sem erro de previsão renovável)",
     "latencia_observacao_s": 0,
-    "geradores_despachaveis": "nenhum (PEMFC e térmica não são representáveis nos Pisos 3D-A/3D-A2-R)",
+    "geradores_despachaveis": "PEMFC (3D-A2-H): commitment 3C-1 por unidade, variante INSTANTÂNEA; curva q(P) do modelo "
+                              "físico com certificado B04 verificado; térmica NÃO representável (M19)",
+    "disponibilidade_geradores_execucao": "estatica_declarada = 1 por unidade (disponível no cenário)",
+    "verificacao_dinamica_pemfc": "consignas aplicadas avaliadas A POSTERIORI pelo Equivalent65kWHorizonDynamicModel nas "
+                                  "condições declaradas; não altera o despacho nem a planta",
 }
 JUST_PERMANENCIA = "Missão 3D-A sem geradores despacháveis: nenhuma permanência a cumprir"
 JUST_TERMINAL = "Missão 3D-A: janela reduzida ao fim da missão (nenhuma previsão pós-missão é usada)"
@@ -130,6 +134,8 @@ class Montagem:
     bases: dict = field(default_factory=dict)       # provedor: {uid: base_potencial}
     clima: object | None = None                     # renovaveis.Clima (alinhado à malha)
     doc_renovaveis: dict | None = None              # conteúdo de v2/renovaveis.json (comprometido antes da execução)
+    pemfc: dict = field(default_factory=dict)       # eq-… → {"curva": CurvaH2, "certificado", "hash_certificado", …}
+    doc_pemfc: dict | None = None                   # conteúdo de v2/pemfc.json (comprometido antes da execução)
 
 
 # ------------------------------------------------------------------------------------------------ procedências
@@ -149,6 +155,9 @@ def inventario_efetivo(inv: IV.InventarioMicrorrede, bloco: dict, stored, exclui
         if d.tipo in ("pv_arranjo", "eolica"):
             d = _renovavel_efetivo(d, bloco, stored)
             novos.append(d)
+            continue
+        if d.tipo == "pemfc":
+            novos.append(_pemfc_efetivo(d, bloco, stored))
             continue
         decl = bloco["baterias"].get(d.uid) if d.tipo == "bateria" else None
         if decl is not None and E.procedencia_declarada(decl["procedencia"]):
@@ -175,6 +184,30 @@ def inventario_efetivo(inv: IV.InventarioMicrorrede, bloco: dict, stored, exclui
     return replace(inv, modo_operacao="isolada", dispositivos=tuple(novos), observacoes=obs)
 
 
+CHAVES_PEMFC = {   # campo da estratégia → (chave do inventário lida pela ponte 3C-0/3C-1, unidade da chave)
+    "p_min_kW": ("pmin_kW", "kW"), "rampa_kW_min": ("ramp_kW_min", "kW/min"), "t_on_min": ("t_on_min", "min"),
+    "t_off_min": ("t_off_min", "min"), "custo_partida_R": ("startup_cost_rs", "R$"),
+    "custo_parada_R": ("shutdown_cost_rs", "R$"), "preco_h2_R_kg": ("preco_h2", "R$/kg"),
+}
+
+
+def _pemfc_efetivo(d, bloco: dict, stored):
+    """Acrescenta ao registro PEMFC as declarações do cenário que a ponte lê do inventário (P_min, rampa, T_on/T_off,
+    custos por evento, preço do H₂), com procedência por campo. A curva NÃO é declarada: vem do modelo (preflight)."""
+    decl = (bloco.get("pemfc") or {}).get(d.uid)
+    if decl is None or not E.procedencia_declarada(decl["procedencia"]):
+        return d
+    sint = decl["procedencia"]["tipo"] == "sintetico"
+    vals = list(d.valores)
+    for campo, (chave, un) in CHAVES_PEMFC.items():
+        if decl.get(campo) is None:
+            continue
+        cam = f"pemfc.{d.uid}.{campo}"
+        vals.append(IV.ValorInventario(chave, un, f"{E.CHAVE_BLOCO}.{cam}", "sintetico" if sint else "cenario",
+                                       proc_declarada(decl["procedencia"], cam, stored), numero=float(decl[campo])))
+    return replace(d, valores=tuple(vals))
+
+
 def _renovavel_efetivo(d, bloco: dict, stored):
     """Acrescenta o custo de vertimento DECLARADO (só com o termo no objetivo) ao arranjo FV (declaração da usina-mãe) ou
     ao registro eólico. Nenhum outro valor é acrescentado: o potencial vem do modelo físico, não de declaração."""
@@ -198,20 +231,46 @@ def serie(grandeza: str, t: Tempo, valores, proc: Procedencia, emissao: str | No
                          fronteira="barramento_liquido" if grandeza == "potencia" else None, emissao_utc=emissao)
 
 
-def politicas(bloco: dict, proc: Procedencia) -> PJ.PoliticasDeclaradas:
+def politicas(bloco: dict, proc: Procedencia, *, com_geradores: bool = False) -> PJ.PoliticasDeclaradas:
     d = bloco["demanda"]
+    termos = tuple(t for t in bloco["objetivo"]["termos"] if t != "eventos")      # "eventos" é termo do 3C-1
     return PJ.PoliticasDeclaradas(
         FORMULACAO_3BP, PoliticaServico("duro", proc),
         PoliticaTerminal("nenhuma", "Núcleo 3B-P sem termo terminal próprio: o tratamento terminal é o termo declarado "
                                     "do embrulho 3C-4 (sinal de valor futuro ou degradação declarada)", proc),
-        PoliticaObjetivo(tuple(bloco["objetivo"]["termos"]), proc, None),
-        (PJ.ClasseDemandaDeclarada(UID_DEMANDA, str(d["nome"]).strip(), d["criticidade"]),), None, proc)
+        PoliticaObjetivo(termos, proc, "instantanea" if "combustivel_h2" in termos else None),
+        (PJ.ClasseDemandaDeclarada(UID_DEMANDA, str(d["nome"]).strip(), d["criticidade"]),),
+        "instantanea" if com_geradores else None, proc)
 
 
-def declaracao_commitment(inv_ef, cen, proc: Procedencia) -> DeclaracaoCommitment3C1:
-    return DeclaracaoCommitment3C1(vinculo_do_instantaneo(inv_ef, cen),
-                                   PoliticaPermanenciaTerminal("cumprir_na_janela", JUST_PERMANENCIA, proc), (), {}, {},
-                                   JUST_PERMANENCIA, (), proc)
+def declaracao_commitment(inv_ef, cen, proc: Procedencia, bloco: dict | None = None, stored=None
+                          ) -> DeclaracaoCommitment3C1:
+    """Declaração 3C-1: sem geradores ⇒ a mesma do Piso 3D-A; com PEMFC ⇒ abstração/limites por registro e estado
+    inicial POR UNIDADE declarados na estratégia (nada é distribuído de um agregado)."""
+    from ems_v2.parameters import Parametro
+    from ems_v2.ponte.compromisso import CondicaoInicialUnidade
+    pem = {d.uid: d for d in inv_ef.dispositivos if d.tipo == "pemfc" and d.habilitado}
+    decls = {u: (bloco.get("pemfc") or {}).get(u) for u in pem} if bloco is not None else {}
+    if not pem or not all(decls.values()):
+        return DeclaracaoCommitment3C1(vinculo_do_instantaneo(inv_ef, cen),
+                                       PoliticaPermanenciaTerminal("cumprir_na_janela", JUST_PERMANENCIA, proc), (), {},
+                                       {}, JUST_PERMANENCIA, (), proc)
+    unidades = []
+    for uid, d in pem.items():
+        x = decls[uid]
+        recs = IV.recursos_ems(d)
+        pd_ = proc_declarada(x["procedencia"], f"pemfc.{uid}.unidades", stored)
+        for r, u in zip(recs, x["unidades"]):
+            unidades.append(CondicaoInicialUnidade(
+                str(r), u["estado"], Parametro(float(u["potencia_kW"]), "kW", pd_), int(round(60 * float(u["tempo_no_estado_min"]))),
+                pd_))
+    termos_ad = ("eventos",) if "eventos" in bloco["objetivo"]["termos"] else ()
+    just = ("PEMFC: commitment por unidade com a abstração declarada; a partida física (30 s quente / 600 s fria, IDLE, "
+            "rampas do manual) é avaliada a posteriori pelo modelo dinâmico — a abstração não é validação física")
+    return DeclaracaoCommitment3C1(
+        vinculo_do_instantaneo(inv_ef, cen), PoliticaPermanenciaTerminal("cumprir_na_janela", JUST_PERMANENCIA, proc),
+        termos_ad, {u: decls[u]["abstracao"] for u in pem}, {u: decls[u]["limites_transicao"] for u in pem}, just,
+        tuple(unidades), proc)
 
 
 # ------------------------------------------------------------------------------------------------ PCC e tarifas
@@ -327,12 +386,17 @@ def construir_missao(mont: Montagem, missao_uid: str, stored, *, diretorio=None)
     if mont.modelo.conectado:
         lat.update({(UID_MED_IMP, "potencia"): 0, (UID_MED_EXP, "potencia"): 0})
     canal = CanalObservacao(FONTE_CANAL, lat, 0, Procedencia("sintetico", FONTE_CANAL, "canal de observação simulado"))
+    from ems_v2.ponte.compromisso import FonteDisponibilidadeExecucao
+    fontes = {str(u.uid): FonteDisponibilidadeExecucao(
+        str(u.uid), "estatica_declarada", 1, mont.proc_politicas,
+        "Unidade DISPONÍVEL em toda a missão (disponibilidade estática do cenário; indisponível = excluída do modelo)")
+        for u in mont.modelo.compromisso.unidades}
     entorno = EntornoSimuladoConectado(
         modelo_rede=mont.modelo, politica_ajuste=mont.politica_ajuste, identificador=ID_PLANTA, missao_uid=missao_uid,
-        verdade=mont.verdade, fontes_disponibilidade={}, estado_inicial=estado_inicial_3c1(mont.modelo.compromisso),
+        verdade=mont.verdade, fontes_disponibilidade=fontes, estado_inicial=estado_inicial_3c1(mont.modelo.compromisso),
         canal=canal, inicio_missao_utc=mont.tempo.inicio_utc, delta_s=mont.tempo.delta_s, intervalos_missao=mont.tempo.K)
     ctrl = ControladorMPCHierarquico(
-        cfg, mont.modelo, provedor, ResolvedorMILP3C4(mont.solver), {}, mont.configuracao_rede,
+        cfg, mont.modelo, provedor, ResolvedorMILP3C4(mont.solver), fontes, mont.configuracao_rede,
         mont.configuracao_planejador, ResolvedorPlanejador3C4(mont.solver), identificadores_verdade=(ID_PLANTA,),
         fontes_verdade=(mont.fonte_verdade,), diretorio=diretorio)
     return ctrl, entorno, cfg

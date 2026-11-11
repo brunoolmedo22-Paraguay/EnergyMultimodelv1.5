@@ -126,11 +126,24 @@ def _estado_gerador(uid_rec: UIDRecurso, q: int, ci) -> tuple[EstadoGerador | No
     return EstadoGerador(uid_rec, ligado, ci.potencia_kW), []
 
 
+def sem_curva_declarada(cs, curvas_h2: dict | None) -> list[Constatacao]:
+    """C-3DA2H-01: remove só a constatação de ``curva_h2`` AUSENTE dos registros cuja curva foi declarada."""
+    if not curvas_h2:
+        return list(cs)
+    alvo = {f"dispositivos[{u}].curva_h2" for u in curvas_h2}
+    return [x for x in cs if not (x.codigo == "parametro_obrigatorio_ausente" and x.caminho in alvo)]
+
+
 def montar_entrada(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPrevisao, dt: DefinicaoTemporal,
                    pol: PoliticasDeclaradas, *, contexto: str = "operacional",
                    estados_por_unidade: dict[str, EstadoGerador] | None = None,
-                   perfil: str | None = None) -> ResultadoProjecao:
-    """``estados_por_unidade`` / ``perfil`` (extensão aditiva do 3C-1; ``None`` = comportamento 3C-0 INALTERADO):
+                   perfil: str | None = None, curvas_h2: dict | None = None) -> ResultadoProjecao:
+    """``curvas_h2`` (C-3DA2H-01, extensão aditiva autorizada; ``None`` = comportamento INALTERADO): {UID do registro
+    PEMFC: ``CurvaPWL``} declarada por quem integra — anexada (com o preço c_H da matriz, se houver) a cada unidade do
+    registro; a ausência de ``curva_h2`` NA MATRIZ deixa de bloquear só para esses registros. A curva continua sujeita a
+    ``validar_curva`` (uma curva ``real_certificada_b04`` exige certificado B04 VERIFICADO e registrado).
+
+    ``estados_por_unidade`` / ``perfil`` (extensão aditiva do 3C-1; ``None`` = comportamento 3C-0 INALTERADO):
     estados iniciais POR UNIDADE declarados (chave ``str(UIDRecurso)``, p. ex. ``eq-…#2``) substituem a leitura do
     estado do registro para essas unidades — nunca há distribuição de um estado agregado; ``perfil`` repassa o perfil
     de commitment à matriz de parâmetros (``requisitos.EXIGIDOS_3C1``)."""
@@ -144,7 +157,7 @@ def montar_entrada(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPre
     c += validar_previsao(prev, dt)
     termos = frozenset(pol.objetivo.termos)
     mat = matriz_parametros(inv, termos=termos, contexto=contexto, perfil=perfil)
-    c += constatacoes_matriz(mat)
+    c += sem_curva_declarada(constatacoes_matriz(mat), curvas_h2)
     topo = TOPOLOGIAS_INVENTARIO.get(inv.modo_operacao or "")
     if topo is None:
         c.append(erro("topologia_nao_declarada", "inventario.modo_operacao",
@@ -206,7 +219,11 @@ def montar_entrada(inv: InventarioMicrorrede, cen: CenarioEMS, prev: ConjuntoPre
                     c.append(erro("variante_commitment_nao_declarada", "politicas.variante_commitment",
                                   "Gerador presente: declarar a variante de commitment (sem padrão)."))
                     continue
-                gers.append(EspecGerador(r, d.modelo.tecnologia_ems, pmin, pmax, disp, pol.variante_commitment))
+                if curvas_h2 and d.tipo == "pemfc" and d.uid in curvas_h2:      # C-3DA2H-01
+                    gers.append(EspecGerador(r, d.modelo.tecnologia_ems, pmin, pmax, disp, pol.variante_commitment,
+                                             curvas_h2[d.uid], _par(mat, d.uid, "c_H")))
+                else:
+                    gers.append(EspecGerador(r, d.modelo.tecnologia_ems, pmin, pmax, disp, pol.variante_commitment))
                 if estados_por_unidade is not None and k in estados_por_unidade:
                     egers.append(estados_por_unidade[k])
                     continue

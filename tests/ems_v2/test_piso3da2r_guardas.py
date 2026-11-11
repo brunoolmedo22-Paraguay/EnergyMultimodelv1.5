@@ -41,8 +41,14 @@ def test_politica_e_nominal_e_nao_cobre_diretorios():
 
 @pytest.mark.skipif(not _base_disponivel(), reason="Histórico git sem a base do 3D-A2-R (clone raso)")
 def test_motor_auditado_e_modelos_fisicos_identicos_a_base():
-    for alvo in ("ems_v2", "models", "simulation", "config", "h2_pemfc", "ems_integration"):
+    """Modelos físicos idênticos à base do 3D-A2-R; no núcleo ``ems_v2`` só a alteração NOMINAL autorizada C-3DA2H-01
+    (Piso 3D-A2-H: 4 arquivos, somente modificação — ``piso3da2h_guard_policy.NUCLEO_AUTORIZADO``)."""
+    from piso3da2h_guard_policy import NUCLEO_AUTORIZADO
+    for alvo in ("models", "simulation", "config", "h2_pemfc", "ems_integration"):
         assert _git("rev-parse", f"{P.BASE}:{alvo}") == _git("rev-parse", f"HEAD:{alvo}"), alvo
+    linhas = [ln.split("\t") for ln in _git("diff", "--name-status", "--no-renames", P.BASE, "HEAD", "--", "ems_v2")
+              .splitlines() if ln.strip()]
+    assert all(ln[0] == "M" and ln[1] in NUCLEO_AUTORIZADO for ln in linhas), linhas
 
 
 def test_aplicacao_continua_sem_o_literal_do_motor():

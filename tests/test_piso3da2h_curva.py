@@ -107,7 +107,7 @@ def test_nenhuma_curva_com_parametros_ausentes_ou_incoerentes(cond, pmin, trecho
 
 def test_b04_conformidade_nao_e_certificacao_sem_aprovacao_dos_limiares():
     c = CH.obter_curva(NOMINAL, 10.0)
-    assert CH.POLITICA_B04["situacao"] == "proposta_pendente_de_aprovacao"
+    assert CH.POLITICA_B04["situacao"] == "proposta_congelada_pendente_de_aprovacao"
     assert c.b04["estado"] == "conforme_limiares_pendentes_de_aprovacao" and c.b04["conforme_aos_limiares"]
     assert CH.CLASSIFICACAO_CONTRATO == "real"            # nunca rotulada "sintetica_exata"
     aprovada = dict(CH.POLITICA_B04, situacao="aprovada_pelo_responsavel")
@@ -160,3 +160,49 @@ class BancadaH2CurvaTest(unittest.TestCase):
             specs = [json.loads(c.proto.spec) for c in app.get("plotly_chart")]
             fig = next(s for s in specs if s["layout"].get("title", {}).get("text") == "Consumo de hidrogênio × potência líquida")
             self.assertIn("kg/h", fig["layout"]["yaxis"]["title"]["text"])
+
+
+def test_massa_acumulada_integrada_no_tempo_em_perfis_independentes():
+    c = CH.obter_curva(NOMINAL, 10.0)
+    nomes = {x["nome"] for x in c.perfis}
+    assert {"carga_parcial_25", "carga_parcial_50", "carga_parcial_75", "nominal_pmax", "despacho_degraus_15min",
+            "despacho_continuo_senoidal"} <= nomes
+    for x in c.perfis:
+        assert x["passo_h"] == pytest.approx(1 / 60) and len(x["potencias_kW"]) == len(x["vazoes_modelo_kg_h"])
+        mm = sum(v * x["passo_h"] for v in x["vazoes_modelo_kg_h"])            # kg = Σ (kg/h)·h
+        assert x["massa_modelo_kg"] == pytest.approx(mm, rel=1e-12)
+        mp = sum(float(c.q_pwl([p])[0]) * x["passo_h"] for p in x["potencias_kW"])
+        assert x["massa_pwl_kg"] == pytest.approx(mp, rel=1e-12)
+        assert x["erro_massa_rel"] <= CH.POLITICA_B04["erro_massa_temporal_rel_max"]
+    nom = next(x for x in c.perfis if x["nome"] == "nominal_pmax")
+    assert nom["massa_modelo_kg"] == pytest.approx(c.metricas["q_pmax_kg_h"] * 4.0, rel=1e-12)   # 4 h a P_max
+    assert "erro_integral_dominio_potencia_rel" in c.metricas      # ∫q dP: métrica sobre o DOMÍNIO, não massa
+
+
+def test_generalizacao_em_condicoes_nao_usadas_para_os_limiares():
+    res = CH.avaliar_generalizacao()
+    assert len(res) == len(CH.CONDICOES_GENERALIZACAO) >= 5
+    assert all(r["conforme"] for r in res), res
+    assert len({round(r["p_max_kW"], 6) for r in res}) > 1                 # condições realmente diferentes
+
+
+def test_certificado_do_nucleo_so_registra_com_politica_aprovada():
+    from ems_v2 import contracts as K
+    c = CH.obter_curva(NOMINAL, 10.0)
+    h, cs = K.registrar_certificado_b04(CH.certificado_b04(c))
+    assert {x.codigo for x in cs} == {"politica_b04_nao_aprovada"} and K.certificado_b04_registrado(h) is None
+    aprovada = dict(CH.POLITICA_B04, situacao=K.SITUACAO_B04_APROVADA)        # aprovação SIMULADA (teste)
+    h2, cs2 = K.registrar_certificado_b04(CH.certificado_b04(c, aprovada))
+    assert cs2 == [] and K.certificado_b04_registrado(h2).vertices == c.vertices
+
+
+def test_valores_do_modelo_no_certificado_sao_reverificados_contra_o_modelo():
+    import copy
+    c = CH.obter_curva(NOMINAL, 10.0)
+    assert CH.verificar_contra_modelo(c.doc()) == []
+    d = copy.deepcopy(c.doc())
+    d["validacao"]["q_modelo_kg_h"][7] *= 1.0001                           # valor "do modelo" fabricado
+    assert CH.verificar_contra_modelo(d)
+    d = copy.deepcopy(c.doc())
+    d["perfis_temporais"][4]["vazoes_modelo_kg_h"][3] *= 0.999
+    assert any("despacho_degraus_15min" in x for x in CH.verificar_contra_modelo(d))

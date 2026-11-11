@@ -59,7 +59,7 @@ def test_novo_bloco_tem_secoes_de_renovaveis_vazias_e_formato_1_continua_legivel
     doc = SV.create(store, name="x").document
     b = E.novo_bloco(doc)
     ids = R.ids(doc)
-    assert b["format_version"] == 2 and b["clima"] == {"semantica": None, "emissao_utc": None}
+    assert b["format_version"] == E.FORMATO >= 2 and b["clima"] == {"semantica": None, "emissao_utc": None}
     assert set(b["renovaveis"]) == {ids["fv"], ids["eolica"]}
     assert b["renovaveis"][ids["fv"]]["eta_conversao_barramento"] is None            # nenhum valor físico presumido
     assert b["renovaveis"][ids["eolica"]]["hipotese_densidade"] is None
@@ -67,12 +67,15 @@ def test_novo_bloco_tem_secoes_de_renovaveis_vazias_e_formato_1_continua_legivel
     cams = {c for c, _ in E.pendencias(b, doc)}
     assert {"clima.semantica", "clima.emissao_utc", f"renovaveis.{ids['fv']}.eta_conversao_barramento",
             f"renovaveis.{ids['eolica']}.hipotese_densidade", f"renovaveis.{ids['fv']}.procedencia"} <= cams
-    v1 = {k: v for k, v in copy.deepcopy(b).items() if k not in ("clima", "renovaveis")}
+    v1 = {k: v for k, v in copy.deepcopy(b).items() if k not in ("clima", "renovaveis", "pemfc")}
     v1["format_version"] = 1                                                      # bloco gravado pelo Piso 3D-A
     assert E.erros_estruturais(v1, doc) == []
     assert ("renovaveis" in {c for c, _ in E.pendencias(v1, doc)})                # renováveis participantes ⇒ pendente
+    v2 = {k: v for k, v in copy.deepcopy(b).items() if k != "pemfc"}
+    v2["format_version"] = 2                                                  # bloco gravado pelo Piso 3D-A2-R
+    assert E.erros_estruturais(v2, doc) == []
     up = E.atualizar_bloco(v1, doc)
-    assert up["format_version"] == 2 and set(up["renovaveis"]) == set(b["renovaveis"])
+    assert up["format_version"] == E.FORMATO and set(up["renovaveis"]) == set(b["renovaveis"])
 
 
 def test_valores_fora_do_dominio_e_declaracao_orfa_sao_erros_estruturais(tmp_path):

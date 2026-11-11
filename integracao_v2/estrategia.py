@@ -52,8 +52,8 @@ from ems_v2.rede.contrato import MODOS_CONEXAO, REMUNERACOES_EXPORTACAO, SENTIDO
 from ems_v2.rede.execucao import TIPOS_AJUSTE
 from ems_v2.timegrid import ler_instante_utc
 
-FORMATO = 2                                           # 2 = Piso 3D-A2-R (clima + renováveis); 1 = Piso 3D-A
-FORMATOS_LEGIVEIS = (1, 2)
+FORMATO = 3                                           # 3 = 3D-A2-H (PEMFC); 2 = 3D-A2-R (clima + renováveis); 1 = 3D-A
+FORMATOS_LEGIVEIS = (1, 2, 3)
 MOTOR_V16 = "legacy_v16"
 MOTOR_V2 = MOTOR_ID                                   # "milp_mpc_v1"
 CHAVE_MOTOR, CHAVE_BLOCO = "engine", "milp_mpc"
@@ -94,6 +94,31 @@ HIPOTESES_DENSIDADE = {
                               "temperatura/pressão previstas NÃO são usadas",
 }
 TECNOLOGIAS_RENOVAVEIS = {"pv": "fv", "wind": "eolica"}       # kind do inventário → tecnologia do contrato 3A
+# ---- Piso 3D-A2-H: PEMFC (curva do modelo físico; commitment 3C-1 por unidade; nada tem valor padrão)
+TERMOS_BASE["combustivel_h2"] = ("Custo do H₂ SUPRIDO: c_H [R$/kg] × q(P) [kg/h] × h — q = curva do modelo físico "
+                                 "(PWL certificada); obrigatório com PEMFC participante (sem preço zero presumido)")
+TERMOS_BASE["eventos"] = "Custos por evento de partida/parada C_SU·y + C_SD·z [R$/evento] (commitment 3C-1)"
+CONDICOES_PEMFC = {
+    "temperatura_stack_K": ("Temperatura de operação do STACK", "K"),
+    "pressao_anodo_kPag": ("Pressão do ânodo (manométrica)", "kPa(g)"),
+    "pressao_catodo_kPag": ("Pressão do cátodo (manométrica)", "kPa(g)"),
+    "pressao_ambiente_kPa": ("Pressão ambiente (absoluta)", "kPa"),
+}
+CAMPOS_PEMFC = {      # campo: (rótulo, unidade, domínio)
+    "p_min_kW": ("Potência mínima técnica por unidade (ON)", "kW", "positivo"),
+    "rampa_kW_min": ("Rampa máxima (aplicada à subida E à descida pela ponte 3C-1)", "kW/min", "positivo"),
+    "t_on_min": ("Tempo mínimo em operação", "min", "nao_negativo"),
+    "t_off_min": ("Tempo mínimo em repouso", "min", "nao_negativo"),
+    "temperatura_ambiente_C": ("Temperatura AMBIENTE (só o modelo dinâmico: durações de partida/parada)", "°C", "real"),
+    "preco_h2_R_kg": ("Preço do hidrogênio", "R$/kg", "nao_negativo"),
+    "custo_partida_R": ("Custo por partida", "R$/evento", "nao_negativo"),
+    "custo_parada_R": ("Custo por parada", "R$/evento", "nao_negativo"),
+}
+ABSTRACOES_PEMFC = {"instantanea_unidade_quente": "OFF↔ON dentro de UM intervalo (abstração DECLARADA; a partida física "
+                                                  "é avaliada a posteriori pelo modelo dinâmico)",
+                    "transicoes_bloqueadas": "Estado inicial mantido em toda a missão (nenhuma partida/parada)"}
+LIMITES_PEMFC = {"rampa_convencional": "S⁺ := R·Δ e S⁻ := R·Δ (a ponte 3C-1 não transporta S⁺/S⁻ declarados)"}
+ESTADOS_UNIDADE = {"desligada": "Desligada", "em_operacao": "Em operação"}
 CAMPOS_RENOVAVEL = {
     "fv": {"eta_conversao_barramento": ("Conversão CC → barramento η (o modelo FV não representa inversor/MPPT)", "1",
                                         "eficiencia")},
@@ -141,6 +166,9 @@ _CHAVES = {
     "eolica": {"tecnologia", "hipotese_densidade", "custo_curtailment_R_kWh", "procedencia"},
 }
 _CHAVES["2"] = _CHAVES[""] | {"clima", "renovaveis"}
+_CHAVES["3"] = _CHAVES["2"] | {"pemfc"}
+_CHAVES["pemfc"] = {"condicoes", "abstracao", "limites_transicao", "unidades", "procedencia"} | set(CAMPOS_PEMFC)
+_CHAVES["unidade_pemfc"] = {"estado", "potencia_kW", "tempo_no_estado_min"}
 
 
 # ------------------------------------------------------------------------------------------------ seleção do motor
@@ -172,6 +200,30 @@ def renovaveis_participantes(doc: dict) -> dict[str, dict]:
             if (ini.get(eid) or {}).get("availability") != "indisponivel"}
 
 
+def pemfc_do_cenario(doc: dict) -> dict[str, dict]:
+    """Registros PEMFC HABILITADOS na revisão do inventário referenciada pelo cenário."""
+    eqs = ((doc.get("inventory_ref") or {}).get("equipment") or {}) if isinstance(doc, dict) else {}
+    return {eid: r for eid, r in sorted(eqs.items(), key=lambda kv: kv[1].get("position", 0))
+            if isinstance(r, dict) and r.get("kind") == "pemfc" and r.get("enabled", True)}
+
+
+def pemfc_participantes(doc: dict) -> dict[str, dict]:
+    ini = ((doc.get("initialization") or {}).get("equipment") or {}) if isinstance(doc, dict) else {}
+    return {eid: r for eid, r in pemfc_do_cenario(doc).items() if (ini.get(eid) or {}).get("availability") != "indisponivel"}
+
+
+def _quantidade(ref: dict) -> int:
+    q = ref.get("quantity")
+    return q if isinstance(q, int) and not isinstance(q, bool) and q >= 1 else 1
+
+
+def _pemfc_vazia(ref: dict) -> dict:
+    return {"condicoes": {k: None for k in CONDICOES_PEMFC}, **{k: None for k in CAMPOS_PEMFC}, "abstracao": None,
+            "limites_transicao": None,
+            "unidades": [{"estado": None, "potencia_kW": None, "tempo_no_estado_min": None} for _ in range(_quantidade(ref))],
+            "procedencia": {"tipo": None, "fonte": ""}}
+
+
 def _renovavel_vazia(kind: str) -> dict:
     tec = TECNOLOGIAS_RENOVAVEIS[kind]
     base = {"tecnologia": tec, "custo_curtailment_R_kWh": None, "procedencia": {"tipo": None, "fonte": ""}}
@@ -187,12 +239,17 @@ def atualizar_bloco(b: dict, doc: dict) -> dict:
     (nada é preenchido); renováveis do inventário ainda sem declaração ganham uma entrada vazia."""
     n = copy.deepcopy(b)
     if n.get("format_version") == 1:
-        n["format_version"] = FORMATO
         n["clima"] = {"semantica": None, "emissao_utc": None}
         n["renovaveis"] = {}
+    if n.get("format_version") in (1, 2):
+        n["format_version"] = FORMATO
+        n["pemfc"] = {}
     if isinstance(n.get("renovaveis"), dict):
         for eid, r in renovaveis_do_cenario(doc).items():
             n["renovaveis"].setdefault(eid, _renovavel_vazia(r["kind"]))
+    if isinstance(n.get("pemfc"), dict):
+        for eid, r in pemfc_do_cenario(doc).items():
+            n["pemfc"].setdefault(eid, _pemfc_vazia(r))
     return n
 
 
@@ -202,6 +259,7 @@ def novo_bloco(doc: dict) -> dict:
         "format_version": FORMATO, "contexto": "ensaio",
         "clima": {"semantica": None, "emissao_utc": None},
         "renovaveis": {eid: _renovavel_vazia(r["kind"]) for eid, r in renovaveis_do_cenario(doc).items()},
+        "pemfc": {eid: _pemfc_vazia(r) for eid, r in pemfc_do_cenario(doc).items()},
         "declarante": {"tipo": None, "fonte": ""},
         "malha": {"delta_min": None, "N": None, "m": None, "H_L": None},
         "demanda": {"nome": "Demanda agregada da microrrede", "criticidade": None, "semantica": None, "emissao_utc": None},
@@ -278,9 +336,13 @@ def erros_estruturais(b: Any, doc: dict | None = None) -> list[str]:
         return [f"{p}: bloco ilegível."]
     if b.get("format_version") not in FORMATOS_LEGIVEIS:
         return [f"{p}: formato não reconhecido."]
-    out = _chaves(b, "" if b["format_version"] == 1 else "2", p)
+    out = _chaves(b, {1: "", 2: "2", 3: "3"}[b["format_version"]], p)
     if out:
         return out
+    if b["format_version"] >= 3:
+        out += _pemfc_erros(b["pemfc"], doc, p)
+        if out:
+            return out
     if b["format_version"] >= 2:
         out += _chaves(b["clima"], "clima", f"{p} · clima")
         if not out:
@@ -356,6 +418,50 @@ def _baterias_erros(bs: Any, doc: dict | None, p: str) -> list[str]:
                 faixa = {"eficiencia": "(0, 1]", "positivo": "> 0", "nao_negativo": ">= 0"}[dom]
                 out.append(f"{cam} · {rot}: valor fora do domínio {faixa}.")
         out += _opcao(d["hipotese_autodescarga"], HIPOTESES_AUTODESCARGA, f"{cam} · autodescarga")
+        out += _proc_erros(d["procedencia"], cam)
+    return out
+
+
+def _pemfc_erros(ps: Any, doc: dict | None, p: str) -> list[str]:
+    if not isinstance(ps, dict):
+        return [f"{p} · PEMFC: bloco ilegível."]
+    out = []
+    conhecidas = None if doc is None else pemfc_do_cenario(doc)
+    for eid, d in ps.items():
+        cam = f"{p} · PEMFC {str(eid)[:20]}"
+        if conhecidas is not None and eid not in conhecidas:
+            out.append(f"{cam}: não é um registro PEMFC habilitado do inventário de referência (declaração órfã).")
+            continue
+        e = _chaves(d, "pemfc", cam)
+        if not e and (not isinstance(d["condicoes"], dict) or set(d["condicoes"]) != set(CONDICOES_PEMFC)):
+            e = [f"{cam} · condições físicas: campos esperados {sorted(CONDICOES_PEMFC)}."]
+        if e:
+            out += e
+            continue
+        for k, v in d["condicoes"].items():
+            if v is not None and not _real(v):
+                out.append(f"{cam} · {CONDICOES_PEMFC[k][0]}: real finito.")
+        for campo, (rot, _un, dom) in CAMPOS_PEMFC.items():
+            v = d[campo]
+            if v is None:
+                continue
+            if not _real(v) or (dom == "positivo" and not v > 0) or (dom == "nao_negativo" and v < 0):
+                out.append(f"{cam} · {rot}: valor fora do domínio.")
+        out += _opcao(d["abstracao"], ABSTRACOES_PEMFC, f"{cam} · abstração") + _opcao(
+            d["limites_transicao"], LIMITES_PEMFC, f"{cam} · limites de partida/parada")
+        us = d["unidades"]
+        if not isinstance(us, list) or (conhecidas is not None and len(us) != _quantidade(conhecidas[eid])):
+            out.append(f"{cam}: uma declaração de estado inicial por UNIDADE instalada.")
+            continue
+        for i, u in enumerate(us):
+            eu = _chaves(u, "unidade_pemfc", f"{cam} · unidade {i + 1}")
+            if eu:
+                out += eu
+                continue
+            out += _opcao(u["estado"], ESTADOS_UNIDADE, f"{cam} · unidade {i + 1} · estado")
+            for k in ("potencia_kW", "tempo_no_estado_min"):
+                if u[k] is not None and not (_real(u[k]) and u[k] >= 0):
+                    out.append(f"{cam} · unidade {i + 1} · {k}: real finito >= 0.")
         out += _proc_erros(d["procedencia"], cam)
     return out
 
@@ -511,6 +617,7 @@ def pendencias(b: dict, doc: dict) -> list[tuple[str, str]]:
         if not procedencia_declarada(x["procedencia"]):
             falta(f"baterias.{eid}.procedencia", "Procedência das declarações do banco não declarada (tipo e fonte).")
     out += _renovaveis_pendencias(b, doc)
+    out += _pemfc_pendencias(b, doc)
     out += _pcc_pendencias(b["pcc"])
     g = b["planejador"]
     for k in ("tipo_sinal", "politica_atualizacao", "periodo_janelas", "pontos_iniciais", "pontos_max",
@@ -564,6 +671,44 @@ def _renovaveis_pendencias(b: dict, doc: dict) -> list[tuple[str, str]]:
                         "'curtailment_operacional' no objetivo)."))
         if not procedencia_declarada(x["procedencia"]):
             out.append((f"renovaveis.{eid}.procedencia", "Procedência das declarações do recurso renovável não declarada."))
+    return out
+
+
+def _pemfc_pendencias(b: dict, doc: dict) -> list[tuple[str, str]]:
+    part = pemfc_participantes(doc)
+    if not part:
+        return []
+    if b["format_version"] < 3:
+        return [("pemfc", f"Estratégia no formato {b['format_version']} sem declarações PEMFC, mas {len(part)} registro(s) "
+                 "PEMFC participa(m) da missão: atualize a estratégia (seção PEMFC vazia) ou declare-os indisponíveis.")]
+    out: list[tuple[str, str]] = []
+    termos = b["objetivo"]["termos"]
+    if "combustivel_h2" not in termos:
+        out.append(("objetivo.termos", "PEMFC participante exige o termo 'combustivel_h2' (o H₂ não é energia gratuita; "
+                    "nenhum preço zero é presumido)."))
+    for eid in part:
+        x = b["pemfc"].get(eid)
+        if x is None:
+            continue                                   # declaração ausente: constatada pelo preflight por UID
+        for k, (rot, un) in CONDICOES_PEMFC.items():
+            if x["condicoes"][k] is None:
+                out.append((f"pemfc.{eid}.condicoes.{k}", f"{rot} [{un}] não declarada (inicialização física da curva)."))
+        for campo, (rot, un, _d) in CAMPOS_PEMFC.items():
+            if campo in ("custo_partida_R", "custo_parada_R") and "eventos" not in termos:
+                continue
+            if x[campo] is None:
+                out.append((f"pemfc.{eid}.{campo}", f"{rot} [{un}] não declarado(a)."))
+        if x["abstracao"] is None:
+            out.append((f"pemfc.{eid}.abstracao", "Abstração de partida/parada não declarada (decisão D05; sem padrão)."))
+        if x["limites_transicao"] is None:
+            out.append((f"pemfc.{eid}.limites_transicao", "Limites de partida/parada não declarados."))
+        for i, u in enumerate(x["unidades"]):
+            for k, rot in (("estado", "estado ON/OFF"), ("potencia_kW", "potência anterior [kW]"),
+                           ("tempo_no_estado_min", "tempo no estado vigente [min]")):
+                if u[k] is None:
+                    out.append((f"pemfc.{eid}.unidades[{i}].{k}", f"Unidade {i + 1}: {rot} inicial não declarado(a)."))
+        if not procedencia_declarada(x["procedencia"]):
+            out.append((f"pemfc.{eid}.procedencia", "Procedência das declarações PEMFC não declarada."))
     return out
 
 
@@ -630,4 +775,6 @@ __all__ = ["CAMPOS_BATERIA", "CHAVE_BLOCO", "CHAVE_MOTOR", "CONTEXTOS", "CONTEXT
            "REFERENCIA_NUMERICA", "ROTULO_REFERENCIA", "SEMANTICAS", "SEMANTICAS_CLIMA", "TECNOLOGIAS_RENOVAVEIS",
            "TERMOS_BASE", "TIPOS_DECLARAVEIS", "atualizar_bloco", "baterias_do_cenario", "erros_documento",
            "erros_estruturais", "instante_valido", "motor_selecionado", "novo_bloco", "pendencias",
-           "procedencia_declarada", "renovaveis_do_cenario", "renovaveis_participantes", "status_estrategia"]
+           "procedencia_declarada", "renovaveis_do_cenario", "renovaveis_participantes", "status_estrategia",
+           "ABSTRACOES_PEMFC", "CAMPOS_PEMFC", "CONDICOES_PEMFC", "ESTADOS_UNIDADE", "LIMITES_PEMFC", "pemfc_do_cenario",
+           "pemfc_participantes"]

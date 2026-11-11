@@ -14,15 +14,26 @@ from pathlib import Path
 BASE = "0c9df80ec7a759d90227453cbd7b1eb3f3e25d40"          # main no início do Piso 3D-A2-H (merge do PR #22)
 PACOTE_INTEGRACAO = "integracao_v2/"
 # Arquivos EXISTENTES na base, dentro dos alvos das guardas anteriores, alterados pelo 3D-A2-H (somente modificação).
+# C-3DA2H-01 — alteração NOMINAL e ADITIVA do núcleo AUTORIZADA pelo responsável (2026-11-11): certificado B04
+# verificável + classificação ``real_certificada_b04`` (contracts.py) e parâmetro opcional ``curvas_h2`` na ponte
+# (ausente ⇒ comportamento idêntico). Nenhum outro arquivo de ``ems_v2/`` pode mudar.
+NUCLEO_AUTORIZADO = frozenset({
+    "ems_v2/contracts.py", "ems_v2/ponte/projecao.py", "ems_v2/ponte/compromisso.py", "ems_v2/ponte/preflight.py",
+})
 MODIFICADOS = frozenset({
     "tests/ems_v2/piso3da2r_guard_policy.py",    # encadeia este filtro (regras do 3D-A2-R inalteradas)
-})
+    "tests/ems_v2/test_piso3da2r_guardas.py",    # identidade do núcleo vs. base 3D-A2-R passa a admitir SÓ o C-3DA2H-01
+    "tests/test_piso3da2r_renovaveis.py",        # bloco novo = formato 3 (PEMFC); formato 2 continua legível (testado)
+    "tests/test_piso3da2r_app.py",               # idem na interface
+}) | NUCLEO_AUTORIZADO
 # Arquivos NOVOS do 3D-A2-H dentro dos alvos das guardas anteriores (somente adição).
+TESTES_3DA2H = ("tests/test_piso3da2h_curva.py", "tests/test_piso3da2h_preflight.py", "tests/test_piso3da2h_execucao.py",
+                "tests/test_piso3da2h_app.py", "tests/piso3da2h_util.py")
 ADICIONADOS = frozenset({
-    "tests/test_piso3da2h_curva.py", "tests/ems_v2/piso3da2h_guard_policy.py",
+    *TESTES_3DA2H, "tests/ems_v2/piso3da2h_guard_policy.py", "tests/ems_v2/test_ems_v2_b04_certificado.py",
 })
 # Arquivos Python FORA de ``ems_v2/`` e ``tests/ems_v2/`` autorizados a mencionar o pacote do motor (guarda 3A).
-REFERENCIAM_O_MOTOR = frozenset()
+REFERENCIAM_O_MOTOR = frozenset(TESTES_3DA2H)
 
 
 def referencia_autorizada(rel: str) -> bool:
@@ -37,7 +48,7 @@ def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
 
 
 # ------------------------------------------------------------------------------------------------ auditoria explícita
-INTOCADOS = ("ems_v2", "models", "h2_pemfc", "simulation", "config", "ems_integration", "reference_models", "visualization",
+INTOCADOS = ("models", "h2_pemfc", "simulation", "config", "ems_integration", "reference_models", "visualization",
              "orchestrator_runtime.py", "orchestrator_app.py", "app.py", "ems_app.py", "wind_app.py", "thermal_app.py",
              "battery_app.py", "mix_app.py", "requirements.txt", "requirements-ems_v2.txt",
              "seeds2/operation", "seeds2/microgrid", "seeds2/archive", "seeds2/report", "seeds2/ui", ".github",
@@ -58,7 +69,8 @@ def auditar_missao(root: Path, base: str = BASE, head: str = "HEAD", *, incluir_
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base, *alvo).splitlines() if ln.strip()]
     if incluir_arvore_de_trabalho:
         linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
-    intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
+    intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)
+                 or (ln[1].startswith("ems_v2/") and not (ln[0] == "M" and ln[1] in NUCLEO_AUTORIZADO))]
     assert not intocados, f"caminhos protegidos alterados pela missão 3D-A2-H: {intocados}"
     fora = [ln for ln in linhas if not (
         (ln[0] == "M" and ln[1] in MODIFICADOS) or (ln[0] == "A" and ln[1] in ADICIONADOS)
@@ -71,7 +83,7 @@ def auditar_missao(root: Path, base: str = BASE, head: str = "HEAD", *, incluir_
             "adicionados": sorted(ln[1] for ln in linhas if ln[0] == "A")}
 
 
-__all__ = ["ADICIONADOS", "BASE", "INTOCADOS", "MODIFICADOS", "PACOTE_INTEGRACAO", "REFERENCIAM_O_MOTOR", "auditar_missao",
+__all__ = ["ADICIONADOS", "BASE", "INTOCADOS", "MODIFICADOS", "NUCLEO_AUTORIZADO", "PACOTE_INTEGRACAO", "REFERENCIAM_O_MOTOR", "auditar_missao",
            "filter_changes", "referencia_autorizada"]
 
 if __name__ == "__main__":
@@ -83,6 +95,7 @@ if __name__ == "__main__":
     ap.add_argument("--head", default="HEAD")
     a = ap.parse_args()
     rel = auditar_missao(Path(__file__).resolve().parents[2], a.audit_mission_base, a.head)
-    assert rel["ems_v2_base"] == rel["ems_v2_head"], "ems_v2 alterado nesta missão"
+    assert set(rel["modificados"]) & {p for p in rel["modificados"] if p.startswith("ems_v2/")} <= NUCLEO_AUTORIZADO
     print(json.dumps(rel, indent=1, ensure_ascii=False))
-    print("Auditoria explícita 3D-A2-H: ems_v2 e modelos físicos idênticos à base; alterações nominais.")
+    print("Auditoria explícita 3D-A2-H: núcleo alterado SÓ nos 4 arquivos do C-3DA2H-01; modelos físicos intactos; "
+          "alterações nominais.")

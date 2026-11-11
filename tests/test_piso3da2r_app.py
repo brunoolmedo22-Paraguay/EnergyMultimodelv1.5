@@ -108,7 +108,7 @@ class EstrategiaRenovaveisTest(_Base):
         botao(app, "SALVAR CENÁRIO").click().run()
         b = st.get_scenario(sc.scenario_uid).document[E.CHAVE_BLOCO]
         ids = R.ids(st.get_scenario(sc.scenario_uid).document)
-        self.assertEqual(b["format_version"], 2)
+        self.assertEqual(b["format_version"], E.FORMATO)
         self.assertIsNone(b["renovaveis"][ids["fv"]]["eta_conversao_barramento"])
         self.assertIsNone(b["renovaveis"][ids["eolica"]]["hipotese_densidade"])
 
