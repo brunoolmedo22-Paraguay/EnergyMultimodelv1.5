@@ -1,3 +1,5 @@
+> **PISO 3D-A2-R (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `7eb29e5`, PR contra `main` SIN merge):** FV (por arranjo) e eólica (por registro) no EMS V2, com potencial derivado pelos modelos físicos do SEEDS2 sobre o clima previsto, persistência v2 por UID e reabertura sem modelos nem solver. Relevo: [`RELEVO_3DA2.md`](RELEVO_3DA2.md); documento técnico: [`INTEGRACAO_3DA2R.md`](../ems_v2/INTEGRACAO_3DA2R.md); seção «Piso 3D-A2-R» no fim deste arquivo. 3D-A2-H, 3D-A2-T e 3D-B NÃO autorizados.
+
 > **PISO 3D-A — PUBLICADO COMO DRAFT, SIN MERGE (2026-11-11):** rama `claude/adoring-newton-jzfmfx` desde `main` `a636350`; **PR Draft [#21](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/21)**. Integración operativa del EMS V2 jerárquico (GATE 0 + GATE 1 del paquete maestro 3D). Relevo completo para otro agente: [`RELEVO_3DA.md`](RELEVO_3DA.md); resumen en la sección **«Piso 3D-A — integración operativa del EMS V2»** al final de este archivo. Desarrollo DETENIDO por orden del responsable: la auditoría y las correcciones siguientes se coordinan externamente. No iniciar 3D-B/3D-C; sin merge.
 
 > **MATH-01 (2026-11-10, rama `claude/admiring-ritchie-pj4fn9`, PR contra `main` sin merge):** correcciones P1-1 (signo del ajuste terminal en `hierarquia/comparadores.efeito`: d − p·ΔE) y P1-2 (`hierarquia/planejador.Planejador3C4.sinal`: cola agotada antes del fin de misión ⇒ señal `indisponivel`, replanificación/degradación existentes; b = fin = K_M sigue Φ_L exacto) de la auditoría matemática independiente sobre `9ebd760` (dictamen: aprobado para 3D con condiciones; sin P0). Formulación, MILP, MPC, políticas numéricas, fixtures y referencias intactos. Tests `tests/ems_v2/test_ems_v2_3c4_math01.py` (4 de 5 fallaban antes). Verificado: 3C-4 focalizado 252 passed; suite completa con Pyomo/HiGHS `python -m pytest tests/ -q` **2080 passed** (= 2075 + 5), 9 warnings, 128 subtests, 571 s; guardias de isolamento/estabilización sin cambios. Detalle: `PARAMIJEFE.md` § MATH-01. Condiciones 3D pendientes (no son defectos): N·Δ >= max(T_on, T_off) por unidad; costo térmico M19 no implementado (excluir térmicas del 1er caso 3D o implementarlo); parámetros reales (Φ_L, D07, PCC/tarifas, estimador de estado). **Próximo paso:** revisión humana del PR y decisión de inicio de 3D.
@@ -226,3 +228,32 @@ Diagnóstico controlado: con/sin Pyomo/HiGHS los doce hashes y KPI son exactos e
 - **Decisión pendiente del responsable:** excepción nominal de guardias **C-3DA-01**.
 - **Límites:** sólo demanda + ≤2 bancos + PCC declarado, contexto de ensayo (simulación offline algebraica, no validación física); FV/eólica/PEMFC/térmica ⇒ bloqueo; informes 2D-B rechazan rodadas V2; capturas PNG del E2E no versionadas.
 - **Próximo paso:** auditoría externa del PR #21 y pasos de `RELEVO_3DA.md` §10. **No iniciar 3D-B/3D-C; no hacer merge.**
+
+
+## Piso 3D-A2-R — FV e eólica no EMS V2 — 2026-11-11
+
+**Estado:** implementado e validado localmente; PR contra `main` sem merge (número no relevo/PR). Base `main` `7eb29e5`.
+`ems_v2/`, modelos físicos, `seeds2/` e V1.6 intactos.
+
+- **Implementado:**
+  - `integracao_v2/renovaveis.py`;
+  - estratégia formato 2 (formato 1 legível);
+  - preflight com FV/eólica por UID e bloqueios legíveis;
+  - persistência `seeds2-milp-mpc-run-data` v2 (v1 legível) com `v2/renovaveis.json` comprometido no manifesto;
+  - UI mínima;
+  - exceção nominal de guardas C-3DA2R-01;
+  - E2E em navegador.
+- **Verificado:**
+  - testes 3D-A2-R: 20 + 13 + 3 UI passed (sem solver: 20 passed, 13 skipped);
+  - 3D-A focalizados: 40 passed, 1 skipped;
+  - guardas: 203 passed, 2 skipped;
+  - auditoria explícita do diff: aprovada;
+  - E2E: 43 verificações, exit 0, registro de chamadas a motor/modelos vazio;
+  - regressão completa com solver <<REG_SOLVER>>; sem solver <<REG_NOSOLVER>>.
+- **Decisões pendentes do responsável:** C-3DA2R-01 (exceção nominal) e C-3DA2R-02…08 (`INTEGRACAO_3DA2R.md` §8).
+- **Limites:**
+  - realização renovável = previsão;
+  - uma série climática por cenário;
+  - GHI no plano; vento no cubo; sem esteira; η de inversor declarado;
+  - PEMFC e térmica bloqueadas (matriz PEMFC e lacuna M19 documentadas, não implementadas).
+- **Próximo passo:** auditoria externa do PR; CI remoto; só então 3D-A2-H/3D-A2-T/3D-B com nova autorização.
