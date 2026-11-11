@@ -1,4 +1,4 @@
-> **PISO 3D-A2-H (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `0c9df80`, PR contra `main` SIN merge):** PEMFC/H₂ no EMS V2 — curva q_H₂(P_líq) do modelo físico gerada UMA vez por configuração e reutilizada em toda a missão, certificado B04 verificável no núcleo (C-3DA2H-01 autorizado), verificação dinâmica, persistência v3 e bancada H₂. **Política B04 `b04-proposta-2` APROVADA pelo responsável** (commit `8be5de4`; certificação MATEMÁTICA da PWL, não validação experimental); decisões C-3DA2H-02…05/08…11 aprovadas; verificações finais A (malha densa) e B (fluxo completo sem aprovação simulada) concluídas; nova decisão C-3DA2H-12 (subestimação limitada nas rampas de descida). Relevo: [`RELEVO_3DA2H.md`](RELEVO_3DA2H.md); documento técnico: [`INTEGRACAO_3DA2H.md`](../ems_v2/INTEGRACAO_3DA2H.md); seção «Piso 3D-A2-H» no fim deste arquivo. 3D-A2-T e 3D-B NÃO autorizados.
+> **PISO 3D-A2-H (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `0c9df80`, PR contra `main` SIN merge):** PEMFC/H₂ no EMS V2 — curva q_H₂(P_líq) do modelo físico gerada UMA vez por configuração e reutilizada em toda a missão, certificado B04 verificável no núcleo (C-3DA2H-01 autorizado), verificação dinâmica, persistência v3 e bancada H₂. **Política B04 `b04-proposta-2` APROVADA pelo responsável** (commit `8be5de4`; certificação MATEMÁTICA da PWL, não validação experimental); decisões C-3DA2H-02…05/08…11 aprovadas; verificações finais A (malha densa) e B (fluxo completo sem aprovação simulada) concluídas; **C-3DA2H-12 aprovada** (resíduo das rampas de descida aceito, sem termo de rampa no MILP, 7 condições). Alcance 3D-A2-H tecnicamente aceito para ENSAIOS reproduzíveis; integração em `main` só com autorização expressa do responsável. Relevo: [`RELEVO_3DA2H.md`](RELEVO_3DA2H.md); documento técnico: [`INTEGRACAO_3DA2H.md`](../ems_v2/INTEGRACAO_3DA2H.md); seção «Piso 3D-A2-H» no fim deste arquivo. 3D-A2-T e 3D-B NÃO autorizados.
 
 > **PISO 3D-A2-R (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `7eb29e5`, PR [#22](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/22) contra `main` SIN merge):** FV (por arranjo) e eólica (por registro) no EMS V2, com potencial derivado pelos modelos físicos do SEEDS2 sobre o clima previsto, persistência v2 por UID e reabertura sem modelos nem solver. Relevo: [`RELEVO_3DA2.md`](RELEVO_3DA2.md); documento técnico: [`INTEGRACAO_3DA2R.md`](../ems_v2/INTEGRACAO_3DA2R.md); seção «Piso 3D-A2-R» no fim deste arquivo. 3D-A2-H, 3D-A2-T e 3D-B NÃO autorizados.
 
@@ -304,11 +304,14 @@ congelada). PR contra `main` sem merge. Base `main` `0c9df80`.
 - **Decisão do responsável (PR #23):** B04 APROVADA (`8be5de4`, commit independente; limiares/identidade/versão
   inalterados) e C-3DA2H-02…05/08…11 aprovadas com alcance delimitado. Verificações finais:
   - A (`efa05c8`): `tests/verificacao_massas_3da2h.py`, malha densa em 6 configurações — eventos e rampas de subida nunca
-    subestimam; rampas de DESCIDA subestimam ≤ 0,0044 kg (≤ 0,72 %), sem garantia global; reportado por rodada
-    (C-3DA2H-12, a decidir);
+    subestimam; rampas de DESCIDA subestimam (máximos OBSERVADOS 0,0044 kg e 0,72 % nos casos ensaiados, não cotas
+    universais), sem garantia global; reportado por intervalo/unidade/acumulado e verificado na reabertura;
+  - **C-3DA2H-12 APROVADA** (resíduo quantificado; termo de rampa NÃO autorizado; condições em
+    `INTEGRACAO_3DA2H.md` §5b: visibilidade, não universalidade, classificação independente, custos MILP ≠ operação
+    transitória, magnitude econômica no TCC, incoerência ⇒ revisão, Δ = 60 min não extrapolado);
   - B (`0058902`): E2E sem aprovação simulada — bancada 6 + fluxo 20 + reabertura 16 + conferência 18; chamadas VAZIO;
     rodadas legadas v1/v2 legíveis.
   - regressão completa sobre `0058902` (depois só documentação): com solver **2234 passed, 2 skipped**; sem solver
     **1741 passed, 150 skipped**; 0 falhas.
-- **Próximo passo:** revisão final do PR #23 e decisão de integração em `main` (sem merge automático); 3D-A2-T/3D-B só
-  com nova autorização.
+- **Próximo passo:** fechamento formal do PR #23 pelo supervisor quando o responsável confirmar expressamente a
+  autorização (sem merge automático); 3D-A2-T/3D-B não iniciados — só com nova autorização.

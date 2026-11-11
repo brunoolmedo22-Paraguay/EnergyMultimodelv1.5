@@ -2975,7 +2975,7 @@ del preflight). Método:
 - La subestimación no proviene de las masas por evento sino de la ausencia de un término de rampa en el MILP. Corregirla
   exigiría cambiar la formulación (no autorizado); una constante arbitraria está prohibida.
 - Ahora se informa por corrida (documento dinámico, resumen, interfaz) y se recalcula en la reapertura.
-- **Nueva decisión C-3DA2H-12:** aceptarla como residuo identificado o autorizar un término de rampa.
+- **Decisión C-3DA2H-12:** quedó pendiente en este addendum; ver el addendum 3 (aprobada).
 
 **Verificación B — flujo completo con B04 REALMENTE aprobada.** Sin `politica_aprovada_no_teste` (eliminada) ni
 `sitecustomize` de autorización. Microrred FV + eólica + batería + PEMFC + PCC configurada desde Streamlit.
@@ -2999,3 +2999,37 @@ Registro de llamadas al motor y a los modelos: VACÍO.
 | Mayor subestimación de H₂ en un intervalo | 0,0006 kg |
 
 **Regresión sobre el código final** (`0058902`; luego solo documentación): con solver **2234 passed, 2 skipped**, 9 warnings (887 s); sin solver **1741 passed, 150 skipped**, 9 warnings (586 s); 0 fallos.
+
+### Entrega 15 — addendum 3: C-3DA2H-12 aprobada y cierre técnico — 2026-11-11
+
+**Decisión del responsable: C-3DA2H-12 APROBADA**, dentro del alcance experimental declarado.
+
+- La subestimación en las rampas descendentes en operación continua se acepta como RESIDUO CUANTIFICADO entre la
+  formulación MILP estacionaria y la respuesta del modelo dinámico aproximado.
+- NO se incorpora un término de rampa al MILP: la formulación queda inalterada y no se añaden funcionalidades.
+
+**Condiciones científicas** (detalle y garantías en `docs/ems_v2/INTEGRACAO_3DA2H.md` §5b):
+
+1. Subestimación visible por intervalo, por unidad y acumulada, con verificación de integridad en la reapertura (ya
+   implementado).
+2. Los máximos de 0,0044 kg por rampa y 0,72 % NO son cotas universales: corresponden a los casos y condiciones
+   ensayados (6 configuraciones, Δ = 60 min).
+3. Se conserva la clasificación independiente: algebraica, coherencia dinámica y validación física.
+4. Los costos y decisiones del MILP no representan exactamente la operación transitoria; los costos estimados están
+   sujetos al error de la aproximación documentada.
+5. En el TCC hay que considerar la magnitud económica de los residuos. Ejemplo, caso híbrido: +0,0264 kg de H₂ ≈ R$ 0,26,
+   es decir 0,23 % del costo. No afirmar superioridad concluyente cuando la diferencia cabe en la incertidumbre de
+   modelado.
+6. Una discrepancia por encima de las tolerancias aprobadas queda marcada como incoherencia (automático) y obliga a
+   revisar la formulación antes de usar el resultado como evidencia.
+7. La evaluación con Δ = 60 min no se extiende automáticamente a otros pasos.
+
+**Estado de cierre:**
+
+- B04 sigue vigente, limitada a la calidad matemática de la PWL frente al modelo PEMFC original.
+- El alcance de integración 3D-A2-H queda técnicamente aceptado para ensayos reproducibles, con las limitaciones
+  físicas y dinámicas registradas.
+- PR #23 sin merge: el supervisor hará el cierre formal y la integración en `main` cuando el responsable confirme
+  expresamente la autorización.
+- No se inician 3D-A2-T ni 3D-B.
+

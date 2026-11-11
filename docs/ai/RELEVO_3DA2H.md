@@ -10,7 +10,7 @@ foram iniciados. **Sem merge.**
 | Base | `main` `0c9df80ec7a759d90227453cbd7b1eb3f3e25d40` (merge do PR #22, Piso 3D-A2-R) |
 | Rama | `claude/adoring-newton-jzfmfx` (reiniciada a partir de `main` após o merge do PR #22) |
 | PR | **#23** — https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/23 (Draft, contra `main`, sem merge) |
-| Checkpoints | `01d2533`, `9022198`, `068bcb6` e `b41b69d` (gates H1–H3); `56e8d92` (E2E + KPI B04); `71bd089` (contrato v3 nos testes 3D-A2-R); `68fd055` (docs); **auditoria do PR #23:** `0a2a6e5` (C), `0055e68` (A/B/D), `d0bee62` (E2E do fluxo completo), `b473cda`/`9a6d43a` (docs); **decisão do responsável:** `8be5de4` (APROVAÇÃO B04, commit independente), `efa05c8` (testes/bancada no estado aprovado + verificação A), `0058902` (verificação B: E2E sem aprovação simulada) + commit de documentação |
+| Checkpoints | `01d2533`, `9022198`, `068bcb6` e `b41b69d` (gates H1–H3); `56e8d92` (E2E + KPI B04); `71bd089` (contrato v3 nos testes 3D-A2-R); `68fd055` (docs); **auditoria do PR #23:** `0a2a6e5` (C), `0055e68` (A/B/D), `d0bee62` (E2E do fluxo completo), `b473cda`/`9a6d43a` (docs); **decisão do responsável:** `8be5de4` (APROVAÇÃO B04, commit independente), `efa05c8` (testes/bancada no estado aprovado + verificação A), `0058902` (verificação B: E2E sem aprovação simulada), `44eb52d`/`672d5f2` (docs e regressão); **C-3DA2H-12 aprovada:** commit de documentação (sem alteração de código) |
 | Núcleo `ems_v2/` | alterado SÓ nos 4 arquivos do C-3DA2H-01 (autorizado) |
 | Modelos físicos | `models/`, `simulation/`, `config/`, `h2_pemfc/`, `ems_integration/` e `seeds2/` idênticos à base |
 
@@ -34,9 +34,12 @@ foram iniciados. **Sem merge.**
 - **Caminho normal** em testes e E2E: `politica_aprovada_no_teste` foi REMOVIDA; `politica_pendente_no_teste` simula a
   revogação para provar que uma política pendente continua bloqueando.
 - **Verificação A** (malha densa, 6 configurações): partidas, paradas e rampas de subida nunca subestimam; rampas de
-  DESCIDA em operação contínua subestimam de forma limitada (≤ 0,0044 kg/rampa, ≤ 0,72 % do intervalo; pior caso =
-  P_máx → P_mín, o mesmo da análise a priori). Sem garantia global de não subestimação; reportado por rodada.
-  Decisão nova C-3DA2H-12.
+  DESCIDA em operação contínua subestimam (máximos OBSERVADOS 0,0044 kg/rampa e 0,72 % do intervalo nos casos ensaiados
+  — não são cotas universais; pior caso = P_máx → P_mín, o mesmo da análise a priori). Sem garantia global de não
+  subestimação; reportado por intervalo, por unidade e acumulado, verificado na reabertura.
+- **C-3DA2H-12 APROVADA** pelo responsável: resíduo quantificado aceito, SEM termo de rampa no MILP, com 7 condições
+  científicas (`INTEGRACAO_3DA2H.md` §5b). Alcance 3D-A2-H tecnicamente aceito para ENSAIOS reproduzíveis, com as
+  limitações físicas e dinâmicas registradas.
 - **Verificação B** (fluxo completo, B04 realmente aprovada, sem aprovação simulada): bancada 6 + fluxo 20 + reabertura
   16 + conferência quantitativa 18 verificações; registro de chamadas ao motor/modelos VAZIO.
 
@@ -111,11 +114,18 @@ Detalhes em `INTEGRACAO_3DA2H.md` §9.
 
 - **Aprovadas:** B04 (`b04-proposta-2`, certificação matemática); C-3DA2H-02 (`massas_h2_eventos`); C-3DA2H-03 (rampa
   única simétrica, sem exceder o modelo dinâmico); C-3DA2H-04 (D05 só em «ensaio»; multimodo pendente); C-3DA2H-05
-  (bloqueio P_mín < IDLE); C-3DA2H-08 a 11.
-- **Nova, a decidir:** **C-3DA2H-12** — rampas de DESCIDA em operação contínua: subestimação limitada do H₂ do EMS,
-  não representável sem termo de rampa no MILP (formulação não autorizada); hoje reportada por rodada e dentro da
-  tolerância dinâmica. Opções: aceitar como resíduo identificado, ou autorizar um termo de rampa.
-- **Integração em `main`:** pendente da revisão final do responsável. NÃO fazer merge.
+  (bloqueio P_mín < IDLE); C-3DA2H-08 a 11; **C-3DA2H-12** (resíduo das rampas de descida aceito como resíduo
+  quantificado; termo de rampa NÃO autorizado). Condições da C-3DA2H-12 (§5b do documento técnico):
+  1. subestimação visível por intervalo, por unidade e acumulada, verificada na reabertura;
+  2. 0,0044 kg/rampa e 0,72 % são máximos observados nos casos ensaiados, não cotas universais;
+  3. classificação independente algébrica × dinâmica × física;
+  4. custos e decisões do MILP não representam exatamente a operação transitória;
+  5. no TCC, considerar a magnitude econômica dos resíduos e não afirmar superioridade quando a diferença couber na
+     incerteza de modelagem (caso híbrido: +0,0264 kg ≈ R$ 0,26, 0,23 % do custo);
+  6. discrepância acima das tolerâncias ⇒ incoerência marcada e formulação revista antes de usar como evidência;
+  7. a avaliação em Δ = 60 min não se estende automaticamente a outros passos.
+- **Integração em `main`:** o supervisor fará o fechamento formal quando o responsável confirmar expressamente a
+  autorização. NÃO fazer merge.
 
 ## 6. Cuidados para quem continuar
 
@@ -129,6 +139,6 @@ Detalhes em `INTEGRACAO_3DA2H.md` §9.
 
 ## 7. Próximo passo
 
-1. Revisão final do PR #23 pelo responsável e decisão de integração em `main` (sem merge automático).
-2. Decisão C-3DA2H-12.
-3. Só então 3D-A2-T ou 3D-B, com nova autorização.
+1. Fechamento formal do PR #23 pelo supervisor, após a confirmação expressa da autorização pelo responsável (sem merge
+   automático).
+2. Só então 3D-A2-T ou 3D-B, com nova autorização (não iniciados).

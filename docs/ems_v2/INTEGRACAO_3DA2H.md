@@ -7,7 +7,10 @@ Térmica (3D-A2-T) e dashboard (3D-B) **não** foram iniciados.
 > `8be5de4`; limiares, identidade e versão inalterados) para a certificação MATEMÁTICA da PWL contra o modelo PEMFC
 > existente — **não** é validação experimental do modelo Horizon nem certificação de operação física. Decisões
 > C-3DA2H-02 a 05 e 08 a 11 aprovadas com alcance delimitado (§9). Verificações finais: A — massas por evento em malha
-> densa (§5a); B — fluxo completo com a política REALMENTE aprovada, sem aprovação simulada (§12).
+> densa (§5a); B — fluxo completo com a política REALMENTE aprovada, sem aprovação simulada (§12). **C-3DA2H-12
+> APROVADA** (resíduo das rampas de descida aceito como resíduo quantificado, SEM termo de rampa no MILP; condições em
+> §5b). Alcance 3D-A2-H tecnicamente aceito para ENSAIOS reproduzíveis, com as limitações físicas e dinâmicas
+> registradas; integração em `main` só com autorização expressa.
 >
 > **Estado em uma frase.** A integração está implementada e foi demonstrada de ponta a ponta pelo caminho NORMAL: a curva
 > q_H₂(P_líq) é derivada do modelo físico, gerada uma vez e reutilizada em toda a missão, passa pela sua própria
@@ -179,7 +182,7 @@ utilização de H₂ de 97 % NÃO é tratada como ±3 %.
   (`tests/piso3da2h_util.politica_pendente_no_teste`) para provar que uma política pendente continua bloqueando.
 - A reabertura re-registra o certificado a partir de `v2/pemfc.json`, recomputando os critérios.
 
-## 4. Alteração do núcleo autorizada (C-3DA2H-01) e extensão a CONFIRMAR
+## 4. Alteração do núcleo autorizada (C-3DA2H-01) e extensão aprovada (C-3DA2H-02)
 
 **Autorizado pelo responsável:** alteração nominal e aditiva em 4 arquivos:
 
@@ -273,7 +276,7 @@ INDEPENDENTE dessa rotina:
 | Partidas | **nenhuma subestimação**; resíduo mínimo +0,0027 a +0,0056 kg |
 | Paradas | **nenhuma subestimação** (igualdade em P_máx; resíduo ≥ −9·10⁻¹⁹ kg = arredondamento) |
 | Rampas de SUBIDA em operação contínua | **nenhuma subestimação** (resíduo ≥ −2·10⁻¹³ kg = arredondamento) |
-| Rampas de DESCIDA em operação contínua | **SUBESTIMAÇÃO encontrada**: até 0,0034–0,0044 kg por rampa (0,36–0,72 % da massa do intervalo); pior caso SEMPRE no par P_máx → P_mín |
+| Rampas de DESCIDA em operação contínua | **SUBESTIMAÇÃO encontrada**: máximos OBSERVADOS de 0,0034–0,0044 kg por rampa (0,36–0,72 % da massa do intervalo) nos casos ensaiados; pior caso SEMPRE no par P_máx → P_mín |
 
 Conclusões:
 
@@ -282,10 +285,25 @@ Conclusões:
 - a subestimação das rampas de descida NÃO é das massas por evento: em operação contínua o modelo dinâmico, ao descer a
   3,5 kW/s, consome mais do que q̂(p_destino)·Δ, e o MILP não tem termo de rampa para representá-lo. Corrigi-la exigiria
   um termo de rampa na formulação (não autorizado) ou uma constante não derivada do modelo (proibido);
-- o pior caso é exatamente a rampa P_máx → P_mín que a análise a priori do preflight já avalia (o teste confere a
-  igualdade entre os dois caminhos, 1e-9) e está dentro da tolerância dinâmica (0,0044 kg ≤ 0,02 kg em Δ = 60 min);
-- cada rodada passa a REPORTAR a subestimação por unidade (máximo por intervalo e total; documento dinâmico, resumo,
-  interface), recalculada na reabertura. Ver a decisão pendente C-3DA2H-12 (§9).
+- nos casos ensaiados, o pior caso é exatamente a rampa P_máx → P_mín que a análise a priori do preflight já avalia (o
+  teste confere a igualdade entre os dois caminhos, 1e-9) e fica dentro da tolerância dinâmica (0,0044 kg ≤ 0,02 kg em
+  Δ = 60 min);
+- cada rodada REPORTA a subestimação por unidade (máximo por intervalo e total; documento dinâmico, resumo,
+  interface), recalculada na reabertura. Decisão C-3DA2H-12 APROVADA com condições (§5b).
+
+**§5b. Decisão C-3DA2H-12 (APROVADA pelo responsável, alcance experimental).** A subestimação nas rampas de descida é
+aceita como RESÍDUO QUANTIFICADO entre a formulação MILP estacionária e a resposta do modelo dinâmico aproximado. NÃO se
+acrescenta termo de rampa ao MILP (formulação inalterada). Condições científicas e onde cada uma é garantida:
+
+| # | Condição | Garantia / registro |
+|---|---|---|
+| 1 | Subestimação visível por INTERVALO, por UNIDADE e ACUMULADA, com verificação de integridade na reabertura | por intervalo: `v2/pemfc_dinamica.json` (`h2_ems_kg` × `h2_modelo_dinamico_kg`); por unidade e acumulada: `h2_subestimacao_max_kg`, `h2_subestimacao_total_kg`, `intervalos_com_subestimacao_h2` (documento dinâmico, resumo e tabela PEMFC da rodada); a reabertura RECALCULA dos intervalos gravados e confere (`registro._pemfc_verificar`) |
+| 2 | 0,0044 kg/rampa e 0,72 % NÃO são cotas universais | são máximos OBSERVADOS nos casos e condições ensaiados (6 configurações, Δ = 60 min, malha de 0,5 kW e pares a cada 2,5 kW, §5a) |
+| 3 | Classificação independente: algébrica, coerência dinâmica e validação física | `summary.execution.aceitacao` (§7), inalterada |
+| 4 | Custos e decisões do MILP NÃO representam exatamente a operação transitória | os custos estimados estão sujeitos ao erro da aproximação documentada: erro B04 da PWL (≥ 0), resíduo dos eventos (≥ 0, conservador) e resíduo das rampas de descida (subestimação limitada) |
+| 5 | TCC: considerar a magnitude ECONÔMICA dos resíduos; não afirmar superioridade concluinte quando a diferença entre estratégias couber na incerteza de modelagem | ordem de grandeza no caso híbrido de referência (§8/§12): H₂ do EMS − H₂ dinâmico = +0,0264 kg ≈ R$ 0,26 (0,23 % do custo realizado de R$ 116,02); subestimação acumulada 0,00059 kg ≈ R$ 0,006 (1 intervalo); diferença de energia solicitada − entregue 0,27 kWh. A comparação entre estratégias deve reportar esses resíduos de cada rodada |
+| 6 | Discrepância acima das tolerâncias aprovadas ⇒ incoerência marcada e formulação revista antes de usar o resultado como evidência | automática: a rodada é classificada `algebrica_aprovada_dinamica_incoerente`, com alerta «DINAMICAMENTE INCOERENTE» (§7); tal rodada NÃO deve ser usada como evidência científica sem a revisão |
+| 7 | A avaliação com Δ = 60 min NÃO se estende automaticamente a outros passos | o preflight avalia a admissibilidade a priori NO Δ declarado (bloqueia o incompatível), mas a verificação densa A só foi feita em Δ = 60 min: para outro Δ, repetir `tests/verificacao_massas_3da2h.py` (parâmetro `delta_s`) antes de usar os resultados como evidência |
 
 Evidência: `docs/ems_v2/evidencia_3da2h/verificacao_massas_eventos.{json,log}`; teste
 `tests/test_piso3da2h_verificacao_massas.py` (configuração nominal, malha de 1 kW e pares a cada 5 kW).
@@ -425,7 +443,7 @@ verificada.
 | C-3DA2H-10 | Autoridade B04 = registro `POLITICAS_B04_NUCLEO` por identidade do conteúdo; aprovação = commit no núcleo (C) | **aprovado** |
 | C-3DA2H-11 | Tolerâncias dinâmicas absolutas como médias por unidade de tempo (tolerâncias de engenharia do ensaio) | **aprovado** |
 | B04 | Política `b04-proposta-2` para a certificação MATEMÁTICA da PWL (não validação experimental) | **APROVADA** (`8be5de4`) |
-| C-3DA2H-12 | Rampas de DESCIDA em operação contínua: subestimação limitada do H₂ do EMS (≤ 0,0044 kg/rampa, ≤ 0,72 % do intervalo, verificação densa §5a), não representável sem termo de rampa no MILP; reportada por rodada e dentro da tolerância | **nova — decisão do responsável** (aceitar como resíduo identificado ou autorizar um termo de rampa) |
+| C-3DA2H-12 | Rampas de DESCIDA em operação contínua: subestimação do H₂ do EMS aceita como RESÍDUO QUANTIFICADO (máximos observados 0,0044 kg/rampa e 0,72 % nos casos ensaiados, §5a — não são cotas universais); SEM termo de rampa no MILP; reportada por intervalo/unidade/acumulada e verificada na reabertura | **aprovado (alcance experimental; 7 condições em §5b)** |
 
 **Auditorias explícitas anteriores.** São opt-in, por missão: `piso3da_guard_policy.py` e `piso3da2r_guard_policy.py`
 (e `SEEDS2_AUDITORIA_PISO3DA=1`). Elas auditam o diff da SUA missão desde a sua base. Rodadas sobre este ramo, acusam
@@ -434,7 +452,9 @@ corretamente os 4 arquivos do C-3DA2H-01 e `h2_app.py`, que são alterações de
 
 ## 10. Limitações remanescentes
 
-- O H₂ do EMS não é cota superior global: rampas de descida em operação contínua subestimam de forma limitada (§5a).
+- O H₂ do EMS não é cota superior global: rampas de descida em operação contínua subestimam (resíduo aceito, C-3DA2H-12,
+  §5b); os custos e decisões do MILP não representam exatamente a operação transitória.
+- A verificação densa das massas (§5a) foi feita só em Δ = 60 min: não se estende automaticamente a outros passos.
 - Condições físicas constantes durante a missão: hipótese do responsável e campo da identidade.
 - Uma curva por registro: unidades idênticas do mesmo registro compartilham a curva.
 - Quantidade disponível de H₂ (tanque) não modelada.
