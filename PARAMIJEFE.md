@@ -2942,6 +2942,6 @@ focalizadas, tests adversariales y evidencia reproducible. Todo se publica en el
 | H₂ del modelo dinámico | 6,5452 kg (nunca subestimado; residuo 0,4 %) |
 | Aceptación | algebraica aprobada · dinámica coherente · física no validada |
 
-**Regresión sobre el código final** (`d0bee62`; luego solo documentación): em execução no fechamento deste commit (resultado registrado no commit seguinte).
+**Regresión sobre el código final** (`d0bee62`; luego solo documentación): con solver **2229 passed, 2 skipped**, 9 warnings (885 s); sin solver **1736 passed, 150 skipped**, 9 warnings (578 s); 0 fallos (las 2 omitidas con solver son las auditorías explícitas de diff condicionadas por variable).
 
 **Decisiones nuevas a confirmar:** C-3DA2H-08 a C-3DA2H-11 (`docs/ems_v2/INTEGRACAO_3DA2H.md` §9).

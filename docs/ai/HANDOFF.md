@@ -299,4 +299,6 @@ congelada). PR contra `main` sem merge. Base `main` `0c9df80`.
   - C: autoridade B04 = registro do núcleo por identidade do conteúdo (autodeclaração rejeitada);
   - D: P_mín < IDLE, rampa acima do modelo e transitórios incompatíveis BLOQUEIAM;
   - E2E do fluxo completo com aprovação SIMULADA (8 + 14 + 9 verificações). Detalhes: `RELEVO_3DA2H.md` §2b.
+  - regressão completa sobre `d0bee62` (depois só documentação): com solver **2229 passed, 2 skipped**; sem solver
+    **1736 passed, 150 skipped**; 0 falhas.
 - **Próximo passo:** nova revisão externa do PR #23 e decisão B04; 3D-A2-T/3D-B só com nova autorização.

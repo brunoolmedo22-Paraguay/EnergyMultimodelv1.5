@@ -91,7 +91,7 @@ B04 continua PENDENTE (estado real); nenhuma aprovação foi gravada no reposit�
 | Linha de base antes da auditoria (código de `68fd055`) | com solver 2204 passed, 2 skipped; sem solver 1716 passed, 145 skipped |
 | Suítes focalizadas após a auditoria | auditoria PR #23 20 passed; curva + certificado + execução 48 passed; UI 3D-A2-H 4 passed; guardas 190 passed, 2 skipped |
 | Regressão completa com solver, 1ª passagem (antes de `71bd089`) | 2 failed, 2201 passed, 2 skipped: asserções fixas «versão 2» em `test_piso3da2r_execucao.py`, corrigidas nominalmente em `71bd089` |
-| Regressão completa com e sem solver sobre o código final (`d0bee62`; depois só documentação) | em execução no fechamento deste commit (resultado registrado no commit seguinte) |
+| Regressão completa com e sem solver sobre o código final (`d0bee62`; depois só documentação) | com solver **2229 passed, 2 skipped**, 9 warnings (885 s); sem solver **1736 passed, 150 skipped**, 9 warnings (578 s); 0 falhas (as 2 omitidas com solver são as auditorias explícitas de diff condicionadas por variável) |
 
 ## 5. Decisões pendentes do responsável
 
