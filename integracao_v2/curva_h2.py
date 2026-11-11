@@ -382,15 +382,27 @@ def _perfis_temporais(pr, cond: CondicoesPEMFC, corrente, P, q, vertices) -> lis
     return out
 
 
+def politica_nucleo(politica: dict | None = None):
+    """``ems_v2.contracts.PoliticaB04`` com o conteúdo da política da integração (a situação é a DECLARADA aqui; quem a
+    decide é o registro do núcleo, pela identidade do conteúdo)."""
+    from ems_v2.contracts import PoliticaB04
+    pol = politica or POLITICA_B04
+    return PoliticaB04(pol["versao"], pol["situacao"], float(pol["erro_rel_max"]), float(pol["erro_abs_max_kg_h"]),
+                       float(pol["subestimacao_rel_max"]), float(pol["erro_massa_temporal_rel_max"]),
+                       int(pol["pontos_validacao_min"]))
+
+
+def hash_politica_nucleo(politica: dict | None = None) -> str:
+    from ems_v2.contracts import hash_politica_b04
+    return hash_politica_b04(politica_nucleo(politica))
+
+
 def certificado_b04(curva: CurvaH2, politica: dict | None = None):
     """``ems_v2.contracts.CertificadoB04`` da curva (dados verificáveis: vértices, validação independente, perfis
     temporais). O núcleo RECOMPUTA os critérios no registro; a aprovação vem da política declarada."""
-    from ems_v2.contracts import CertificadoB04, PerfilMassaB04, PoliticaB04
+    from ems_v2.contracts import CertificadoB04, PerfilMassaB04
     from ems_v2.provenance import Procedencia
-    pol = politica or POLITICA_B04
-    p = PoliticaB04(pol["versao"], pol["situacao"], float(pol["erro_rel_max"]), float(pol["erro_abs_max_kg_h"]),
-                    float(pol["subestimacao_rel_max"]), float(pol["erro_massa_temporal_rel_max"]),
-                    int(pol["pontos_validacao_min"]))
+    p = politica_nucleo(politica)
     val = tuple(zip(curva.validacao["P_kW"], curva.validacao["q_modelo_kg_h"]))
     perfis = tuple(PerfilMassaB04(x["nome"], float(x["passo_h"]), tuple(x["potencias_kW"]), tuple(x["vazoes_modelo_kg_h"]))
                    for x in curva.perfis)
@@ -455,11 +467,15 @@ def avaliar_b04(m: dict, politica: dict | None = None) -> dict:
         ("continuidade", m["continua"], True, True),
     ]
     conforme = all(ok for _n, ok, _v, _l in crit)
-    aprovada = pol.get("situacao") == "aprovada_pelo_responsavel"
+    from ems_v2.contracts import SITUACAO_B04_APROVADA, situacao_politica_b04
+    sit, cod = situacao_politica_b04(politica_nucleo(pol))     # AUTORIDADE = registro do núcleo, nunca a autodeclaração
+    aprovada = cod == "conhecida" and sit == SITUACAO_B04_APROVADA and pol.get("situacao") == sit
     return {"politica": pol["versao"], "situacao_politica": pol["situacao"],
+            "politica_no_nucleo": {"reconhecimento": cod, "situacao": sit},
             "criterios": [{"criterio": n, "atendido": bool(ok), "valor": v, "limiar": lim} for n, ok, v, lim in crit],
             "conforme_aos_limiares": bool(conforme),
-            "estado": ("certificada" if conforme and aprovada else
+            "estado": ("politica_nao_reconhecida_pelo_nucleo" if cod != "conhecida" else
+                       "certificada" if conforme and aprovada else
                        "conforme_limiares_pendentes_de_aprovacao" if conforme else "reprovada"),
             "nota": "Certificação MATEMÁTICA da PWL contra o modelo aproximado; não valida o modelo nem o equipamento."}
 

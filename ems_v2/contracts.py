@@ -196,6 +196,38 @@ class CertificadoB04:
     procedencia: Procedencia | None
 
 
+def hash_politica_b04(p: PoliticaB04) -> str:
+    """Identidade SHA-256 do CONTEÚDO da política (versão + limiares + mínimo de pontos), SEM o campo ``situacao``: a
+    situação nunca é autodeclarada pelo certificado — quem a decide é ``POLITICAS_B04_NUCLEO``."""
+    d = {"versao": p.versao, "erro_rel_max": p.erro_rel_max, "erro_abs_max_kg_h": p.erro_abs_max_kg_h,
+         "subestimacao_rel_max": p.subestimacao_rel_max, "erro_massa_temporal_rel_max": p.erro_massa_temporal_rel_max,
+         "pontos_validacao_min": p.pontos_validacao_min}
+    return hashlib.sha256(json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                                     allow_nan=False).encode("utf-8")).hexdigest()
+
+
+# AUTORIDADE da certificação B04 (auditoria do PR #23, ponto C): o núcleo reconhece SÓ as políticas CONGELADAS aqui, pela
+# identidade do conteúdo, e a SITUAÇÃO de cada uma é a fixada aqui — nunca a declarada no certificado. Política
+# desconhecida ou alterada ⇒ erro; situação declarada divergente ⇒ erro; conhecida e não aprovada ⇒ pendente.
+# Aprovar = mudar a situação da política abaixo para SITUACAO_B04_APROVADA num commit REVISADO e autorizado.
+POLITICAS_B04_NUCLEO: dict[str, dict[str, str]] = {
+    "412863021aee9d29e1972760e4a5469e509e0de9260ffe9bf62096d932071c9a": {
+        "versao": "b04-proposta-2", "situacao": "proposta_congelada_pendente_de_aprovacao",
+        "congelada_em": "2026-11-11"},
+}
+
+
+def situacao_politica_b04(p: PoliticaB04) -> tuple[str | None, str]:
+    """(situação registrada no núcleo ou None, código): ``conhecida`` | ``alterada`` (versão conhecida, conteúdo
+    diferente) | ``desconhecida``."""
+    reg = POLITICAS_B04_NUCLEO.get(hash_politica_b04(p))
+    if reg is not None:
+        return reg["situacao"], "conhecida"
+    if any(r["versao"] == p.versao for r in POLITICAS_B04_NUCLEO.values()):
+        return None, "alterada"
+    return None, "desconhecida"
+
+
 def hash_certificado_b04(c: CertificadoB04) -> str:
     return hashlib.sha256(json.dumps(para_dict(c), sort_keys=True, separators=(",", ":"), ensure_ascii=False,
                                      allow_nan=False).encode("utf-8")).hexdigest()
@@ -219,9 +251,21 @@ def verificar_certificado_b04(c: CertificadoB04) -> list[Constatacao]:
     if not all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) and x >= 0 for x in lim) \
             or not isinstance(pol.pontos_validacao_min, int) or pol.pontos_validacao_min < 1:
         return [erro("politica_b04_invalida", cam + ".politica", "Limiares B04 ausentes, não finitos ou negativos.")]
-    if pol.situacao != SITUACAO_B04_APROVADA:
+    sit, cod = situacao_politica_b04(pol)
+    if cod == "alterada":
+        out.append(erro("politica_b04_alterada", cam + ".politica",
+                        f"Política B04 {pol.versao!r} com conteúdo DIFERENTE do congelado no núcleo (limiares alterados)."))
+    elif cod == "desconhecida":
+        out.append(erro("politica_b04_desconhecida", cam + ".politica",
+                        f"Política B04 {pol.versao!r} desconhecida do núcleo: só políticas congeladas e registradas em "
+                        "POLITICAS_B04_NUCLEO são reconhecidas (situação autodeclarada não tem autoridade)."))
+    elif pol.situacao != sit:
+        out.append(erro("politica_b04_situacao_divergente", cam + ".politica",
+                        f"O certificado declara a situação {pol.situacao!r}; o núcleo registra {sit!r} para a política "
+                        f"{pol.versao!r}."))
+    elif sit != SITUACAO_B04_APROVADA:
         out.append(pendente("politica_b04_nao_aprovada", cam + ".politica",
-                            f"Política B04 {pol.versao!r} em situação {pol.situacao!r}: a certificação exige aprovação "
+                            f"Política B04 {pol.versao!r} em situação {sit!r} no núcleo: a certificação exige aprovação "
                             "explícita do responsável."))
     if not isinstance(c.identidade_sha256, str) or not _HEX64.fullmatch(c.identidade_sha256):
         out.append(erro("identidade_b04_invalida", cam + ".identidade_sha256", "Identidade da curva sem SHA-256."))

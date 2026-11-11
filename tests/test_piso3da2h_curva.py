@@ -18,6 +18,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from integracao_v2 import curva_h2 as CH  # noqa: E402
+import piso3da2h_util as H  # noqa: E402
 
 NOMINAL = CH.CondicoesPEMFC(353.15, 140.0, 120.0, 101.325)
 OUTRA = CH.CondicoesPEMFC(343.15, 100.0, 80.0, 101.325)
@@ -110,10 +111,15 @@ def test_b04_conformidade_nao_e_certificacao_sem_aprovacao_dos_limiares():
     assert CH.POLITICA_B04["situacao"] == "proposta_congelada_pendente_de_aprovacao"
     assert c.b04["estado"] == "conforme_limiares_pendentes_de_aprovacao" and c.b04["conforme_aos_limiares"]
     assert CH.CLASSIFICACAO_CONTRATO == "real"            # nunca rotulada "sintetica_exata"
-    aprovada = dict(CH.POLITICA_B04, situacao="aprovada_pelo_responsavel")
-    assert CH.avaliar_b04(c.metricas, aprovada)["estado"] == "certificada"
-    rigida = dict(CH.POLITICA_B04, erro_rel_max=1e-6)
-    assert CH.avaliar_b04(c.metricas, rigida)["estado"] == "reprovada"
+    # autodeclaração NÃO tem autoridade (auditoria do PR #23, C): o núcleo continua registrando a política como pendente
+    autodeclarada = dict(CH.POLITICA_B04, situacao="aprovada_pelo_responsavel")
+    assert CH.avaliar_b04(c.metricas, autodeclarada)["estado"] == "conforme_limiares_pendentes_de_aprovacao"
+    # limiares alterados ⇒ política não reconhecida pelo núcleo (nunca "reprovada"/"certificada" contra limiares forjados)
+    for forjada in (dict(CH.POLITICA_B04, erro_rel_max=1e-6), dict(CH.POLITICA_B04, erro_rel_max=1.0,
+                                                                   situacao="aprovada_pelo_responsavel")):
+        assert CH.avaliar_b04(c.metricas, forjada)["estado"] == "politica_nao_reconhecida_pelo_nucleo"
+    with H.politica_aprovada_no_teste():                                   # aprovação SIMULADA no registro do núcleo
+        assert CH.avaliar_b04(c.metricas)["estado"] == "certificada"
 
 
 def test_documento_persistivel_e_deterministico():
@@ -193,9 +199,14 @@ def test_certificado_do_nucleo_so_registra_com_politica_aprovada():
     c = CH.obter_curva(NOMINAL, 10.0)
     h, cs = K.registrar_certificado_b04(CH.certificado_b04(c))
     assert {x.codigo for x in cs} == {"politica_b04_nao_aprovada"} and K.certificado_b04_registrado(h) is None
-    aprovada = dict(CH.POLITICA_B04, situacao=K.SITUACAO_B04_APROVADA)        # aprovação SIMULADA (teste)
-    h2, cs2 = K.registrar_certificado_b04(CH.certificado_b04(c, aprovada))
+    autodeclarada = dict(CH.POLITICA_B04, situacao=K.SITUACAO_B04_APROVADA)   # o certificado "se aprova" sozinho
+    h1, cs1 = K.registrar_certificado_b04(CH.certificado_b04(c, autodeclarada))
+    assert h1 == "" and "politica_b04_situacao_divergente" in {x.codigo for x in cs1}
+    assert CH.hash_politica_nucleo() in K.POLITICAS_B04_NUCLEO                # a política da integração é a congelada
+    with H.politica_aprovada_no_teste():                                   # aprovação SIMULADA no registro do núcleo
+        h2, cs2 = K.registrar_certificado_b04(CH.certificado_b04(c))
     assert cs2 == [] and K.certificado_b04_registrado(h2).vertices == c.vertices
+    assert K.POLITICAS_B04_NUCLEO[CH.hash_politica_nucleo()]["situacao"] == "proposta_congelada_pendente_de_aprovacao"
 
 
 def test_valores_do_modelo_no_certificado_sao_reverificados_contra_o_modelo():

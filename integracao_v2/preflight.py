@@ -762,11 +762,12 @@ def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
                f"máx. {100 * curva.metricas['erro_rel_max']:.3f} %; massa temporal máx. "
                f"{100 * curva.metricas['erro_massa_temporal_rel_max']:.3f} %; política {b04['politica']}.", x["id"])
         bloq = [k for k in cs if k.severidade in ("erro", "pendente")]
-        if any(k.codigo == "politica_b04_nao_aprovada" for k in bloq):
+        sit_nucleo, _rec = K.situacao_politica_b04(cert.politica)
+        if bloq and all(k.severidade == "pendente" and k.codigo == "politica_b04_nao_aprovada" for k in bloq):
             pf.add(ERROR, "pemfc", f"{x['name']}: certificação B04 AGUARDANDO APROVAÇÃO do responsável (política "
-                   f"{b04['politica']}, situação '{b04['situacao_politica']}'). A curva é conforme aos limiares propostos, "
-                   "mas nenhuma curva derivada do modelo entra no MILP sem certificado aprovado.", x["id"],
-                   code="b04_aguardando_aprovacao")
+                   f"{b04['politica']}, situação registrada no NÚCLEO '{sit_nucleo}'). A curva atende aos limiares "
+                   "propostos (critérios recomputados pelo núcleo), mas nenhuma curva derivada do modelo entra no MILP "
+                   "sem política aprovada.", x["id"], code="b04_aguardando_aprovacao")
             continue
         if bloq:
             pf.add(ERROR, "pemfc", f"{x['name']}: certificado B04 REPROVADO pelo contrato: "

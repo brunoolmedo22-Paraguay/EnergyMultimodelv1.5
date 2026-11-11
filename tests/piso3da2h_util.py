@@ -86,12 +86,20 @@ def criar_cenario_pemfc(store, *, estados=None, renov: bool = False, pemfc_kw: d
 
 @contextlib.contextmanager
 def politica_aprovada_no_teste():
-    """Aprovação SIMULADA da política B04 (só no teste; restaurada ao sair)."""
+    """Aprovação SIMULADA da política B04 (só no teste; restaurada ao sair). A autoridade é o registro do NÚCLEO
+    (``ems_v2.contracts.POLITICAS_B04_NUCLEO``): a situação da política CONGELADA é trocada lá, pela identidade do seu
+    conteúdo; o dicionário da integração só acompanha (o certificado declara a mesma situação que o núcleo)."""
+    from ems_v2 import contracts as K
     original = copy.deepcopy(CH.POLITICA_B04)
-    CH.POLITICA_B04["situacao"] = "aprovada_pelo_responsavel"
+    h = CH.hash_politica_nucleo()
+    reg = K.POLITICAS_B04_NUCLEO[h]                 # KeyError ⇒ a política da integração não é a congelada no núcleo
+    sit0 = reg["situacao"]
+    reg["situacao"] = K.SITUACAO_B04_APROVADA
+    CH.POLITICA_B04["situacao"] = K.SITUACAO_B04_APROVADA
     try:
         yield
     finally:
+        reg["situacao"] = sit0
         CH.POLITICA_B04.clear()
         CH.POLITICA_B04.update(original)
 
