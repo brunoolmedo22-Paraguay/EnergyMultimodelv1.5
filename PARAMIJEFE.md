@@ -3033,3 +3033,55 @@ Registro de llamadas al motor y a los modelos: VACÍO.
   expresamente la autorización.
 - No se inician 3D-A2-T ni 3D-B.
 
+---
+
+## Entrega 16 — SEEDS2 Piso 3D-B0/B1 · Partitura y motor gráfico Trama en la rodada V2 real — 2026-11-11
+
+### 1. Identificación
+
+- Rama `claude/stoic-meitner-2vs91m` desde `main` `724d235` (merge del PR #23). PR Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24) contra `main`, **sin merge**.
+- Misión: implementación autorizada por el responsable de la dirección de diseño **Partitura V2** (aprobada). Alcance de esta entrega: 3D-B0 (fundación Trama + adaptador de datos) y la parte de 3D-B1 que reutiliza las mismas raias (lente Operación + explorador de recursos). Documento técnico: [`docs/seeds2/PARTITURA_3DB.md`](docs/seeds2/PARTITURA_3DB.md).
+
+### 2. Qué se entregó
+
+| Pieza | Archivo | Naturaleza |
+|---|---|---|
+| Marco de datos `seeds2-trama-frame` v1 | `integracao_v2/trama_frame.py` | nuevo, solo lectura |
+| Motor gráfico Trama (SVG) | `seeds2/ui/static/trama/trama.js` | nuevo |
+| Instrumento Partitura (lente Operación, inspector, explorador de 7 paneles) | `seeds2/ui/static/trama/partitura.js`, `trama.css` | nuevo |
+| Componente v2 | `seeds2/ui/trama.py` | nuevo |
+| Página de la rodada V2 (local y estudio archivado) | `integracao_v2/ui.py` (`_partitura`, `_nomes_do_inventario`; llamada al inicio de `run_results`) | modificado (+39 líneas) |
+| Guardas | `tests/ems_v2/piso3db_guard_policy.py` (nuevo), `piso3da2h_guard_policy.py` (solo encadena) | C-3DB-01 |
+
+### 3. Contrato del marco (lo que el auditor puede verificar)
+
+1. **Solo lectura.** `montar(source, run)` usa `source.run_data` vía `registro.ler_csv/ler_json`; no escribe, no importa Pyomo/HiGHS, modelos físicos ni Streamlit (tests `test_marco_de_dados_nao_importa_solver_interface_nem_modelos`, `test_montagem_sem_solver_nem_modelos`).
+2. **Valores grabados, sin redondeo.** Cada lista del marco es la columna del CSV (`test_valores_do_marco_sao_os_gravados_bit_a_bit`); la curva q(P), los vértices, los criterios B04 y la verificación dinámica son los de los JSON grabados, sin decimación (`test_curva_certificado_e_dinamica_vem_dos_arquivos_gravados`).
+3. **Ausente ≠ cero.** Columna inexistente o celda vacía ⇒ `None` ⇒ N/D en la interfaz (`test_ausente_e_nan_viram_none_e_nunca_zero`). JSON estricto, sin NaN.
+4. **Intervalo × frontera.** `intervalos` (N valores) y `fronteiras`/`energia_kWh` (N + 1 estados) en campos separados; el motor dibuja los primeros como escalón/barra y los segundos como puntos.
+5. **Sin agregación en Python.** Sumas por tecnología, acumulados, participación, clasificación de comportamiento y PWL − modelo se derivan en el navegador y se rotulan «derivado»; el modelo de vista JavaScript se ejecuta en Node contra los CSV (`test_modelo_de_vista_do_navegador_agrega_as_colunas_gravadas`).
+6. **Solo rodadas V2 concluidas con evidencia verificada.** Otras ⇒ `IntegridadeV2Error` / solo vista clásica.
+
+### 4. Decisiones y contradicciones
+
+- **C-3DB-01** — excepción nominal de las guardas (nombres y estado exactos); `ems_v2/`, modelos, V1.6, almacenamiento y contratos en `INTOCADOS`; auditoría `python tests/ems_v2/piso3db_guard_policy.py` ⇒ `ok: true`.
+- **C-3DB-02** — la Partitura se dibuja antes de la vista clásica, que permanece íntegra y expandida: los tests de interfaz y los E2E de los pisos anteriores la inspeccionan. Retirarla o plegarla queda a decisión del responsable.
+- **C-3DB-03** — ningún contrato de persistencia cambió; el marco se deriva bajo demanda y no se graba.
+- **Aislamiento de estilos:** se usa el aislamiento por defecto del componente v2 (no `isolate_styles=False`); además todo selector empieza por `.pt` y los estáticos no contienen URL externas (test). Única regla emitida fuera del componente: el ancho de la página de la rodada (`trama.WIDE_CSS`).
+- **Dependencia registrada (no implementada):** series climáticas por intervalo para los paneles solar y eólico; están en la previsión del escenario (blob por SHA-256), no en los datos de la rodada ⇒ hoy N/D.
+
+### 5. No integrado todavía (solo prototipo)
+
+Lentes Decisión, Economía y Evidencia; barra lateral; Catálogo; Planta; Caderno de ensaios; Folha de ensaio; exportación de figuras.
+
+### 6. Pendientes técnicas independientes (no corregidas)
+
+R-1 (residuo numérico en la potencia de la PEMFC apagada interrumpe misiones con m = 1), R-2 (unidad de los costos de evento vía utilitario de tests), R-3 (señal de valor futuro indisponible con tolerancia 10⁻⁶ R$ y 9 puntos). Detalle en `docs/seeds2/PARTITURA_3DB.md` §6. No se tocaron como parte del trabajo visual.
+
+### 7. Verificación realizada
+
+- `python -m pytest tests/test_piso3db_trama.py tests/test_piso3db_app.py tests/ems_v2/test_piso3db_guardas.py -q` ⇒ **15 passed**.
+- Guardas de aislamiento de todos los pisos anteriores: aprobadas dentro de la regresión completa (ninguna relajada; solo la excepción nominal C-3DB-01).
+- **E2E en navegador real** `tools/e2e/run_piso3db.sh <python con solver> <carpeta>`: semilla con una misión V2 real (HiGHS), una rodada V1.6 y un estudio archivado; servidor Streamlit **sin solver y con motor y modelos saboteados** (`tools/e2e/sabotage_v2`) ⇒ **40 verificaciones aprobadas**, sin errores de página ni de consola, registro de llamadas al motor **vacío**. Cubre: montaje, datos × registros (costo del resumen sellado, demanda a las 18 h), cursor e inspector, foco por recurso, fijación del instante, los siete paneles (PEMFC con tres vistas; B04 rotulada matemática), cambio de instante dentro del panel, Esc y retorno con contexto, rerun de Streamlit, recarga, temas claro/oscuro detectados y alternados, 400 × 850 a 2560 × 1440 sin desbordamiento, rodada V1.6 intacta y estudio archivado en la Partitura. Evidencia: `docs/seeds2/evidencia_3db/`.
+- Regresión completa con solver: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` (Python 3.13.18, Streamlit 1.66.1, Pyomo 6.10.1, HiGHS 1.15.1) ⇒ **2249 passed, 2 skipped, 9 warnings, 128 subtests (677,4 s)** = 2234 de la línea de base del PR #23 + 15 nuevos. Árbol de trabajo limpio tras la ejecución.
+- Limitaciones: la suite sin solver no se ejecutó localmente (la ejecuta el CI del PR); el E2E usa una única microrred sintética con un equipo de cada tipo, por lo que la selección por UID con varios equipos del mismo tipo solo está cubierta por la lógica del modelo de vista, no por navegador.
