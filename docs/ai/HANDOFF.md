@@ -220,8 +220,9 @@ Diagnóstico controlado: con/sin Pyomo/HiGHS los doce hashes y KPI son exactos e
 
 - **Implementado:** paquete `integracao_v2/` (estrategia versionada, montaje por UID, preflight V2, runner V2, registro/verificación, UI mínima); despacho por motor en 4 archivos de `seeds2`; `ems_v2/` idéntico a `main` (árbol `58cc13b6de0abff0f0cff824d469f2fb3f4ed3d7`); V1.6 intacto y motor por omisión. Flujo real: Gestor → Centro de Operação → escenario versionado → preflight V2 → Pyomo/HiGHS → rodada inmutable → reapertura verificada sin optimizador → Archivo Científico.
 - **Verificado sobre `5e2a458`:** focalizadas con solver **40 passed, 1 skipped**; sin solver **24 passed, 17 skipped**; E2E de navegador `tools/e2e/run_piso3da.sh` **106 verificaciones, exit 0** (operar 65, reinicio tras `kill -9` 14, tablet 8, importar en instalación limpia sin solver 19; registro de llamadas al motor vacío). Costo realizado R$ 50,20 = oráculo analítico; segunda microrred aislada R$ 55,10. Registros en `docs/ems_v2/evidencia_3da/`.
-- **Verificado antes de los últimos cambios menores (no repetido):** regresión completa con solver **2116 passed, 1 skipped**; sin solver **1652 passed, 120 skipped**; auditoría explícita del diff aprobada en `005eb6c`.
-- **Sin confirmar:** CI remoto del PR #21; regresión global y auditoría del diff sobre el HEAD final.
+- **Verificado antes de los últimos cambios menores (no repetido):** regresión completa con solver **2116 passed, 1 skipped**; sin solver **1652 passed, 120 skipped**.
+- **Auditoría explícita del diff** (`python tests/ems_v2/piso3da_guard_policy.py`): aprobada sobre `12221d0` en un clon limpio; en un workspace donde ya se ejecutó la aplicación falla por los `__pycache__/*.pyc` versionados regenerados (no forman parte del diff publicado; `RELEVO_3DA.md` §8).
+- **Sin confirmar:** CI remoto del PR #21 (run `42963356574`, en curso al cierre); regresión global sobre el HEAD final.
 - **Decisión pendiente del responsable:** excepción nominal de guardias **C-3DA-01**.
 - **Límites:** sólo demanda + ≤2 bancos + PCC declarado, contexto de ensayo (simulación offline algebraica, no validación física); FV/eólica/PEMFC/térmica ⇒ bloqueo; informes 2D-B rechazan rodadas V2; capturas PNG del E2E no versionadas.
 - **Próximo paso:** auditoría externa del PR #21 y pasos de `RELEVO_3DA.md` §10. **No iniciar 3D-B/3D-C; no hacer merge.**

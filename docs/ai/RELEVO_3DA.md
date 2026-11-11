@@ -91,8 +91,8 @@ aislado declarado). FV/eólica/PEMFC/térmica habilitadas y disponibles ⇒ bloq
 | Regresión completa, con solver | **2116 passed, 1 skipped**, 9 warnings (677 s) | anterior — ver nota |
 | Regresión completa, sin solver | **1652 passed, 120 skipped**, 9 warnings (504 s) | anterior — ver nota |
 | E2E de navegador | **106 verificaciones, exit 0** | `5e2a458` |
-| Auditoría explícita del diff | aprobada | `005eb6c`; **no repetida** tras los commits de documentación |
-| CI remoto («SEEDS2 regression», solver true/false) | **sin confirmar** | PR #21 |
+| Auditoría explícita del diff | **aprobada** (exit 0) | `12221d0`, en un **clon limpio** — ver §8 |
+| CI remoto («SEEDS2 regression», solver true/false) | **en curso, sin resultado** al cerrar esta sesión (run `42963356574`) | PR #21 |
 
 **Nota:** las regresiones completas se midieron antes de (a) añadir un test (`rechazo del dossier 2D-B para rodadas V2`),
 (b) el ajuste cosmético de leyenda en `integracao_v2/ui.py` y (c) los arreglos del script E2E. Esperado en el HEAD final con
@@ -141,7 +141,7 @@ No hay tests fallando en lo ejecutado. Pendientes y sus causas:
 - **C-3DA-06:** runner V2 separado que reutiliza `_LIVE`, `OWNER`, `_ENGINE_LOCK` y `owner_is_dead` del runner V1.6.
 - **C-3DA-07:** sólo la hipótesis α = 1 de autodescarga.
 - Los informes 2D-B (PDF/Excel/figuras) rechazan explícitamente las rodadas V2.
-- `__pycache__/*.pyc` versionados aparecen modificados en el workspace al ejecutar; **no** se incluyeron en ningún commit.
+- **La auditoría del diff falla en un workspace «sucio»** (`caminhos protegidos alterados … config/__pycache__/…`, `models/__pycache__/…`). Causa: el repositorio versiona `__pycache__/*.pyc` y cualquier ejecución sin `PYTHONDONTWRITEBYTECODE=1` (p. ej. el servidor Streamlit del E2E) los regenera; la auditoría mira también el árbol de trabajo. No es un cambio de la misión: el diff publicado no contiene ningún `.pyc` (0 archivos) y la auditoría aprueba en un clon limpio. Esos `.pyc` **no** se incluyeron en ningún commit ni se descartaron del workspace de la sesión.
 
 ## 9. Trabajo sin publicar
 
@@ -154,8 +154,8 @@ No hay tests fallando en lo ejecutado. Pendientes y sus causas:
 
 1. `git fetch origin claude/adoring-newton-jzfmfx && git checkout claude/adoring-newton-jzfmfx`; leer `CLAUDE.md`, este
    archivo y `docs/ems_v2/INTEGRACAO_3DA.md`.
-2. Consultar el CI del PR #21 (matriz solver true/false). Si falla, reproducir localmente el job antes de corregir.
-3. Ejecutar `python tests/ems_v2/piso3da_guard_policy.py` (auditoría del diff con la documentación ya añadida).
+2. Consultar el CI del PR #21 (run `42963356574`, matriz solver true/false; estaba en curso al cierre). Si falla, reproducir localmente el job antes de corregir.
+3. Ejecutar `python tests/ems_v2/piso3da_guard_policy.py` en un **clon limpio** (`git clone` de la rama) tras cualquier commit nuevo; en un workspace donde ya se ejecutó la aplicación falla por los `.pyc` versionados (§8).
 4. Ejecutar la regresión completa con y sin solver sobre el HEAD y anotar los totales en `PARAMIJEFE.md` Entrega 13 y en la
    descripción del PR.
 5. Esperar la decisión del responsable sobre **C-3DA-01** y la auditoría independiente; aplicar sólo las correcciones pedidas.
