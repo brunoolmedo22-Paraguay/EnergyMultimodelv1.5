@@ -2819,3 +2819,217 @@ técnico completo: [`docs/ems_v2/INTEGRACAO_3DA2R.md`](docs/ems_v2/INTEGRACAO_3D
   - (c) validación física;
 - lacuna M19 para 3D-A2-T: `geracao_termica` «futuro» en el núcleo ⇒ la térmica sigue bloqueada. No se introduce
   generación gratuita.
+
+## Entrega 15 — SEEDS2 Piso 3D-A2-H · PEMFC/H₂ en el EMS V2 (MILP–MPC jerárquico) — 2026-11-11
+
+**Alcance autorizado:** módulo H del Piso 3D-A2. No se iniciaron 3D-A2-T (térmica) ni 3D-B.
+
+- **Base:** `main` `0c9df80` (merge del PR #22).
+- **Rama:** `claude/adoring-newton-jzfmfx`; PR contra `main` **sin merge**.
+- **Documento técnico:** [`docs/ems_v2/INTEGRACAO_3DA2H.md`](docs/ems_v2/INTEGRACAO_3DA2H.md).
+- **Relevo:** [`docs/ai/RELEVO_3DA2H.md`](docs/ai/RELEVO_3DA2H.md).
+
+**Estado honesto.** La integración está implementada y demostrada, pero la **PEMFC sigue BLOQUEADA en producción**:
+
+- la política B04 `b04-proposta-2` está congelada y **pendiente de aprobación** del responsable;
+- todas las misiones con PEMFC de esta entrega corren solo con aprobación SIMULADA dentro de los tests.
+
+**Qué se entrega.**
+
+- **Curva q_H₂(P_neta):**
+  - la deriva el MODELO ESTACIONARIO existente (`h2_pemfc`, perfil `EQUIVALENT_65KW_HORIZON_CONSTRAINED`) con sus
+    parámetros de inicialización declarados: T del stack, p del ánodo/cátodo, p ambiente y P_mín;
+  - el modelo no se reescribe: los extremos usan `solve_requested_power` y la rama, una malla de corriente con `evaluate`;
+  - se genera UNA vez por configuración física (huella SHA-256 que incluye el código del generador y de `h2_pemfc/`) y se
+    reutiliza en toda la misión: planificador largo y todas las ventanas MPC;
+  - nunca se regenera por intervalo, ventana, potencia, ON/OFF ni replanificación.
+
+  Evidencia de no regeneración: contador de GENERACIONES; como máximo 1 por misión de 12 ventanas; 0 nuevas para otra
+  microrred con la misma configuración.
+- **Error en condición nominal** (validación en 400 puntos independientes):
+
+  | Métrica | Valor |
+  |---|---|
+  | Dominio | [10, 50] kW, 15 vértices |
+  | Error relativo máximo | 0,087 % |
+  | Error absoluto máximo | 0,0028 kg/h |
+  | Subestimación | 0 |
+  | Error de masa acumulada en el TIEMPO, máx. de 6 perfiles de 1 min (cargas parciales, nominal, escalones, senoidal) | 0,072 % |
+
+  Generalización en 5 condiciones físicas no usadas para fijar los umbrales: error relativo ≤ 0,098 %; masa ≤ 0,072 %.
+- **B04: tres certificaciones distintas.**
+  - **(a) Matemática de la curva:** el núcleo acepta `real_certificada_b04` solo con un `CertificadoB04` REGISTRADO, cuyos
+    criterios se RECALCULAN a partir de los puntos y perfiles y cuya política está aprobada. Un certificado adulterado se
+    rechaza; un rótulo o un hash por sí solos no bastan.
+  - **(b) Validación del modelo aproximado:** inalterada (Model Card).
+  - **(c) Validación física:** inexistente.
+  - Las cinco correcciones pedidas por el responsable están implementadas: masa en el tiempo, perfiles independientes,
+    justificaciones revisadas, política congelada con generalización, y demostración contra adulteración, rótulo y hash.
+- **Dinámica.** El modelo dinámico existente se reutiliza mediante un adaptador que fija las condiciones declaradas:
+  - masas de H₂ de arranque y parada, que exige la adenda B05 en la variante instantánea;
+  - verificación A POSTERIORI de las consignas aplicadas (potencia solicitada × entregada, H₂ del modelo × H₂ del EMS,
+    estados y limitaciones) con tolerancias declaradas.
+
+  D05: abstracción instantánea en contexto «ensayo» más verificación dinámica; el contexto operativo sigue pendiente.
+- **Persistencia** (`seeds2-milp-mpc-run-data` v3; v1/v2 legibles):
+  - `v2/pemfc.json`: curva completa, certificado y masas; comprometido en el manifiesto antes de ejecutar;
+  - `v2/pemfc_dinamica.json`;
+  - columnas por unidad: u, p, arranques/paradas, q_H₂, masa y masa acumulada, costo de H₂ y de eventos.
+
+  La reapertura, exportación e importación no reconstruyen la curva ni ejecutan el modelo o el solver.
+- **Interfaz:**
+  - etapa 03: formulario PEMFC vacío;
+  - etapa 04: bloqueo B04 explicado;
+  - corrida: tabla PEMFC;
+  - banco H₂: gráfico «Consumo de hidrogênio × potência líquida» (modelo × PWL × vértices, banda P_mín–P_máx, error,
+    unidades g/s, kg/s y kg/h, KPIs «Certificação B04: Não aprovada», exportación CSV/JSON).
+
+**Caso híbrido de referencia** (sintético, aprobación simulada; FV + eólica + batería + PEMFC + PCC, 40 kW × 12 h,
+H₂ a 10 R$/kg). Misión concluida y auditada; energía no atendida 0.
+
+| Indicador | Valor |
+|---|---|
+| Costo realizado | R$ 116,00 (H₂ 65,70; importación 50,00; throughput 0,30) |
+| PEMFC | 100,54 kWh y 6,570 kg H₂; 2 arranques, 1 parada |
+| Dinámica | coherente: 100,27 kWh entregados; 6,545 kg (dinámico) × 6,565 kg (PWL) |
+
+**Cambio del núcleo:**
+
+- **C-3DA2H-01 (AUTORIZADA):** 4 archivos, aditiva: `contracts.py` y el parámetro opcional `curvas_h2` en
+  `ponte/{projecao,compromisso,preflight}.py`.
+- **Extensión a CONFIRMAR (C-3DA2H-02):** el parámetro opcional `massas_h2_eventos` en la misma ponte. Ausente ⇒
+  comportamiento idéntico.
+- **Regresión de `tests/ems_v2`** con solver tras el cambio: 1519 passed, 2 skipped.
+
+**Decisiones pendientes del responsable:**
+
+| Decisión | Contenido |
+|---|---|
+| B04 | Aprobación definitiva de la política |
+| C-3DA2H-02 | `massas_h2_eventos` |
+| C-3DA2H-03 | Rampa única aplicada a subida y bajada |
+| C-3DA2H-04 | D05 |
+| C-3DA2H-05 | IDLE de 10 kW × P_mín |
+
+**Validación (resultados comprobados):** ver la tabla de cierre debajo; se completa con la regresión global sobre el HEAD
+final.
+
+### Entrega 15 — addendum: correcciones de la auditoría externa del PR #23 (revisión de `68fd055`) — 2026-11-11
+
+El responsable no autorizó el merge ni la aprobación definitiva B04. Pidió revisar cuatro puntos con correcciones
+focalizadas, tests adversariales y evidencia reproducible. Todo se publica en el mismo Draft PR #23. B04 sigue PENDIENTE.
+
+| Punto | Diagnóstico | Corrección | Evidencia |
+|---|---|---|---|
+| A — masa de H₂ por evento (B05) | La masa de arranque (0,00233 kg, consumo en STARTUP) se sumaba a q̂(p)·Δ, que YA cubre el intervalo entero: doble conteo | m_SU/m_SD = masa ADICIONAL por integración TEMPORAL del modelo dinámico: δ = ∫q(intervalo con evento) − ∫q(mismo intervalo en régimen); m = máx(0, máx_p δ). Arranque: δ < 0 en todo el dominio ⇒ m_SU = 0. Parada (ocurre en el intervalo apagado): m_SD = 0,0064 kg | Descomposición exacta M_EMS − M_din = (q̂ − q)·Δ + (m − δ) ≥ 0, probada en arranque, parada y permanencia encendida con escalones |
+| B — algebraico × dinámico | Una misión podía concluir con verificación dinámica incoherente sin estado propio | Estados SEPARADOS en `summary.execution.aceitacao` (algebraica, dinámica, física siempre `nao_validada`). La verificación dinámica usa la contabilidad exacta del MILP. La reapertura recalcula la coherencia y confiere rótulo y H₂. La UI alerta «DINAMICAMENTE INCOERENTE» | Tests negativos: consigna < IDLE, arranque frío, Δ corto. Misión incoherente forzada concluye algebraicamente y nunca se presenta como validada. Rótulo y coherencia adulterados ⇒ verificación falla |
+| C — autoridad B04 | Un certificado podía traer su propia política «aprobada» con umbrales arbitrarios | El núcleo reconoce SOLO políticas congeladas en `POLITICAS_B04_NUCLEO`, identificadas por el SHA-256 del contenido (sin `situacao`) y con la situación fijada en el código. Política desconocida, alterada o con situación divergente ⇒ error. Aprobar = commit revisado en el núcleo | 18 tests del certificado (6 nuevos adversariales); verificación cuantitativa preservada |
+| D — restricciones físicas | P_min < IDLE y rampa > modelo eran solo WARNING | Ahora BLOQUEAN: P_min < IDLE (10 kW), rampa > 120 kW/min y transitorios incompatibles con Δ/T_amb según análisis a priori con el modelo dinámico (arranque frío de 600 s ⇒ bloqueo; Δ ≤ 15 min ⇒ bloqueo) | Tests de preflight por código |
+
+**E2E del flujo completo con la política aprobada** (aprobación SIMULADA solo en el servidor de prueba):
+
+- fase de bloqueo con la política del repositorio: 8 verificaciones;
+- flujo: declaraciones PEMFC cargadas por la interfaz → preflight → misión → corrida con aceptación separada: 14
+  verificaciones;
+- reapertura en servidor nuevo SIN solver y con los modelos saboteados: 9 verificaciones, registro de llamadas VACÍO.
+
+**Caso híbrido recalculado:**
+
+| Indicador | Valor |
+|---|---|
+| Costo | R$ 116,02 (H₂ R$ 65,72) |
+| H₂ del EMS | 6,5717 kg |
+| H₂ del modelo dinámico | 6,5452 kg (nunca subestimado; residuo 0,4 %) |
+| Aceptación | algebraica aprobada · dinámica coherente · física no validada |
+
+**Regresión sobre el código final** (`d0bee62`; luego solo documentación): con solver **2229 passed, 2 skipped**, 9 warnings (885 s); sin solver **1736 passed, 150 skipped**, 9 warnings (578 s); 0 fallos (las 2 omitidas con solver son las auditorías explícitas de diff condicionadas por variable).
+
+**Decisiones nuevas a confirmar:** C-3DA2H-08 a C-3DA2H-11 (`docs/ems_v2/INTEGRACAO_3DA2H.md` §9).
+
+### Entrega 15 — addendum 2: decisión del responsable sobre el PR #23 y verificaciones finales — 2026-11-11
+
+**Decisiones del responsable.**
+
+- **B04 aprobada:** política `b04-proposta-2`, en commit independiente y auditable `8be5de4`.
+  - Solo cambia la situación, en `ems_v2/contracts.py` y `integracao_v2/curva_h2.py`. Umbrales, identidad
+    `412863021aee…` y versión quedan iguales.
+  - Alcance: certificación MATEMÁTICA de la PWL frente al modelo PEMFC existente. No es validación experimental del
+    modelo Horizon ni certificación de operación física.
+  - Cada curva sigue sujeta a su propia verificación B04, con criterios recalculados por el núcleo.
+- **Aprobadas con alcance delimitado:** C-3DA2H-02 a 05 y 08 a 11.
+
+**Verificación A — masas adicionales en malla densa** (`tests/verificacao_massas_3da2h.py`, independiente de la rutina
+del preflight). Método:
+
+- intervalos COMPLETOS de 60 min en secuencias continuas;
+- integración propia;
+- malla de 0,5 kW y pares cada 2,5 kW;
+- 6 configuraciones físicas admisibles.
+
+| Caso | Resultado |
+|---|---|
+| Arranques, paradas y rampas de subida | nunca subestiman (residuos ≤ 2·10⁻¹³ kg = redondeo) |
+| Rampas de BAJADA en operación continua | SUBESTIMACIÓN encontrada: hasta 0,0044 kg por rampa (≤ 0,72 % de la masa del intervalo); peor caso siempre P_máx → P_mín, igual al del análisis a priori y dentro de la tolerancia |
+
+- No se declara garantía global de no subestimación.
+- La subestimación no proviene de las masas por evento sino de la ausencia de un término de rampa en el MILP. Corregirla
+  exigiría cambiar la formulación (no autorizado); una constante arbitraria está prohibida.
+- Ahora se informa por corrida (documento dinámico, resumen, interfaz) y se recalcula en la reapertura.
+- **Decisión C-3DA2H-12:** quedó pendiente en este addendum; ver el addendum 3 (aprobada).
+
+**Verificación B — flujo completo con B04 REALMENTE aprobada.** Sin `politica_aprovada_no_teste` (eliminada) ni
+`sitecustomize` de autorización. Microrred FV + eólica + batería + PEMFC + PCC configurada desde Streamlit.
+
+| Fase | Verificaciones |
+|---|---|
+| Banco | 6 |
+| Flujo: declaraciones por la interfaz, preflight normal, misión HiGHS, corrida con aceptación coherente | 20 |
+| Reapertura tras reiniciar, SIN solver y con modelos saboteados; corridas legadas v1/v2 legibles | 16 |
+| Comprobación cuantitativa (balance, despacho, H₂, costos, aceptación, B04) | 18 |
+
+Registro de llamadas al motor y a los modelos: VACÍO.
+
+**Resultado de la misión:**
+
+| Indicador | Valor |
+|---|---|
+| Costo | R$ 116,02 (H₂ R$ 65,72) |
+| PEMFC | 100,54 kWh; 6,5717 kg de H₂ |
+| Dinámica | coherente |
+| Mayor subestimación de H₂ en un intervalo | 0,0006 kg |
+
+**Regresión sobre el código final** (`0058902`; luego solo documentación): con solver **2234 passed, 2 skipped**, 9 warnings (887 s); sin solver **1741 passed, 150 skipped**, 9 warnings (586 s); 0 fallos.
+
+### Entrega 15 — addendum 3: C-3DA2H-12 aprobada y cierre técnico — 2026-11-11
+
+**Decisión del responsable: C-3DA2H-12 APROBADA**, dentro del alcance experimental declarado.
+
+- La subestimación en las rampas descendentes en operación continua se acepta como RESIDUO CUANTIFICADO entre la
+  formulación MILP estacionaria y la respuesta del modelo dinámico aproximado.
+- NO se incorpora un término de rampa al MILP: la formulación queda inalterada y no se añaden funcionalidades.
+
+**Condiciones científicas** (detalle y garantías en `docs/ems_v2/INTEGRACAO_3DA2H.md` §5b):
+
+1. Subestimación visible por intervalo, por unidad y acumulada, con verificación de integridad en la reapertura (ya
+   implementado).
+2. Los máximos de 0,0044 kg por rampa y 0,72 % NO son cotas universales: corresponden a los casos y condiciones
+   ensayados (6 configuraciones, Δ = 60 min).
+3. Se conserva la clasificación independiente: algebraica, coherencia dinámica y validación física.
+4. Los costos y decisiones del MILP no representan exactamente la operación transitoria; los costos estimados están
+   sujetos al error de la aproximación documentada.
+5. En el TCC hay que considerar la magnitud económica de los residuos. Ejemplo, caso híbrido: +0,0264 kg de H₂ ≈ R$ 0,26,
+   es decir 0,23 % del costo. No afirmar superioridad concluyente cuando la diferencia cabe en la incertidumbre de
+   modelado.
+6. Una discrepancia por encima de las tolerancias aprobadas queda marcada como incoherencia (automático) y obliga a
+   revisar la formulación antes de usar el resultado como evidencia.
+7. La evaluación con Δ = 60 min no se extiende automáticamente a otros pasos.
+
+**Estado de cierre:**
+
+- B04 sigue vigente, limitada a la calidad matemática de la PWL frente al modelo PEMFC original.
+- El alcance de integración 3D-A2-H queda técnicamente aceptado para ensayos reproducibles, con las limitaciones
+  físicas y dinámicas registradas.
+- PR #23 sin merge: el supervisor hará el cierre formal y la integración en `main` cuando el responsable confirme
+  expresamente la autorización.
+- No se inician 3D-A2-T ni 3D-B.
+

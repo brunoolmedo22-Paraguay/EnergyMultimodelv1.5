@@ -1,0 +1,10 @@
+# E2E navegador real (Playwright/Chromium) — Piso 3D-A2-H — fase bancada — política B04 do REPOSITÓRIO (aprovada), SEM aprovação simulada
+# comando: bash tools/e2e/run_piso3da2h.sh <python COM Pyomo/HiGHS> <pasta> <python SEM solver>
+# data: 2026-11-11T13:43:53Z
+[3da2h:bancada] ok — bancada: modelo físico × PWL do EMS × vértices
+[3da2h:bancada] ok — bancada: certificação B04 (matemática) da curva — política aprovada
+[3da2h:bancada] ok — bancada: PWL do modelo físico APROXIMADO, verificada MATEMATICAMENTE
+[3da2h:bancada] ok — bancada: sem validação experimental declarada
+[3da2h:bancada] ok — bancada: diagnóstico do erro da aproximação
+[3da2h:bancada] ok — sem erros de JavaScript: []
+[3da2h:bancada] CONCLUÍDO — 6 verificações

@@ -180,6 +180,64 @@ def submit(store, scenario_uid: str, version: int, request_id: str, *, backgroun
     return store.get_run(run_uid)
 
 
+def verificacao_dinamica(ev, mont) -> dict:
+    """Consignas APLICADAS de cada unidade PEMFC avaliadas pelo modelo dinâmico (a posteriori; não altera nada)."""
+    from . import pemfc_dinamica as DY
+    base = ev.modelo.base
+    est = {str(e.uid): e for e in base.estados_geradores}
+    passos = sorted((p for r in ev.registros for p in r.conteudo.passos), key=lambda p: p.indice_global)
+    out = {}
+    for g in base.geradores:
+        u = str(g.uid)
+        x = mont.pemfc[u.split("#")[0]]
+        e0 = est.get(u)
+        sp = ev.modelo.compromisso.unidade(u)
+        massas = (float(sp.massa_h2_partida_kg.valor) if sp.massa_h2_partida_kg is not None else 0.0,
+                  float(sp.massa_h2_parada_kg.valor) if sp.massa_h2_parada_kg is not None else 0.0)
+        out[u] = DY.verificar_despacho(x["condicoes"], x["curva"], float(x["temperatura_ambiente_C"]), ev.cfg.malha.delta_s,
+                                       [float(p.aplicado[f"{u}|u"]) for p in passos],
+                                       [float(p.aplicado[f"{u}|p"]) for p in passos],
+                                       bool(e0.ligado) if e0 is not None else False,
+                                       float(e0.p_anterior_kW.valor) if e0 is not None else 0.0, massas)
+    return {"formato": "seeds2-milp-mpc-pemfc-dinamica", "versao": 2, "tolerancias": dict(DY.TOLERANCIAS),
+            "modelo": "h2_pemfc.Equivalent65kWHorizonDynamicModel (condições declaradas por adaptador; passo interno 1 s)",
+            "unidades": out, "coerente": all(v["coerente"] for v in out.values()),
+            "nota": "Avaliação A POSTERIORI das consignas do EMS (abstração instantânea) pelo modelo dinâmico aproximado; "
+                    "H₂ do EMS = q̂(p)·Δ·u + m_SU·y + m_SD·z (a contabilidade do MILP). Não é validação física e não "
+                    "altera o despacho nem a planta algébrica."}
+
+
+ROTULOS_ACEITACAO = {
+    "algebrica_aprovada_dinamica_coerente": "Despacho ALGEBRICAMENTE aprovado e COERENTE com o modelo dinâmico aproximado "
+                                            "nas tolerâncias declaradas (não é validação física).",
+    "algebrica_aprovada_dinamica_incoerente": "Despacho ALGEBRICAMENTE aprovado, mas DINAMICAMENTE INCOERENTE: o modelo "
+                                              "dinâmico NÃO segue as consignas aplicadas nas tolerâncias declaradas. A rodada "
+                                              "NÃO representa operação executável do equipamento modelado.",
+    "algebrica_aprovada_sem_pemfc": "Despacho ALGEBRICAMENTE aprovado (sem PEMFC: não há verificação dinâmica aplicável; "
+                                    "não é validação física).",
+}
+
+
+def aceitacao(din: dict | None) -> dict:
+    """Critérios de aceitação SEPARADOS e explícitos (auditoria do PR #23, ponto B). ``concluida`` no armazenamento só
+    significa evidência algébrica completa e auditada; a coerência dinâmica e a validação física são estados próprios."""
+    alg = {"estado": "aprovada", "criterio": "missão completa + auditoria integral independente (sem solver) aprovada"}
+    fis = {"estado": "nao_validada", "criterio": "medições do equipamento real",
+           "motivo": "Modelos estacionário e dinâmico APROXIMADOS, sem validação no equipamento; simulação offline "
+                     "algébrica de ensaio."}
+    if din is None:
+        dyn = {"estado": "nao_aplicavel", "criterio": "sem PEMFC na missão"}
+        cls = "algebrica_aprovada_sem_pemfc"
+    else:
+        inc = {u: v["incoerencias"] for u, v in din["unidades"].items() if not v["coerente"]}
+        dyn = {"estado": "coerente" if din["coerente"] else "incoerente",
+               "criterio": "por intervalo: |E_entregue − E_solicitada| ≤ máx(2 %, 0,5 kW·Δ) e |m_H₂ dinâmico − m_H₂ do "
+                           "EMS| ≤ máx(2 %, 0,02 kg/h·Δ) (v2/pemfc_dinamica.json)",
+               "intervalos_incoerentes": {u: len(v) for u, v in inc.items()}}
+        cls = "algebrica_aprovada_dinamica_coerente" if din["coerente"] else "algebrica_aprovada_dinamica_incoerente"
+    return {"algebrica": alg, "dinamica": dyn, "fisica": fis, "classificacao": cls, "rotulo": ROTULOS_ACEITACAO[cls]}
+
+
 def executar_janela_a_janela(ctrl, entorno, ao_avancar=None):
     """Laço da missão com o orquestrador DO MOTOR (``executar_missao_simulada``), uma janela por chamada, para relatar
     progresso real entre janelas. Equivalente a uma única chamada (o laço do motor não guarda estado entre iterações)."""
@@ -253,15 +311,29 @@ def _executar(store, run_uid: str, pf: PF.PreflightV2) -> None:
                           "scenario_version": stored.version, "scenario_fingerprint": stored.fingerprint,
                           "config_revision": stored.base_revision, "config_fingerprint": stored.base_fingerprint}
                 pdoc = {**pf.report(), "engine_inputs": pf.engine_inputs()}
-                data = RG.dados_da_rodada(ev, cfg, rel, R16._json_safe(pdoc), run_uid, fuso, origem, mont.doc_renovaveis)
+                din = verificacao_dinamica(ev, mont) if mont.pemfc else None
+                data = RG.dados_da_rodada(ev, cfg, rel, R16._json_safe(pdoc), run_uid, fuso, origem, mont.doc_renovaveis,
+                                          mont.doc_pemfc, din)
                 summary = {"engine": E.MOTOR_V2, "mission": RG.resumo(ev, fuso),
                            "execution": {"elapsed_s": outcome["elapsed_s"], "auditoria_integral_aprovada": True,
-                                         "avisos": [i.message for i in pf.items if i.level == PF.WARNING]}}
+                                         "avisos": [i.message for i in pf.items if i.level == PF.WARNING],
+                                         "aceitacao": aceitacao(din)}}
+                if din is not None:
+                    summary["execution"]["pemfc_dinamica"] = {u: {"coerente": x["coerente"],
+                                                                  "intervalos_incoerentes": len(x["incoerencias"]),
+                                                                  "energia_solicitada_kWh": x["energia_solicitada_kWh"],
+                                                                  "energia_entregue_kWh": x["energia_entregue_kWh"],
+                                                                  "h2_modelo_dinamico_kg": x["h2_modelo_dinamico_kg"],
+                                                                  "h2_ems_kg": x["h2_ems_kg"],
+                                                                  "h2_subestimacao_max_kg": x["h2_subestimacao_max_kg"],
+                                                                  "h2_subestimacao_total_kg":
+                                                                      x["h2_subestimacao_total_kg"]}
+                                                              for u, x in din["unidades"].items()}
                 outcome["warnings"] = summary["execution"]["avisos"]
                 store.finish_run(run_uid, OWNER, outcome=R16._json_safe(outcome), summary=R16._json_safe(summary),
                                  data=data)
                 return
-            outcome["evidence"] = RG.evidencia_parcial_doc(ev, cfg, rel, fuso, mont.doc_renovaveis)
+            outcome["evidence"] = RG.evidencia_parcial_doc(ev, cfg, rel, fuso, mont.doc_renovaveis, mont.doc_pemfc)
             if completa:                              # missão completa, mas a auditoria independente NÃO aprovou
                 store.fail_run(run_uid, OWNER, {
                     "kind": "auditoria_reprovada", "message": "A missão terminou, mas a auditoria integral independente "

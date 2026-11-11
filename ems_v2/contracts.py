@@ -139,6 +139,10 @@ TECNOLOGIAS_GERADOR = {"pemfc": "Célula a combustível PEM", "termica": "Térmi
 CLASSIFICACOES_CURVA = {
     "sintetica_exata": "PWL sintética de solução analítica conhecida (permitida para 3A/3B)",
     "real": "Curva derivada de modelo/equipamento real — exige certificação estática (adenda B04) antes de uso",
+    # C-3DA2H-01 (extensão aditiva autorizada, Piso 3D-A2-H): aceita SÓ com um CertificadoB04 REGISTRADO neste processo
+    # — o registro RECOMPUTA todos os critérios a partir dos dados do certificado; rótulo ou hash não bastam.
+    "real_certificada_b04": "Curva derivada de modelo físico com certificado B04 VERIFICADO (critérios recomputados dos "
+                            "dados do certificado; política declarada aprovada pelo responsável)",
 }
 VARIANTES_COMMITMENT = {
     "instantanea": "OFF/ON instantâneo (M09–M12; adenda B05 variante INSTANTÂNEA)",
@@ -152,6 +156,183 @@ class CurvaPWL:
     vertices: tuple[tuple[float, float], ...]
     classificacao: str
     procedencia: Procedencia | None
+
+
+# ------------------------------------------------------------------ C-3DA2H-01: certificado B04 verificável
+SITUACAO_B04_APROVADA = "aprovada_pelo_responsavel"
+
+
+@dataclass(frozen=True)
+class PoliticaB04:
+    """Limiares de aceitação da adenda B04 (declarados e congelados ANTES da avaliação; aprovação do responsável)."""
+    versao: str
+    situacao: str                                  # só SITUACAO_B04_APROVADA habilita o certificado
+    erro_rel_max: float                            # |PWL − modelo| / modelo, por ponto de validação
+    erro_abs_max_kg_h: float
+    subestimacao_rel_max: float                    # (modelo − PWL) / modelo — custo subestimado
+    erro_massa_temporal_rel_max: float             # |Σ PWL·Δt − Σ modelo·Δt| / Σ modelo·Δt, por perfil TEMPORAL
+    pontos_validacao_min: int
+
+
+@dataclass(frozen=True)
+class PerfilMassaB04:
+    """Perfil temporal de potência (passo em HORAS) com a vazão do MODELO em cada passo: massa = Σ q·Δt [kg]."""
+    nome: str
+    passo_h: float
+    potencias_kW: tuple[float, ...]
+    vazoes_modelo_kg_h: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class CertificadoB04:
+    """Dados VERIFICÁVEIS da certificação matemática da PWL contra o modelo de origem (não valida o modelo nem o
+    equipamento). ``validacao`` = pares (P [kW], q do MODELO [kg/h]) independentes dos vértices."""
+    versao: int
+    politica: PoliticaB04
+    vertices: tuple[tuple[float, float], ...]
+    validacao: tuple[tuple[float, float], ...]
+    perfis: tuple[PerfilMassaB04, ...]
+    identidade_sha256: str
+    procedencia: Procedencia | None
+
+
+def hash_politica_b04(p: PoliticaB04) -> str:
+    """Identidade SHA-256 do CONTEÚDO da política (versão + limiares + mínimo de pontos), SEM o campo ``situacao``: a
+    situação nunca é autodeclarada pelo certificado — quem a decide é ``POLITICAS_B04_NUCLEO``."""
+    d = {"versao": p.versao, "erro_rel_max": p.erro_rel_max, "erro_abs_max_kg_h": p.erro_abs_max_kg_h,
+         "subestimacao_rel_max": p.subestimacao_rel_max, "erro_massa_temporal_rel_max": p.erro_massa_temporal_rel_max,
+         "pontos_validacao_min": p.pontos_validacao_min}
+    return hashlib.sha256(json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                                     allow_nan=False).encode("utf-8")).hexdigest()
+
+
+# AUTORIDADE da certificação B04 (auditoria do PR #23, ponto C): o núcleo reconhece SÓ as políticas CONGELADAS aqui, pela
+# identidade do conteúdo, e a SITUAÇÃO de cada uma é a fixada aqui — nunca a declarada no certificado. Política
+# desconhecida ou alterada ⇒ erro; situação declarada divergente ⇒ erro; conhecida e não aprovada ⇒ pendente.
+# Aprovar = mudar a situação da política abaixo para SITUACAO_B04_APROVADA num commit REVISADO e autorizado.
+POLITICAS_B04_NUCLEO: dict[str, dict[str, str]] = {
+    "412863021aee9d29e1972760e4a5469e509e0de9260ffe9bf62096d932071c9a": {
+        "versao": "b04-proposta-2", "situacao": SITUACAO_B04_APROVADA,
+        "congelada_em": "2026-11-11", "aprovada_em": "2026-11-11",
+        "aprovacao": "Decisão do responsável no PR #23 (Piso 3D-A2-H): limiares, identidade e versão exatamente os "
+                     "congelados.",
+        "alcance": "Certificação MATEMÁTICA da aproximação PWL contra o modelo PEMFC existente. NÃO é validação "
+                   "experimental do modelo Horizon nem certificação de operação física; cada curva gerada continua "
+                   "sujeita à sua própria verificação B04 (critérios recomputados)."},
+}
+
+
+def situacao_politica_b04(p: PoliticaB04) -> tuple[str | None, str]:
+    """(situação registrada no núcleo ou None, código): ``conhecida`` | ``alterada`` (versão conhecida, conteúdo
+    diferente) | ``desconhecida``."""
+    reg = POLITICAS_B04_NUCLEO.get(hash_politica_b04(p))
+    if reg is not None:
+        return reg["situacao"], "conhecida"
+    if any(r["versao"] == p.versao for r in POLITICAS_B04_NUCLEO.values()):
+        return None, "alterada"
+    return None, "desconhecida"
+
+
+def hash_certificado_b04(c: CertificadoB04) -> str:
+    return hashlib.sha256(json.dumps(para_dict(c), sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                                     allow_nan=False).encode("utf-8")).hexdigest()
+
+
+def _pwl_valor(vs, p: float) -> float:
+    for (p0, q0), (p1, q1) in zip(vs, vs[1:]):
+        if p0 <= p <= p1:
+            return q0 + (q1 - q0) * (p - p0) / (p1 - p0)
+    raise ValueError("fora do domínio")
+
+
+def verificar_certificado_b04(c: CertificadoB04) -> list[Constatacao]:
+    """Recomputa TODOS os critérios a partir dos dados do certificado (sem modelo, sem confiar em métricas declaradas)."""
+    cam = "certificado_b04"
+    out: list[Constatacao] = []
+    if not isinstance(c, CertificadoB04) or not isinstance(c.politica, PoliticaB04):
+        return [erro("certificado_b04_ilegivel", cam, "Certificado B04 ausente ou ilegível.")]
+    pol = c.politica
+    lim = (pol.erro_rel_max, pol.erro_abs_max_kg_h, pol.subestimacao_rel_max, pol.erro_massa_temporal_rel_max)
+    if not all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) and x >= 0 for x in lim) \
+            or not isinstance(pol.pontos_validacao_min, int) or pol.pontos_validacao_min < 1:
+        return [erro("politica_b04_invalida", cam + ".politica", "Limiares B04 ausentes, não finitos ou negativos.")]
+    sit, cod = situacao_politica_b04(pol)
+    if cod == "alterada":
+        out.append(erro("politica_b04_alterada", cam + ".politica",
+                        f"Política B04 {pol.versao!r} com conteúdo DIFERENTE do congelado no núcleo (limiares alterados)."))
+    elif cod == "desconhecida":
+        out.append(erro("politica_b04_desconhecida", cam + ".politica",
+                        f"Política B04 {pol.versao!r} desconhecida do núcleo: só políticas congeladas e registradas em "
+                        "POLITICAS_B04_NUCLEO são reconhecidas (situação autodeclarada não tem autoridade)."))
+    elif pol.situacao != sit:
+        out.append(erro("politica_b04_situacao_divergente", cam + ".politica",
+                        f"O certificado declara a situação {pol.situacao!r}; o núcleo registra {sit!r} para a política "
+                        f"{pol.versao!r}."))
+    elif sit != SITUACAO_B04_APROVADA:
+        out.append(pendente("politica_b04_nao_aprovada", cam + ".politica",
+                            f"Política B04 {pol.versao!r} em situação {sit!r} no núcleo: a certificação exige aprovação "
+                            "explícita do responsável."))
+    if not isinstance(c.identidade_sha256, str) or not _HEX64.fullmatch(c.identidade_sha256):
+        out.append(erro("identidade_b04_invalida", cam + ".identidade_sha256", "Identidade da curva sem SHA-256."))
+    vs = [(float(p), float(q)) for p, q in c.vertices]
+    if len(vs) < 2 or any(b[0] <= a[0] or b[1] <= a[1] for a, b in zip(vs, vs[1:])) or vs[0][0] <= 0 or vs[0][1] < 0:
+        return out + [erro("vertices_b04_invalidos", cam + ".vertices",
+                           "Vértices: >= 2, P e q estritamente crescentes, P_0 > 0, q >= 0.")]
+    lo, hi = vs[0][0], vs[-1][0]
+    val = [(float(p), float(q)) for p, q in c.validacao]
+    if len(val) < pol.pontos_validacao_min:
+        out.append(erro("b04_pontos_validacao_insuficientes", cam + ".validacao",
+                        f"{len(val)} pontos < {pol.pontos_validacao_min} exigidos."))
+    vp = {p for p, _ in vs}
+    if any(not lo <= p <= hi or q <= 0 or p in vp for p, q in val):
+        out.append(erro("b04_validacao_invalida", cam + ".validacao",
+                        "Pontos de validação devem estar no domínio, ter q > 0 e ser independentes dos vértices."))
+        return out
+    srt = sorted(val)
+    if any(b[1] <= a[1] for a, b in zip(srt, srt[1:])):
+        out.append(erro("b04_modelo_nao_monotono", cam + ".validacao", "Vazão do modelo não crescente em P."))
+    rel = max(abs(_pwl_valor(vs, p) - q) / q for p, q in val)
+    ab = max(abs(_pwl_valor(vs, p) - q) for p, q in val)
+    sub = max(max(0.0, (q - _pwl_valor(vs, p)) / q) for p, q in val)
+    for nome, v, lmax in (("erro_rel_max", rel, pol.erro_rel_max), ("erro_abs_max_kg_h", ab, pol.erro_abs_max_kg_h),
+                          ("subestimacao_rel_max", sub, pol.subestimacao_rel_max)):
+        if v > lmax:
+            out.append(erro("b04_criterio_reprovado", f"{cam}.{nome}", f"{nome} = {v!r} > limiar {lmax!r}."))
+    if not c.perfis:
+        out.append(erro("b04_sem_perfil_temporal", cam + ".perfis", "Nenhum perfil temporal de massa acumulada."))
+    for pf in c.perfis:
+        if not (isinstance(pf.passo_h, (int, float)) and pf.passo_h > 0) or len(pf.potencias_kW) != len(
+                pf.vazoes_modelo_kg_h) or not pf.potencias_kW:
+            out.append(erro("b04_perfil_invalido", f"{cam}.perfis[{pf.nome}]", "Passo, potências e vazões incoerentes."))
+            continue
+        if any(not lo <= float(p) <= hi or float(q) <= 0 for p, q in zip(pf.potencias_kW, pf.vazoes_modelo_kg_h)):
+            out.append(erro("b04_perfil_fora_do_dominio", f"{cam}.perfis[{pf.nome}]", "Potência fora do domínio."))
+            continue
+        mm = math.fsum(float(q) * pf.passo_h for q in pf.vazoes_modelo_kg_h)
+        mp = math.fsum(_pwl_valor(vs, float(p)) * pf.passo_h for p in pf.potencias_kW)
+        if abs(mp - mm) / mm > pol.erro_massa_temporal_rel_max:
+            out.append(erro("b04_criterio_reprovado", f"{cam}.perfis[{pf.nome}]",
+                            f"erro de massa acumulada {abs(mp - mm) / mm!r} > limiar {pol.erro_massa_temporal_rel_max!r}."))
+    return out
+
+
+_CERTIFICADOS_B04: dict[str, CertificadoB04] = {}
+
+
+def registrar_certificado_b04(c: CertificadoB04) -> tuple[str, list[Constatacao]]:
+    """Verifica (recomputando) e, sem bloqueantes, registra o certificado neste processo. Só um certificado REGISTRADO
+    habilita uma curva ``real_certificada_b04`` cujos vértices sejam EXATAMENTE os certificados."""
+    cs = verificar_certificado_b04(c)
+    if any(x.severidade == "erro" for x in cs):
+        return "", cs                                  # certificado incoerente: nunca hasheado nem registrado
+    h = hash_certificado_b04(c)
+    if not any(x.severidade == "pendente" for x in cs):
+        _CERTIFICADOS_B04[h] = c
+    return h, cs
+
+
+def certificado_b04_registrado(h: str | None) -> CertificadoB04 | None:
+    return _CERTIFICADOS_B04.get(h) if h else None
 
 
 @dataclass(frozen=True)
@@ -399,6 +580,16 @@ def validar_curva(cv: CurvaPWL, pmin: float | None, pmax: float | None, cam: str
     elif cv.classificacao == "real":
         out.append(pendente("pwl_real_requer_certificacao_estatica", cam,
                             "Curva real q(P_net) exige validação estática aprovada (adenda B04) antes de uso."))
+    elif cv.classificacao == "real_certificada_b04":            # C-3DA2H-01
+        cert = certificado_b04_registrado(cv.procedencia.sha256 if cv.procedencia is not None else None)
+        if cert is None:
+            out.append(pendente("pwl_certificado_b04_nao_verificado", cam,
+                                "Curva rotulada certificada sem certificado B04 VERIFICADO e registrado neste processo "
+                                "(rótulo ou hash não bastam)."))
+        elif tuple((float(p), float(q)) for p, q in cert.vertices) != tuple(
+                (float(p), float(q)) for p, q in cv.vertices):
+            out.append(erro("pwl_certificado_b04_divergente", cam + ".vertices",
+                            "Vértices da curva diferem dos vértices certificados."))
     out += validar_procedencia(cv.procedencia, cam + ".procedencia")
     vs = cv.vertices
     if not isinstance(vs, tuple) or len(vs) < 2:

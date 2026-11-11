@@ -321,8 +321,113 @@ def _render_characterization() -> None:
         fig.update_layout(title="Eficiência líquida · PCI", xaxis_title="Potência líquida [kW]", yaxis_title="%", margin={"l":20,"r":20,"t":45,"b":20})
         st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
+    _render_curva_ems()
+
     with st.expander("Tabela de parâmetros do balance of plant"):
         st.dataframe(model.parameters_table(), hide_index=True, width="stretch", height=420)
+
+
+H2_UNIDADES = {"g/s": 1.0 / 3.6, "kg/s": 1.0 / 3600.0, "kg/h": 1.0}
+
+
+def _render_curva_ems() -> None:
+    """Curva estacionária q_H₂(P_net) derivada do modelo físico para as condições informadas — a MESMA função que o
+    EMS V2 usa (``integracao_v2.curva_h2``): modelo original × PWL × vértices × domínio × erro da aproximação."""
+    from integracao_v2 import curva_h2 as CH
+
+    _header("H₂ · Curva de consumo do EMS", "CONSUMO DE HIDROGÊNIO × POTÊNCIA LÍQUIDA",
+            "Curva estacionária gerada pelo modelo físico para as condições informadas e a aproximação linear por "
+            "partes (PWL) que o EMS V2 utiliza. Modelo físico parametrizado APROXIMADO — não são medições.")
+    st.markdown('<div class="h2-note">Valores iniciais = condições nominais do modelo (calibração 353,15 K; pressões '
+                'nominais do manual) e P<sub>mín</sub> = mínimo recomendado do manual (20 % de 50 kW), apenas para '
+                'exploração na bancada. Numa missão do EMS, cada valor é DECLARADO no cenário. A vazão mostrada é o H₂ '
+                '<b>suprido</b> (consumo estequiométrico ÷ utilização), base do custo; o consumo estequiométrico aparece '
+                'como referência tracejada.</div>', unsafe_allow_html=True)
+    c = st.columns(5)
+    t_k = c[0].number_input("Temperatura do stack [K]", value=353.15, min_value=1.0, step=1.0, key="h2_cv_T")
+    p_an = c[1].number_input("Pressão do ânodo [kPa(g)]", value=140.0, min_value=0.0, step=5.0, key="h2_cv_pan")
+    p_ca = c[2].number_input("Pressão do cátodo [kPa(g)]", value=120.0, min_value=0.0, step=5.0, key="h2_cv_pca")
+    p_amb = c[3].number_input("Pressão ambiente [kPa]", value=101.325, min_value=1.0, step=0.5, key="h2_cv_pamb")
+    p_min = c[4].number_input("P mínimo [kW]", value=10.0, min_value=0.1, step=1.0, key="h2_cv_pmin")
+    unidade = st.radio("Unidade da vazão de H₂", list(H2_UNIDADES), index=0, horizontal=True, key="h2_cv_un")
+    try:
+        curva = CH.obter_curva(CH.CondicoesPEMFC(t_k, p_an, p_ca, p_amb), p_min)
+    except (CH.CurvaInvalida, ValueError, RuntimeError) as exc:
+        st.error(f"Curva não gerada para estas condições: {exc}")
+        return
+    f = H2_UNIDADES[unidade]
+    m, b04 = curva.metricas, CH.avaliar_b04(curva.metricas)        # estado B04 ATUAL (autoridade do núcleo)
+    k = st.columns(6)
+    k[0].metric("Potência máxima admissível", f"{curva.p_max_kW:.2f} kW")
+    k[1].metric("H₂ a P máximo", f"{m['q_pmax_kg_h'] * f:.4g} {unidade}")
+    k[2].metric("Consumo específico a P máx.", f"{m['consumo_especifico_pmax_kg_kWh']:.4f} kg/kWh")
+    k[3].metric("Erro máximo da PWL", f"{100 * m['erro_rel_max']:.3f} %")
+    k[4].metric("Vértices da PWL", f"{m['vertices']}")
+    estado = b04["estado"]
+    k[5].metric("Certificação B04 (matemática)", {"certificada": "Certificada", "reprovada": "Reprovada",
+                                                   "politica_nao_reconhecida_pelo_nucleo": "Não reconhecida"}.get(
+        estado, "Não aprovada"),
+        help={"certificada": f"Certificação MATEMÁTICA da PWL contra o modelo físico APROXIMADO (política {b04['politica']} "
+                             "aprovada pelo responsável; critérios recomputados para ESTA curva). NÃO é validação "
+                             "experimental do modelo nem do equipamento.",
+              "reprovada": "Esta curva NÃO atende aos limiares da política B04: o EMS V2 bloqueia a PEMFC nestas "
+                           "condições."}.get(estado, "A política B04 não está aprovada no núcleo: o EMS V2 bloqueia a "
+                                                     "PEMFC. NÃO é validação experimental do modelo nem do equipamento."))
+    st.caption("PWL obtida do modelo físico APROXIMADO (Horizon equivalente, parametrizado) e verificada MATEMATICAMENTE "
+               "contra esse modelo (adenda B04). Não há validação experimental do modelo nem certificação de operação "
+               "física do equipamento.")
+    P = np.asarray(curva.ajuste["P_kW"])
+    q = np.asarray(curva.ajuste["q_suprido_kg_h"])
+    qc = np.asarray(curva.ajuste["q_consumido_kg_h"])
+    qp = curva.q_pwl(P)
+    vp = np.asarray([v[0] for v in curva.vertices])
+    vq = np.asarray([v[1] for v in curva.vertices])
+    fig = go.Figure()
+    fig.add_vrect(x0=curva.p_min_kW, x1=curva.p_max_kW, fillcolor="#16869B", opacity=0.06, line_width=0,
+                  annotation_text="domínio válido P<sub>mín</sub>–P<sub>máx</sub>", annotation_position="top left")
+    fig.add_trace(go.Scatter(x=P, y=q * f, mode="lines", name="Modelo físico (H₂ suprido)", line={"width": 3},
+                             customdata=np.stack([qp * f, (qp - q) * f, 100 * (qp - q) / q], axis=-1),
+                             hovertemplate=("P = %{x:.3f} kW<br>modelo = %{y:.5g} " + unidade + "<br>PWL = "
+                                            "%{customdata[0]:.5g} " + unidade + "<br>PWL − modelo = %{customdata[1]:.3g} "
+                                            + unidade + " (%{customdata[2]:.3f} %)<extra></extra>")))
+    fig.add_trace(go.Scatter(x=P, y=qp * f, mode="lines", name="PWL usada pelo EMS", line={"dash": "dash"},
+                             hovertemplate="P = %{x:.3f} kW<br>PWL = %{y:.5g} " + unidade + "<extra></extra>"))
+    fig.add_trace(go.Scatter(x=vp, y=vq * f, mode="markers", name="Vértices da PWL", marker={"size": 8},
+                             hovertemplate="vértice<br>P = %{x:.3f} kW<br>q = %{y:.5g} " + unidade + "<extra></extra>"))
+    if np.isfinite(qc).all():
+        fig.add_trace(go.Scatter(x=P, y=qc * f, mode="lines", name="H₂ estequiométrico consumido (referência)",
+                                 line={"dash": "dot", "width": 1}, hovertemplate="P = %{x:.3f} kW<br>consumido = "
+                                 "%{y:.5g} " + unidade + "<extra></extra>"))
+    fig.update_layout(title="Consumo de hidrogênio × potência líquida", xaxis_title="Potência elétrica líquida [kW]",
+                      yaxis_title=f"Vazão de H₂ suprido [{unidade}]", height=430, hovermode="closest",
+                      margin={"l": 20, "r": 20, "t": 90, "b": 20},
+                      legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0})
+    st.plotly_chart(fig, width="stretch", config=CHART_CONFIG, key="h2_cv_fig")
+    pv = np.asarray(curva.validacao["P_kW"])
+    ev = 100 * (np.asarray(curva.validacao["q_pwl_kg_h"]) - np.asarray(curva.validacao["q_modelo_kg_h"])) / np.asarray(
+        curva.validacao["q_modelo_kg_h"])
+    fig2 = go.Figure(go.Scatter(x=pv, y=ev, mode="lines", name="erro relativo",
+                                hovertemplate="P = %{x:.3f} kW<br>(PWL − modelo)/modelo = %{y:.4f} %<extra></extra>"))
+    rotulo_lim = "limiar B04 (política aprovada)" if estado in ("certificada", "reprovada") else "limiar B04 proposto"
+    fig2.add_hline(y=100 * CH.POLITICA_B04["erro_rel_max"], line_dash="dot", annotation_text=rotulo_lim)
+    fig2.update_layout(title="Erro da aproximação em pontos de validação independentes", xaxis_title="Potência líquida "
+                       "[kW]", yaxis_title="%", height=280, margin={"l": 20, "r": 20, "t": 45, "b": 20})
+    st.plotly_chart(fig2, width="stretch", config=CHART_CONFIG, key="h2_cv_err")
+    st.caption(f"Configuração física: T = {t_k:g} K · ânodo {p_an:g} kPa(g) · cátodo {p_ca:g} kPa(g) · ambiente "
+               f"{p_amb:g} kPa · P_mín = {p_min:g} kW · impressão {curva.impressao[:12]}… · política B04 "
+               f"{b04['politica']} ({b04['situacao_politica'].replace('_', ' ')}). Gerada uma vez por configuração e "
+               "reutilizada.")
+    with st.expander("Vértices da PWL, critérios B04 e exportação"):
+        st.dataframe(pd.DataFrame({"P_kW": vp, f"q_{unidade}": vq * f}), hide_index=True, width="stretch")
+        st.dataframe(pd.DataFrame(b04["criterios"]), hide_index=True, width="stretch")
+        dados = pd.DataFrame({"P_net_kW": P, "q_modelo_suprido_kg_h": q, "q_pwl_kg_h": qp,
+                              "q_consumido_estequiometrico_kg_h": qc})
+        st.download_button("⬇️ BAIXAR PONTOS DA CURVA (CSV)", dados.to_csv(index=False).encode("utf-8"),
+                           file_name="curva_h2_pemfc.csv", mime="text/csv", key="h2_cv_csv")
+        import json as _json
+        st.download_button("⬇️ BAIXAR CURVA COMPLETA (JSON)", _json.dumps(curva.doc(), ensure_ascii=False,
+                                                                           indent=1).encode("utf-8"),
+                           file_name="curva_h2_pemfc.json", mime="application/json", key="h2_cv_json")
 
 
 def _render_export() -> None:

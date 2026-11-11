@@ -125,7 +125,8 @@ def test_caso3_hibrida_completa_concluida_e_verificada(hibrida):
     assert {v["tecnologia"] for v in m["renovaveis"].values()} == {"fv", "eolica"}
     assert set(run.data) == set(RG.OBRIGATORIOS) | {RG.N_RENOV}
     ind = RG.ler_json(store, run, RG.N_INDICE)
-    assert ind["versao"] == 2 and RG.N_RENOV in ind["arquivos"]
+    assert ind["versao"] == RG.VERSAO and RG.N_RENOV in ind["arquivos"]   # 3D-A2-H: contrato v3 aditivo (v2 legível)
+    assert RG.N_PEMFC not in run.data and RG.N_PEMFC_DIN not in run.data   # sem PEMFC: nenhum documento de H₂
     v = RG.verificar(store, run)
     assert v.ok, v.falhas()
     assert any("PREVISTO entregue a cada janela" in t for _, t in v.itens)
@@ -279,10 +280,11 @@ def test_caso9_rodada_no_contrato_v1_do_3da_continua_legivel(tmp_path, monkeypat
     cfg = U.config_bateria()
     reg.create(cfg)
     store = reg.open(cfg["installation"]["uid"])
+    atual = RG.VERSAO                                            # 3D-A2-H: contrato vigente = v3 (aditivo)
     monkeypatch.setattr(RG, "VERSAO", 1)                         # grava exatamente como o Piso 3D-A gravava
     run = _executar(store, U.criar_cenario_v2(store))
     monkeypatch.undo()
-    assert RG.VERSAO == 2
+    assert RG.VERSAO == atual and 1 in RG.VERSOES_LEGIVEIS
     assert RG.ler_json(store, run, RG.N_INDICE)["versao"] == 1 and RG.N_RENOV not in run.data
     assert "renovaveis" not in run.summary["mission"]
     v = RG.verificar(store, run)

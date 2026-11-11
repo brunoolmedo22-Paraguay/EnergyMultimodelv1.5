@@ -20,6 +20,8 @@ fonte → transformação → validação → registro → vista + relatório da
 """
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -47,6 +49,7 @@ from seeds2.operation import strategy as SG
 
 from . import estrategia as E
 from . import montagem as MT
+from . import curva_h2 as CH
 from . import renovaveis as RN
 
 OK, INFO, WARNING, ERROR = "ok", "info", "aviso", "erro"
@@ -59,10 +62,9 @@ AREA_LABELS = {
     "causalidade": "Separação previsão × realização", "pcc": "PCC e tarifas", "ponte": "Ponte científica 3C-0/3C-1",
     "contrato": "Contratos 3C-3 / MPC / 3C-4", "solver": "Solver Pyomo/HiGHS", "escopo": "Alcance científico",
     "renovaveis": "Potencial renovável (modelos físicos do SEEDS2)",
+    "pemfc": "PEMFC / H₂ (curva do modelo físico, certificação B04, commitment)",
 }
 NAO_REPRESENTAVEL = {
-    "pemfc": "a PEMFC exige P_min, curva q(P) de H₂ CERTIFICADA (adenda B04), rampas, permanências, memória por unidade e "
-             "a decisão D05 de partida — nada disso existe no inventário e nenhum valor é inferido do V1.6",
     "termica": "o custo de geração térmica (M19 / CVU) NÃO está implementado no núcleo 3C-4: uma térmica despachável "
                "produziria conclusões econômicas sem custo de combustível",
 }
@@ -249,20 +251,33 @@ def preparar(store, stored) -> PreflightV2:
         return pf
     tabela, verdade, prev_nucleo, real_nucleo = _com_renovaveis(renov, tabela, verdade, prev_nucleo, real_nucleo, tempo,
                                                                 stored)
+    pem = _pemfc(pf, bloco, inv, stored)
+    if pf.count(ERROR) or pem is None:
+        return pf
+    tabela, verdade, prev_nucleo, real_nucleo = _com_disponibilidade_geradores(
+        [u for x in pf.represented if x["kind"] == "pemfc" for u in x["uids"]], tabela, verdade, prev_nucleo, real_nucleo,
+        tempo, stored, bloco)
     # ---- 7. inventário efetivo e projeção pela ponte (sem relaxação)
     inv_ef = MT.inventario_efetivo(inv, bloco, stored, excl)
     proc_pol = MT.proc_declarada(bloco["declarante"], "declarante", stored)
-    pol = MT.politicas(bloco, proc_pol)
+    pol = MT.politicas(bloco, proc_pol, com_geradores=bool(pem))
+    sem = [t for t in ("combustivel_h2", "eventos") if t in bloco["objetivo"]["termos"] and not pem]
+    if sem:
+        pf.add(INFO, "estrategia", f"Termo(s) {', '.join(sem)} declarado(s), mas nenhuma PEMFC participa desta missão "
+               "(indisponível ou ausente): não aplicado(s) ao objetivo desta rodada.")
     mont = MT.Montagem(tempo, inv, inv_ef, cen, pf.excluded, pf.represented, prev_kw, real_kw, tabela, verdade,
                        fonte_verdade, pol, proc_politicas=proc_pol)
     derivs, clima = renov
     mont.renovaveis, mont.clima = list(derivs), clima
     mont.bases = {d.uid: "antes_da_disponibilidade" for d in derivs}
+    mont.pemfc = pem
     pf.montagem = mont
     try:
-        decl = MT.declaracao_commitment(inv_ef, cen, proc_pol)
+        decl = MT.declaracao_commitment(inv_ef, cen, proc_pol, bloco, stored)
         rel, proj = preflight_ems_v2(inv_ef, cen, CN.DefinicaoTemporal(tempo.malha_modelo()), prev_nucleo, real_nucleo, pol,
-                                     contexto="ensaio", finalidade="otimizacao", commitment_3c1=decl)
+                                     contexto="ensaio", finalidade="otimizacao", commitment_3c1=decl,
+                                     curvas_h2={u: x["curva_pwl"] for u, x in pem.items()} or None,
+                                     massas_h2_eventos={u: x["massas_pwl"] for u, x in pem.items()} or None)
     except ContratoInvalido as exc:
         for c in exc.constatacoes:
             pf.add(ERROR, "ponte", f"{c.codigo} · {c.caminho}: {c.mensagem}", code=c.codigo)
@@ -300,6 +315,9 @@ def preparar(store, stored) -> PreflightV2:
     if mont.renovaveis:
         mont.doc_renovaveis = RN.documento(mont.renovaveis, mont.clima, _realizacao_renovavel(), tempo.delta_s)
         mont.hashes["renovaveis"] = RN.sha_documento(mont.doc_renovaveis)
+    if mont.pemfc:
+        mont.doc_pemfc = documento_pemfc(mont.pemfc)
+        mont.hashes["pemfc"] = RN.sha_documento(mont.doc_pemfc)
     pf.add(OK, "contrato", f"Entrada 3C-3 aceita (modo {modelo.pcc.modo}); configuração do MPC (Δ = {tempo.delta_min} min, "
            f"N = {tempo.N}, m = {tempo.m}, K_M = {tempo.K}) e do planejador (H_L = {tempo.H_L}, sinal "
            f"'{bloco['planejador']['tipo_sinal']}', degradação '{bloco['planejador']['degradacao']}') aceitas pelo "
@@ -367,13 +385,24 @@ def _classificar(pf: PreflightV2, inv, cen, doc: dict, bloco: dict) -> set[str]:
             pf.represented.append({"id": d.uid, "name": nome, "kind": kind, "uids": uids,
                                    "papel": "renovável (M03-v1.1) — potencial pelo modelo físico do SEEDS2"})
             continue
+        if d.tipo == "pemfc":
+            decl = (bloco.get("pemfc") or {}).get(d.uid) if bloco["format_version"] >= 3 else None
+            if decl is None:
+                if bloco["format_version"] >= 3:
+                    pf.add(ERROR, "dispositivos", f"{nome} ({rot}): sem declarações V2 na estratégia (condições físicas, "
+                           "P_min, rampa, permanências, abstração, estados por unidade, preço do H₂). Nenhum valor é "
+                           "presumido.", d.uid)
+                continue                               # formato < 3: pendência 'pemfc' já listada
+            pf.represented.append({"id": d.uid, "name": nome, "kind": "pemfc", "uids": [str(r) for r in IV.recursos_ems(d)],
+                                   "papel": "gerador despachável (M10, M14–M16; commitment 3C-1 por unidade)"})
+            continue
         chave = d.tipo
         pf.add(ERROR, "dispositivos", f"{nome} ({rot}) está habilitado e disponível, mas NÃO é representável pelo motor V2 "
                f"no Piso 3D-A: {NAO_REPRESENTAVEL[chave]}. Um equipamento disponível nunca é omitido em silêncio: "
                "declare-o indisponível neste cenário (exclusão só desta missão) ou aguarde o piso correspondente.",
                d.uid, code="nao_representavel_3da")
     n = sum(1 for x in pf.represented if x["kind"] == "battery")
-    nr = len(pf.represented) - n
+    nr = sum(1 for x in pf.represented if x["kind"] in ("pv", "wind"))
     if n > 2:
         pf.add(ERROR, "dispositivos", f"{n} bancos disponíveis: o sinal de valor futuro PWL do 3C-4 suporta até 2 bancos "
                                       "(dimensão declarada do planejador).")
@@ -695,6 +724,160 @@ def _com_renovaveis(renov, tabela: dict, verdade, prev_nucleo, real_nucleo, t: M
     prev = CN.ConjuntoPrevisao(prev_nucleo.conjunto_uid, prev_nucleo.emissao_utc, ordem(vp), prev_nucleo.procedencia)
     return (tabela, CN.Realizacao(verdade.realizacao_uid, verdade.natureza, ordem(vs), verdade.procedencia), prev,
             CN.Realizacao(real_nucleo.realizacao_uid, real_nucleo.natureza, ordem(vr), real_nucleo.procedencia))
+
+
+def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
+    """Curva q(P) do MODELO FÍSICO por registro PEMFC (gerada UMA vez por configuração física), reverificada contra o
+    modelo, certificada (B04) e registrada no contrato. ``None`` ⇒ bloqueio."""
+    from ems_v2 import contracts as K
+    reps = [x for x in pf.represented if x["kind"] == "pemfc"]
+    out: dict = {}
+    disp = {d.uid: d for d in inv.dispositivos}
+    for x in reps:
+        decl = bloco["pemfc"][x["id"]]
+        c = decl["condicoes"]
+        cond = CH.CondicoesPEMFC(c["temperatura_stack_K"], c["pressao_anodo_kPag"], c["pressao_catodo_kPag"],
+                                 c["pressao_ambiente_kPa"])
+        d = disp[x["id"]]
+        if d.modelo.referencia != CH.PERFIL_MODELO:
+            pf.add(ERROR, "pemfc", f"{x['name']}: perfil {d.modelo.referencia!r} — a curva só é derivável do perfil "
+                   f"{CH.PERFIL_MODELO} (modelo físico do SEEDS2).", x["id"], code="pemfc_perfil_nao_suportado")
+            continue
+        pmax_inv = next((v.numero for v in d.valores if v.chave == "p_max_liquida_unidade_kW"), None)
+        n0 = CH.GERACOES["n"]
+        try:
+            curva = CH.obter_curva(cond, decl["p_min_kW"], p_max_limite_kW=pmax_inv)
+        except CH.CurvaInvalida as exc:
+            pf.add(ERROR, "pemfc", f"{x['name']}: {exc}", x["id"], code="pemfc_curva_invalida")
+            continue
+        falhas = CH.verificar_contra_modelo(curva.doc())
+        if falhas:
+            pf.add(ERROR, "pemfc", f"{x['name']}: dados da curva não reproduzem o modelo ({'; '.join(falhas)}).", x["id"],
+                   code="pemfc_curva_divergente_do_modelo")
+            continue
+        cert = CH.certificado_b04(curva)
+        h, cs = K.registrar_certificado_b04(cert)
+        b04 = curva.b04
+        reuso = "REUTILIZADA (mesma impressão digital)" if CH.GERACOES["n"] == n0 else "gerada agora"
+        pf.add(OK, "pemfc", f"{x['name']}: curva q(P) do modelo físico {reuso} — impressão {curva.impressao[:12]}…; "
+               f"domínio [{curva.p_min_kW:g}, {curva.p_max_kW:.4g}] kW; {len(curva.vertices)} vértices; erro relativo "
+               f"máx. {100 * curva.metricas['erro_rel_max']:.3f} %; massa temporal máx. "
+               f"{100 * curva.metricas['erro_massa_temporal_rel_max']:.3f} %; política {b04['politica']}.", x["id"])
+        bloq = [k for k in cs if k.severidade in ("erro", "pendente")]
+        sit_nucleo, _rec = K.situacao_politica_b04(cert.politica)
+        if bloq and all(k.severidade == "pendente" and k.codigo == "politica_b04_nao_aprovada" for k in bloq):
+            pf.add(ERROR, "pemfc", f"{x['name']}: certificação B04 AGUARDANDO APROVAÇÃO do responsável (política "
+                   f"{b04['politica']}, situação registrada no NÚCLEO '{sit_nucleo}'). A curva atende aos limiares "
+                   "propostos (critérios recomputados pelo núcleo), mas nenhuma curva derivada do modelo entra no MILP "
+                   "sem política aprovada.", x["id"], code="b04_aguardando_aprovacao")
+            continue
+        if bloq:
+            pf.add(ERROR, "pemfc", f"{x['name']}: certificado B04 REPROVADO pelo contrato: "
+                   + "; ".join(f"{k.codigo} ({k.mensagem})" for k in bloq[:4]), x["id"], code="b04_reprovada")
+            continue
+        proc = Procedencia("referencia", "h2_pemfc · modelo físico parametrizado APROXIMADO (escala Horizon VLIIPro50-22)",
+                           f"B04:{curva.impressao}", sha256=h,
+                           observacoes=f"curva estacionária derivada do modelo; certificado B04 {h[:12]}… VERIFICADO "
+                                       "(recomputado); não valida o modelo nem o equipamento")
+        from ems_v2.parameters import Parametro
+        from . import pemfc_dinamica as DY
+        t_amb = float(decl["temperatura_ambiente_C"])
+        par = DY.parametros_dinamicos(cond, t_amb)
+        # ---- D (auditoria do PR #23): restrições físicas do modelo dinâmico — incompatibilidade BLOQUEIA, nunca só avisa
+        incompat = False
+        if decl["p_min_kW"] < par["idle_kW"] - 1e-9:
+            pf.add(ERROR, "pemfc", f"{x['name']}: P_min declarado ({decl['p_min_kW']:g} kW) abaixo da potência mínima que o "
+                   f"modelo dinâmico entrega em operação (IDLE = {par['idle_kW']:g} kW, hipótese do manual ≤ 10 kW): "
+                   "consignas menores seriam entregues como IDLE (excesso de energia e de H₂). Declare P_min ≥ "
+                   f"{par['idle_kW']:g} kW.", x["id"], code="pemfc_pmin_abaixo_do_idle")
+            incompat = True
+        if decl["rampa_kW_min"] > par["rampa_max_kW_min"] + 1e-9:
+            pf.add(ERROR, "pemfc", f"{x['name']}: rampa declarada ({decl['rampa_kW_min']:g} kW/min) acima da capacidade do "
+                   f"modelo dinâmico ({par['rampa_subida_kW_s']:g} kW/s de subida e {par['rampa_descida_kW_s']:g} kW/s de "
+                   f"descida ⇒ no máximo {par['rampa_max_kW_min']:g} kW/min para a rampa ÚNICA, que vale nos dois "
+                   "sentidos): o MILP planejaria variações que o equipamento modelado não acompanha.", x["id"],
+                   code="pemfc_rampa_acima_do_modelo_dinamico")
+            incompat = True
+        if incompat:
+            continue
+        mev = DY.massas_eventos(cond, t_amb, float(decl["p_min_kW"]), float(curva.p_max_kW))
+        delta_s = float(bloco["malha"]["delta_min"]) * 60.0
+        adm = DY.admissibilidade(mev["analise"], curva, delta_s, decl["abstracao"])
+        if adm:
+            pior = max(adm, key=lambda v: (v["desvio"] / v["tolerancia"]) if v["tolerancia"] else math.inf)
+            casos = sorted({v["caso"] for v in adm})
+            pf.add(ERROR, "pemfc", f"{x['name']}: a abstração '{decl['abstracao']}' NÃO é compatível com o modelo dinâmico "
+                   f"em Δ = {delta_s / 60:g} min e T_amb = {t_amb:g} °C (partida {'FRIA' if par['partida_fria'] else 'quente'}"
+                   f" de {par['partida_s']:g} s): {len(adm)} violação(ões) a priori em {', '.join(casos)}; pior caso "
+                   f"{pior['caso']} em P = {pior['p_kW']} kW: desvio {pior['desvio']:.4g} > tolerância "
+                   f"{pior['tolerancia']:.4g} ({pior['grandeza']}). Alternativas: Δ maior, transições bloqueadas, "
+                   "condições ambientes que não impliquem partida fria, ou a unidade indisponível no cenário.", x["id"],
+                   code="pemfc_transitorio_incompativel")
+            continue
+        pm = Procedencia("referencia", "h2_pemfc · Equivalent65kWHorizonDynamicModel (modelo dinâmico APROXIMADO)",
+                         f"massas ADICIONAIS por evento · curva {curva.impressao[:12]}", sha256=curva.impressao,
+                         observacoes=mev["semantica"])
+        massas = (Parametro(float(mev["m_partida_kg"]), "kg", pm), Parametro(float(mev["m_parada_kg"]), "kg", pm))
+        out[x["id"]] = {"curva": curva, "certificado": cert, "hash_certificado": h, "condicoes": cond,
+                        "massas_eventos": mev, "massas_pwl": massas,
+                        "curva_pwl": K.CurvaPWL(tuple(curva.vertices), "real_certificada_b04", proc),
+                        "temperatura_ambiente_C": decl["temperatura_ambiente_C"], "declaracao": decl,
+                        "admissibilidade": {"delta_s": delta_s, "abstracao": decl["abstracao"], "violacoes": adm}}
+        an = mev["analise"]
+        pf.add(OK, "pemfc", f"{x['name']}: restrições do modelo dinâmico compatíveis — P_min {decl['p_min_kW']:g} ≥ IDLE "
+               f"{par['idle_kW']:g} kW; rampa {decl['rampa_kW_min']:g} ≤ {par['rampa_max_kW_min']:g} kW/min; transitórios "
+               f"de partida/parada/rampa no domínio dentro das tolerâncias em Δ = {delta_s / 60:g} min (pior déficit de "
+               f"energia numa partida {min(v['delta_E_partida_kWh'] for v in an['pontos']):.3f} kWh). Massas ADICIONAIS "
+               f"por evento: partida {mev['m_partida_kg']:.4g} kg, parada {mev['m_parada_kg']:.4g} kg (superestimação "
+               f"máx. {mev['superestimacao_max_partida_kg']:.3g} / {mev['superestimacao_max_parada_kg']:.3g} kg).", x["id"])
+        if decl["abstracao"] == "instantanea_unidade_quente":
+            pf.add(WARNING, "pemfc", f"{x['name']}: abstração INSTANTÂNEA declarada (D05): o MILP liga/desliga dentro do "
+                   "intervalo; admissível A PRIORI pelo modelo dinâmico nas tolerâncias declaradas e conferida a posteriori "
+                   "nas consignas aplicadas — não é validação física.", x["id"])
+    if pf.count(ERROR):
+        return None
+    return out
+
+
+def _com_disponibilidade_geradores(uids, tabela, verdade, prev_nucleo, real_nucleo, t: MT.Tempo, stored, bloco):
+    """Disponibilidade a = 1 POR UNIDADE geradora (disponível no cenário) na previsão do provedor e na realização — a
+    mesma condição ESTÁTICA declarada às fontes de disponibilidade da execução (nenhuma herança implícita)."""
+    if not uids:
+        return tabela, verdade, prev_nucleo, real_nucleo
+    um = [1.0] * t.K
+    emis = bloco["demanda"]["emissao_utc"]
+    tabela = dict(tabela)
+    vs, vr, vp = list(verdade.series), list(real_nucleo.series), list(prev_nucleo.series)
+    for u in uids:
+        p_a = Procedencia("declarado_seeds2", f"SEEDS2 · cenário {stored.scenario_uid} v{stored.version}",
+                          f"initialization.equipment[{u.split('#')[0]}].availability", sha256=stored.fingerprint,
+                          observacoes="Série a = 1 por UNIDADE derivada da disponibilidade estática do cenário (disponível)")
+        tabela[(u, "disponibilidade")] = MT.serie("disponibilidade", t, um, p_a, emis)
+        vp.append(CN.SerieRecurso(u, "disponibilidade", tabela[(u, "disponibilidade")]))
+        for lista in (vs, vr):
+            lista.append(CN.SerieRecurso(u, "disponibilidade", MT.serie("disponibilidade", t, um, verdade.procedencia, None)))
+    def ordem(xs):
+        return tuple(sorted(xs, key=lambda x: (x.uid, x.grandeza)))
+    return (tabela, CN.Realizacao(verdade.realizacao_uid, verdade.natureza, ordem(vs), verdade.procedencia),
+            CN.ConjuntoPrevisao(prev_nucleo.conjunto_uid, prev_nucleo.emissao_utc, ordem(vp), prev_nucleo.procedencia),
+            CN.Realizacao(real_nucleo.realizacao_uid, real_nucleo.natureza, ordem(vr), real_nucleo.procedencia))
+
+
+def documento_pemfc(pem: dict) -> dict:
+    """Conteúdo de ``v2/pemfc.json``: curva (inicialização, pontos do modelo, vértices, erros, B04) + certificado do
+    núcleo por registro PEMFC. Comprometido no manifesto ANTES da execução."""
+    from ems_v2.contracts import para_dict
+    return {"formato": "seeds2-milp-mpc-pemfc", "versao": 1,
+            "registros": {u: {"curva": x["curva"].doc(), "certificado_b04": para_dict(x["certificado"]),
+                              "hash_certificado_b04": x["hash_certificado"],
+                              "temperatura_ambiente_C": x["temperatura_ambiente_C"],
+                              "massas_eventos": {k: (float(v) if isinstance(v, (int, float)) else v)
+                                                 for k, v in x["massas_eventos"].items()},
+                              "declaracao": x["declaracao"], "admissibilidade": x["admissibilidade"]}
+                          for u, x in sorted(pem.items())},
+            "nota": "Curva gerada UMA vez por configuração física e reutilizada em toda a missão (planejador e janelas MPC). "
+                    "A reabertura re-registra o certificado RECOMPUTANDO os critérios a partir destes dados; nenhum "
+                    "modelo é reexecutado."}
 
 
 def _itens_ponte(pf: PreflightV2, rel) -> None:

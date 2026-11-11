@@ -1,0 +1,10 @@
+# Verificação INDEPENDENTE das massas adicionais por evento (decisão do responsável, PR #23 item 3A)
+# comando: python tests/verificacao_massas_3da2h.py <saida.json>   (Δ = 60 min; malha 0,5 kW; pares a cada 2,5 kW)
+# data: 2026-11-11T13:36:16Z
+nominal                  m_SU=0.000000 m_SD=0.006404 admissível=True | partida subest.=0.00e+00 parada subest.=8.67e-19 | rampa↑ subest.=0.00e+00 rampa↓ subest.=0.004346 kg (0.716 %) | 81+81+542 casos, 38 s
+nominal_pmin15           m_SU=0.000000 m_SD=0.006404 admissível=True | partida subest.=0.00e+00 parada subest.=8.67e-19 | rampa↑ subest.=0.00e+00 rampa↓ subest.=0.003378 kg (0.357 %) | 71+71+418 casos, 27 s
+stack_333K               m_SU=0.000000 m_SD=0.006448 admissível=True | partida subest.=0.00e+00 parada subest.=0.00e+00 | rampa↑ subest.=0.00e+00 rampa↓ subest.=0.004359 kg (0.711 %) | 81+81+542 casos, 41 s
+stack_358K_tamb6         m_SU=0.000000 m_SD=0.007459 admissível=True | partida subest.=0.00e+00 parada subest.=0.00e+00 | rampa↑ subest.=2.13e-13 rampa↓ subest.=0.004343 kg (0.717 %) | 82+82+610 casos, 45 s
+pressao_baixa_pmin12     m_SU=0.000000 m_SD=0.006428 admissível=True | partida subest.=0.00e+00 parada subest.=0.00e+00 | rampa↑ subest.=2.13e-13 rampa↓ subest.=0.003939 kg (0.532 %) | 77+77+542 casos, 41 s
+stack_348K_tamb40        m_SU=0.000000 m_SD=0.006431 admissível=True | partida subest.=0.00e+00 parada subest.=0.00e+00 | rampa↑ subest.=0.00e+00 rampa↓ subest.=0.004343 kg (0.713 %) | 81+81+542 casos, 43 s
+exit 0

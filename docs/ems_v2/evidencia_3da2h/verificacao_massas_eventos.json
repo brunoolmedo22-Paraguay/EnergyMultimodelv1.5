@@ -1,0 +1,565 @@
+{
+ "formato": "seeds2-3da2h-verificacao-massas",
+ "versao": 1,
+ "metodo": "Verificação INDEPENDENTE das massas ADICIONAIS por evento (Piso 3D-A2-H; decisão do responsável no PR #23, item 3A).",
+ "configuracoes": [
+  {
+   "configuracao": {
+    "nome": "nominal",
+    "cond": [
+     353.15,
+     140.0,
+     120.0,
+     101.325
+    ],
+    "p_min": 10.0,
+    "t_amb": 25.0
+   },
+   "p_min_kW": 10.0,
+   "p_max_kW": 50.0,
+   "delta_s": 3600.0,
+   "m_partida_kg": 0.0,
+   "m_parada_kg": 0.0064038369325967685,
+   "admissivel_a_priori": true,
+   "violacoes_a_priori": [],
+   "n_partidas": 81,
+   "n_paradas": 81,
+   "n_rampas": 542,
+   "passo_eventos_kW": 0.5,
+   "passo_rampas_kW": 2.5,
+   "partida": {
+    "residuo_min_kg": 0.0026923916313976726,
+    "caso": {
+     "p_kW": 10.0,
+     "partida_ems_kg": 0.6027311322597506,
+     "partida_din_kg": 0.6000387406283529,
+     "partida_E_req_kWh": 10.0,
+     "partida_E_din_kWh": 9.956944444445073,
+     "parada_ems_kg": 0.0064038369325967685,
+     "parada_din_kg": 0.00015060588814596386,
+     "parada_E_din_kWh": 0.002638888888889293
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.03908134181167089,
+    "casos_com_subestimacao": 0
+   },
+   "parada": {
+    "residuo_min_kg": -8.673617379884035e-19,
+    "caso": {
+     "p_kW": 50.0,
+     "partida_ems_kg": 3.8383170077716255,
+     "partida_din_kg": 3.799358670592377,
+     "partida_E_req_kWh": 50.0,
+     "partida_E_din_kWh": 49.51620370370371,
+     "parada_ems_kg": 0.0064038369325967685,
+     "parada_din_kg": 0.006403836932596769,
+     "parada_E_din_kWh": 0.09236111111111232
+    },
+    "subestimacao_max_kg": 8.673617379884035e-19,
+    "subestimacao_max_rel": 1.354440700345389e-16,
+    "superestimacao_max_kg": 0.006253231044450805,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_subida": {
+    "residuo_min_kg": 1.4273764555650104e-05,
+    "caso": {
+     "de_kW": 47.5,
+     "para_kW": 50.0,
+     "ems_kg": 3.8383170077716255,
+     "din_kg": 3.83830273400707,
+     "E_req_kWh": 50.0,
+     "E_din_kWh": 49.99986111111111
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.0091514731051352,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_descida": {
+    "residuo_min_kg": -0.004345982996412201,
+    "caso": {
+     "de_kW": 50.0,
+     "para_kW": 10.0,
+     "ems_kg": 0.6027311322597506,
+     "din_kg": 0.6070771152561628,
+     "E_req_kWh": 10.0,
+     "E_din_kWh": 10.058055555556178
+    },
+    "subestimacao_max_kg": 0.004345982996412201,
+    "subestimacao_max_rel": 0.0071588648084327244,
+    "superestimacao_max_kg": 0.0020867088928273603,
+    "casos_com_subestimacao": 153
+   },
+   "energia_partida_deficit_max_kWh": 0.4837962962962905,
+   "energia_parada_excesso_max_kWh": 0.09236111111111232,
+   "energia_rampa_desvio_max_kWh": 0.10555555555555429,
+   "segundos": 37.50624652999977
+  },
+  {
+   "configuracao": {
+    "nome": "nominal_pmin15",
+    "cond": [
+     353.15,
+     140.0,
+     120.0,
+     101.325
+    ],
+    "p_min": 15.0,
+    "t_amb": 25.0
+   },
+   "p_min_kW": 15.0,
+   "p_max_kW": 50.0,
+   "delta_s": 3600.0,
+   "m_partida_kg": 0.0,
+   "m_parada_kg": 0.0064038369325967685,
+   "admissivel_a_priori": true,
+   "violacoes_a_priori": [],
+   "n_partidas": 71,
+   "n_paradas": 71,
+   "n_rampas": 418,
+   "passo_eventos_kW": 0.5,
+   "passo_rampas_kW": 2.5,
+   "partida": {
+    "residuo_min_kg": 0.0056035663933947655,
+    "caso": {
+     "p_kW": 15.0,
+     "partida_ems_kg": 0.9414076556498187,
+     "partida_din_kg": 0.9358040892564239,
+     "partida_E_req_kWh": 15.0,
+     "partida_E_din_kWh": 14.913981481481613,
+     "parada_ems_kg": 0.0064038369325967685,
+     "parada_din_kg": 0.0004112824751928661,
+     "parada_E_din_kWh": 0.00694444444444526
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.03962276750447602,
+    "casos_com_subestimacao": 0
+   },
+   "parada": {
+    "residuo_min_kg": -8.673617379884035e-19,
+    "caso": {
+     "p_kW": 50.0,
+     "partida_ems_kg": 3.8383170077716255,
+     "partida_din_kg": 3.799358670592377,
+     "partida_E_req_kWh": 50.0,
+     "partida_E_din_kWh": 49.51620370370371,
+     "parada_ems_kg": 0.0064038369325967685,
+     "parada_din_kg": 0.006403836932596769,
+     "parada_E_din_kWh": 0.09236111111111232
+    },
+    "subestimacao_max_kg": 8.673617379884035e-19,
+    "subestimacao_max_rel": 1.354440700345389e-16,
+    "superestimacao_max_kg": 0.005992554457403903,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_subida": {
+    "residuo_min_kg": 1.4273764555650104e-05,
+    "caso": {
+     "de_kW": 47.5,
+     "para_kW": 50.0,
+     "ems_kg": 3.8383170077716255,
+     "din_kg": 3.83830273400707,
+     "E_req_kWh": 50.0,
+     "E_din_kWh": 49.99986111111111
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.007086614153441584,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_descida": {
+    "residuo_min_kg": -0.003377533191762594,
+    "caso": {
+     "de_kW": 50.0,
+     "para_kW": 15.0,
+     "ems_kg": 0.9414076556498187,
+     "din_kg": 0.9447851888415812,
+     "E_req_kWh": 15.0,
+     "E_din_kWh": 15.043750000000127
+    },
+    "subestimacao_max_kg": 0.003377533191762594,
+    "subestimacao_max_rel": 0.0035749218252498754,
+    "superestimacao_max_kg": 0.0019686070873055073,
+    "casos_com_subestimacao": 95
+   },
+   "energia_partida_deficit_max_kWh": 0.4837962962962905,
+   "energia_parada_excesso_max_kWh": 0.09236111111111232,
+   "energia_rampa_desvio_max_kWh": 0.08027777777778056,
+   "segundos": 27.36537307099934
+  },
+  {
+   "configuracao": {
+    "nome": "stack_333K",
+    "cond": [
+     333.15,
+     140.0,
+     120.0,
+     101.325
+    ],
+    "p_min": 10.0,
+    "t_amb": 25.0
+   },
+   "p_min_kW": 10.0,
+   "p_max_kW": 49.97513539684596,
+   "delta_s": 3600.0,
+   "m_partida_kg": 0.0,
+   "m_parada_kg": 0.006447869700714001,
+   "admissivel_a_priori": true,
+   "violacoes_a_priori": [],
+   "n_partidas": 81,
+   "n_paradas": 81,
+   "n_rampas": 542,
+   "passo_eventos_kW": 0.5,
+   "passo_rampas_kW": 2.5,
+   "partida": {
+    "residuo_min_kg": 0.0027167338891159742,
+    "caso": {
+     "p_kW": 10.0,
+     "partida_ems_kg": 0.6086320218952123,
+     "partida_din_kg": 0.6059152880060963,
+     "partida_E_req_kWh": 10.0,
+     "partida_E_din_kWh": 9.956944444444636,
+     "parada_ems_kg": 0.006447869700714001,
+     "parada_din_kg": 0.0001522551340092765,
+     "parada_E_din_kWh": 0.0026388888888891774
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.040162754329442496,
+    "casos_com_subestimacao": 0
+   },
+   "parada": {
+    "residuo_min_kg": 1.2092269528982472e-05,
+    "caso": {
+     "p_kW": 49.97513539684596,
+     "partida_ems_kg": 3.8383170077716255,
+     "partida_din_kg": 3.7994485554169897,
+     "partida_E_req_kWh": 49.97513539684596,
+     "partida_E_din_kWh": 49.49168444226005,
+     "parada_ems_kg": 0.006447869700714001,
+     "parada_din_kg": 0.006435777431185018,
+     "parada_E_din_kWh": 0.09226441543217978
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.0062956145667047245,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_subida": {
+    "residuo_min_kg": 1.3214120334392732e-05,
+    "caso": {
+     "de_kW": 47.5,
+     "para_kW": 49.97513539684596,
+     "ems_kg": 3.8383170077716255,
+     "din_kg": 3.838303793651291,
+     "E_req_kWh": 49.97513539684596,
+     "E_din_kWh": 49.9750034147912
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.011244218701542685,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_descida": {
+    "residuo_min_kg": -0.004358818872596371,
+    "caso": {
+     "de_kW": 49.97513539684596,
+     "para_kW": 10.0,
+     "ems_kg": 0.6086320218952123,
+     "din_kg": 0.6129908407678086,
+     "E_req_kWh": 10.0,
+     "E_din_kWh": 10.057979580379444
+    },
+    "subestimacao_max_kg": 0.004358818872596371,
+    "subestimacao_max_rel": 0.007110740622383007,
+    "superestimacao_max_kg": 0.003428377534559157,
+    "casos_com_subestimacao": 149
+   },
+   "energia_partida_deficit_max_kWh": 0.4834509545859049,
+   "energia_parada_excesso_max_kWh": 0.09226441543217978,
+   "energia_rampa_desvio_max_kWh": 0.10542432570565552,
+   "segundos": 40.750595571000304
+  },
+  {
+   "configuracao": {
+    "nome": "stack_358K_tamb6",
+    "cond": [
+     358.15,
+     140.0,
+     120.0,
+     101.325
+    ],
+    "p_min": 10.0,
+    "t_amb": 6.0
+   },
+   "p_min_kW": 10.0,
+   "p_max_kW": 50.00511191208029,
+   "delta_s": 3600.0,
+   "m_partida_kg": 0.0,
+   "m_parada_kg": 0.007458851960084601,
+   "admissivel_a_priori": true,
+   "violacoes_a_priori": [],
+   "n_partidas": 82,
+   "n_paradas": 82,
+   "n_rampas": 610,
+   "passo_eventos_kW": 0.5,
+   "passo_rampas_kW": 2.5,
+   "partida": {
+    "residuo_min_kg": 0.002686370139767136,
+    "caso": {
+     "p_kW": 10.0,
+     "partida_ems_kg": 0.6012724108220462,
+     "partida_din_kg": 0.598586040682279,
+     "partida_E_req_kWh": 10.0,
+     "partida_E_din_kWh": 9.956944444445103,
+     "parada_ems_kg": 0.007458851960084601,
+     "parada_din_kg": 0.00015019852241053238,
+     "parada_E_din_kWh": 0.002638888888889327
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.03913576274807706,
+    "casos_com_subestimacao": 0
+   },
+   "parada": {
+    "residuo_min_kg": 0.0010632181566615105,
+    "caso": {
+     "p_kW": 50.00511191208029,
+     "partida_ems_kg": 3.8383170077716255,
+     "partida_din_kg": 3.7993364788214303,
+     "partida_E_req_kWh": 50.00511191208029,
+     "partida_E_din_kWh": 49.521244617006914,
+     "parada_ems_kg": 0.007458851960084601,
+     "parada_din_kg": 0.006395633803423091,
+     "parada_E_din_kWh": 0.0923809907692013
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.007308653437674069,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_subida": {
+    "residuo_min_kg": -2.1316282072803006e-13,
+    "caso": {
+     "de_kW": 50.0,
+     "para_kW": 50.00511191208029,
+     "ems_kg": 3.8383170077716255,
+     "din_kg": 3.8383170077718387,
+     "E_req_kWh": 50.00511191208029,
+     "E_din_kWh": 50.00511191208219
+    },
+    "subestimacao_max_kg": 2.1316282072803006e-13,
+    "subestimacao_max_rel": 5.5535491283397693e-14,
+    "superestimacao_max_kg": 0.009176607204345988,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_descida": {
+    "residuo_min_kg": -0.0043425571511995775,
+    "caso": {
+     "de_kW": 50.00511191208029,
+     "para_kW": 10.0,
+     "ems_kg": 0.6012724108220462,
+     "din_kg": 0.6056149679732458,
+     "E_req_kWh": 10.0,
+     "E_din_kWh": 10.058071175287562
+    },
+    "subestimacao_max_kg": 0.0043425571511995775,
+    "subestimacao_max_rel": 0.007170491782480875,
+    "superestimacao_max_kg": 0.0022671788423220818,
+    "casos_com_subestimacao": 169
+   },
+   "energia_partida_deficit_max_kWh": 0.4838672950733738,
+   "energia_parada_excesso_max_kWh": 0.0923809907692013,
+   "energia_rampa_desvio_max_kWh": 0.10558395506522089,
+   "segundos": 45.310904836998816
+  },
+  {
+   "configuracao": {
+    "nome": "pressao_baixa_pmin12",
+    "cond": [
+     353.15,
+     120.0,
+     100.0,
+     95.0
+    ],
+    "p_min": 12.0,
+    "t_amb": 25.0
+   },
+   "p_min_kW": 12.0,
+   "p_max_kW": 49.92863534341138,
+   "delta_s": 3600.0,
+   "m_partida_kg": 0.0,
+   "m_parada_kg": 0.0064280362354892035,
+   "admissivel_a_priori": true,
+   "violacoes_a_priori": [],
+   "n_partidas": 77,
+   "n_paradas": 77,
+   "n_rampas": 542,
+   "passo_eventos_kW": 0.5,
+   "passo_rampas_kW": 2.5,
+   "partida": {
+    "residuo_min_kg": 0.003814761891586138,
+    "caso": {
+     "p_kW": 12.0,
+     "partida_ems_kg": 0.7370624304897762,
+     "partida_din_kg": 0.73324766859819,
+     "partida_E_req_kWh": 12.0,
+     "partida_E_din_kWh": 11.940185185185705,
+     "parada_ems_kg": 0.0064280362354892035,
+     "parada_din_kg": 0.00024154290814824915,
+     "parada_E_din_kWh": 0.004166666666667249
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.04018107925197123,
+    "casos_com_subestimacao": 0
+   },
+   "parada": {
+    "residuo_min_kg": 3.470442920353468e-05,
+    "caso": {
+     "p_kW": 49.92863534341138,
+     "partida_ems_kg": 3.8383170077716255,
+     "partida_din_kg": 3.7993820895387187,
+     "partida_E_req_kWh": 49.92863534341138,
+     "partida_E_din_kWh": 49.445830222903496,
+     "parada_ems_kg": 0.0064280362354892035,
+     "parada_din_kg": 0.006393331806285669,
+     "parada_E_din_kWh": 0.09208358189104397
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.006186493327340954,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_subida": {
+    "residuo_min_kg": -2.1316282072803006e-13,
+    "caso": {
+     "de_kW": 49.5,
+     "para_kW": 49.92863534341138,
+     "ems_kg": 3.8383170077716255,
+     "din_kg": 3.8383170077718387,
+     "E_req_kWh": 49.92863534341138,
+     "E_din_kWh": 49.928635343413866
+    },
+    "subestimacao_max_kg": 2.1316282072803006e-13,
+    "subestimacao_max_rel": 5.5535491283397693e-14,
+    "superestimacao_max_kg": 0.009476763213727146,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_descida": {
+    "residuo_min_kg": -0.003938942006306068,
+    "caso": {
+     "de_kW": 49.92863534341138,
+     "para_kW": 12.0,
+     "ems_kg": 0.7370624304897762,
+     "din_kg": 0.7410013724960822,
+     "E_req_kWh": 12.0,
+     "E_din_kWh": 12.051885098176655
+    },
+    "subestimacao_max_kg": 0.003938942006306068,
+    "subestimacao_max_rel": 0.005315701363733835,
+    "superestimacao_max_kg": 0.002362460246569942,
+    "casos_com_subestimacao": 149
+   },
+   "energia_partida_deficit_max_kWh": 0.4828051205078836,
+   "energia_parada_excesso_max_kWh": 0.09208358189104397,
+   "energia_rampa_desvio_max_kWh": 0.09464317671457678,
+   "segundos": 40.80921981600113
+  },
+  {
+   "configuracao": {
+    "nome": "stack_348K_tamb40",
+    "cond": [
+     348.15,
+     130.0,
+     110.0,
+     100.0
+    ],
+    "p_min": 10.0,
+    "t_amb": 40.0
+   },
+   "p_min_kW": 10.0,
+   "p_max_kW": 49.94726481873466,
+   "delta_s": 3600.0,
+   "m_partida_kg": 0.0,
+   "m_parada_kg": 0.00643064677029197,
+   "admissivel_a_priori": true,
+   "violacoes_a_priori": [],
+   "n_partidas": 81,
+   "n_paradas": 81,
+   "n_rampas": 542,
+   "passo_eventos_kW": 0.5,
+   "passo_rampas_kW": 2.5,
+   "partida": {
+    "residuo_min_kg": 0.002701076945404668,
+    "caso": {
+     "p_kW": 10.0,
+     "partida_ems_kg": 0.6047756685810658,
+     "partida_din_kg": 0.6020745916356611,
+     "partida_E_req_kWh": 10.0,
+     "partida_E_din_kWh": 9.956944444445066,
+     "parada_ems_kg": 0.00643064677029197,
+     "parada_din_kg": 0.0001511555598340174,
+     "parada_E_din_kWh": 0.002638888888889263
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.03902780967262043,
+    "casos_com_subestimacao": 0
+   },
+   "parada": {
+    "residuo_min_kg": 2.563667264599348e-05,
+    "caso": {
+     "p_kW": 49.94726481873466,
+     "partida_ems_kg": 3.8383170077716255,
+     "partida_din_kg": 3.7993964605968893,
+     "partida_E_req_kWh": 49.94726481873466,
+     "partida_E_din_kWh": 49.4642009555129,
+     "parada_ems_kg": 0.00643064677029197,
+     "parada_din_kg": 0.006405010097645976,
+     "parada_E_din_kWh": 0.09215602985063724
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.006279491210457952,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_subida": {
+    "residuo_min_kg": 1.270460241498128e-05,
+    "caso": {
+     "de_kW": 47.5,
+     "para_kW": 49.94726481873466,
+     "ems_kg": 3.8383170077716255,
+     "din_kg": 3.8383043031692106,
+     "E_req_kWh": 49.94726481873466,
+     "E_din_kWh": 49.94714057850866
+    },
+    "subestimacao_max_kg": 0.0,
+    "subestimacao_max_rel": 0.0,
+    "superestimacao_max_kg": 0.009123412639989947,
+    "casos_com_subestimacao": 0
+   },
+   "rampa_descida": {
+    "residuo_min_kg": -0.004342757881719339,
+    "caso": {
+     "de_kW": 49.94726481873466,
+     "para_kW": 10.0,
+     "ems_kg": 0.6047756685810658,
+     "din_kg": 0.6091184264627851,
+     "E_req_kWh": 10.0,
+     "E_din_kWh": 10.057894420280084
+    },
+    "subestimacao_max_kg": 0.004342757881719339,
+    "subestimacao_max_rel": 0.007129578901328255,
+    "superestimacao_max_kg": 0.002018851685861911,
+    "casos_com_subestimacao": 147
+   },
+   "energia_partida_deficit_max_kWh": 0.48306386322175854,
+   "energia_parada_excesso_max_kWh": 0.09215602985063724,
+   "energia_rampa_desvio_max_kWh": 0.10527723098634567,
+   "segundos": 42.537640851000106
+  }
+ ]
+}

@@ -132,7 +132,8 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
                      prev: ConjuntoPrevisao | None = None, real: Realizacao | None = None,
                      pol: PoliticasDeclaradas | None = None, *, contexto: str = "operacional",
                      compromisso: dict | None = None, finalidade: str = "otimizacao",
-                     commitment_3c1=None) -> tuple[RelatorioPreflightEMS, ResultadoProjecao | None]:
+                     commitment_3c1=None, curvas_h2: dict | None = None, massas_h2_eventos: dict | None = None
+                     ) -> tuple[RelatorioPreflightEMS, ResultadoProjecao | None]:
     """``commitment_3c1`` (3C-1, aditivo): ``ponte.compromisso.DeclaracaoCommitment3C1``. ``None`` = comportamento
     3C-0 INALTERADO. Com a declaração, a projeção é a do perfil ``v1.1-3C-1`` (requisitos M09–M12 bloqueantes,
     estado por unidade), ``compromisso`` é o compromisso PARCIAL (0/1/None) e a área "solver" aplica
@@ -165,7 +166,8 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
         f"N = {dt.malha.N} intervalos e N+1 = {dt.malha.N + 1} fronteiras; Δ = {dt.malha.delta_s} s.")
     termos = frozenset(pol.objetivo.termos) if pol is not None else frozenset()
     mat = matriz_parametros(inv, termos=termos, contexto=contexto)
-    cm = constatacoes_matriz(mat)
+    from .projecao import sem_curva_declarada               # C-3DA2H-01 (curvas_h2 None = inalterado)
+    cm = sem_curva_declarada(constatacoes_matriz(mat), curvas_h2)
     add("parametros", cm, f"{len(mat.entradas)} requisito(s) classificados sem bloqueio.")
     if prev is None:
         add("previsoes", [erro("previsao_ausente", "previsao", "Nenhum conjunto de previsões para o controlador.")])
@@ -251,12 +253,13 @@ def preflight_ems_v2(inv: InventarioMicrorrede, cen: CenarioEMS, dt: DefinicaoTe
                    msg + ": diagnóstico PARCIAL dos dados; nenhuma política é criada.")])
     if prev is not None and pol is not None and commitment_3c1 is not None:
         from .compromisso import ResultadoProjecao3C1, montar_entrada_3c1
-        e3, cs3, pbase = montar_entrada_3c1(inv, cen, prev, dt, pol, commitment_3c1, contexto=contexto)
+        e3, cs3, pbase = montar_entrada_3c1(inv, cen, prev, dt, pol, commitment_3c1, contexto=contexto,
+                                            curvas_h2=curvas_h2, massas_h2_eventos=massas_h2_eventos)
         proj = ResultadoProjecao3C1(e3, cs3, pbase)
         add("contrato", [c for c in cs3 if c.codigo != "entrada_de_ensaio"],
             "Entrada 3C-1 montada e aceita por validar_entrada_3c1 (base 3B-P + commitment por unidade).")
     elif prev is not None and pol is not None:
-        proj = montar_entrada(inv, cen, prev, dt, pol, contexto=contexto)
+        proj = montar_entrada(inv, cen, prev, dt, pol, contexto=contexto, curvas_h2=curvas_h2)
         add("contrato", [c for c in proj.constatacoes if c.codigo != "entrada_de_ensaio"],
             "Entrada canônica montada e aceita por validar_entrada (3A/3B-P).")
     if finalidade == "otimizacao" and commitment_3c1 is not None:
