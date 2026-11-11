@@ -153,6 +153,9 @@ def render_estrategia(store, cur, oc) -> None:
             st.rerun()
         oc._save_bar(store, cur, I.summarize(S.findings(doc)))
         return
+    if E.renovaveis_do_cenario(doc) and (b.get("format_version") == 1 or set(E.renovaveis_do_cenario(doc))
+                                         - set(b.get("renovaveis") or {})):
+        doc[E.CHAVE_BLOCO] = b = E.atualizar_bloco(b, doc)   # seções de renováveis VAZIAS (nada é preenchido)
     if E.erros_estruturais(b, doc) and set(b) != set(E.novo_bloco(doc)):
         st.error("A estratégia V2 gravada tem estrutura incompatível com esta versão do formulário.")
         oc._save_bar(store, cur, I.summarize(S.findings(doc)))
@@ -211,6 +214,7 @@ def render_estrategia(store, cur, oc) -> None:
             _proc(x["procedencia"], f"{k}_b_{eid}")
     for eid in [e for e in list(b["baterias"]) if e not in bats]:
         b["baterias"].pop(eid)                        # banco retirado/desabilitado: declaração órfã não é mantida
+    _renovaveis_form(b, doc, k)
     with st.container(border=True):
         st.html('<div class="op-k">PCC, tarifas e objetivo</div>')
         c = b["pcc"]
@@ -242,7 +246,7 @@ def render_estrategia(store, cur, oc) -> None:
         with a2:
             c["justificativa"] = _txt("Justificativa da declaração do PCC", c["justificativa"], f"{k}_pj")
         _proc(c["procedencia"], f"{k}_pcc")
-        b["objetivo"]["termos"] = st.multiselect("Termos de custo das baterias no objetivo", list(E.TERMOS_BASE),
+        b["objetivo"]["termos"] = st.multiselect("Termos de custo no objetivo", list(E.TERMOS_BASE),
                                                  default=[t for t in b["objetivo"]["termos"] if t in E.TERMOS_BASE],
                                                  format_func=lambda t: E.TERMOS_BASE[t], key=f"{k}_termos")
     with st.container(border=True):
@@ -296,12 +300,53 @@ def render_estrategia(store, cur, oc) -> None:
     elif not errs:
         shell.callout("Estratégia V2 completa: todas as declarações têm valor e procedência. A compatibilidade científica é "
                       "verificada pelo preflight V2 na etapa 04, sobre a versão SALVA.", "ok")
-    with st.expander("Políticas fixas da integração 3D-A (informativas, gravadas em cada rodada)"):
+    with st.expander("Políticas fixas da integração V2 (informativas, gravadas em cada rodada)"):
         from . import montagem as MT
 
         st.html('<table class="op-tbl">' + "".join(f"<tr><td>{escape(a)}</td><td>{escape(str(v))}</td></tr>"
                                                     for a, v in MT.FIXOS.items()) + "</table>")
     oc._save_bar(store, cur, I.summarize(S.findings(doc)))
+
+
+def _renovaveis_form(b: dict, doc: dict, k: str) -> None:
+    """Clima previsto e declarações por equipamento renovável (Piso 3D-A2-R). O potencial NÃO é declarado: é derivado
+    pelos modelos físicos do SEEDS2 no preflight, a partir do inventário e da previsão climática do cenário."""
+    rens = E.renovaveis_do_cenario(doc)
+    if not rens or b.get("format_version", 1) < 2:
+        return
+    with st.container(border=True):
+        st.html('<div class="op-k">Renováveis: clima previsto e declarações por equipamento</div><p class="op-d">O potencial '
+                'disponível no barramento é calculado pelos MODELOS FÍSICOS do SEEDS2 (FV por arranjo; eólica por registro) '
+                'sobre a previsão climática da etapa 02 — nenhum perfil é digitado aqui. Disponível ≠ despachado: o '
+                'vertimento é decisão do EMS.</p>')
+        cl = b["clima"]
+        a1, a2 = st.columns(2)
+        with a1:
+            cl["semantica"] = _sel("Semântica da série climática", E.SEMANTICAS_CLIMA, cl["semantica"], f"{k}_cls",
+                                   ajuda="O Piso 2B não registra se as amostras são médias ou instantâneas.")
+        with a2:
+            cl["emissao_utc"] = _instante("Emissão da previsão climática (UTC)", cl["emissao_utc"], f"{k}_cle",
+                                          "Deve ser anterior ao início da missão (causalidade).")
+        curt = "curtailment_operacional" in b["objetivo"]["termos"]
+        for eid, ref in rens.items():
+            x = b["renovaveis"][eid]
+            tec = x["tecnologia"]
+            st.html(f'<div class="op-k" style="margin-top:.6rem">{"Fotovoltaica" if tec == "fv" else "Eólica"} · '
+                    f'{escape(ref.get("name") or eid)} <span class="op-m">{escape(eid)}</span></div>')
+            a1, a2 = st.columns(2)
+            with a1:
+                if tec == "fv":
+                    x["eta_conversao_barramento"] = _num("Conversão CC → barramento η [1]", x["eta_conversao_barramento"],
+                                                         f"{k}_rn_{eid}_eta", minimo=0.0, fmt="%.4g",
+                                                         ajuda="O modelo FV entrega potência CC do arranjo (sem inversor).")
+                else:
+                    x["hipotese_densidade"] = _sel("Densidade do ar", E.HIPOTESES_DENSIDADE, x["hipotese_densidade"],
+                                                   f"{k}_rn_{eid}_rho")
+            with a2:
+                if curt:
+                    x["custo_curtailment_R_kWh"] = _num("Custo de vertimento c_curt [R$/kWh]", x["custo_curtailment_R_kWh"],
+                                                        f"{k}_rn_{eid}_cc", minimo=0.0, fmt="%.4g")
+            _proc(x["procedencia"], f"{k}_rn_{eid}")
 
 
 # ======================================================================= etapa 04 — preflight e execução
@@ -452,13 +497,15 @@ def _provenance(run) -> None:
         st.json(m, expanded=False)
 
 
-def _figuras(it, fr, bats: list[str], key: str) -> None:
+def _figuras(it, fr, bats: list[str], key: str, rens: list[str] = ()) -> None:
     import plotly.graph_objects as go
 
     x = it["intervalo"]
     fig = go.Figure()
     fig.add_bar(x=x, y=it["pcc_importacao_realizada_kW"] if "pcc_importacao_realizada_kW" in it else None,
                 name="Importação da rede (realizada)")
+    for u in rens:
+        fig.add_bar(x=x, y=it[f"{u}|P_R_kW"], name=f"Renovável {u} (aproveitada)")
     for b in bats:
         fig.add_bar(x=x, y=it[f"{b}|P_d_kW"], name=f"Descarga {b}")
     fig.add_scatter(x=x, y=it["demanda_realizada_kW"], name="Demanda realizada", mode="lines+markers",
@@ -480,6 +527,18 @@ def _figuras(it, fr, bats: list[str], key: str) -> None:
                        xaxis_title="fronteira (índice global)", yaxis_title="kWh",
                        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0})
     st.plotly_chart(fig2, key=f"{key}_ene", width="stretch")
+    if rens:
+        fig3 = go.Figure()
+        for u in rens:
+            fig3.add_bar(x=x, y=it[f"{u}|P_R_kW"], name=f"Aproveitada {u}")
+            fig3.add_bar(x=x, y=it[f"{u}|vertimento_kW"], name=f"Vertida {u}")
+            fig3.add_scatter(x=x, y=it[f"{u}|A_utilizavel_kW"], name=f"Disponível a·A {u}", mode="lines+markers",
+                             line={"shape": "hvh", "dash": "dot"})
+        fig3.update_layout(barmode="stack", height=340, margin={"l": 50, "r": 10, "t": 96, "b": 44},
+                           title="Potencial renovável por UID: disponível × aproveitado × vertido [kW]",
+                           xaxis_title="intervalo aplicado (índice global)", yaxis_title="kW",
+                           legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0})
+        st.plotly_chart(fig3, key=f"{key}_ren", width="stretch")
 
 
 def _downloads(source, run, key: str) -> None:
@@ -544,13 +603,24 @@ def run_results(source, run, *, key: str) -> None:
                     f"{forms.fmt(100 * b['soc_final'], 1)} %</td><td>{forms.fmt(b['energia_carregada_kWh'], 3)}</td>"
                     f"<td>{forms.fmt(b['energia_descarregada_kWh'], 3)}</td></tr>" for u, b in s["baterias"].items())
                 + "</table>")
+    ren = s.get("renovaveis") or {}
+    if ren:
+        st.html('<table class="op-tbl"><tr><th>Renovável (UID)</th><th>Tecnologia</th><th>Potencial utilizável [kWh]</th>'
+                '<th>Aproveitada [kWh]</th><th>Vertida [kWh]</th><th>Pico aproveitado [kW]</th></tr>' + "".join(
+                    f"<tr><td class='op-m'>{escape(u)}</td><td>{escape({'fv': 'Fotovoltaica', 'eolica': 'Eólica'}.get(r['tecnologia'], r['tecnologia']))}"
+                    f"</td><td>{forms.fmt(r['energia_utilizavel_kWh'], 3)}</td><td>{forms.fmt(r['energia_aproveitada_kWh'], 3)}"
+                    f"</td><td>{forms.fmt(r['energia_vertida_kWh'], 3)}</td><td>{forms.fmt(r['pico_aproveitado_kW'], 3)}</td></tr>"
+                    for u, r in ren.items()) + "</table>")
+        st.caption("Potencial derivado pelos modelos físicos do SEEDS2 no preflight da rodada e GRAVADO (v2/renovaveis.json); "
+                   "a reabertura não reexecuta modelos nem otimizador. Realização renovável = previsão (sem erro de previsão "
+                   "renovável nesta simulação).")
     try:
         it, fr = RG.ler_csv(source, run, RG.N_INTERVALOS), RG.ler_csv(source, run, RG.N_FRONTEIRAS)
         ja = RG.ler_csv(source, run, RG.N_JANELAS)
     except StoreError as exc:
         st.error(shell.md(exc))
         return
-    _figuras(it, fr, bats, key)
+    _figuras(it, fr, bats, key, list(ren))
     with st.expander("Intervalos aplicados (dados originais gravados)"):
         st.dataframe(it, hide_index=True, width="stretch")
     with st.expander("Decisões por janela: solver, gap, custos planejado × realizado, sinal de valor futuro"):

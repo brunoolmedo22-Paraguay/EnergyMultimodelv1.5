@@ -16,8 +16,7 @@ BASE = "7eb29e590a75f79ef7ab2a608727645c73960f50"          # main no início do 
 PACOTE_INTEGRACAO = "integracao_v2/"
 # Arquivos EXISTENTES na base, dentro dos alvos das guardas anteriores, alterados pelo 3D-A2-R (somente modificação).
 MODIFICADOS = frozenset({
-    "tests/ems_v2/piso3da_guard_policy.py",      # encadeia este filtro (uma linha; regras do 3D-A inalteradas)
-    "seeds2/ui/execution_ui.py",                 # rótulos/estado: renováveis representáveis no motor V2
+    "tests/ems_v2/piso3da_guard_policy.py",      # encadeia este filtro (regras do 3D-A inalteradas)
 })
 # Arquivos NOVOS do 3D-A2-R dentro dos alvos das guardas anteriores (somente adição).
 ADICIONADOS = frozenset({
@@ -45,7 +44,7 @@ INTOCADOS = ("ems_v2", "models", "h2_pemfc", "simulation", "config", "ems_integr
              "orchestrator_runtime.py", "orchestrator_app.py", "app.py", "ems_app.py", "wind_app.py", "thermal_app.py",
              "battery_app.py", "h2_app.py", "mix_app.py", "requirements.txt", "requirements-ems_v2.txt",
              "seeds2/operation", "seeds2/microgrid", "seeds2/archive", "seeds2/report", "seeds2/ui/main.py",
-             "seeds2/ui/operations.py", "seeds2/ui/equipment.py", "seeds2/ui/archive_ui.py", ".github",
+             "seeds2/ui", ".github",
              "tests/ems_v2/wind_guard_policy.py", "tests/ems_v2/ci01_guard_policy.py",
              "tests/ems_v2/stabilization_guard_policy.py", "tests/ems_v2/test_ems_v2_isolamento.py")
 OUTROS_PERMITIDOS = ("docs/", "tools/e2e/", "CLAUDE.md", "PARAMIJEFE.md")
