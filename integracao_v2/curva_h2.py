@@ -54,8 +54,12 @@ RAIZ = Path(__file__).resolve().parents[1]
 # ``situacao == "proposta_pendente_de_aprovacao"`` uma curva conforme NÃO é "certificada".
 POLITICA_B04 = {
     "versao": "b04-proposta-2",
-    "situacao": "proposta_congelada_pendente_de_aprovacao",
+    "situacao": "aprovada_pelo_responsavel",          # decisão do responsável no PR #23 (2026-11-11); ver o núcleo
     "congelada_em": "2026-11-11",
+    "aprovada_em": "2026-11-11",
+    "alcance_aprovacao": "Certificação MATEMÁTICA da PWL contra o modelo PEMFC existente (aproximado); não é validação "
+                         "experimental do modelo Horizon nem certificação de operação física. Cada curva gerada precisa "
+                         "passar na sua própria verificação B04.",
     "erro_rel_max": 0.005,
     "erro_abs_max_kg_h": 0.02,
     "subestimacao_rel_max": 0.001,

@@ -212,8 +212,13 @@ def hash_politica_b04(p: PoliticaB04) -> str:
 # Aprovar = mudar a situação da política abaixo para SITUACAO_B04_APROVADA num commit REVISADO e autorizado.
 POLITICAS_B04_NUCLEO: dict[str, dict[str, str]] = {
     "412863021aee9d29e1972760e4a5469e509e0de9260ffe9bf62096d932071c9a": {
-        "versao": "b04-proposta-2", "situacao": "proposta_congelada_pendente_de_aprovacao",
-        "congelada_em": "2026-11-11"},
+        "versao": "b04-proposta-2", "situacao": SITUACAO_B04_APROVADA,
+        "congelada_em": "2026-11-11", "aprovada_em": "2026-11-11",
+        "aprovacao": "Decisão do responsável no PR #23 (Piso 3D-A2-H): limiares, identidade e versão exatamente os "
+                     "congelados.",
+        "alcance": "Certificação MATEMÁTICA da aproximação PWL contra o modelo PEMFC existente. NÃO é validação "
+                   "experimental do modelo Horizon nem certificação de operação física; cada curva gerada continua "
+                   "sujeita à sua própria verificação B04 (critérios recomputados)."},
 }
 
 
