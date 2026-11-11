@@ -155,7 +155,9 @@ class BancadaH2CurvaTest(unittest.TestCase):
             self.assertTrue(any("Erro da aproximação" in s["layout"].get("title", {}).get("text", "") for s in specs))
             metr = {m.label: m.value for m in app.metric}
             self.assertEqual(metr["Potência máxima admissível"], "50.00 kW")
-            self.assertIn("Conforme", metr["Validação B04"])
+            self.assertEqual(metr["Certificação B04"], "Não aprovada")      # política proposta, sem aprovação
+            m04 = next(m for m in app.metric if m.label == "Certificação B04")
+            self.assertIn("aguarda aprovação", m04.proto.help)
             app.radio(key="h2_cv_un").set_value("kg/h").run()
             specs = [json.loads(c.proto.spec) for c in app.get("plotly_chart")]
             fig = next(s for s in specs if s["layout"].get("title", {}).get("text") == "Consumo de hidrogênio × potência líquida")

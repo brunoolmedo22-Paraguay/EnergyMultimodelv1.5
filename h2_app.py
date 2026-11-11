@@ -363,8 +363,11 @@ def _render_curva_ems() -> None:
     k[2].metric("Consumo específico a P máx.", f"{m['consumo_especifico_pmax_kg_kWh']:.4f} kg/kWh")
     k[3].metric("Erro máximo da PWL", f"{100 * m['erro_rel_max']:.3f} %")
     k[4].metric("Vértices da PWL", f"{m['vertices']}")
-    k[5].metric("Validação B04", {"certificada": "Certificada", "reprovada": "Reprovada"}.get(
-        b04["estado"], "Conforme · limiares pendentes"))
+    k[5].metric("Certificação B04", {"certificada": "Certificada", "reprovada": "Reprovada"}.get(
+        b04["estado"], "Não aprovada"),
+        help="Conforme aos limiares PROPOSTOS; a política B04 aguarda aprovação explícita do responsável — a curva "
+             "não é certificada e o EMS V2 bloqueia a PEMFC." if b04["estado"] not in ("certificada", "reprovada")
+        else None)
     P = np.asarray(curva.ajuste["P_kW"])
     q = np.asarray(curva.ajuste["q_suprido_kg_h"])
     qc = np.asarray(curva.ajuste["q_consumido_kg_h"])
