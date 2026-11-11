@@ -467,16 +467,18 @@ def _figuras(it, fr, bats: list[str], key: str) -> None:
                     line={"shape": "hvh", "dash": "dot", "color": "#888"})
     for b in bats:
         fig.add_bar(x=x, y=-it[f"{b}|P_c_kW"], name=f"Carga {b} (consumo; não é geração)")
-    fig.update_layout(barmode="relative", height=340, margin={"l": 50, "r": 10, "t": 40, "b": 40},
+    fig.update_layout(barmode="relative", height=380, margin={"l": 50, "r": 10, "t": 96, "b": 44},
                       title="Demanda × atendimento por recurso — médias de intervalo [kW]",
-                      xaxis_title="intervalo aplicado (índice global)", yaxis_title="kW", legend={"orientation": "h"})
+                      xaxis_title="intervalo aplicado (índice global)", yaxis_title="kW",
+                      legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0})
     st.plotly_chart(fig, key=f"{key}_pot", width="stretch")
     fig2 = go.Figure()
     for b in bats:
         fig2.add_scatter(x=fr["fronteira"], y=fr[f"{b}|energia_kWh"], name=f"Energia {b}", mode="lines+markers")
-    fig2.update_layout(height=280, margin={"l": 50, "r": 10, "t": 40, "b": 40},
+    fig2.update_layout(height=300, margin={"l": 50, "r": 10, "t": 76, "b": 44},
                        title="Energia armazenada nas fronteiras de estado [kWh] (N + 1 pontos)",
-                       xaxis_title="fronteira (índice global)", yaxis_title="kWh", legend={"orientation": "h"})
+                       xaxis_title="fronteira (índice global)", yaxis_title="kWh",
+                       legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "x": 0})
     st.plotly_chart(fig2, key=f"{key}_ene", width="stretch")
 
 

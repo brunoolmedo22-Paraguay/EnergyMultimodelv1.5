@@ -48,28 +48,35 @@ async function visible(p, text) { return (await p.getByText(text, { exact: false
 async function btn(p, name) { await p.getByRole("button", { name }).first().click(); await ready(p); }
 async function abrirMicrorrede(p, nome) {
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
-  const idx = await p.evaluate((n) => {
-    const bs = [...document.querySelectorAll("button")].filter((b) => b.textContent.trim() === "ABRIR MICRORREDE");
-    const tops = bs.map((b) => b.getBoundingClientRect().top);
-    const alvo = [...document.querySelectorAll("*")].filter((e) => e.children.length === 0 && e.textContent.trim() === n)[0];
-    if (!alvo) return -1;
-    const y = alvo.getBoundingClientRect().top;
-    let best = -1, d = 1e9;
-    tops.forEach((t, i) => { if (t >= y - 5 && t - y < d) { d = t - y; best = i; } });
-    return best;
-  }, nome);
-  assert(idx >= 0, `microrrede '${nome}' listada no Gestor`);
-  await p.getByRole("button", { name: "ABRIR MICRORREDE" }).nth(idx).click(); await ready(p);
+  await p.getByText(nome, { exact: true }).first().waitFor({ timeout: 60000 });
+  // cartão = contêiner MAIS INTERNO que tem o nome exato da microrrede e um botão ABRIR MICRORREDE
+  const cartao = p.locator('[data-testid="stVerticalBlock"]')
+    .filter({ has: p.getByText(nome, { exact: true }) })
+    .filter({ has: p.getByRole("button", { name: "ABRIR MICRORREDE" }) }).last();
+  await cartao.waitFor({ timeout: 60000 });       // os cartões são desenhados depois do cabeçalho
+  assert(await cartao.count() === 1, `microrrede '${nome}' listada no Gestor`);
+  await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
+  assert(await visible(p, nome), `microrrede aberta: ${nome}`);
+}
+async function cenarioAtual(p) {
+  // o selectbox do Streamlit mostra o valor num <input> (não no texto do contêiner)
+  const box = p.getByLabel("Cenário selecionado", { exact: true }).first();
+  await box.waitFor({ timeout: 60000 });
+  const caixa = p.locator('[data-testid="stSelectbox"]').filter({ has: p.getByText("Cenário selecionado", { exact: true }) }).first();
+  return (await box.inputValue().catch(() => "")) + " " + (await caixa.innerText().catch(() => ""));
 }
 async function selecionarCenario(p, nome) {
-  if (await visible(p, nome)) {
-    const sel = p.locator('[data-testid="stSelectbox"]').first();
-    if (await sel.count()) {
-      const atual = await sel.innerText();
-      if (!atual.includes(nome)) { await sel.click(); await p.getByRole("option", { name: new RegExp(nome.replace(/[()]/g, ".")) }).first().click(); await ready(p); }
+  if (!(await cenarioAtual(p)).includes(nome)) {
+    const box = p.getByLabel("Cenário selecionado", { exact: true }).first();
+    const opt = p.getByRole("option").filter({ hasText: nome }).first();
+    for (let i = 0; i < 5; i++) {
+      await box.click();
+      try { await opt.waitFor({ state: "visible", timeout: 2500 }); break; } catch (e) { await p.keyboard.press("Escape"); await p.waitForTimeout(500); }
     }
+    await opt.click(); await ready(p);
   }
+  assert((await cenarioAtual(p)).includes(nome), `cenário selecionado: ${nome}`);
 }
 async function num(p, label, value, nth = 0) {
   const box = p.getByLabel(label, { exact: true }).nth(nth);
@@ -84,8 +91,14 @@ async function area(p, label, value) {
   await box.fill(String(value)); await box.press("Control+Enter"); await ready(p);
 }
 async function sel(p, label, valor, nth = 0) {
-  await p.getByLabel(label, { exact: true }).nth(nth).click();
-  await p.getByRole("option", { name: new RegExp("^" + valor) }).first().click(); await ready(p);
+  // o selectbox pode fechar a lista se o clique coincidir com uma nova renderização: repetir até a opção ficar visível
+  const box = p.getByLabel(label, { exact: true }).nth(nth);
+  const opt = p.getByRole("option", { name: new RegExp("^" + valor) }).first();
+  for (let i = 0; i < 5; i++) {
+    await box.scrollIntoViewIfNeeded(); await box.click();
+    try { await opt.waitFor({ state: "visible", timeout: 2500 }); break; } catch (e) { await p.keyboard.press("Escape"); await p.waitForTimeout(500); }
+  }
+  await opt.click(); await ready(p);
 }
 async function kpi(p, label) {
   return p.evaluate((l) => {
@@ -112,6 +125,8 @@ async function waitRun(p, seconds = 180) {
   throw new Error(`FALHA: a rodada V2 não terminou em ${seconds} s`);
 }
 async function conferirRodada(p, tag, custo) {
+  // a leitura inclui a VERIFICAÇÃO da evidência (hashes + reauditoria): esperar os indicadores serem desenhados
+  await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 90000 }); await ready(p);
   assert((await kpi(p, "Custo REALIZADO")) === custo, `${tag}: custo REALIZADO ${custo}`);
   assert(await visible(p, "sem valor futuro"), `${tag}: custo rotulado sem valor futuro`);
   assert(await visible(p, "Motor V2 experimental"), `${tag}: rodada identificada como motor V2 experimental`);
@@ -309,11 +324,13 @@ async function importar(b) {
   await p.getByText("Estudos científicos portáteis").first().waitFor({ timeout: 60000 });
   await p.locator('input[type="file"]').first().setInputFiles(pkgFile); await ready(p);
   await p.getByText("Verificação concluída", { exact: false }).first().waitFor({ timeout: 60000 });
-  await p.getByRole("checkbox").first().check(); await ready(p);
+  assert(await p.getByRole("button", { name: "CONFIRMAR IMPORTAÇÃO" }).isDisabled(), "importação exige confirmação explícita");
+  await p.getByText("Confirmo a importação deste estudo", { exact: false }).click(); await ready(p);
   await btn(p, "CONFIRMAR IMPORTAÇÃO");
+  await p.getByText("Verificado na importação").first().waitFor({ timeout: 60000 });
   await btn(p, "ABRIR ESTUDO");
   await p.getByText("Estudo arquivado · somente leitura").first().waitFor({ timeout: 60000 });
-  await p.getByText("Rodadas e resultados", { exact: false }).first().click(); await ready(p);
+  await p.locator('[data-testid="stRadio"] label').filter({ hasText: "Rodadas e resultados" }).first().click(); await ready(p);
   assert(await visible(p, "V2 · custo realizado R$ 50,20"), "estudo arquivado: rodada V2 listada com o custo realizado");
   await btn(p, "Consultar");
   await conferirRodada(p, "estudo arquivado (sem solver)", info.custo);

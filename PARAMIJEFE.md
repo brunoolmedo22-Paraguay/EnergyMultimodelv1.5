@@ -2683,3 +2683,52 @@ Base `main` `9ebd760`. Dictamen de la auditoría: APROBADO PARA 3D CON CONDICION
 - **P1-1** (`ems_v2/hierarquia/comparadores.py`, `efeito`): la diferencia ajustada por valoración terminal declarada es (C_a − p·E_a) − (C_b − p·E_b) = d − p·ΔE; el código calculaba d + p·ΔE. Antes: A (12 R$, 10 kWh) × B (10 R$, 0 kWh) ⇒ {0: 2, 0,5: 7, 1: 12}, ordenación "robusta". Después: {0: 2, 0,5: −3, 1: −8}, `ordenacao_robusta = False`. Las comparaciones con condiciones terminales iguales (todas las conclusiones H1–H18 publicadas) no usan este camino.
 - **P1-2** (`ems_v2/hierarquia/planejador.py`, `Planejador3C4.sinal`): con la política `periodica` una frontera b >= fin del planeamiento emitido con fin < K_M recibía señal `valido` = Φ_L (θ = 0) sin degradación. Ahora es `indisponivel` ("cauda esgotada prematuramente"); el MPC aplica la regla existente (señal del lote inválida ⇒ replanificación registrada `sinal_do_lote_invalido_replanejado`; si el replanificación no produce señal ⇒ degradación declarada). b = fin = K_M sigue siendo cola vacía legítima (Φ_L exacto). Sin extrapolación ni ampliación del horizonte; no se añadió rechazo de configuración (una regla H_L > N + (P−1)m rechazaría misiones cortas legítimas con fin = K_M). Antes (H2, N = 3, m = 1, P = 3, H_L = 4): R$ 60,4 con 8 ventanas `valido` de θ = 0. Después: R$ 55,5 (= P = 1), ninguna cola agotada antes del fin rotulada `valido`.
 - Tests: `tests/ems_v2/test_ems_v2_3c4_math01.py` (5; 4 fallaban antes de la corrección, el caso legítimo pasaba). Resultado de la regresión en `docs/ai/HANDOFF.md`.
+
+
+## Entrega 13 — SEEDS2 Piso 3D-A · Integración operativa del EMS V2 jerárquico MILP–MPC y persistencia científica — 2026-11-10
+
+Rama `claude/adoring-newton-jzfmfx` desde `main` `a636350` (PR #20 integrado). **GATE 0 + GATE 1 (3D-A)** del paquete maestro del Piso 3D. PR contra `main`, **sin merge**; 3D-B/3D-C/3D-D **no iniciados** (ni motor gráfico JS/SVG ni dashboard). Documento técnico de la entrega: [`docs/ems_v2/INTEGRACAO_3DA.md`](docs/ems_v2/INTEGRACAO_3DA.md) (mapa de datos, contrato de persistencia que consumirá 3D-B, contradicciones C-3DA-01…07, limitaciones).
+
+**Qué se entrega.** Recorrido real y completo: Gestor de Microrredes → Centro de Operação → escenario versionado → selección EXPLÍCITA del motor V2 y estrategia `milp_mpc` declarada con procedencia → preflight V2 → Pyomo/HiGHS + `ControladorMPCHierarquico` (3C-4) contra la planta algebraica → auditoría integral independiente → resultados inmutables en `scenario_runs`/`scenario_run_data` → reapertura (local y Archivo Científico) **sin recalcular**, con la evidencia re-verificada. Es una **simulación offline de ensayo**, rotulada como tal en preflight, manifiesto, registros e interfaz; no es control de hardware ni validación física.
+
+**Qué NO se tocó.** `ems_v2/` byte a byte (árbol Git `58cc13b6de0abff0f0cff824d469f2fb3f4ed3d7` en base y en la rama): formulación MILP, planificador, MPC, costo futuro, política numérica, fixtures y referencias. V1.6 (modelos, EMS, runtime, runner), `seeds2/microgrid`, `seeds2/archive`, `seeds2/report`, `requirements*.txt`, esquema SQLite v4 y formato `seeds2-study` v1. Ninguno de los archivos fijados por hash por las políticas eólica / estabilización / CI-01.
+
+**Archivos.** Nuevos: `integracao_v2/{__init__,estrategia,montagem,preflight,execucao,registro,ui}.py`; tests `tests/piso3da_util.py`, `tests/test_piso3da_{preflight,execucao,app}.py`, `tests/ems_v2/{piso3da_guard_policy,test_piso3da_guardas}.py`; E2E `tools/e2e/{seed_piso3da.py,e2e_piso3da_v2.js,run_piso3da.sh,sabotage_v2/sitecustomize.py}`; `docs/ems_v2/INTEGRACAO_3DA.md` + capturas en `docs/ems_v2/evidencia_3da/`. Modificados: `seeds2/operation/{scenarios,preflight}.py`, `seeds2/ui/{execution_ui,archive_ui}.py`, `tests/ems_v2/{test_ems_v2_isolamento,stabilization_guard_policy}.py`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, este archivo.
+
+**Hallazgos de integración (GATE 0) — ninguno es defecto matemático del núcleo:**
+
+1. El puente 3C-0 proyecta la instalación «conectada» a una topología que el contrato 3A rechaza; en 3C-3 la base debe declarar el barramento interno (C-3C3-01). Resuelto en la capa de integración con un inventario efectivo (C-3DA-02), sin tocar el motor.
+2. El inventario del Piso 1 no tiene η, potencias en barramento, autodescarga ni PCC/tarifas, y `config.py` está fijado por hash: las declaraciones V2 viven en la estrategia versionada del escenario, por UID y con procedencia por campo (C-3DA-03).
+3. El formato `seeds2-study` v1 no admite datos en corridas no concluidas: la evidencia de misiones interrumpidas se guarda en `outcome.evidence`, rotulada parcial (C-3DA-04).
+4. Las guardias «la aplicación no referencia `ems_v2`» contradicen la integración autorizada: excepción **nominal** (C-3DA-01), que **requiere aprobación del responsable**.
+
+**Ejecución demostrada (microrred registrada, no fixture).** Microrred del catálogo con un banco de 20 kWh (conectada); escenario v-n con demanda sintética horaria 10 kW × 12 h, PCC solo importación 50 kW, tarifa sintética rotulada 0,5 R$/kWh con pico 1,5 en las horas 8–9, N = 3, m = 1, H_L = 10. Resultado: 12 ventanas óptimas (gap 0), 12 señales de valor futuro válidas, **costo realizado R$ 50,20** = valor **analítico** (0,5·80 + 0,5·20 + 0,01·20); el banco se conserva hasta el pico y descarga en los intervalos 8–9; déficit 0; auditoría integral aprobada. El `run_uid` es el `missao_uid` de los registros sellados. La integración no usa `ems_v2.fixtures_3c4` en ningún punto.
+
+**Criterios de aceptación del primer PR (§7 del prompt maestro):**
+
+| # | Criterio | Evidencia |
+|---|---|---|
+| 1 | Desde Streamlit: abrir microrred, versión de escenario, elegir V2 explícito | E2E `operar` (motor V1.6 por omisión → selección explícita; versión 3/4 del escenario); `test_piso3da_app.py` |
+| 2 | Mostrar por qué alcanza o no; preflight V2 bloquea sin ejecutar | E2E (declaración en blanco ⇒ bloqueos explicados, botón deshabilitado); `test_piso3da_preflight.py`; matriz en pantalla |
+| 3 | Misión mínima reproducible con Pyomo/HiGHS real, origen sintético declarado | `test_missao_minima_…_analitico`; E2E (R$ 50,20) |
+| 4 | Guardar run_uid, identidades, datos por dispositivo/intervalo, fronteras, costos, ventanas, señales, solver/gap/tiempos, auditoría, fallos/degradaciones | Contrato `v2/…` (INTEGRACAO_3DA §7); `test_dados_por_intervalo_fronteira_e_janela` |
+| 5 | Reabrir tras recarga/reinicio sin una sola llamada al optimizador; consistencia y hashes | `test_reabertura_verifica_tudo_sem_otimizador` (Pyomo/HiGHS saboteados); E2E `reinicio` tras `kill -9` |
+| 6 | Exportar/importar el estudio y consultar la misma evidencia | `test_estudo_exportado_e_importado_…`; E2E `importar` en instalación limpia **sin solver** con motores saboteados (registro de llamadas vacío) |
+| 7 | Misión bloqueada, interrumpida, solver ausente, dos microrredes aisladas, V1.6 intacto, tests verdes | `test_missao_bloqueada_…`, `…_interrompida_pelo_controlador_…`, `…_inviavel_…`, `test_solver_ausente_…`, `test_duas_microrredes_isoladas`, `test_cenario_v16_nao_e_afetado_…`; regresión completa |
+| 8 | Diferenciar simulación offline de validación física | Rótulo de alcance en preflight, manifiesto (`scope`, `engine.synthetic`), índice, interfaz; contexto `operacional` rechazado |
+
+**Pruebas realmente ejecutadas (2026-11-10, Python 3.13, entornos virtuales con las versiones fijadas):**
+
+| Comando | Resultado |
+|---|---|
+| `python -m pytest tests/ -q` con `requirements.txt` + `requirements-ems_v2.txt` | **2116 passed, 1 skipped, 9 warnings** (677 s) — el omitido es la auditoría explícita del diff, por diseño. Línea de base tras MATH-01: 2080. Después se añadió 1 test (rechazo del dossier 2D-B) ejecutado de forma focalizada; el conteo final lo da el CI remoto |
+| `python -m pytest tests/ -q` **sin** Pyomo/HiGHS | **1652 passed, 120 skipped, 9 warnings** (504 s) — línea de base 1629 passed / 101 omitidos |
+| `pytest tests/test_piso3da_*.py tests/ems_v2/test_piso3da_guardas.py` | ver HANDOFF (conteo final con y sin solver) |
+| Guardias de aislamiento (3A, ponte, 3C-2, 3C-3, 3C-4, eólica, estabilización) | 181 passed, 1 skipped |
+| `python tests/ems_v2/piso3da_guard_policy.py` (auditoría explícita del diff de la misión) | `ems_v2` idéntico a la base; V1.6 y archivos protegidos intactos; cambios nominales |
+| `tools/e2e/run_piso3da.sh` (Chromium real, servidores Streamlit reales) | **106 verificaciones**: operar 65 · reinicio tras `kill -9` 14 · tablet 8 · importar (sin solver, motores saboteados) 19; registro de llamadas al motor **vacío** |
+
+**Limitaciones (detalle en INTEGRACAO_3DA §10).** Solo contexto de ensayo; solo demanda agregada + hasta 2 bancos + PCC declarado (FV, eólica, PEMFC y térmica bloqueadas con explicación; térmica por M19); Δ = paso de la serie; sin reanudación de misiones interrumpidas; informes 2D-B no cubren corridas V2; sin trayectoria de convergencia de HiGHS, duales ni flujos por rama; tolerancias D07 provisorias.
+
+**Decisiones que requieren al responsable.** (a) Aprobar o corregir la excepción nominal de guardias C-3DA-01 (incluida la ubicación de la capa en `integracao_v2/`). (b) Si las declaraciones V2 por dispositivo deben migrar al inventario (C-3DA-03). (c) Autorizar 3D-B sobre el contrato `v2/…`.
+
