@@ -1072,6 +1072,39 @@ def _pemfc_verificar(run, ev: Evidencia, brutos: dict, versao, ver) -> None:
             ok &= x["u"] == uu and (x["p_solicitada_kW"] == (pp if uu else 0.0))
     ver(ok and set(din.get("unidades") or {}) == set(gers),
         "Verificação dinâmica gravada avalia EXATAMENTE as consignas aplicadas seladas (por unidade e intervalo)")
+    # Auditoria do PR #23 (A/B): H₂ do EMS na verificação = contabilidade SELADA do MILP (q̂·Δ·u + m_SU·y + m_SD·z, coluna
+    # m_h2_kg das vistas regeneradas), coerência RECALCULADA dos números e das tolerâncias gravados, e o rótulo de aceitação
+    # do resumo = o recalculado (uma rodada dinamicamente incoerente não pode ser apresentada como coerente).
+    from .pemfc_dinamica import reavaliar_coerencia
+    try:
+        _cols, ints = linhas_intervalos(ev, None)
+        por_g = {int(x["intervalo"]): x for x in ints}
+        ok_m = all(_proximo(float(x["h2_ems_kg"]), float(por_g[x["intervalo"]][f"{u}|m_h2_kg"]))
+                   for u, v in din["unidades"].items() for x in v["intervalos"])
+        tol = din.get("tolerancias") or {}
+        coer = {}
+        ok_c = True
+        for u, v in din["unidades"].items():
+            c_u, inc = reavaliar_coerencia(v, tol)
+            coer[u] = c_u
+            ruins = {(i["intervalo"], i["criterio"]) for i in inc}
+            ok_c &= c_u == bool(v["coerente"]) and all(
+                x["coerente_energia"] == ((x["intervalo"], "energia") not in ruins)
+                and x["coerente_h2"] == ((x["intervalo"], "h2") not in ruins) for x in v["intervalos"])
+        ok_c &= bool(din.get("coerente")) == all(coer.values())
+    except (KeyError, TypeError, ValueError) as exc:
+        ver(False, f"Verificação dinâmica gravada ilegível: {type(exc).__name__}")
+        return
+    ver(ok_m, "H₂ do EMS na verificação dinâmica = contabilidade SELADA do MILP por intervalo (contínuo + massas por evento)")
+    ver(ok_c, "Coerência dinâmica RECALCULADA dos valores e tolerâncias gravados = a gravada (por unidade e intervalo)")
+    acc = (((run.summary or {}).get("execution") or {}).get("aceitacao")) or {}
+    todas = all(coer.values())
+    esperado = "algebrica_aprovada_dinamica_coerente" if todas else "algebrica_aprovada_dinamica_incoerente"
+    ver(acc.get("classificacao") == esperado and (acc.get("dinamica") or {}).get("estado") == (
+        "coerente" if todas else "incoerente") and (acc.get("fisica") or {}).get("estado") == "nao_validada"
+        and (acc.get("algebrica") or {}).get("estado") == "aprovada",
+        f"Aceitação SEPARADA no resumo = recalculada: algébrica aprovada · dinâmica {'coerente' if todas else 'INCOERENTE'}"
+        " · física não validada")
 
 
 def _verificar_parcial(run, itens, ver) -> Verificacao:

@@ -128,7 +128,9 @@ def test_curva_gerada_uma_vez_por_configuracao_e_massas_do_modelo_dinamico(tmp_p
     ua, ub = next(iter(pa.montagem.pemfc.values())), next(iter(pb.montagem.pemfc.values()))
     assert ua["curva"] is ub["curva"] is next(iter(pa2.montagem.pemfc.values()))["curva"]
     m = ua["massas_eventos"]
-    assert m["m_partida_kg"] > 0 and m["duracao_partida_s"] == pytest.approx(30.0) and m["m_parada_kg"] >= 0
+    # massas ADICIONAIS (auditoria do PR #23, A): a partida já é coberta pela contabilidade instantânea (m_SU = 0); a
+    # parada ocorre no intervalo desligado (m_SD > 0); durações lidas do modelo dinâmico
+    assert m["m_partida_kg"] == 0.0 and m["duracao_partida_s"] == pytest.approx(30.0) and m["m_parada_kg"] > 0
     doc = pa.montagem.doc_pemfc
     assert pa.montagem.hashes["pemfc"] and list(doc["registros"]) == [H.pemfc_id(pa.scenario.document)]
     g = pa.montagem.modelo.base.geradores[0]
@@ -204,8 +206,11 @@ def test_verificacao_dinamica_registra_partida_e_coerencia(hibrida):
     part = [x for x in v["intervalos"] if "STARTUP" in x["estados"]]
     assert part and all(x["deficit_kWh"] > 0 for x in part)            # partida física ≠ abstração instantânea
     assert v["energia_entregue_kWh"] == pytest.approx(v["energia_solicitada_kWh"], rel=0.02)
-    assert v["h2_modelo_dinamico_kg"] == pytest.approx(v["h2_ems_pwl_kg"], rel=0.02)
+    assert v["h2_modelo_dinamico_kg"] == pytest.approx(v["h2_ems_kg"], rel=0.02)
+    assert v["h2_ems_kg"] >= v["h2_modelo_dinamico_kg"]                 # termo de evento nunca subestima a massa total
     assert run.summary["execution"]["pemfc_dinamica"][u]["coerente"] is True
+    acc = run.summary["execution"]["aceitacao"]
+    assert acc["classificacao"] == "algebrica_aprovada_dinamica_coerente" and acc["fisica"]["estado"] == "nao_validada"
 
 
 @requer_solver
@@ -288,6 +293,8 @@ def test_sem_aprovacao_a_reabertura_nao_certifica_a_curva(hibrida, monkeypatch):
             return json.dumps(doc).encode() if nome == RG.N_PEMFC else store.run_data(uid, nome)
     v = RG.verificar(Fonte(), run)
     assert not v.ok
+    v = RG.verificar(store, run)                  # dados INTACTOS, núcleo com a política pendente: certificado recusado
+    assert not v.ok and any("re-registrado" in t for t in v.falhas())
 
 
 @requer_solver

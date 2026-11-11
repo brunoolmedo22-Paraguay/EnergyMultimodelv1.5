@@ -115,7 +115,29 @@ class PemfcUiTest(unittest.TestCase):
                 txt = _texts(rv)
                 self.assertIn("PEMFC (unidade)", txt)
                 self.assertIn("coerente", txt)
+                # aceitação SEPARADA (auditoria do PR #23, B): algébrico × dinâmico × físico
+                self.assertIn("Critério de aceitação", txt)
+                self.assertIn("APROVADO", txt) and self.assertIn("COERENTE", txt)
+                self.assertIn("NÃO VALIDADO", txt)
+                self.assertNotIn("DINAMICAMENTE INCOERENTE", txt)
                 self.assertTrue(any(e.label.startswith("✓ Evidência verificada") for e in rv.expander))
                 specs = [json.loads(c.proto.spec) for c in rv.get("plotly_chart")]
                 pot = next(s for s in specs if "Demanda × atendimento" in s["layout"]["title"]["text"])
                 self.assertTrue(any(t["name"].startswith("PEMFC ") for t in pot["data"]))
+
+    @unittest.skipUnless(SOLVER, "Pyomo/HiGHS não instalados")
+    def test_rodada_dinamicamente_incoerente_e_exibida_como_tal(self):
+        """Partida fria forçada além do preflight (bloqueio a priori desligado SÓ neste teste): a interface mostra a
+        aprovação algébrica separada da INCOERÊNCIA dinâmica e nunca apresenta a rodada como validada."""
+        from integracao_v2 import pemfc_dinamica as DY
+        uid, st = self.make()
+        sc = H.criar_cenario_pemfc(st, demanda_kW=40.0, pemfc_kw={"t_amb": 0.0, "preco": 10.0},
+                                   mutar=lambda doc: doc[E.CHAVE_BLOCO]["pcc"].update(limite_importacao_kW=25.0))
+        with H.politica_aprovada_no_teste(), mock.patch.object(DY, "admissibilidade", return_value=[]):
+            run = X.submit(st, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
+        self.assertEqual(run.state, "concluida", run.error)
+        with H.politica_aprovada_no_teste():
+            txt = _texts(self.session(uid, "rodada", query={"run": run.run_uid}))
+        self.assertIn("DINAMICAMENTE INCOERENTE", txt)
+        self.assertIn("NÃO representa operação executável", txt)
+        self.assertIn("INCOERENTE", txt) and self.assertIn("NÃO VALIDADO", txt)

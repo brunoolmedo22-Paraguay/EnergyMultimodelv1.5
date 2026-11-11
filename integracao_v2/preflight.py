@@ -20,6 +20,8 @@ fonte → transformação → validação → registro → vista + relatório da
 """
 from __future__ import annotations
 
+import math
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -779,26 +781,59 @@ def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
                                        "(recomputado); não valida o modelo nem o equipamento")
         from ems_v2.parameters import Parametro
         from . import pemfc_dinamica as DY
-        mev = DY.massas_eventos(cond, float(decl["p_min_kW"]), float(decl["temperatura_ambiente_C"]))
+        t_amb = float(decl["temperatura_ambiente_C"])
+        par = DY.parametros_dinamicos(cond, t_amb)
+        # ---- D (auditoria do PR #23): restrições físicas do modelo dinâmico — incompatibilidade BLOQUEIA, nunca só avisa
+        incompat = False
+        if decl["p_min_kW"] < par["idle_kW"] - 1e-9:
+            pf.add(ERROR, "pemfc", f"{x['name']}: P_min declarado ({decl['p_min_kW']:g} kW) abaixo da potência mínima que o "
+                   f"modelo dinâmico entrega em operação (IDLE = {par['idle_kW']:g} kW, hipótese do manual ≤ 10 kW): "
+                   "consignas menores seriam entregues como IDLE (excesso de energia e de H₂). Declare P_min ≥ "
+                   f"{par['idle_kW']:g} kW.", x["id"], code="pemfc_pmin_abaixo_do_idle")
+            incompat = True
+        if decl["rampa_kW_min"] > par["rampa_max_kW_min"] + 1e-9:
+            pf.add(ERROR, "pemfc", f"{x['name']}: rampa declarada ({decl['rampa_kW_min']:g} kW/min) acima da capacidade do "
+                   f"modelo dinâmico ({par['rampa_subida_kW_s']:g} kW/s de subida e {par['rampa_descida_kW_s']:g} kW/s de "
+                   f"descida ⇒ no máximo {par['rampa_max_kW_min']:g} kW/min para a rampa ÚNICA, que vale nos dois "
+                   "sentidos): o MILP planejaria variações que o equipamento modelado não acompanha.", x["id"],
+                   code="pemfc_rampa_acima_do_modelo_dinamico")
+            incompat = True
+        if incompat:
+            continue
+        mev = DY.massas_eventos(cond, t_amb, float(decl["p_min_kW"]), float(curva.p_max_kW))
+        delta_s = float(bloco["malha"]["delta_min"]) * 60.0
+        adm = DY.admissibilidade(mev["analise"], curva, delta_s, decl["abstracao"])
+        if adm:
+            pior = max(adm, key=lambda v: (v["desvio"] / v["tolerancia"]) if v["tolerancia"] else math.inf)
+            casos = sorted({v["caso"] for v in adm})
+            pf.add(ERROR, "pemfc", f"{x['name']}: a abstração '{decl['abstracao']}' NÃO é compatível com o modelo dinâmico "
+                   f"em Δ = {delta_s / 60:g} min e T_amb = {t_amb:g} °C (partida {'FRIA' if par['partida_fria'] else 'quente'}"
+                   f" de {par['partida_s']:g} s): {len(adm)} violação(ões) a priori em {', '.join(casos)}; pior caso "
+                   f"{pior['caso']} em P = {pior['p_kW']} kW: desvio {pior['desvio']:.4g} > tolerância "
+                   f"{pior['tolerancia']:.4g} ({pior['grandeza']}). Alternativas: Δ maior, transições bloqueadas, "
+                   "condições ambientes que não impliquem partida fria, ou a unidade indisponível no cenário.", x["id"],
+                   code="pemfc_transitorio_incompativel")
+            continue
         pm = Procedencia("referencia", "h2_pemfc · Equivalent65kWHorizonDynamicModel (modelo dinâmico APROXIMADO)",
-                         f"massas por evento · curva {curva.impressao[:12]}", sha256=curva.impressao,
-                         observacoes=mev["metodo"])
+                         f"massas ADICIONAIS por evento · curva {curva.impressao[:12]}", sha256=curva.impressao,
+                         observacoes=mev["semantica"])
         massas = (Parametro(float(mev["m_partida_kg"]), "kg", pm), Parametro(float(mev["m_parada_kg"]), "kg", pm))
         out[x["id"]] = {"curva": curva, "certificado": cert, "hash_certificado": h, "condicoes": cond,
                         "massas_eventos": mev, "massas_pwl": massas,
                         "curva_pwl": K.CurvaPWL(tuple(curva.vertices), "real_certificada_b04", proc),
-                        "temperatura_ambiente_C": decl["temperatura_ambiente_C"], "declaracao": decl}
-        if decl["p_min_kW"] < 10.0 - 1e-9:
-            pf.add(WARNING, "pemfc", f"{x['name']}: P_min declarado ({decl['p_min_kW']:g} kW) abaixo da potência de IDLE "
-                   "do modelo dinâmico (10 kW, hipótese do manual ≤ 10 kW): consignas menores serão entregues como IDLE "
-                   "(excesso registrado na verificação dinâmica).", x["id"])
-        if decl["rampa_kW_min"] > 120.0 + 1e-9:
-            pf.add(WARNING, "pemfc", f"{x['name']}: rampa declarada ({decl['rampa_kW_min']:g} kW/min) acima da menor rampa "
-                   "do manual (2 kW/s = 120 kW/min): o modelo dinâmico limitará a resposta.", x["id"])
+                        "temperatura_ambiente_C": decl["temperatura_ambiente_C"], "declaracao": decl,
+                        "admissibilidade": {"delta_s": delta_s, "abstracao": decl["abstracao"], "violacoes": adm}}
+        an = mev["analise"]
+        pf.add(OK, "pemfc", f"{x['name']}: restrições do modelo dinâmico compatíveis — P_min {decl['p_min_kW']:g} ≥ IDLE "
+               f"{par['idle_kW']:g} kW; rampa {decl['rampa_kW_min']:g} ≤ {par['rampa_max_kW_min']:g} kW/min; transitórios "
+               f"de partida/parada/rampa no domínio dentro das tolerâncias em Δ = {delta_s / 60:g} min (pior déficit de "
+               f"energia numa partida {min(v['delta_E_partida_kWh'] for v in an['pontos']):.3f} kWh). Massas ADICIONAIS "
+               f"por evento: partida {mev['m_partida_kg']:.4g} kg, parada {mev['m_parada_kg']:.4g} kg (superestimação "
+               f"máx. {mev['superestimacao_max_partida_kg']:.3g} / {mev['superestimacao_max_parada_kg']:.3g} kg).", x["id"])
         if decl["abstracao"] == "instantanea_unidade_quente":
             pf.add(WARNING, "pemfc", f"{x['name']}: abstração INSTANTÂNEA declarada (D05): o MILP liga/desliga dentro do "
-                   "intervalo; a partida física (30 s quente / 600 s fria, IDLE 10 kW, rampas 2/3,5 kW/s) é avaliada a "
-                   "posteriori pelo modelo dinâmico — não é validação física.", x["id"])
+                   "intervalo; admissível A PRIORI pelo modelo dinâmico nas tolerâncias declaradas e conferida a posteriori "
+                   "nas consignas aplicadas — não é validação física.", x["id"])
     if pf.count(ERROR):
         return None
     return out
@@ -838,7 +873,8 @@ def documento_pemfc(pem: dict) -> dict:
                               "temperatura_ambiente_C": x["temperatura_ambiente_C"],
                               "massas_eventos": {k: (float(v) if isinstance(v, (int, float)) else v)
                                                  for k, v in x["massas_eventos"].items()},
-                              "declaracao": x["declaracao"]} for u, x in sorted(pem.items())},
+                              "declaracao": x["declaracao"], "admissibilidade": x["admissibilidade"]}
+                          for u, x in sorted(pem.items())},
             "nota": "Curva gerada UMA vez por configuração física e reutilizada em toda a missão (planejador e janelas MPC). "
                     "A reabertura re-registra o certificado RECOMPUTANDO os critérios a partir destes dados; nenhum "
                     "modelo é reexecutado."}

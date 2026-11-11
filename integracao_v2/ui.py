@@ -606,6 +606,30 @@ def _downloads(source, run, key: str) -> None:
             c2.caption(str(exc)[:60])
 
 
+def _aceitacao(run) -> None:
+    """Estados de aceitação SEPARADOS (auditoria do PR #23, B): algébrico × dinâmico × físico. Rodadas anteriores ao
+    3D-A2-H (sem o campo) mostram só a aceitação algébrica implícita em ``concluida``."""
+    acc = ((run.summary or {}).get("execution") or {}).get("aceitacao")
+    if not acc:
+        return
+    din = acc.get("dinamica") or {}
+    tom = {"coerente": "ok", "incoerente": "bad"}.get(din.get("estado"), "")
+    st.html('<table class="op-tbl"><tr><th>Critério de aceitação</th><th>Estado</th><th>Critério</th></tr>'
+            f"<tr><td>Algébrico (MILP–MPC + auditoria independente)</td><td><b>APROVADO</b></td>"
+            f"<td>{escape((acc.get('algebrica') or {}).get('criterio') or '')}</td></tr>"
+            f"<tr><td>Dinâmico (modelo dinâmico aproximado da PEMFC)</td><td><b>"
+            f"{escape({'coerente': 'COERENTE', 'incoerente': 'INCOERENTE', 'nao_aplicavel': 'não aplicável'}.get(din.get('estado'), '—'))}"
+            f"</b></td><td>{escape(din.get('criterio') or '')}</td></tr>"
+            f"<tr><td>Físico (equipamento real)</td><td><b>NÃO VALIDADO</b></td>"
+            f"<td>{escape((acc.get('fisica') or {}).get('motivo') or '')}</td></tr></table>")
+    shell.callout(f"<b>{escape(acc.get('rotulo') or '')}</b>", tom or "warn")
+    if din.get("estado") == "incoerente":
+        n = sum((din.get("intervalos_incoerentes") or {}).values())
+        st.error(f"DINAMICAMENTE INCOERENTE — {n} intervalo(s) fora das tolerâncias. O custo e a energia exibidos abaixo são "
+                 "os do despacho ALGÉBRICO; o modelo dinâmico entregaria outra potência/consumiria outra massa de H₂ "
+                 "(detalhes em v2/pemfc_dinamica.json). Não usar como operação executável.")
+
+
 def run_results(source, run, *, key: str) -> None:
     """Rodada V2 FINALIZADA lida de ``source`` (``MicrogridStore`` ou estudo arquivado). Nunca chama o otimizador."""
     m = run.manifest
@@ -632,6 +656,7 @@ def run_results(source, run, *, key: str) -> None:
                     st.dataframe(pd.DataFrame(t["linhas"], columns=t["colunas"]), hide_index=True, width="stretch")
         _provenance(run)
         return
+    _aceitacao(run)
     s = (run.summary or {}).get("mission") or {}
     comp = s.get("custo_realizado_componentes_R") or {}
     sv = s.get("sinal_valor_futuro") or {}
@@ -674,7 +699,7 @@ def run_results(source, run, *, key: str) -> None:
                     f"<tr><td class='op-m'>{escape(u)}</td><td>{forms.fmt(r['energia_kWh'], 3)}</td>"
                     f"<td>{forms.fmt(r['massa_h2_kg'], 4)}</td><td>{forms.fmt(r['custo_h2_R'], 2)}</td>"
                     f"<td>{forms.fmt(r['consumo_especifico_kg_kWh'], 4)}</td><td>{r['partidas']} · {r['paradas']}</td>"
-                    f"<td>{'coerente' if (din.get(u) or {}).get('coerente') else 'NÃO coerente'} "
+                    f"<td>{'coerente' if (din.get(u) or {}).get('coerente') else 'INCOERENTE'} "
                     f"({forms.fmt((din.get(u) or {}).get('energia_entregue_kWh'), 2)} de "
                     f"{forms.fmt((din.get(u) or {}).get('energia_solicitada_kWh'), 2)} kWh)</td></tr>"
                     for u, r in pem.items()) + "</table>")
