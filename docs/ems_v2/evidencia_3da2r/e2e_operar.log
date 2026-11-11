@@ -1,0 +1,23 @@
+[operar] ok — microrrede aberta: Microrrede E2E 3D-A2-R
+[operar] ok — preflight V2 apto
+[operar] ok — potencial FV derivado pelo modelo físico (por arranjo)
+[operar] ok — potencial eólico derivado pela curva do catálogo
+[operar] ok — potencial disponível distinto da potência despachada
+[operar] ok — clima nos instantes exatos da missão
+[operar] ok — rodada: custo REALIZADO R$ 146,35
+[operar] ok — rodada: evidência verificada na reabertura (sem otimizador nem modelos)
+[operar] ok — rodada: nenhuma falha de integridade
+[operar] ok — rodada: tabela por UID com FV e eólica
+[operar] ok — rodada: gráfico disponível × aproveitado × vertido
+[operar] ok — rodada: atendimento da carga inclui a renovável aproveitada
+[operar] ok — 11 dados gravados (inclui v2/renovaveis.json)
+[operar] ok — derivação renovável gravada com a rodada
+[operar] ok — recarga: custo REALIZADO R$ 146,35
+[operar] ok — recarga: evidência verificada na reabertura (sem otimizador nem modelos)
+[operar] ok — recarga: nenhuma falha de integridade
+[operar] ok — recarga: tabela por UID com FV e eólica
+[operar] ok — recarga: gráfico disponível × aproveitado × vertido
+[operar] ok — recarga: atendimento da carga inclui a renovável aproveitada
+[operar] ok — estudo exportado (216195 bytes)
+[operar] ok — sem erros de JavaScript: []
+[operar] CONCLUÍDO — 22 verificações

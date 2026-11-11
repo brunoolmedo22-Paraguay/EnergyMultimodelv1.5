@@ -29,6 +29,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 import re
 import zipfile
 from dataclasses import dataclass, field, replace
@@ -55,12 +56,16 @@ from seeds2.operation import mission as M
 
 from . import estrategia as E
 
-FORMATO, VERSAO = "seeds2-milp-mpc-run-data", 1
+FORMATO, VERSAO = "seeds2-milp-mpc-run-data", 2
+# Versão 1 = Piso 3D-A (sem renováveis). Versão 2 = Piso 3D-A2-R: colunas por recurso renovável e ``v2/renovaveis.json``
+# quando o modelo tem renováveis; sem renováveis, as vistas e o resumo da versão 2 são IDÊNTICOS aos da versão 1.
+VERSOES_LEGIVEIS = (1, 2)
 PREFIXO = "v2/"
 N_SELADOS, N_MODELO, N_INDICE = "v2/registros_selados.zip", "v2/modelo.json", "v2/indice.json"
 N_INTERVALOS, N_FRONTEIRAS, N_JANELAS, N_PLANOS = ("v2/intervalos.csv", "v2/fronteiras.csv", "v2/janelas.csv",
                                                    "v2/planos.csv")
 N_COORD, N_AUDITORIA, N_PREFLIGHT = "v2/coordenacoes.json", "v2/auditoria.json", "v2/preflight.json"
+N_RENOV = "v2/renovaveis.json"                        # só quando o modelo tem renováveis (versão 2)
 VISTAS = (N_INTERVALOS, N_FRONTEIRAS, N_JANELAS, N_PLANOS, N_COORD)
 OBRIGATORIOS = (N_INDICE, N_SELADOS, N_MODELO, *VISTAS, N_AUDITORIA, N_PREFLIGHT)
 _NOME_SELADO = re.compile(r"[0-9a-f]{32}\.[A-Za-z0-9._\-]{1,80}\.json")
@@ -80,7 +85,9 @@ CONVENCOES = {
 LIMITACOES = (
     "Simulação offline ALGÉBRICA em contexto de ensaio: não é controle de equipamentos, SCADA, validação física nem fatura.",
     "Planta = executor algébrico de referência do ems_v2 (balanço ativo agregado): sem fluxo AC, tensão, reativo ou perdas.",
-    "Somente demanda agregada crítica + baterias + PCC declarado; FV, eólica, PEMFC e térmica não são representáveis no 3D-A.",
+    "Somente demanda agregada crítica + baterias + FV/eólica (potencial dos modelos físicos do SEEDS2) + PCC declarado; "
+    "PEMFC e térmica não são representáveis (Pisos 3D-A2-H/3D-A2-T).",
+    "Potencial renovável REALIZADO = previsto (mesmo modelo e clima): a simulação não tem erro de previsão renovável.",
     "Trajetória de convergência do HiGHS NÃO é registrada: só terminação, objetivo, limite dual, gap e tamanho do modelo.",
     "Restrições ativas/preços duais NÃO são registrados (duais de MILP não são preços-sombra).",
     "SHA-256 detecta alteração frente ao conteúdo conservado; não é assinatura digital.",
@@ -298,10 +305,13 @@ def _proximo(a: float, b: float) -> bool:
 
 def _contexto(ev: Evidencia) -> dict:
     base = ev.modelo.base
-    if base.geradores or base.renovaveis:
-        raise IntegridadeV2Error("As vistas do Piso 3D-A não cobrem geradores nem renováveis (modelo fora do escopo).")
+    if base.geradores:
+        raise IntegridadeV2Error("As vistas V2 não cobrem geradores despacháveis (modelo fora do escopo dos Pisos 3D-A/A2-R).")
     malha = ev.cfg.malha
     return {"dems": [str(d.uid) for d in base.demandas], "bats": [str(b.uid) for b in base.baterias],
+            "rens": [str(r.uid) for r in base.renovaveis],
+            "tec": {str(r.uid): r.tecnologia for r in base.renovaveis},
+            "base": {str(r.uid): r.base_potencial for r in base.renovaveis},
             "cap": {str(b.uid): float(b.capacidade_kWh.valor) for b in base.baterias},
             "cthr": {str(b.uid): (float(b.custo_throughput.valor) if b.custo_throughput is not None
                                   and "throughput_bess" in ev.modelo.termos else None) for b in base.baterias},
@@ -330,8 +340,8 @@ def _demanda_prevista(c, cx: dict, i: int) -> float | None:
 
 def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[dict]]:
     cx = _contexto(ev)
-    h, pcc, bats = cx["h"], cx["pcc"], cx["bats"]
-    col_b = [f"{b}|{g}" for b in bats for g in ("P_c_kW", "P_d_kW")]
+    h, pcc, bats, rens = cx["h"], cx["pcc"], cx["bats"], cx["rens"]
+    col_b = [f"{b}|{g}" for b in bats for g in ("P_c_kW", "P_d_kW")] + [f"{r}|{g}" for r in rens for g in COLS_RENOV]
     cols = (["intervalo", "janela", "indice_no_plano", "inicio_utc", "fim_utc", "inicio_local", "demanda_prevista_kW",
              "demanda_realizada_kW", "demanda_nao_atendida_kW", "demanda_atendida_kW"] + col_b +
             ["pcc_importacao_programada_kW", "pcc_importacao_realizada_kW", "pcc_exportacao_programada_kW",
@@ -342,6 +352,7 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
              "custo_throughput_R", "custo_realizado_intervalo_R", "custo_realizado_acumulado_R"])
     linhas: list[dict] = []
     acum = 0.0
+    e_ren = {r: 0.0 for r in rens}
     for r in ev.registros:
         c = r.conteudo
         an = cx["anexo"].get(c.execucao_uid)
@@ -358,6 +369,15 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
                   "demanda_prevista_kW": _demanda_prevista(c, cx, p.indice_plano), "demanda_realizada_kW": real,
                   "demanda_nao_atendida_kW": ell, "demanda_atendida_kW": real - ell}
             inj, thr, tem_thr = 0.0, 0.0, False
+            for u in rens:
+                A, a = float(ob[f"{u}|potencia"]), float(ob[f"{u}|disponibilidade"])
+                util = A * a if cx["base"][u] == "antes_da_disponibilidade" else A
+                pr = float(ap[f"{u}|P_R"])
+                e_ren[u] += h * pr
+                ln.update({f"{u}|A_prevista_kW": _renovavel_prevista(c, u, p.indice_plano, cx),
+                           f"{u}|A_observada_kW": A, f"{u}|disponibilidade_observada": a, f"{u}|A_utilizavel_kW": util,
+                           f"{u}|P_R_kW": pr, f"{u}|vertimento_kW": util - pr, f"{u}|E_aproveitada_acum_kWh": e_ren[u]})
+                inj += pr
             for b in bats:
                 pc, pd_ = float(ap.get(f"{b}|P_c", 0.0)), float(ap.get(f"{b}|P_d", 0.0))
                 ln[f"{b}|P_c_kW"], ln[f"{b}|P_d_kW"] = pc, pd_
@@ -399,6 +419,25 @@ def linhas_intervalos(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[
             raise IntegridadeV2Error(f"Janela {c.janela.indice_janela}: a decomposição por intervalo ({soma!r} R$) não "
                                      f"reproduz o custo realizado SELADO da janela ({selado!r} R$).")
     return cols, linhas
+
+
+COLS_RENOV = ("A_prevista_kW", "A_observada_kW", "disponibilidade_observada", "A_utilizavel_kW", "P_R_kW", "vertimento_kW",
+              "E_aproveitada_acum_kWh")
+
+
+def _renovavel_prevista(c, u: str, i: int, cx: dict) -> float | None:
+    """Potencial UTILIZÁVEL previsto (a·A ou A já utilizável) disponível NA DECISÃO da janela, no índice ``i`` do plano."""
+    if c.previsao is None:
+        return None
+    s, sa = c.previsao.serie(u, "potencia"), c.previsao.serie(u, "disponibilidade")
+    if s is None or i >= len(s.serie.valores):
+        return None
+    A = float(s.serie.valores[i])
+    if cx["base"][u] != "antes_da_disponibilidade":
+        return A
+    if sa is None or i >= len(sa.serie.valores):
+        return None
+    return A * float(sa.serie.valores[i])
 
 
 def linhas_fronteiras(ev: Evidencia, fuso: str | None) -> tuple[list[str], list[dict]]:
@@ -499,6 +538,11 @@ def linhas_planos(ev: Evidencia) -> tuple[list[str], list[dict]]:
             ln = {"janela": c.janela.indice_janela, "indice_no_plano": i, "intervalo": pl.indice_fronteira_inicial + i,
                   "inicio_utc": _inst(cx, pl.indice_fronteira_inicial + i), "aplicado": i < c.intervalos_aplicados,
                   "demanda_prevista_kW": _demanda_prevista(c, cx, i)}
+            for u in cx["rens"]:
+                k = f"plano:{u}|A_prevista_kW"
+                ln[k] = _renovavel_prevista(c, u, i, cx)
+                if k not in din:
+                    din.append(k)
             for cs in pl.consignas:
                 k = f"plano:{cs.uid}|{cs.grandeza}"
                 ln[k] = cs.valores[i]
@@ -546,13 +590,15 @@ def resumo(ev: Evidencia, fuso: str | None) -> dict:
                      and _proximo(sum(v["energia_descarregada_kWh"] for v in bats.values()),
                                   ind.get("E_bess_descarga_kWh", 0.0))):
         raise IntegridadeV2Error("Energia carregada/descarregada por banco não reproduz os indicadores selados da missão.")
+    ren = _resumo_renovaveis(cx, ints, ind)
     cr = rm.custo_realizado_acumulado
     gaps = [r.conteudo.resolucao.gap_rel for r in ev.registros
             if r.conteudo.resolucao is not None and r.conteudo.resolucao.gap_rel is not None]
     rh = ev.registro_hierarquico
     dem, ens = float(ind.get("E_demanda_realizada_kWh", 0.0)), float(ind.get("E_nao_suprida_kWh", 0.0))
     completa = rm.desfecho == "concluida" and rm.intervalos_aplicados == rm.K_M
-    return {
+    extra = {"renovaveis": ren} if ren else {}
+    return {**extra,
         "engine": E.MOTOR_V2, "formulacao": FORMULACAO_3C4, "missao_uid": ev.missao_uid,
         "situacao_missao": rm.desfecho, "classe_falha": rm.classe_falha, "missao_completa": completa,
         "intervalos_missao": rm.K_M, "intervalos_aplicados": rm.intervalos_aplicados, "fronteiras": rm.intervalos_aplicados + 1,
@@ -576,6 +622,29 @@ def resumo(ev: Evidencia, fuso: str | None) -> dict:
         "pcc_modo": ev.modelo.pcc.modo, "obrigacoes_pendentes_fim_s": dict(rm.obrigacoes_pendentes_fim_s),
         "dados_sinteticos": True, "contexto": "ensaio",
     }
+
+
+def _resumo_renovaveis(cx: dict, ints: list[dict], ind: dict) -> dict:
+    """Energia por recurso renovável (disponível, utilizável, aproveitada, vertida), conferida contra os indicadores
+    SELADOS da missão (E_renovavel_usada_kWh, E_curtailment_kWh). Vazio quando o modelo não tem renováveis."""
+    if not cx["rens"]:
+        return {}
+    h = cx["h"]
+    out = {}
+    for u in cx["rens"]:
+        def soma(g):
+            return h * math.fsum(float(x[f"{u}|{g}"]) for x in ints)
+        out[u] = {"tecnologia": cx["tec"][u], "energia_potencial_observada_kWh": soma("A_observada_kW"),
+                  "energia_utilizavel_kWh": soma("A_utilizavel_kW"), "energia_aproveitada_kWh": soma("P_R_kW"),
+                  "energia_vertida_kWh": soma("vertimento_kW"),
+                  "pico_aproveitado_kW": max((float(x[f"{u}|P_R_kW"]) for x in ints), default=None)}
+    if ints and not (_proximo(math.fsum(v["energia_aproveitada_kWh"] for v in out.values()),
+                              float(ind.get("E_renovavel_usada_kWh", 0.0)))
+                     and _proximo(math.fsum(v["energia_vertida_kWh"] for v in out.values()),
+                                  float(ind.get("E_curtailment_kWh", 0.0)))):
+        raise IntegridadeV2Error("Energia renovável aproveitada/vertida por recurso não reproduz os indicadores selados da "
+                                 "missão.")
+    return out
 
 
 # ====================================================================== dicionário de colunas e índice
@@ -610,6 +679,20 @@ def _dicionario(ev: Evidencia) -> dict:
     for b in cx["bats"]:
         ints += [col(f"{b}|P_c_kW", "kW", "intervalo", f"potência de CARGA do banco {b} (>= 0; consome; nunca é geração)", S),
                  col(f"{b}|P_d_kW", "kW", "intervalo", f"potência de DESCARGA do banco {b} (>= 0; injeta)", S)]
+    for u in cx["rens"]:
+        tec = {"fv": "arranjo FV", "eolica": "registro eólico"}.get(cx["tec"][u], cx["tec"][u])
+        ints += [col(f"{u}|A_prevista_kW", "kW", "intervalo", f"potencial UTILIZÁVEL previsto do {tec} {u} disponível NA "
+                     "DECISÃO (modelo físico sobre o clima previsto)", S),
+                 col(f"{u}|A_observada_kW", "kW", "intervalo", "potencial REALIZADO observado na conciliação (livro K6), "
+                     "antes da disponibilidade", S),
+                 col(f"{u}|disponibilidade_observada", "1", "intervalo", "disponibilidade a observada (indisponível ≠ "
+                     "vertimento)", S),
+                 col(f"{u}|A_utilizavel_kW", "kW", "intervalo", "a × A observado (potencial efetivamente utilizável)", D),
+                 col(f"{u}|P_R_kW", "kW", "intervalo", "injeção renovável APLICADA (>= 0; injeta; <= a·A)", S),
+                 col(f"{u}|vertimento_kW", "kW", "intervalo", "vertimento = a·A − P_R (potência disponível não "
+                     "aproveitada)", D),
+                 col(f"{u}|E_aproveitada_acum_kWh", "kWh", "intervalo (acumulado no fim)", "energia aproveitada acumulada "
+                     "até o fim do intervalo (Σ P_R·Δ)", D)]
     fr = [col("fronteira", "", "fronteira", "índice GLOBAL k da fronteira de estado (N + 1 fronteiras)", S)]
     for b in cx["bats"]:
         fr += [col(f"{b}|energia_kWh", "kWh", "fronteira", f"energia armazenada EXECUTADA do banco {b}", S),
@@ -625,6 +708,9 @@ def _dicionario(ev: Evidencia) -> dict:
     pl = [col("aplicado", "0/1", "intervalo do plano", "1 = intervalo do plano efetivamente APLICADO (prefixo m_k)", S),
           col("plano:<uid>|<grandeza>", "kW", "intervalo do plano", "consigna PLANEJADA (não é execução)", S),
           col("plano:<uid>|e_inicio / e_fim", "kWh", "fronteiras do plano", "energia PLANEJADA nas fronteiras do intervalo", S)]
+    if cx["rens"]:
+        pl.append(col("plano:<uid>|A_prevista_kW", "kW", "intervalo do plano", "potencial renovável UTILIZÁVEL previsto "
+                      "entregue à janela (previsão, não realização)", S))
     return {N_INTERVALOS: ints, N_FRONTEIRAS: fr, N_JANELAS: jan, N_PLANOS: pl}
 
 
@@ -638,6 +724,8 @@ PAPEIS = {
     N_COORD: ("vista_derivada", "Coordenações 3C-4 por janela: sinal V(E), modos, domínio, qualidade, degradação"),
     N_AUDITORIA: ("auditoria", "Auditoria integral independente da missão (sem solver)"),
     N_PREFLIGHT: ("contexto", "Preflight V2 e matriz fonte → transformação → validação → registro → vista"),
+    N_RENOV: ("contexto", "Potencial renovável por UID derivado pelos modelos físicos do SEEDS2 (parâmetros, clima, "
+                          "hipóteses, séries); conferido contra a previsão e a realização seladas"),
 }
 
 
@@ -660,7 +748,7 @@ def indice_doc(ev: Evidencia, data: dict[str, tuple[bytes, str]], run_uid: str, 
 
 
 def dados_da_rodada(ev: Evidencia, cfg_mpc, auditoria, preflight_doc: dict, run_uid: str, fuso: str | None,
-                    origem: dict) -> dict[str, tuple[bytes, str]]:
+                    origem: dict, renovaveis_doc: dict | None = None) -> dict[str, tuple[bytes, str]]:
     """Todos os itens de ``scenario_run_data`` de uma rodada V2 concluída (nome → (bytes, media type))."""
     J, C_, Z = "application/json", "text/csv", "application/zip"
     data: dict[str, tuple[bytes, str]] = {
@@ -669,13 +757,17 @@ def dados_da_rodada(ev: Evidencia, cfg_mpc, auditoria, preflight_doc: dict, run_
         N_AUDITORIA: (_json(auditoria_doc(auditoria)), J),
         N_PREFLIGHT: (_json(preflight_doc), J),
     }
+    if ev.modelo.base.renovaveis:
+        if renovaveis_doc is None:
+            raise IntegridadeV2Error("Modelo com renováveis sem o documento de derivação do potencial (v2/renovaveis.json).")
+        data[N_RENOV] = (_json(renovaveis_doc), J)
     for nome, b in vistas(ev, fuso).items():
         data[nome] = (b, J if nome.endswith(".json") else C_)
     data[N_INDICE] = (_json(indice_doc(ev, data, run_uid, fuso, origem)), J)
     return data
 
 
-def evidencia_parcial_doc(ev: Evidencia, cfg_mpc, auditoria, fuso: str | None) -> dict:
+def evidencia_parcial_doc(ev: Evidencia, cfg_mpc, auditoria, fuso: str | None, renovaveis_doc: dict | None = None) -> dict:
     """Evidência de uma missão NÃO concluída, para o ``outcome`` da rodada (rotulada parcial; mesmos textos canônicos)."""
     def tabela(cols, linhas):
         return {"colunas": cols, "linhas": [[ln.get(c) for c in cols] for ln in linhas]}
@@ -692,6 +784,7 @@ def evidencia_parcial_doc(ev: Evidencia, cfg_mpc, auditoria, fuso: str | None) -
             "selados": dict(ev.textos),
             "modelo": modelo_doc(ev.modelo, cfg_mpc, ev.configuracao_rede, ev.configuracao_planejador),
             "vistas": v, "coordenacoes": [para_dict(co) for co in ev.coordenacoes],
+            "renovaveis": renovaveis_doc,
             "auditoria": None if auditoria is None else auditoria_doc(auditoria)}
 
 
@@ -749,12 +842,13 @@ def verificar(source, run) -> Verificacao:
         ver(True, f"{len(brutos)} itens lidos com SHA-256 conferido contra o registro da rodada")
         ind = json.loads(brutos[N_INDICE].decode("utf-8"))
         arqs = ind.get("arquivos") or {}
-        ver(ind.get("formato") == FORMATO and ind.get("versao") == VERSAO and ind.get("run_uid") == run.run_uid,
-            "Índice no formato esperado e vinculado a esta rodada")
+        ver(ind.get("formato") == FORMATO and ind.get("versao") in VERSOES_LEGIVEIS and ind.get("run_uid") == run.run_uid,
+            f"Índice no formato esperado (versão {ind.get('versao')!r}) e vinculado a esta rodada")
         ver(set(arqs) == set(brutos) - {N_INDICE} and all(arqs[n]["sha256"] == _sha(brutos[n]) for n in arqs if n in brutos),
             "Índice lista exatamente os itens gravados, com os mesmos SHA-256")
         ev = evidencia_de_textos(desempacotar(brutos[N_SELADOS]), json.loads(brutos[N_MODELO].decode("utf-8")), run.run_uid)
         _identidade(run, ev, ver)
+        _renovaveis_verificar(run, ev, brutos, ind.get("versao"), ver)
         fuso = _fuso(run)
         regen = vistas(ev, fuso)
         dif = [n for n in VISTAS if regen[n] != brutos[n]]
@@ -799,6 +893,43 @@ def _identidade(run, ev: Evidencia, ver) -> None:
         "Registro hierárquico selado vincula o modelo e o registro de missão")
 
 
+def _renovaveis_verificar(run, ev: Evidencia, brutos: dict, versao, ver) -> None:
+    """Potencial renovável persistido × manifesto × previsão e realização SELADAS (nenhum modelo é reexecutado)."""
+    rens = [str(r.uid) for r in ev.modelo.base.renovaveis]
+    if not rens:
+        ver(N_RENOV not in brutos, "Modelo sem renováveis e sem documento de derivação renovável")
+        return
+    if not ver(versao == 2 and N_RENOV in brutos, "Modelo com renováveis: documento v2/renovaveis.json presente (versão 2)"):
+        return
+    h = ((run.manifest.get("engine_inputs") or {}).get("hashes")) or {}
+    try:
+        doc = json.loads(brutos[N_RENOV].decode("utf-8"))
+        from . import renovaveis as RN               # só biblioteca padrão + numpy/pandas; nenhum modelo é chamado
+        ver(RN.sha_documento(doc) == h.get("renovaveis"),
+            "Derivação renovável gravada = a comprometida no manifesto ANTES da execução (SHA-256)")
+        serie = {x["uid"]: [float(v) for v in x["potencial_kW"]] for x in doc["recursos"]}
+    except (KeyError, TypeError, ValueError, UnicodeDecodeError):
+        ver(False, "Documento de derivação renovável ilegível")
+        return
+    ver(sorted(serie) == sorted(rens), "Recursos renováveis do documento = os do modelo selado (por UID)")
+    prev_ok, real_ok = True, True
+    for r in ev.registros:
+        c = r.conteudo
+        k0 = c.janela.k
+        for u in rens:
+            s = c.previsao.serie(u, "potencia") if c.previsao is not None else None
+            if s is not None and list(map(float, s.serie.valores)) != serie.get(u, [])[k0:k0 + len(s.serie.valores)]:
+                prev_ok = False
+        for p in c.passos:
+            for u in rens:
+                if float(p.entorno_observado[f"{u}|potencia"]) != serie.get(u, [None] * (p.indice_global + 1))[p.indice_global]:
+                    real_ok = False
+    ver(prev_ok, "Potencial PREVISTO entregue a cada janela = série derivada gravada (bit a bit)")
+    tipo = (doc.get("realizacao") or {}).get("tipo")
+    ver(tipo == "igual_a_previsao" and real_ok,
+        "Potencial REALIZADO observado na conciliação = série derivada declarada como realização (bit a bit)")
+
+
 def _verificar_parcial(run, itens, ver) -> Verificacao:
     evd = (run.outcome or {}).get("evidence")
     if not isinstance(evd, dict) or not evd.get("selados"):
@@ -820,8 +951,8 @@ def _verificar_parcial(run, itens, ver) -> Verificacao:
 
 
 __all__ = ["CONVENCOES", "Evidencia", "FORMATO", "IntegridadeV2Error", "LIMITACOES", "N_AUDITORIA", "N_COORD",
-           "N_FRONTEIRAS", "N_INDICE", "N_INTERVALOS", "N_JANELAS", "N_MODELO", "N_PLANOS", "N_PREFLIGHT", "N_SELADOS",
-           "OBRIGATORIOS", "VERSAO", "VISTAS", "Verificacao", "auditar", "auditoria_doc", "dados_da_rodada",
+           "N_FRONTEIRAS", "N_INDICE", "N_INTERVALOS", "N_JANELAS", "N_MODELO", "N_PLANOS", "N_PREFLIGHT", "N_RENOV",
+           "N_SELADOS", "OBRIGATORIOS", "VERSAO", "VERSOES_LEGIVEIS", "VISTAS", "Verificacao", "auditar", "auditoria_doc", "dados_da_rodada",
            "desempacotar", "e_v2", "empacotar", "evidencia_de_textos", "evidencia_do_resultado", "evidencia_parcial_doc",
            "ler_csv", "ler_json", "linhas_fronteiras", "linhas_intervalos", "linhas_janelas", "linhas_planos", "modelo_doc",
            "resumo", "textos_selados", "verificar", "vistas"]

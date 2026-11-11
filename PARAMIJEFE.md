@@ -2732,3 +2732,90 @@ Rama `claude/adoring-newton-jzfmfx` desde `main` `a636350` (PR #20 integrado). *
 
 **Decisiones que requieren al responsable.** (a) Aprobar o corregir la excepción nominal de guardias C-3DA-01 (incluida la ubicación de la capa en `integracao_v2/`). (b) Si las declaraciones V2 por dispositivo deben migrar al inventario (C-3DA-03). (c) Autorizar 3D-B sobre el contrato `v2/…`.
 
+
+## Entrega 14 — SEEDS2 Piso 3D-A2-R · FV y eólica en el EMS V2 (MILP–MPC jerárquico) — 2026-11-11
+
+**Alcance autorizado:** solo el módulo R del Piso 3D-A2. No se iniciaron 3D-A2-H (PEMFC/H₂), 3D-A2-T (térmica) ni 3D-B.
+Base `main` `7eb29e5` (merge del PR #21); rama `claude/adoring-newton-jzfmfx`; PR contra `main` **sin merge**. Documento
+técnico completo: [`docs/ems_v2/INTEGRACAO_3DA2R.md`](docs/ems_v2/INTEGRACAO_3DA2R.md). Relevo:
+[`docs/ai/RELEVO_3DA2.md`](docs/ai/RELEVO_3DA2.md).
+
+**Qué se entrega.** Una microrred del Gestor con FV, aerogenerador(es), batería y PCC ejecuta una misión del EMS V2.
+
+- **Potencial disponible:** lo calculan los MODELOS FÍSICOS existentes sobre el clima previsto del escenario:
+  - FV por ARREGLO (`arr-…`) con `simulate_noct_efficiency_model`;
+  - eólica por REGISTRO (`eq-…`) con `run_wind_model` y la curva del catálogo.
+- **Uso del clima:** instantes exactos; media aritmética de subamostras; sin interpolar ni rellenar.
+- **Resultados persistidos, por UID e intervalo:** potencia disponible, aprovechada y vertida, y energía acumulada.
+  Formato `seeds2-milp-mpc-run-data` v2; las corridas v1 del 3D-A siguen legibles.
+- **Reapertura:** no reejecuta modelos ni optimizador. Confiere bit a bit el potencial previsto y el realizado contra
+  los registros sellados.
+
+**Intactos:**
+
+- `ems_v2/` (árbol `58cc13b…`);
+- `models/`, `simulation/`, `config/`, `h2_pemfc/`, `ems_integration/`;
+- `seeds2/`;
+- V1.6.
+
+**Declaraciones nuevas (sin valor por defecto):**
+
+- semántica y emisión de la previsión climática;
+- η de conversión CC → barramento de la FV (el modelo no representa inversor);
+- hipótesis de densidad del aire de cada aerogenerador;
+- c_curt, solo con el término `curtailment_operacional`;
+- procedencia.
+
+**Bloqueos legibles:**
+
+- clima ausente, insuficiente o emitido después de τ₀;
+- curva solo de análisis;
+- arreglo sin módulo;
+- suciedad (soiling) por defecto;
+- extrapolación de curva legada;
+- densidad calculada sin T/p;
+- declaración ausente.
+
+**Validación (resultados comprobados):**
+
+| Prueba | Resultado |
+|---|---|
+| `tests/test_piso3da2r_renovaveis.py` (adaptador × oráculos independientes, preflight; sin solver) | 20 passed |
+| `tests/test_piso3da2r_execucao.py` (casos 1–10 con HiGHS real) | 13 passed (sin solver: 13 skipped explícitos) |
+| UI (`test_piso3da2r_app.py` + `test_piso3da_app.py`) | 7 passed |
+| Guardias de aislamiento | 203 passed, 2 skipped |
+| Auditoría explícita del diff (`python tests/ems_v2/piso3da2r_guard_policy.py`) | aprobada |
+| E2E navegador (`tools/e2e/run_piso3da2r.sh`) | 43 verificaciones, exit 0; registro de llamadas a motor/modelos VACÍO |
+| Regresión completa `tests/` con solver | **2157 passed, 2 skipped**, 9 warnings (719 s) |
+| Regresión completa `tests/` sin solver | **1678 passed, 136 skipped**, 9 warnings (509 s) |
+
+**Caso híbrido de referencia (sintético).** 12 h, demanda 40 kW, banco 20 kWh, PCC solo importación de 50 kW.
+
+- Energía por fuente:
+  - FV: 15,757 kWh aprovechados de 18,098 utilizables;
+  - eólica: 263 kWh aprovechados de 1315 (1052 vertidos);
+  - batería: 30 − 20 kWh;
+  - red: 191,243 kWh.
+- Balance cerrado: 480 kWh.
+- Costo realizado: R$ 146,35, sin valor futuro.
+
+**Decisiones a revisar por el responsable:**
+
+| Decisión | Contenido |
+|---|---|
+| C-3DA2R-01 | Excepción nominal de guardias, mismo mecanismo que la C-3DA-01. |
+| C-3DA2R-02 | η FV declarado. |
+| C-3DA2R-03 | Vertimiento sin costo cuando el término no está en el objetivo. |
+| C-3DA2R-04 | Realización renovable igual a la previsión: no hay fuente de clima realizado en el escenario. |
+| C-3DA2R-05 / C-3DA2R-06 | Formatos aditivos. |
+| C-3DA2R-07 | Densidad del aire declarada; la recaída silenciosa del modelo queda bloqueada. |
+| C-3DA2R-08 | Extrapolación de curvas legadas bloqueada en el preflight. |
+
+**Preparado, no implementado:**
+
+- matriz PEMFC para 3D-A2-H, que distingue tres cosas:
+  - (a) certificación matemática de q(P) (B04);
+  - (b) validación del modelo aproximado (Model Card);
+  - (c) validación física;
+- lacuna M19 para 3D-A2-T: `geracao_termica` «futuro» en el núcleo ⇒ la térmica sigue bloqueada. No se introduce
+  generación gratuita.

@@ -1,0 +1,20 @@
+== 1. semente
+== 2. operar
+[operar] ok — sem erros de JavaScript: []
+[operar] CONCLUÍDO — 22 verificações
+== 3. reinício (mesmo diretório, novo processo)
+[reinicio] ok — após reinício do servidor: atendimento da carga inclui a renovável aproveitada
+[reinicio] CONCLUÍDO — 6 verificações
+== 4. tablet
+[tablet] ok — tablet retrato: sem rolagem horizontal da página (0px)
+[tablet] CONCLUÍDO — 7 verificações
+== 5. importar (instalação limpa, SEM solver, motores e modelos sabotados)
+[importar] ok — importar e consultar não criou microrrede
+[importar] CONCLUÍDO — 8 verificações
+registro de chamadas ao motor/modelos na instalação de consulta: VAZIO
+[importar] CONCLUÍDO — 8 verificações
+[operar] CONCLUÍDO — 22 verificações
+[reinicio] CONCLUÍDO — 6 verificações
+[tablet] CONCLUÍDO — 7 verificações
+E2E 3D-A2-R concluído — capturas em <scratch>/e2e3da2r/capturas
+exit 0

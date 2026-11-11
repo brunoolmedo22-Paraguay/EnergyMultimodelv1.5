@@ -41,15 +41,16 @@ REFERENCIAM_O_MOTOR = frozenset({"tests/piso3da_util.py", "tests/test_piso3da_pr
 
 def referencia_autorizada(rel: str) -> bool:
     """A guarda 3A continua varrendo TODO arquivo Python; só a camada de integração e seus testes nominais passam."""
-    return rel.startswith(PACOTE_INTEGRACAO) or rel in REFERENCIAM_O_MOTOR
+    from piso3da2r_guard_policy import referencia_autorizada as autorizada_3da2r   # exceção nominal C-3DA2R-01
+    return rel.startswith(PACOTE_INTEGRACAO) or rel in REFERENCIAM_O_MOTOR or autorizada_3da2r(rel)
 
 
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos. Remoção, renomeação ou qualquer outro arquivo continuam visíveis para a
     guarda de isolamento original."""
-    _ = root
-    return [row for row in changes if not (len(row) == 2 and (
-        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from piso3da2r_guard_policy import filter_changes as filter_3da2r                # exceção nominal C-3DA2R-01
+    return filter_3da2r(root, [row for row in changes if not (len(row) == 2 and (
+        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))])
 
 
 # ------------------------------------------------------------------------------------------------ auditoria explícita
