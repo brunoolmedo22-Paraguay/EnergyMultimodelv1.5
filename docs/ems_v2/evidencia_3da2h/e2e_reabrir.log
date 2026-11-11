@@ -1,0 +1,13 @@
+# E2E navegador real (Playwright/Chromium) — Piso 3D-A2-H — fase reabrir
+# comando: bash tools/e2e/run_piso3da2h.sh <python COM Pyomo/HiGHS> <pasta> <python SEM solver>
+# data: 2026-11-11T12:26:59Z
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): evidência verificada (hashes, vistas regeneradas, auditoria, B04)
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): nenhuma falha de integridade
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): aceitação SEPARADA exibida
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): algébrica APROVADA · dinâmica COERENTE
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): física NÃO VALIDADA (modelo aproximado)
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): nenhum alerta de incoerência dinâmica
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): tabela PEMFC por unidade
+[3da2h:reabrir] ok — reaberta após reinício (sem solver, modelos PEMFC sabotados): atendimento da carga inclui a PEMFC
+[3da2h:reabrir] ok — sem erros de JavaScript: []
+[3da2h:reabrir] CONCLUÍDO — 9 verificações
