@@ -29,7 +29,8 @@ MODIFICADOS = frozenset({
 }) | NUCLEO_AUTORIZADO
 # Arquivos NOVOS do 3D-A2-H dentro dos alvos das guardas anteriores (somente adição).
 TESTES_3DA2H = ("tests/test_piso3da2h_curva.py", "tests/test_piso3da2h_execucao.py", "tests/test_piso3da2h_app.py",
-                "tests/piso3da2h_util.py", "tests/test_piso3da2h_auditoria_pr23.py")
+                "tests/piso3da2h_util.py", "tests/test_piso3da2h_auditoria_pr23.py",
+                "tests/test_piso3da2h_verificacao_massas.py", "tests/verificacao_massas_3da2h.py")
 ADICIONADOS = frozenset({
     *TESTES_3DA2H, "tests/ems_v2/piso3da2h_guard_policy.py", "tests/ems_v2/test_ems_v2_b04_certificado.py",
 })

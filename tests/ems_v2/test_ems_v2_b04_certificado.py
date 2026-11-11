@@ -165,9 +165,14 @@ def test_politica_congelada_com_limiar_alterado_e_rejeitada():
 
 
 @sem_registro_de_politica
-def test_situacao_aprovada_declarada_no_certificado_diverge_do_nucleo():
-    reg = next(r for r in K.POLITICAS_B04_NUCLEO.values() if r["versao"] == "b04-proposta-2")
-    assert reg["situacao"] != K.SITUACAO_B04_APROVADA                 # estado REAL: pendente de aprovação
+def test_situacao_declarada_no_certificado_diverge_do_nucleo(monkeypatch):
+    """A situação do certificado nunca decide: declarar o oposto do núcleo é erro, nos dois sentidos."""
+    (h_pol, reg), = [(h, r) for h, r in K.POLITICAS_B04_NUCLEO.items() if r["versao"] == "b04-proposta-2"]
+    assert reg["situacao"] == K.SITUACAO_B04_APROVADA                 # estado REAL: aprovada pelo responsável (PR #23)
+    pendente = K.PoliticaB04("b04-proposta-2", "proposta_congelada_pendente_de_aprovacao", 0.005, 0.02, 0.001, 0.002, 200)
+    h, cs = K.registrar_certificado_b04(replace(_cert(), politica=pendente))
+    assert h == "" and "politica_b04_situacao_divergente" in _codigos(cs)
+    monkeypatch.setitem(reg, "situacao", "proposta_congelada_pendente_de_aprovacao")      # REVOGAÇÃO simulada
     forjada = K.PoliticaB04("b04-proposta-2", K.SITUACAO_B04_APROVADA, 0.005, 0.02, 0.001, 0.002, 200)
     h, cs = K.registrar_certificado_b04(replace(_cert(), politica=forjada))
     assert h == "" and "politica_b04_situacao_divergente" in _codigos(cs)

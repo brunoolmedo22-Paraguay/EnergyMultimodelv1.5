@@ -695,17 +695,21 @@ def run_results(source, run, *, key: str) -> None:
         din = ((run.summary or {}).get("execution") or {}).get("pemfc_dinamica") or {}
         st.html('<table class="op-tbl"><tr><th>PEMFC (unidade)</th><th>Energia [kWh]</th><th>H₂ suprido [kg]</th>'
                 '<th>Custo H₂ [R$]</th><th>Consumo específico [kg/kWh]</th><th>Partidas · paradas</th>'
-                '<th>Verificação dinâmica</th></tr>' + "".join(
+                '<th>Verificação dinâmica</th><th>Subestimação de H₂ (EMS × dinâmico) [kg]</th></tr>' + "".join(
                     f"<tr><td class='op-m'>{escape(u)}</td><td>{forms.fmt(r['energia_kWh'], 3)}</td>"
                     f"<td>{forms.fmt(r['massa_h2_kg'], 4)}</td><td>{forms.fmt(r['custo_h2_R'], 2)}</td>"
                     f"<td>{forms.fmt(r['consumo_especifico_kg_kWh'], 4)}</td><td>{r['partidas']} · {r['paradas']}</td>"
                     f"<td>{'coerente' if (din.get(u) or {}).get('coerente') else 'INCOERENTE'} "
                     f"({forms.fmt((din.get(u) or {}).get('energia_entregue_kWh'), 2)} de "
-                    f"{forms.fmt((din.get(u) or {}).get('energia_solicitada_kWh'), 2)} kWh)</td></tr>"
+                    f"{forms.fmt((din.get(u) or {}).get('energia_solicitada_kWh'), 2)} kWh)</td>"
+                    f"<td>máx. {forms.fmt((din.get(u) or {}).get('h2_subestimacao_max_kg'), 4)} · total "
+                    f"{forms.fmt((din.get(u) or {}).get('h2_subestimacao_total_kg'), 4)}</td></tr>"
                     for u, r in pem.items()) + "</table>")
         st.caption("Curva q(P) derivada do modelo físico APROXIMADO com certificado B04 (v2/pemfc.json); consignas avaliadas "
                    "a posteriori pelo modelo dinâmico (v2/pemfc_dinamica.json). A abstração instantânea do MILP não é "
-                   "validação física; consignas fora das tolerâncias são declaradas NÃO coerentes.")
+                   "validação física; consignas fora das tolerâncias são declaradas NÃO coerentes. O H₂ do EMS NÃO é cota "
+                   "superior global: as massas por evento são conservadoras, mas rampas de DESCIDA em operação contínua "
+                   "consomem um pouco mais no modelo dinâmico (subestimação mostrada por unidade).")
     try:
         it, fr = RG.ler_csv(source, run, RG.N_INTERVALOS), RG.ler_csv(source, run, RG.N_FRONTEIRAS)
         ja = RG.ler_csv(source, run, RG.N_JANELAS)

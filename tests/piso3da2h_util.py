@@ -2,8 +2,9 @@
 
 Dados de TESTE, sintéticos e rotulados: o registro PEMFC usa o perfil REAL do SEEDS2 (``EQUIVALENT_65KW_HORIZON_
 CONSTRAINED``, modelo físico aproximado); as condições físicas, P_min, rampa, permanências, preço do H₂ e estados
-iniciais são DECLARAÇÕES de teste (procedência sintética). ``politica_aprovada_no_teste`` simula a aprovação da política
-B04 SÓ dentro de um teste (nunca em produção: a política do repositório continua pendente de aprovação).
+iniciais são DECLARAÇÕES de teste (procedência sintética). A política B04 do repositório (``b04-proposta-2``) foi APROVADA
+pelo responsável (PR #23): os testes usam o caminho NORMAL. ``politica_pendente_no_teste`` simula a REVOGAÇÃO (situação
+pendente no registro do núcleo) SÓ dentro de um teste, para provar que uma política não aprovada continua bloqueando.
 """
 from __future__ import annotations
 
@@ -85,17 +86,17 @@ def criar_cenario_pemfc(store, *, estados=None, renov: bool = False, pemfc_kw: d
 
 
 @contextlib.contextmanager
-def politica_aprovada_no_teste():
-    """Aprovação SIMULADA da política B04 (só no teste; restaurada ao sair). A autoridade é o registro do NÚCLEO
-    (``ems_v2.contracts.POLITICAS_B04_NUCLEO``): a situação da política CONGELADA é trocada lá, pela identidade do seu
-    conteúdo; o dicionário da integração só acompanha (o certificado declara a mesma situação que o núcleo)."""
+def politica_pendente_no_teste():
+    """REVOGAÇÃO SIMULADA da aprovação B04 (só no teste; restaurada ao sair). A autoridade é o registro do NÚCLEO
+    (``ems_v2.contracts.POLITICAS_B04_NUCLEO``): a situação da política CONGELADA volta a pendente lá, pela identidade do
+    seu conteúdo; o dicionário da integração acompanha (o certificado declara a mesma situação que o núcleo)."""
     from ems_v2 import contracts as K
     original = copy.deepcopy(CH.POLITICA_B04)
     h = CH.hash_politica_nucleo()
     reg = K.POLITICAS_B04_NUCLEO[h]                 # KeyError ⇒ a política da integração não é a congelada no núcleo
     sit0 = reg["situacao"]
-    reg["situacao"] = K.SITUACAO_B04_APROVADA
-    CH.POLITICA_B04["situacao"] = K.SITUACAO_B04_APROVADA
+    reg["situacao"] = "proposta_congelada_pendente_de_aprovacao"
+    CH.POLITICA_B04["situacao"] = "proposta_congelada_pendente_de_aprovacao"
     try:
         yield
     finally:
@@ -105,4 +106,4 @@ def politica_aprovada_no_teste():
 
 
 __all__ = ["NOMINAL", "config_pemfc", "criar_cenario_pemfc", "declarar_pemfc", "estado_cenario", "pemfc_id",
-           "politica_aprovada_no_teste"]
+           "politica_pendente_no_teste"]

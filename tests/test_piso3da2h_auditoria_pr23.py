@@ -168,37 +168,31 @@ def test_reavaliacao_sem_modelo_reproduz_a_coerencia():
 # ====================================================================== D — restrições físicas BLOQUEIAM
 def test_pmin_abaixo_do_idle_bloqueia(tmp_path):
     _r, store = _loja(tmp_path)
-    with H.politica_aprovada_no_teste():
-        pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"p_min": 5.0}))
+    pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"p_min": 5.0}))
     assert "pemfc_pmin_abaixo_do_idle" in _codigos(pf) and not pf.ok
     assert not [i for i in pf.items if i.level == PF.WARNING and "IDLE" in i.message]   # não é mais só aviso
 
 
 def test_rampa_acima_do_modelo_dinamico_bloqueia(tmp_path):
     _r, store = _loja(tmp_path)
-    with H.politica_aprovada_no_teste():
-        pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"rampa": 150.0}))
+    pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"rampa": 150.0}))
     assert "pemfc_rampa_acima_do_modelo_dinamico" in _codigos(pf) and not pf.ok
-    with H.politica_aprovada_no_teste():                                # no limite do modelo (2 kW/s): admissível
-        pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"rampa": 120.0}))
+    pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"rampa": 120.0}))
     assert "pemfc_rampa_acima_do_modelo_dinamico" not in _codigos(pf)
 
 
 def test_partida_fria_bloqueia_a_abstracao_instantanea_mas_nao_as_transicoes_bloqueadas(tmp_path):
     _r, store = _loja(tmp_path)
-    with H.politica_aprovada_no_teste():
-        pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"t_amb": 0.0}))
+    pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"t_amb": 0.0}))
     assert "pemfc_transitorio_incompativel" in _codigos(pf) and not pf.ok
     assert any("FRIA" in i.message for i in pf.items if i.code == "pemfc_transitorio_incompativel")
-    with H.politica_aprovada_no_teste():
-        pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"t_amb": 0.0, "abstracao": "transicoes_bloqueadas"}))
+    pf = PF.preparar(store, H.criar_cenario_pemfc(store, pemfc_kw={"t_amb": 0.0, "abstracao": "transicoes_bloqueadas"}))
     assert "pemfc_transitorio_incompativel" not in _codigos(pf)
 
 
 def test_configuracao_nominal_e_admissivel_e_registra_a_analise(tmp_path):
     _r, store = _loja(tmp_path)
-    with H.politica_aprovada_no_teste():
-        pf = PF.preparar(store, H.criar_cenario_pemfc(store))
+    pf = PF.preparar(store, H.criar_cenario_pemfc(store))
     assert not {"pemfc_pmin_abaixo_do_idle", "pemfc_rampa_acima_do_modelo_dinamico",
                 "pemfc_transitorio_incompativel"} & _codigos(pf)
     assert any("restrições do modelo dinâmico compatíveis" in i.message for i in pf.items if i.level == PF.OK)
@@ -222,8 +216,7 @@ def incoerente(tmp_path_factory):
     mp = pytest.MonkeyPatch()
     mp.setattr(DY, "admissibilidade", lambda *a, **k: [])
     try:
-        with H.politica_aprovada_no_teste():
-            run = X.submit(store, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
+        run = X.submit(store, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
     finally:
         mp.undo()
     return {"raiz": raiz, "store": store, "run": run}
@@ -240,8 +233,7 @@ def test_rodada_algebricamente_aprovada_e_dinamicamente_incoerente_nunca_e_valid
     din = RG.ler_json(store, run, RG.N_PEMFC_DIN)
     (u, v), = din["unidades"].items()
     assert not din["coerente"] and any(i["evento"] == "partida" and i["criterio"] == "energia" for i in v["incoerencias"])
-    with H.politica_aprovada_no_teste():
-        ver = RG.verificar(store, run)
+    ver = RG.verificar(store, run)
     assert ver.ok, ver.falhas()                                          # evidência íntegra …
     assert any("dinâmica INCOERENTE" in t for ok, t in ver.itens if ok)  # … e classificada como tal
 
@@ -254,8 +246,7 @@ def test_rotulo_de_aceitacao_adulterado_e_detectado(incoerente):
     acc.update(classificacao="algebrica_aprovada_dinamica_coerente", rotulo=X.ROTULOS_ACEITACAO[
         "algebrica_aprovada_dinamica_coerente"])
     acc["dinamica"]["estado"] = "coerente"
-    with H.politica_aprovada_no_teste():
-        ver = RG.verificar(store, falso)
+    ver = RG.verificar(store, falso)
     assert not ver.ok and any("Aceitação SEPARADA" in t for t in ver.falhas())
 
 
@@ -273,8 +264,7 @@ def test_coerencia_gravada_adulterada_e_detectada(incoerente):
     class Fonte:
         def run_data(self, uid, nome):
             return json.dumps(din).encode() if nome == RG.N_PEMFC_DIN else store.run_data(uid, nome)
-    with H.politica_aprovada_no_teste():
-        ver = RG.verificar(Fonte(), run)
+    ver = RG.verificar(Fonte(), run)
     assert not ver.ok and any("RECALCULADA" in t for t in ver.falhas())
 
 

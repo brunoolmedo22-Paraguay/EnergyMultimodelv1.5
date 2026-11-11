@@ -86,10 +86,11 @@ class PemfcUiTest(unittest.TestCase):
         x = next(iter(b["pemfc"].values()))
         self.assertIsNone(x["p_min_kW"]) and self.assertIsNone(x["condicoes"]["temperatura_stack_K"])
 
-    def test_execucao_bloqueada_ate_aprovacao_b04(self):
+    def test_execucao_bloqueada_com_politica_pendente(self):
         uid, st = self.make()
         H.criar_cenario_pemfc(st)
-        txt = _texts(self.session(uid, "execucao"))
+        with H.politica_pendente_no_teste():                               # REVOGAÇÃO simulada da aprovação B04
+            txt = _texts(self.session(uid, "execucao"))
         self.assertIn("AGUARDANDO APROVAÇÃO", txt)
         self.assertIn("curva q(P) do modelo físico", txt)
         self.assertEqual(st.list_runs(), [])
@@ -102,28 +103,27 @@ class PemfcUiTest(unittest.TestCase):
                                                  "wind_speed_m_s": [2, 3, 9, 10, 11, 12, 12, 10, 4, 3, 2.5, 2]})
         sc = H.criar_cenario_pemfc(st, demanda_kW=40.0, renov=True, clima=clima, pemfc_kw={"preco": 10.0},
                                    mutar=lambda doc: doc[E.CHAVE_BLOCO]["pcc"].update(limite_importacao_kW=25.0))
-        with H.politica_aprovada_no_teste():
-            run = X.submit(st, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
-            self.assertEqual(run.state, "concluida", run.error)
-            falha = AssertionError("modelo/curva/motor chamado ao reabrir")
-            with mock.patch.object(X, "submit", side_effect=falha), \
-                    mock.patch("integracao_v2.curva_h2.obter_curva", side_effect=falha), \
-                    mock.patch("integracao_v2.pemfc_dinamica.verificar_despacho", side_effect=falha), \
-                    mock.patch("integracao_v2.montagem.construir_missao", side_effect=falha), \
-                    mock.patch.dict(sys.modules, {"pyomo": None, "highspy": None}):
-                rv = self.session(uid, "rodada", query={"run": run.run_uid})
-                txt = _texts(rv)
-                self.assertIn("PEMFC (unidade)", txt)
-                self.assertIn("coerente", txt)
-                # aceitação SEPARADA (auditoria do PR #23, B): algébrico × dinâmico × físico
-                self.assertIn("Critério de aceitação", txt)
-                self.assertIn("APROVADO", txt) and self.assertIn("COERENTE", txt)
-                self.assertIn("NÃO VALIDADO", txt)
-                self.assertNotIn("DINAMICAMENTE INCOERENTE", txt)
-                self.assertTrue(any(e.label.startswith("✓ Evidência verificada") for e in rv.expander))
-                specs = [json.loads(c.proto.spec) for c in rv.get("plotly_chart")]
-                pot = next(s for s in specs if "Demanda × atendimento" in s["layout"]["title"]["text"])
-                self.assertTrue(any(t["name"].startswith("PEMFC ") for t in pot["data"]))
+        run = X.submit(st, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
+        self.assertEqual(run.state, "concluida", run.error)
+        falha = AssertionError("modelo/curva/motor chamado ao reabrir")
+        with mock.patch.object(X, "submit", side_effect=falha), \
+                mock.patch("integracao_v2.curva_h2.obter_curva", side_effect=falha), \
+                mock.patch("integracao_v2.pemfc_dinamica.verificar_despacho", side_effect=falha), \
+                mock.patch("integracao_v2.montagem.construir_missao", side_effect=falha), \
+                mock.patch.dict(sys.modules, {"pyomo": None, "highspy": None}):
+            rv = self.session(uid, "rodada", query={"run": run.run_uid})
+            txt = _texts(rv)
+            self.assertIn("PEMFC (unidade)", txt)
+            self.assertIn("coerente", txt)
+            # aceitação SEPARADA (auditoria do PR #23, B): algébrico × dinâmico × físico
+            self.assertIn("Critério de aceitação", txt)
+            self.assertIn("APROVADO", txt) and self.assertIn("COERENTE", txt)
+            self.assertIn("NÃO VALIDADO", txt)
+            self.assertNotIn("DINAMICAMENTE INCOERENTE", txt)
+            self.assertTrue(any(e.label.startswith("✓ Evidência verificada") for e in rv.expander))
+            specs = [json.loads(c.proto.spec) for c in rv.get("plotly_chart")]
+            pot = next(s for s in specs if "Demanda × atendimento" in s["layout"]["title"]["text"])
+            self.assertTrue(any(t["name"].startswith("PEMFC ") for t in pot["data"]))
 
     @unittest.skipUnless(SOLVER, "Pyomo/HiGHS não instalados")
     def test_rodada_dinamicamente_incoerente_e_exibida_como_tal(self):
@@ -133,11 +133,10 @@ class PemfcUiTest(unittest.TestCase):
         uid, st = self.make()
         sc = H.criar_cenario_pemfc(st, demanda_kW=40.0, pemfc_kw={"t_amb": 0.0, "preco": 10.0},
                                    mutar=lambda doc: doc[E.CHAVE_BLOCO]["pcc"].update(limite_importacao_kW=25.0))
-        with H.politica_aprovada_no_teste(), mock.patch.object(DY, "admissibilidade", return_value=[]):
+        with mock.patch.object(DY, "admissibilidade", return_value=[]):
             run = X.submit(st, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
         self.assertEqual(run.state, "concluida", run.error)
-        with H.politica_aprovada_no_teste():
-            txt = _texts(self.session(uid, "rodada", query={"run": run.run_uid}))
+        txt = _texts(self.session(uid, "rodada", query={"run": run.run_uid}))
         self.assertIn("DINAMICAMENTE INCOERENTE", txt)
         self.assertIn("NÃO representa operação executável", txt)
         self.assertIn("INCOERENTE", txt) and self.assertIn("NÃO VALIDADO", txt)

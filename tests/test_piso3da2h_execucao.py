@@ -1,8 +1,8 @@
 """Piso 3D-A2-H — PEMFC/H₂ no EMS V2: preflight (sem solver) e missões REAIS (Pyomo + HiGHS) sobre o CATÁLOGO.
 
-A política B04 do repositório continua PENDENTE de aprovação do responsável: em produção a PEMFC é BLOQUEADA
-(``b04_aguardando_aprovacao``). As missões com PEMFC rodam SÓ sob ``politica_aprovada_no_teste`` (aprovação SIMULADA
-dentro do teste), para demonstrar a integração condicionada à aprovação. Dados sintéticos rotulados; modelos reais.
+A política B04 do repositório (``b04-proposta-2``) foi APROVADA pelo responsável no PR #23: as missões com PEMFC rodam
+pelo caminho NORMAL (sem aprovação simulada). ``politica_pendente_no_teste`` simula a REVOGAÇÃO para provar que uma
+política pendente continua bloqueando (``b04_aguardando_aprovacao``). Dados sintéticos rotulados; modelos reais.
 """
 from __future__ import annotations
 
@@ -58,12 +58,22 @@ def _codigos(pf, nivel=PF.ERROR):
 
 
 # ====================================================================== preflight (sem solver)
-def test_producao_bloqueia_pemfc_ate_a_aprovacao_b04(tmp_path):
+def test_politica_aprovada_libera_pemfc_pelo_caminho_normal(tmp_path):
     _r, store = _loja(tmp_path)
     pf = PF.preparar(store, H.criar_cenario_pemfc(store))
+    assert not {"b04_aguardando_aprovacao", "b04_reprovada"} & _codigos(pf)
+    assert _codigos(pf) <= {"solver_indisponivel"}, [i.message for i in pf.items if i.level == PF.ERROR]
+    g = pf.montagem.modelo.base.geradores[0]
+    assert g.curva_h2.classificacao == "real_certificada_b04" and K.certificado_b04_registrado(g.curva_h2.procedencia.sha256)
+
+
+def test_politica_pendente_bloqueia_pemfc(tmp_path):
+    _r, store = _loja(tmp_path)
+    with H.politica_pendente_no_teste():                                  # REVOGAÇÃO simulada da aprovação
+        pf = PF.preparar(store, H.criar_cenario_pemfc(store))
     assert "b04_aguardando_aprovacao" in _codigos(pf) and not pf.ok
     assert any(i.area == "pemfc" and i.level == PF.OK and "curva q(P) do modelo físico" in i.message for i in pf.items)
-    with pytest.raises(X.PreflightV2Error):
+    with H.politica_pendente_no_teste(), pytest.raises(X.PreflightV2Error):
         X.submit(store, pf.scenario.scenario_uid, pf.scenario.version, X.new_request_id(), background=False)
     assert store.list_runs() == []
 
@@ -119,11 +129,10 @@ def test_termica_continua_bloqueada_por_m19(tmp_path):
 def test_curva_gerada_uma_vez_por_configuracao_e_massas_do_modelo_dinamico(tmp_path):
     _r, sa = _loja(tmp_path / "a")
     _r, sb = _loja(tmp_path / "b")                 # outra microrrede, MESMA configuração física declarada
-    with H.politica_aprovada_no_teste():
-        pa = PF.preparar(sa, H.criar_cenario_pemfc(sa, pemfc_kw={"p_min": 11.5}))
-        n = CH.GERACOES["n"]
-        pb = PF.preparar(sb, H.criar_cenario_pemfc(sb, pemfc_kw={"p_min": 11.5}))
-        pa2 = PF.preparar(sa, pa.scenario)
+    pa = PF.preparar(sa, H.criar_cenario_pemfc(sa, pemfc_kw={"p_min": 11.5}))
+    n = CH.GERACOES["n"]
+    pb = PF.preparar(sb, H.criar_cenario_pemfc(sb, pemfc_kw={"p_min": 11.5}))
+    pa2 = PF.preparar(sa, pa.scenario)
     assert CH.GERACOES["n"] == n                 # reutilizada (mesma impressão digital), nunca regenerada
     ua, ub = next(iter(pa.montagem.pemfc.values())), next(iter(pb.montagem.pemfc.values()))
     assert ua["curva"] is ub["curva"] is next(iter(pa2.montagem.pemfc.values()))["curva"]
@@ -145,10 +154,9 @@ def hibrida(tmp_path_factory):
     sc = _hibrido(store)
     if not SOLVER:
         return {"raiz": raiz, "store": store, "sc": sc, "run": None}
-    with H.politica_aprovada_no_teste():
-        n0 = CH.GERACOES["n"]
-        run = X.submit(store, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
-        n1 = CH.GERACOES["n"]
+    n0 = CH.GERACOES["n"]
+    run = X.submit(store, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
+    n1 = CH.GERACOES["n"]
     return {"raiz": raiz, "reg": reg, "store": store, "sc": sc, "run": run, "geracoes": (n0, n1)}
 
 
@@ -167,8 +175,7 @@ def test_missao_hibrida_fv_eolica_bateria_pemfc_pcc_concluida(hibrida):
     assert m["missao_completa"] and m["energia_nao_atendida_kWh"] == 0.0
     assert set(run.data) == set(RG.OBRIGATORIOS) | {RG.N_RENOV, RG.N_PEMFC, RG.N_PEMFC_DIN}
     assert RG.ler_json(store, run, RG.N_INDICE)["versao"] == 3
-    with H.politica_aprovada_no_teste():
-        assert RG.verificar(store, run).ok
+    assert RG.verificar(store, run).ok
     n0, n1 = hibrida["geracoes"]
     assert n1 - n0 <= 1                          # no máximo UMA geração para a missão inteira (12 janelas MPC)
     assert len(run.summary["mission"]) and m["janelas"] == 12
@@ -233,8 +240,7 @@ def test_reabertura_sem_modelos_curva_nem_solver_e_com_registro_limpo(hibrida, m
                        (PF, "preparar")):
         monkeypatch.setattr(alvo, nome, sab)
     monkeypatch.setattr(K, "_CERTIFICADOS_B04", {})          # processo "novo": nenhum certificado registrado
-    with H.politica_aprovada_no_teste():
-        v = RG.verificar(MicrogridRegistry(hibrida["raiz"] / "dados", adopt_legacy=False).open(run.microgrid_uid), run)
+    v = RG.verificar(MicrogridRegistry(hibrida["raiz"] / "dados", adopt_legacy=False).open(run.microgrid_uid), run)
     assert v.ok, v.falhas()
     assert any("re-registrado" in t for _, t in v.itens)
 
@@ -273,8 +279,7 @@ def test_estudo_com_pemfc_exportado_e_importado_sem_recalcular(hibrida, tmp_path
     view = StudyView(arquivo, arquivo.import_package(pacote).study.archive_uid)
     arq = view.get_run(run.run_uid)
     assert view.run_data(run.run_uid, RG.N_PEMFC) == store.run_data(run.run_uid, RG.N_PEMFC)
-    with H.politica_aprovada_no_teste():
-        v = RG.verificar(view, arq)
+    v = RG.verificar(view, arq)
     assert v.ok, v.falhas()
 
 
@@ -293,8 +298,10 @@ def test_sem_aprovacao_a_reabertura_nao_certifica_a_curva(hibrida, monkeypatch):
             return json.dumps(doc).encode() if nome == RG.N_PEMFC else store.run_data(uid, nome)
     v = RG.verificar(Fonte(), run)
     assert not v.ok
-    v = RG.verificar(store, run)                  # dados INTACTOS, núcleo com a política pendente: certificado recusado
+    with H.politica_pendente_no_teste():           # dados INTACTOS, núcleo com a política REVOGADA: certificado recusado
+        v = RG.verificar(store, run)
     assert not v.ok and any("re-registrado" in t for t in v.falhas())
+    assert RG.verificar(store, run).ok              # política aprovada (repositório): a mesma evidência é aceita
 
 
 @requer_solver

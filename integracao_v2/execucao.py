@@ -324,7 +324,10 @@ def _executar(store, run_uid: str, pf: PF.PreflightV2) -> None:
                                                                   "energia_solicitada_kWh": x["energia_solicitada_kWh"],
                                                                   "energia_entregue_kWh": x["energia_entregue_kWh"],
                                                                   "h2_modelo_dinamico_kg": x["h2_modelo_dinamico_kg"],
-                                                                  "h2_ems_kg": x["h2_ems_kg"]}
+                                                                  "h2_ems_kg": x["h2_ems_kg"],
+                                                                  "h2_subestimacao_max_kg": x["h2_subestimacao_max_kg"],
+                                                                  "h2_subestimacao_total_kg":
+                                                                      x["h2_subestimacao_total_kg"]}
                                                               for u, x in din["unidades"].items()}
                 outcome["warnings"] = summary["execution"]["avisos"]
                 store.finish_run(run_uid, OWNER, outcome=R16._json_safe(outcome), summary=R16._json_safe(summary),

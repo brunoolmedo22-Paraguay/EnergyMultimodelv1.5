@@ -1096,6 +1096,15 @@ def _pemfc_verificar(run, ev: Evidencia, brutos: dict, versao, ver) -> None:
         ver(False, f"Verificação dinâmica gravada ilegível: {type(exc).__name__}")
         return
     ver(ok_m, "H₂ do EMS na verificação dinâmica = contabilidade SELADA do MILP por intervalo (contínuo + massas por evento)")
+    from .pemfc_dinamica import subestimacao_h2
+    resumo_din = (((run.summary or {}).get("execution") or {}).get("pemfc_dinamica")) or {}
+    ok_s = True
+    for u, v in din["unidades"].items():
+        sub = subestimacao_h2(v["intervalos"])
+        for k in ("h2_subestimacao_max_kg", "h2_subestimacao_total_kg"):
+            ok_s &= k not in v or (_proximo(float(v[k]), sub[k])
+                                   and _proximo(float((resumo_din.get(u) or {}).get(k, sub[k])), sub[k]))
+    ver(ok_s, "Subestimação de H₂ do EMS frente ao modelo dinâmico RECALCULADA dos intervalos gravados = a declarada")
     ver(ok_c, "Coerência dinâmica RECALCULADA dos valores e tolerâncias gravados = a gravada (por unidade e intervalo)")
     acc = (((run.summary or {}).get("execution") or {}).get("aceitacao")) or {}
     todas = all(coer.values())

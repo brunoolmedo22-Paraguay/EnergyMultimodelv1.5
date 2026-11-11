@@ -356,18 +356,26 @@ def _render_curva_ems() -> None:
         st.error(f"Curva não gerada para estas condições: {exc}")
         return
     f = H2_UNIDADES[unidade]
-    m, b04 = curva.metricas, curva.b04
+    m, b04 = curva.metricas, CH.avaliar_b04(curva.metricas)        # estado B04 ATUAL (autoridade do núcleo)
     k = st.columns(6)
     k[0].metric("Potência máxima admissível", f"{curva.p_max_kW:.2f} kW")
     k[1].metric("H₂ a P máximo", f"{m['q_pmax_kg_h'] * f:.4g} {unidade}")
     k[2].metric("Consumo específico a P máx.", f"{m['consumo_especifico_pmax_kg_kWh']:.4f} kg/kWh")
     k[3].metric("Erro máximo da PWL", f"{100 * m['erro_rel_max']:.3f} %")
     k[4].metric("Vértices da PWL", f"{m['vertices']}")
-    k[5].metric("Certificação B04", {"certificada": "Certificada", "reprovada": "Reprovada"}.get(
-        b04["estado"], "Não aprovada"),
-        help="Conforme aos limiares PROPOSTOS; a política B04 aguarda aprovação explícita do responsável — a curva "
-             "não é certificada e o EMS V2 bloqueia a PEMFC." if b04["estado"] not in ("certificada", "reprovada")
-        else None)
+    estado = b04["estado"]
+    k[5].metric("Certificação B04 (matemática)", {"certificada": "Certificada", "reprovada": "Reprovada",
+                                                   "politica_nao_reconhecida_pelo_nucleo": "Não reconhecida"}.get(
+        estado, "Não aprovada"),
+        help={"certificada": f"Certificação MATEMÁTICA da PWL contra o modelo físico APROXIMADO (política {b04['politica']} "
+                             "aprovada pelo responsável; critérios recomputados para ESTA curva). NÃO é validação "
+                             "experimental do modelo nem do equipamento.",
+              "reprovada": "Esta curva NÃO atende aos limiares da política B04: o EMS V2 bloqueia a PEMFC nestas "
+                           "condições."}.get(estado, "A política B04 não está aprovada no núcleo: o EMS V2 bloqueia a "
+                                                     "PEMFC. NÃO é validação experimental do modelo nem do equipamento."))
+    st.caption("PWL obtida do modelo físico APROXIMADO (Horizon equivalente, parametrizado) e verificada MATEMATICAMENTE "
+               "contra esse modelo (adenda B04). Não há validação experimental do modelo nem certificação de operação "
+               "física do equipamento.")
     P = np.asarray(curva.ajuste["P_kW"])
     q = np.asarray(curva.ajuste["q_suprido_kg_h"])
     qc = np.asarray(curva.ajuste["q_consumido_kg_h"])
@@ -400,7 +408,8 @@ def _render_curva_ems() -> None:
         curva.validacao["q_modelo_kg_h"])
     fig2 = go.Figure(go.Scatter(x=pv, y=ev, mode="lines", name="erro relativo",
                                 hovertemplate="P = %{x:.3f} kW<br>(PWL − modelo)/modelo = %{y:.4f} %<extra></extra>"))
-    fig2.add_hline(y=100 * CH.POLITICA_B04["erro_rel_max"], line_dash="dot", annotation_text="limiar B04 proposto")
+    rotulo_lim = "limiar B04 (política aprovada)" if estado in ("certificada", "reprovada") else "limiar B04 proposto"
+    fig2.add_hline(y=100 * CH.POLITICA_B04["erro_rel_max"], line_dash="dot", annotation_text=rotulo_lim)
     fig2.update_layout(title="Erro da aproximação em pontos de validação independentes", xaxis_title="Potência líquida "
                        "[kW]", yaxis_title="%", height=280, margin={"l": 20, "r": 20, "t": 45, "b": 20})
     st.plotly_chart(fig2, width="stretch", config=CHART_CONFIG, key="h2_cv_err")

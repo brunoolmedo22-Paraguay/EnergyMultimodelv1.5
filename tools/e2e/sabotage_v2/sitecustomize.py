@@ -55,3 +55,15 @@ if _LOG:
     _WM.run_wind_model = _boom("run_wind_model")
     _RN.derivar_fv = _boom("v2.derivar_fv")
     _RN.derivar_eolica = _boom("v2.derivar_eolica")
+    # Piso 3D-A2-H: os MODELOS da PEMFC (curva estacionária, análise transitória, verificação dinâmica e a resposta
+    # estática do h2_pemfc) também ficam sabotados — reabrir uma rodada com PEMFC só LÊ e VERIFICA o que foi gravado.
+    import h2_pemfc.models.equivalent_65kw_power_request as _PRM  # noqa: E402
+    from integracao_v2 import curva_h2 as _CH  # noqa: E402
+    from integracao_v2 import pemfc_dinamica as _DY  # noqa: E402
+
+    _CH.obter_curva = _boom("v2.curva_h2.obter_curva")
+    _CH._gerar = _boom("v2.curva_h2._gerar")
+    _DY.verificar_despacho = _boom("v2.pemfc_dinamica.verificar_despacho")
+    _DY.analise_transitoria = _boom("v2.pemfc_dinamica.analise_transitoria")
+    _DY.massas_eventos = _boom("v2.pemfc_dinamica.massas_eventos")
+    _PRM.Equivalent65kWHorizonPowerRequestModel.solve_requested_power = _boom("h2_pemfc.solve_requested_power")

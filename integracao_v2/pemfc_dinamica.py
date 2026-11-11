@@ -304,8 +304,19 @@ def verificar_despacho(cond: CondicoesPEMFC, curva, t_amb_C: float, delta_s: int
             "energia_entregue_kWh": math.fsum(x["energia_entregue_kWh"] for x in linhas),
             "h2_modelo_dinamico_kg": math.fsum(x["h2_modelo_dinamico_kg"] for x in linhas),
             "h2_ems_kg": math.fsum(x["h2_ems_kg"] for x in linhas),
+            # o H₂ do EMS NÃO é cota superior global: rampas de DESCIDA em operação contínua consomem mais, no modelo
+            # dinâmico, do que a abstração instantânea conta (verificação densa, decisão do PR #23 item 3A)
+            **subestimacao_h2(linhas),
             "massas_eventos_kg": {"partida": m_su, "parada": m_sd},
             "pre_condicionamento_s": pre, "temperatura_ambiente_C": float(t_amb_C), "delta_s": float(delta_s)}
+
+
+def subestimacao_h2(linhas) -> dict:
+    """Subestimação do H₂ do EMS frente ao modelo dinâmico, por intervalo (m_din − m_EMS > 0): máximo e total."""
+    d = [x["h2_modelo_dinamico_kg"] - x["h2_ems_kg"] for x in linhas]
+    pos = [v for v in d if v > 0]
+    return {"h2_subestimacao_max_kg": max(pos) if pos else 0.0, "h2_subestimacao_total_kg": math.fsum(pos),
+            "intervalos_com_subestimacao_h2": len(pos)}
 
 
 def reavaliar_coerencia(v: dict, tol: dict | None = None) -> tuple[bool, list[dict]]:
@@ -325,4 +336,5 @@ def reavaliar_coerencia(v: dict, tol: dict | None = None) -> tuple[bool, list[di
 
 __all__ = ["MARGEM_TRANSITORIO_S", "PONTOS_MALHA", "PRE_CONDICIONAMENTO_S", "TOLERANCIAS", "admissibilidade",
            "analise_transitoria", "massas_eventos", "modelo_dinamico", "parametros_dinamicos", "reavaliar_coerencia",
+           "subestimacao_h2",
            "tolerancia_energia_kWh", "tolerancia_h2_kg", "verificar_despacho"]
