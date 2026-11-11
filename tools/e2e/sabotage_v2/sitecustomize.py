@@ -45,3 +45,13 @@ if _LOG:
     _X.submit = _boom("v2.submit")
     _X._executar = _boom("v2._executar")
     _MT.construir_missao = _boom("v2.construir_missao")
+    # Piso 3D-A2-R: os MODELOS FÍSICOS que derivam o potencial renovável também ficam sabotados — abrir/verificar uma
+    # rodada com renováveis só LÊ a derivação gravada (v2/renovaveis.json).
+    import models.wind_model as _WM  # noqa: E402
+    import simulation.multimodel as _MM  # noqa: E402
+    from integracao_v2 import renovaveis as _RN  # noqa: E402
+
+    _MM.simulate_noct_efficiency_model = _boom("simulate_noct_efficiency_model")
+    _WM.run_wind_model = _boom("run_wind_model")
+    _RN.derivar_fv = _boom("v2.derivar_fv")
+    _RN.derivar_eolica = _boom("v2.derivar_eolica")
