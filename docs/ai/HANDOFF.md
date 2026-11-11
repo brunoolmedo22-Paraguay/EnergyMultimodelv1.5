@@ -1,3 +1,5 @@
+> **PISO 3D-A2-H (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `0c9df80`, PR contra `main` SIN merge):** PEMFC/H₂ no EMS V2 — curva q_H₂(P_líq) do modelo físico gerada UMA vez por configuração e reutilizada em toda a missão, certificado B04 verificável no núcleo (C-3DA2H-01 autorizado), verificação dinâmica, persistência v3 e bancada H₂. **A PEMFC continua BLOQUEADA em produção: política B04 congelada e PENDENTE de aprovação do responsável** (missões com PEMFC só sob aprovação SIMULADA nos testes). Relevo: [`RELEVO_3DA2H.md`](RELEVO_3DA2H.md); documento técnico: [`INTEGRACAO_3DA2H.md`](../ems_v2/INTEGRACAO_3DA2H.md); seção «Piso 3D-A2-H» no fim deste arquivo. 3D-A2-T e 3D-B NÃO autorizados.
+
 > **PISO 3D-A2-R (2026-11-11, rama `claude/adoring-newton-jzfmfx` desde `main` `7eb29e5`, PR [#22](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/22) contra `main` SIN merge):** FV (por arranjo) e eólica (por registro) no EMS V2, com potencial derivado pelos modelos físicos do SEEDS2 sobre o clima previsto, persistência v2 por UID e reabertura sem modelos nem solver. Relevo: [`RELEVO_3DA2.md`](RELEVO_3DA2.md); documento técnico: [`INTEGRACAO_3DA2R.md`](../ems_v2/INTEGRACAO_3DA2R.md); seção «Piso 3D-A2-R» no fim deste arquivo. 3D-A2-H, 3D-A2-T e 3D-B NÃO autorizados.
 
 > **PISO 3D-A — PUBLICADO COMO DRAFT, SIN MERGE (2026-11-11):** rama `claude/adoring-newton-jzfmfx` desde `main` `a636350`; **PR Draft [#21](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/21)**. Integración operativa del EMS V2 jerárquico (GATE 0 + GATE 1 del paquete maestro 3D). Relevo completo para otro agente: [`RELEVO_3DA.md`](RELEVO_3DA.md); resumen en la sección **«Piso 3D-A — integración operativa del EMS V2»** al final de este archivo. Desarrollo DETENIDO por orden del responsable: la auditoría y las correcciones siguientes se coordinan externamente. No iniciar 3D-B/3D-C; sin merge.
@@ -257,3 +259,37 @@ Diagnóstico controlado: con/sin Pyomo/HiGHS los doce hashes y KPI son exactos e
   - GHI no plano; vento no cubo; sem esteira; η de inversor declarado;
   - PEMFC e térmica bloqueadas (matriz PEMFC e lacuna M19 documentadas, não implementadas).
 - **Próximo passo:** auditoria externa do PR; CI remoto; só então 3D-A2-H/3D-A2-T/3D-B com nova autorização.
+
+
+## Piso 3D-A2-H — PEMFC/H₂ no EMS V2 — 2026-11-11
+
+**Estado:** implementado e demonstrado; **produção BLOQUEADA até a aprovação da política B04** (`b04-proposta-2`,
+congelada). PR contra `main` sem merge. Base `main` `0c9df80`.
+
+- **Implementado:**
+  - `integracao_v2/curva_h2.py`: curva do modelo estacionário, identidade SHA-256, cache, validação independente, massa
+    no tempo em 6 perfis, generalização e certificado;
+  - `integracao_v2/pemfc_dinamica.py`: massas de partida/parada e verificação a posteriori pelo modelo dinâmico;
+  - estratégia formato 3;
+  - preflight PEMFC;
+  - contrato de dados v3 (`v2/pemfc.json`, `v2/pemfc_dinamica.json`, colunas por unidade);
+  - UI;
+  - bancada `h2_app.py`;
+  - núcleo C-3DA2H-01 (4 arquivos, autorizado);
+  - E2E.
+- **Verificado:** ver `RELEVO_3DA2H.md` §4. Caso híbrido FV + eólica + bateria + PEMFC + PCC concluído e auditado (aprovação
+  simulada): custo R$ 116,00 (H₂ 65,70), PEMFC 100,54 kWh / 6,570 kg, dinâmica coerente.
+- **Decisões pendentes do responsável:**
+  - aprovação B04;
+  - C-3DA2H-02 (`massas_h2_eventos`, extensão a confirmar);
+  - C-3DA2H-03 (rampa única);
+  - C-3DA2H-04 (D05);
+  - C-3DA2H-05 (IDLE × P_mín).
+- **Limites:**
+  - condições físicas constantes por missão;
+  - tanque de H₂ não modelado;
+  - M20 não implementado;
+  - verificação dinâmica não realimenta o despacho;
+  - modelo aproximado, sem validação física;
+  - relatórios 2D-B recusam rodadas V2.
+- **Próximo passo:** auditoria externa do PR e decisão B04; 3D-A2-T/3D-B só com nova autorização.
