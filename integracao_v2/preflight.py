@@ -7,7 +7,9 @@ seria um defeito científico. Este módulo:
 1. verifica a versão SALVA do cenário (estrutura, incarnação, revisão do inventário referenciada e sua impressão digital);
 2. exige a seleção EXPLÍCITA do motor V2 e a estratégia ``milp_mpc`` sem erros e SEM declarações ausentes;
 3. classifica cada equipamento POR UID: representável × excluído (indisponível no cenário) × BLOQUEANTE (não representável
-   no Piso 3D-A — FV/eólica sem potencial por UID, PEMFC sem curva certificada/commitment, térmica sem M19);
+   — PEMFC sem curva certificada/commitment, térmica sem M19; FV/eólica incompletas ou sem clima suficiente). Desde o
+   Piso 3D-A2-R, FV (por arranjo) e eólica (por registro) corretamente parametrizadas são representáveis: o potencial no
+   barramento é derivado pelos modelos físicos do SEEDS2 (``integracao_v2.renovaveis``) a partir do clima previsto;
 4. monta o inventário efetivo, a malha N/N+1, as séries (previsão × realização separadas) e as políticas declaradas;
 5. executa, SEM relaxar nada, o preflight da ponte 3C-0/3C-1 (``ems_v2.ponte.preflight.preflight_ems_v2``, finalidade
    ``otimizacao``) e as validações 3C-3/3C-2/3C-4 (construção do controlador hierárquico, sem resolver);
@@ -45,6 +47,7 @@ from seeds2.operation import strategy as SG
 
 from . import estrategia as E
 from . import montagem as MT
+from . import renovaveis as RN
 
 OK, INFO, WARNING, ERROR = "ok", "info", "aviso", "erro"
 LEVEL_LABELS = {OK: "Verificado", INFO: "Informação", WARNING: "Advertência (não bloqueia)",
@@ -55,13 +58,9 @@ AREA_LABELS = {
     "tempo": "Malha temporal", "previsoes": "Previsão disponível ao decidir", "realizacao": "Realização simulada",
     "causalidade": "Separação previsão × realização", "pcc": "PCC e tarifas", "ponte": "Ponte científica 3C-0/3C-1",
     "contrato": "Contratos 3C-3 / MPC / 3C-4", "solver": "Solver Pyomo/HiGHS", "escopo": "Alcance científico",
+    "renovaveis": "Potencial renovável (modelos físicos do SEEDS2)",
 }
 NAO_REPRESENTAVEL = {
-    "pv_arranjo": "o potencial fotovoltaico NO BARRAMENTO por arranjo exige aplicar os modelos físicos (models/) ao clima "
-                  "previsto, com semântica de intervalo e emissão declaradas — adaptador ainda não aprovado (brecha 3C-0 "
-                  "'potencial_renovavel_requer_modelo_fisico')",
-    "eolica": "o potencial eólico NO BARRAMENTO por registro exige o modelo físico aplicado ao clima previsto — adaptador "
-              "ainda não aprovado (e quatro curvas do catálogo não estão habilitadas para energia)",
     "pemfc": "a PEMFC exige P_min, curva q(P) de H₂ CERTIFICADA (adenda B04), rampas, permanências, memória por unidade e "
              "a decisão D05 de partida — nada disso existe no inventário e nenhum valor é inferido do V1.6",
     "termica": "o custo de geração térmica (M19 / CVU) NÃO está implementado no núcleo 3C-4: uma térmica despachável "
@@ -117,7 +116,14 @@ class PreflightV2:
         if mt is None:
             return {}
         t = mt.tempo
-        return {"grid": {"start_utc": t.inicio_utc, "start_wall": t.inicio_local, "timezone": t.fuso,
+        extra = {}
+        if mt.renovaveis:
+            h = t.delta_s / 3600.0
+            extra = {"renovaveis": [{"uid": d.uid, "registro": d.registro, "tecnologia": d.tecnologia, "nome": d.nome,
+                                     "modelo": d.modelo, "pico_kW": max(d.potencia_kW),
+                                     "energia_potencial_kWh": d.energia_kWh(h)} for d in mt.renovaveis],
+                     "clima": None if mt.clima is None else mt.clima.doc()}
+        return {**extra, "grid": {"start_utc": t.inicio_utc, "start_wall": t.inicio_local, "timezone": t.fuso,
                          "delta_min": t.delta_min, "step_s": t.delta_s, "intervals": t.K, "frontiers": t.K + 1,
                          "duration_min": t.delta_min * t.K, "end_utc": t.instante(t.K), "N": t.N, "m": t.m, "H_L": t.H_L},
                 "fixed": dict(MT.FIXOS), "matriz": [dict(r) for r in self.matriz], "hashes": dict(mt.hashes),
@@ -238,12 +244,20 @@ def preparar(store, stored) -> PreflightV2:
     if pf.count(ERROR) or series is None:
         return pf
     prev_kw, real_kw, tabela, verdade, fonte_verdade, prev_nucleo, real_nucleo = series
+    renov = _renovaveis(pf, store, stored, doc, bloco, tempo, rev.config, excl)
+    if pf.count(ERROR) or renov is None:
+        return pf
+    tabela, verdade, prev_nucleo, real_nucleo = _com_renovaveis(renov, tabela, verdade, prev_nucleo, real_nucleo, tempo,
+                                                                stored)
     # ---- 7. inventário efetivo e projeção pela ponte (sem relaxação)
     inv_ef = MT.inventario_efetivo(inv, bloco, stored, excl)
     proc_pol = MT.proc_declarada(bloco["declarante"], "declarante", stored)
     pol = MT.politicas(bloco, proc_pol)
     mont = MT.Montagem(tempo, inv, inv_ef, cen, pf.excluded, pf.represented, prev_kw, real_kw, tabela, verdade,
                        fonte_verdade, pol, proc_politicas=proc_pol)
+    derivs, clima = renov
+    mont.renovaveis, mont.clima = list(derivs), clima
+    mont.bases = {d.uid: "antes_da_disponibilidade" for d in derivs}
     pf.montagem = mont
     try:
         decl = MT.declaracao_commitment(inv_ef, cen, proc_pol)
@@ -283,6 +297,9 @@ def preparar(store, stored) -> PreflightV2:
                    "modelo_rede_3c3": hash_entrada_3c3(modelo), "configuracao_rede": hash_configuracao_rede(cfg_rede),
                    "configuracao_planejador": hash_configuracao_planejador(mont.configuracao_planejador),
                    "preflight_ponte": pf.ponte["sha256"]}
+    if mont.renovaveis:
+        mont.doc_renovaveis = RN.documento(mont.renovaveis, mont.clima, _realizacao_renovavel(), tempo.delta_s)
+        mont.hashes["renovaveis"] = RN.sha_documento(mont.doc_renovaveis)
     pf.add(OK, "contrato", f"Entrada 3C-3 aceita (modo {modelo.pcc.modo}); configuração do MPC (Δ = {tempo.delta_min} min, "
            f"N = {tempo.N}, m = {tempo.m}, K_M = {tempo.K}) e do planejador (H_L = {tempo.H_L}, sinal "
            f"'{bloco['planejador']['tipo_sinal']}', degradação '{bloco['planejador']['degradacao']}') aceitas pelo "
@@ -338,18 +355,32 @@ def _classificar(pf: PreflightV2, inv, cen, doc: dict, bloco: dict) -> set[str]:
             else:
                 pf.represented.append({"id": d.uid, "name": nome, "kind": "battery", "papel": "armazenamento (M06–M08)"})
             continue
-        chave = "pv_arranjo" if d.tipo == "pv_usina" else d.tipo
+        if d.tipo in ("pv_usina", "eolica"):
+            kind = "pv" if d.tipo == "pv_usina" else "wind"
+            decl = (bloco.get("renovaveis") or {}).get(d.uid) if bloco["format_version"] >= 2 else None
+            if decl is None:
+                if bloco["format_version"] >= 2:
+                    pf.add(ERROR, "dispositivos", f"{nome} ({rot}): sem declarações V2 na estratégia (conversão para o "
+                           "barramento / hipótese de densidade e procedência). Nenhum valor é presumido.", d.uid)
+                continue                               # formato 1: pendência 'renovaveis' já listada
+            uids = [x.uid for x in inv.dispositivos if x.pai == d.uid] if kind == "pv" else [d.uid]
+            pf.represented.append({"id": d.uid, "name": nome, "kind": kind, "uids": uids,
+                                   "papel": "renovável (M03-v1.1) — potencial pelo modelo físico do SEEDS2"})
+            continue
+        chave = d.tipo
         pf.add(ERROR, "dispositivos", f"{nome} ({rot}) está habilitado e disponível, mas NÃO é representável pelo motor V2 "
                f"no Piso 3D-A: {NAO_REPRESENTAVEL[chave]}. Um equipamento disponível nunca é omitido em silêncio: "
                "declare-o indisponível neste cenário (exclusão só desta missão) ou aguarde o piso correspondente.",
                d.uid, code="nao_representavel_3da")
-    n = len(pf.represented)
+    n = sum(1 for x in pf.represented if x["kind"] == "battery")
+    nr = len(pf.represented) - n
     if n > 2:
         pf.add(ERROR, "dispositivos", f"{n} bancos disponíveis: o sinal de valor futuro PWL do 3C-4 suporta até 2 bancos "
                                       "(dimensão declarada do planejador).")
     if not pf.count(ERROR):
-        pf.add(OK, "dispositivos", f"{n} banco(s) representável(is) por UID; {len(excl)} equipamento(s) excluído(s) desta "
-                                   "missão; nenhum equipamento disponível fora do modelo.")
+        pf.add(OK, "dispositivos", f"{n} banco(s) representável(is) por UID; "
+               + (f"{nr} equipamento(s) renovável(is) com potencial a derivar pelo modelo físico; " if nr else "")
+               + f"{len(excl)} equipamento(s) excluído(s) desta missão; nenhum equipamento disponível fora do modelo.")
     return excl
 
 
@@ -505,6 +536,8 @@ def _series(pf: PreflightV2, store, stored, doc: dict, bloco: dict, t: MT.Tempo,
     tabela = {(MT.UID_DEMANDA, "potencia"): MT.serie("potencia", t, prev, p_prev, emis)}
     v_series = [CN.SerieRecurso(MT.UID_DEMANDA, "potencia", MT.serie("potencia", t, real, p_real, None))]
     for b in pf.represented:
+        if b["kind"] != "battery":
+            continue                                   # renováveis: potencial e disponibilidade em ``_com_renovaveis``
         uid = b["id"]
         p_a = Procedencia("declarado_seeds2", f"SEEDS2 · cenário {stored.scenario_uid} v{stored.version}",
                           f"initialization.equipment[{uid}].availability", sha256=stored.fingerprint,
@@ -537,6 +570,131 @@ def _series(pf: PreflightV2, store, stored, doc: dict, bloco: dict, t: MT.Tempo,
         if pf.count(ERROR):
             return None
     return prev, real, tabela, verdade, fonte_real, prev_nucleo, real_nucleo
+
+
+def _realizacao_renovavel() -> dict:
+    return {"tipo": "igual_a_previsao",
+            "descricao": "Potencial REALIZADO = potencial previsto (mesmo modelo físico sobre o mesmo clima): a simulação não "
+                         "tem erro de previsão renovável. Previsão e realização continuam objetos e fontes separados (o "
+                         "controlador recebe só a previsão; a planta só a realização)."}
+
+
+def _renovaveis(pf: PreflightV2, store, stored, doc: dict, bloco: dict, t: MT.Tempo, config: dict, excl: set[str]):
+    """Potencial renovável por UID derivado pelos modelos físicos sobre a previsão climática. ``None`` ⇒ bloqueio."""
+    reps = [x for x in pf.represented if x["kind"] in ("pv", "wind")]
+    if not reps:
+        return [], None
+    cl = bloco["clima"]
+    entry = (doc.get("forecasts") or {}).get("climate")
+    if not entry:
+        pf.add(ERROR, "previsoes", f"Previsão CLIMÁTICA ausente no cenário (etapa 02): {len(reps)} equipamento(s) renovável(is) "
+               "participa(m) da missão e o potencial exige o clima previsto. Nenhum perfil substituto é usado.")
+        return None
+    if not entry.get("timezone"):
+        pf.add(ERROR, "previsoes", "A série climática não declara fuso horário: instantes UTC indeterminados.")
+        return None
+    if entry.get("provenance") not in ("medido", "sintetico", "referencia"):
+        pf.add(ERROR, "previsoes", "Procedência da previsão climática não declarada (etapa 02).")
+        return None
+    obrig: set = set()
+    opc: set = set()
+    for x in reps:
+        if x["kind"] == "pv":
+            obrig |= set(RN.VARIAVEIS_FV)
+        else:
+            obrig |= set(RN.VARIAVEIS_EOL)
+            if bloco["renovaveis"][x["id"]]["hipotese_densidade"] == "calculada_do_clima_previsto":
+                obrig |= {"temperature_C", "pressure_hPa"}
+                opc |= {"humidity_pct"}
+    try:
+        s = M.load_series("climate", entry, store.get_blob)
+    except F.ForecastDataError as exc:
+        pf.add(ERROR, "previsoes", f"Série climática indisponível ou corrompida: {exc}")
+        return None
+    emis = cl["emissao_utc"]
+    if ler_instante_utc(emis, "e")[0] > ler_instante_utc(t.inicio_utc, "t")[0]:
+        pf.add(ERROR, "causalidade", f"A previsão CLIMÁTICA foi declarada EMITIDA em {emis}, depois do início da missão "
+               f"({t.inicio_utc}): informação futura — execução bloqueada.", code="previsao_nao_causal")
+        return None
+    t0 = datetime.fromisoformat(t.inicio_utc).timestamp()
+    try:
+        clima = RN.alinhar_clima(s, entry, t0, t.delta_s, t.K, obrig, opc, cl["semantica"], emis)
+    except RN.DerivacaoInvalida as exc:
+        pf.add(ERROR, "previsoes", f"Previsão climática insuficiente para o potencial renovável: {exc}",
+               code="clima_insuficiente")
+        return None
+    pf.add(OK, "previsoes", f"Previsão climática: {t.K} × {clima.n} subamostra(s) nos instantes EXATOS da série (passo "
+           f"{clima.passo_s:g} s; variáveis {', '.join(sorted(obrig))}); origem '{entry.get('source_type')}' / procedência "
+           f"'{entry['provenance']}'; emissão declarada {emis} (anterior a τ₀); semântica declarada '{cl['semantica']}'.")
+    if clima.n == 1:
+        pf.add(WARNING, "renovaveis", "Uma única amostra climática por intervalo: o potencial médio do intervalo é P(clima) "
+               "na amostra (aproximação declarada; modelos não lineares).")
+    eqs = {e["id"]: e for e in config.get("equipment", [])}
+    derivs = []
+    for x in reps:
+        eq, decl = eqs.get(x["id"]), bloco["renovaveis"][x["id"]]
+        try:
+            if eq is None:
+                raise RN.DerivacaoInvalida("registro ausente da revisão do inventário referenciada.")
+            if x["kind"] == "pv":
+                ds = RN.derivar_fv(eq, float(decl["eta_conversao_barramento"]), clima, t.K)
+            else:
+                ds = [RN.derivar_eolica(eq, decl["hipotese_densidade"], clima, t.K)]
+        except RN.DerivacaoInvalida as exc:
+            pf.add(ERROR, "renovaveis", f"{x['name']}: {exc}", x["id"], code="renovavel_nao_derivavel")
+            continue
+        except Exception as exc:                       # noqa: BLE001 — modelo físico: falha nunca silenciosa
+            pf.add(ERROR, "renovaveis", f"{x['name']}: o modelo físico falhou ({type(exc).__name__}: {str(exc)[:200]}).",
+                   x["id"], code="renovavel_nao_derivavel")
+            continue
+        if sorted(d.uid for d in ds) != sorted(x["uids"]):
+            pf.add(ERROR, "renovaveis", f"{x['name']}: os recursos derivados {sorted(d.uid for d in ds)} não coincidem com "
+                   f"os da ponte 3C-0 {sorted(x['uids'])}.", x["id"])
+            continue
+        h = t.delta_s / 3600.0
+        for d in ds:
+            pf.add(OK, "renovaveis", f"{d.nome} ({d.uid}): {d.rotulo_modelo} — {t.K} médias de intervalo no barramento, pico "
+                   f"{max(d.potencia_kW):.4g} kW, energia potencial {d.energia_kWh(h):.5g} kWh (disponível ≠ despachada: "
+                   "o vertimento é decidido pelo EMS).", x["id"])
+        derivs += ds
+    if pf.count(ERROR):
+        return None
+    pf.add(WARNING, "realizacao", _realizacao_renovavel()["descricao"])
+    return derivs, clima
+
+
+def _com_renovaveis(renov, tabela: dict, verdade, prev_nucleo, real_nucleo, t: MT.Tempo, stored):
+    """Acrescenta potencial e disponibilidade de cada recurso renovável à previsão (provedor) e à realização (planta)."""
+    derivs, clima = renov
+    if not derivs:
+        return tabela, verdade, prev_nucleo, real_nucleo
+    ent, um = clima.entrada, [1.0] * t.K
+    tabela = dict(tabela)
+    bases = {}
+    vs, vr, vp = list(verdade.series), list(real_nucleo.series), list(prev_nucleo.series)
+    p_real = verdade.procedencia
+    for d in derivs:
+        p_prev = Procedencia(ent["provenance"], f"SEEDS2 · cenário {stored.scenario_uid} v{stored.version} · potencial "
+                             f"'{d.tecnologia}' derivado por {d.modelo} sobre a previsão climática "
+                             f"({ent.get('label') or ent.get('source_type')})", f"forecasts.climate → {d.uid}",
+                             sha256=ent["data"], observacoes=f"{RN.REGRA_AGREGACAO}; {d.hipoteses[0]}; emissão declarada "
+                                                             f"{clima.emissao_utc}; tabela declarada antecipadamente")
+        p_a = Procedencia("declarado_seeds2", f"SEEDS2 · cenário {stored.scenario_uid} v{stored.version}",
+                          f"initialization.equipment[{d.registro}].availability", sha256=stored.fingerprint,
+                          observacoes="Série constante a = 1 derivada da disponibilidade ESTÁTICA do cenário (disponível)")
+        tabela[(d.uid, "potencia")] = MT.serie("potencia", t, d.potencia_kW, p_prev, clima.emissao_utc)
+        tabela[(d.uid, "disponibilidade")] = MT.serie("disponibilidade", t, um, p_a, clima.emissao_utc)
+        bases[d.uid] = "antes_da_disponibilidade"
+        vp.append(CN.SerieRecurso(d.uid, "potencia", tabela[(d.uid, "potencia")], "antes_da_disponibilidade"))
+        vp.append(CN.SerieRecurso(d.uid, "disponibilidade", tabela[(d.uid, "disponibilidade")]))
+        for lista in (vs, vr):
+            lista.append(CN.SerieRecurso(d.uid, "potencia", MT.serie("potencia", t, d.potencia_kW, p_real, None)))
+            lista.append(CN.SerieRecurso(d.uid, "disponibilidade", MT.serie("disponibilidade", t, um, p_real, None)))
+    def ordem(xs):
+        return tuple(sorted(xs, key=lambda x: (x.uid, x.grandeza)))
+    prev = CN.ConjuntoPrevisao(prev_nucleo.conjunto_uid, prev_nucleo.emissao_utc, ordem(vp), prev_nucleo.procedencia)
+    return (tabela, CN.Realizacao(verdade.realizacao_uid, verdade.natureza, ordem(vs), verdade.procedencia), prev,
+            CN.Realizacao(real_nucleo.realizacao_uid, real_nucleo.natureza, ordem(vr), real_nucleo.procedencia))
 
 
 def _itens_ponte(pf: PreflightV2, rel) -> None:
@@ -604,6 +762,18 @@ def _matriz(pf: PreflightV2, mont: MT.Montagem, bloco: dict, doc: dict) -> None:
                                "um bloco por intervalo; perfil de liquidação próprio com os mesmos valores",
                                "validar_perfil + seleção causal por emissão em cada τ_k", f"{REG_INT} (tarifa_*)",
                                "Operação · Análise"))
+    for d in mont.renovaveis:
+        rows.append(_linha(f"Potencial renovável disponível A ({d.tecnologia})", d.uid,
+                           f"{t.K} valores · pico {max(d.potencia_kW):.4g}", "kW",
+                           f"previsão climática do cenário ({mont.clima.entrada.get('provenance')}) + inventário",
+                           f"{d.modelo} por subamostra; {RN.REGRA_AGREGACAO} ({mont.clima.n} por intervalo)"
+                           + (f"; × η = {d.parametros['eta_conversao_barramento']:g}" if d.tecnologia == "fv" else ""),
+                           "domínio do modelo + cobertura exata do clima + causalidade (emissão <= τ₀) + validar_renovavel "
+                           "(3A) + chaves/base da previsão em cada janela (3C-2)", "v2/renovaveis.json + v2/intervalos.csv "
+                           f"({d.uid}|A_*)", "Operação · Respostas"))
+        rows.append(_linha("Injeção aplicada P_R e vertimento", d.uid, "decisão do EMS", "kW", "MILP 3C-4 + planta 3C-3",
+                           "P_R <= a·A (M03-v1.1); vertimento = a·A − P_R", "auditoria integral (renovavel_acima_do_observado)",
+                           f"v2/intervalos.csv ({d.uid}|P_R_kW, {d.uid}|vertimento_kW)", "Operação"))
     g = bloco["planejador"]
     fpol = _proc_txt(mont.proc_politicas)
     rows.append(_linha("Malha temporal", "missão", f"Δ = {t.delta_min} min · N = {t.N} · m = {t.m} · K_M = {t.K} · H_L = {t.H_L}",

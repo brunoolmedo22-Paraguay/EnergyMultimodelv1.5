@@ -52,7 +52,11 @@ OWNER = R16.OWNER
 # não é reinterpretada). Diretórios: todo ``.py``/``.csv``/``.json``.
 SCIENCE_PATHS_V2 = ("ems_v2", "integracao_v2", "seeds2/operation/forecasts.py", "seeds2/operation/mission.py",
                     "seeds2/operation/scenarios.py", "seeds2/operation/strategy.py", "seeds2/microgrid/config.py",
-                    "seeds2/microgrid/derived.py", "seeds2/microgrid/references.py")
+                    "seeds2/microgrid/derived.py", "seeds2/microgrid/references.py",
+                    # 3D-A2-R: modelos físicos e catálogos que derivam o potencial renovável
+                    "simulation/multimodel.py", "models/pv_module.py", "models/temperature_model.py",
+                    "models/irradiance_model.py", "models/wind_model.py", "config/pv_database.py",
+                    "config/wind_turbine_database.py")
 OBJETIVO = {
     "key": "custo_operativo_janela_mais_custo_futuro_3c4",
     "label": "MILP de cada janela: custo operativo previsto no horizonte curto + custo de continuação V̂ do planejador de "
@@ -249,7 +253,7 @@ def _executar(store, run_uid: str, pf: PF.PreflightV2) -> None:
                           "scenario_version": stored.version, "scenario_fingerprint": stored.fingerprint,
                           "config_revision": stored.base_revision, "config_fingerprint": stored.base_fingerprint}
                 pdoc = {**pf.report(), "engine_inputs": pf.engine_inputs()}
-                data = RG.dados_da_rodada(ev, cfg, rel, R16._json_safe(pdoc), run_uid, fuso, origem)
+                data = RG.dados_da_rodada(ev, cfg, rel, R16._json_safe(pdoc), run_uid, fuso, origem, mont.doc_renovaveis)
                 summary = {"engine": E.MOTOR_V2, "mission": RG.resumo(ev, fuso),
                            "execution": {"elapsed_s": outcome["elapsed_s"], "auditoria_integral_aprovada": True,
                                          "avisos": [i.message for i in pf.items if i.level == PF.WARNING]}}
@@ -257,7 +261,7 @@ def _executar(store, run_uid: str, pf: PF.PreflightV2) -> None:
                 store.finish_run(run_uid, OWNER, outcome=R16._json_safe(outcome), summary=R16._json_safe(summary),
                                  data=data)
                 return
-            outcome["evidence"] = RG.evidencia_parcial_doc(ev, cfg, rel, fuso)
+            outcome["evidence"] = RG.evidencia_parcial_doc(ev, cfg, rel, fuso, mont.doc_renovaveis)
             if completa:                              # missão completa, mas a auditoria independente NÃO aprovou
                 store.fail_run(run_uid, OWNER, {
                     "kind": "auditoria_reprovada", "message": "A missão terminou, mas a auditoria integral independente "

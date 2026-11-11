@@ -14,10 +14,15 @@ do planejador/solver têm valores iniciais — os dos ensaios 3C-4 auditados (``
 
 Estrutura (``novo_bloco``)::
 
-    {"format_version": 1, "contexto": "ensaio",
+    {"format_version": 2, "contexto": "ensaio",
      "declarante": {"tipo", "fonte"},                       # quem declara políticas e montagem
      "malha": {"delta_min", "N", "m", "H_L"},               # Δ [min]; horizonte curto, bloco aplicado, horizonte longo
      "demanda": {"nome", "criticidade", "semantica", "emissao_utc"},
+     "clima": {"semantica", "emissao_utc"},                 # formato 2 (3D-A2-R): previsão climática do cenário
+     "renovaveis": {<eq-… usina FV>: {"tecnologia": "fv", "eta_conversao_barramento", "custo_curtailment_R_kWh",
+                                      "procedencia"},
+                    <eq-… eólica>: {"tecnologia": "eolica", "hipotese_densidade", "custo_curtailment_R_kWh",
+                                    "procedencia"}},
      "realizacao": {"tipo", "demanda_kW", "procedencia"},   # realização SIMULADA posterior (nunca entregue ao controlador)
      "baterias": {<eq-…>: {"eta_carga", "eta_descarga", "p_carga_barramento_kW", "p_descarga_barramento_kW",
                            "hipotese_autodescarga", "custo_throughput_R_kWh", "procedencia"}},
@@ -47,7 +52,8 @@ from ems_v2.rede.contrato import MODOS_CONEXAO, REMUNERACOES_EXPORTACAO, SENTIDO
 from ems_v2.rede.execucao import TIPOS_AJUSTE
 from ems_v2.timegrid import ler_instante_utc
 
-FORMATO = 1
+FORMATO = 2                                           # 2 = Piso 3D-A2-R (clima + renováveis); 1 = Piso 3D-A
+FORMATOS_LEGIVEIS = (1, 2)
 MOTOR_V16 = "legacy_v16"
 MOTOR_V2 = MOTOR_ID                                   # "milp_mpc_v1"
 CHAVE_MOTOR, CHAVE_BLOCO = "engine", "milp_mpc"
@@ -71,7 +77,28 @@ HIPOTESES_AUTODESCARGA = {"nao_modelada_alpha_1": "Autodescarga NÃO modelada: h
 DISPONIBILIDADES_PCC = {"disponivel_em_toda_a_missao": "PCC disponível (a = 1) em todos os intervalos — DECLARADO"}
 LIQUIDACOES = {"igual_a_tarifa_declarada": "Liquidação da energia MEDIDA pela MESMA tarifa declarada (contratual "
                                             "conhecida)"}
-TERMOS_BASE = {"throughput_bess": "Custo de throughput das baterias: c_thr (P_c + P_d) h"}
+TERMOS_BASE = {"throughput_bess": "Custo de throughput das baterias: c_thr (P_c + P_d) h",
+               "curtailment_operacional": "Custo de vertimento operacional das renováveis: c_curt (a·A − P_R) h "
+                                          "(exige c_curt DECLARADO por recurso renovável)"}
+# ---- Piso 3D-A2-R: clima previsto e recursos renováveis (vocabulários também usados por ``renovaveis``)
+SEMANTICAS_CLIMA = {
+    "media_intervalo": "Cada amostra climática é a MÉDIA de [t, t + passo): o modelo é aplicado à média do clima de cada "
+                       "subpasso (função não linear ⇒ P(média) ≠ média de P: aproximação DECLARADA)",
+    "amostra_instantanea": "Cada amostra climática é INSTANTÂNEA em t: a média do intervalo é aproximada pela média das "
+                           "potências nas subamostras (retângulo à esquerda; aproximação DECLARADA)",
+}
+HIPOTESES_DENSIDADE = {
+    "calculada_do_clima_previsto": "ρ calculada pelo modelo eólico a partir de temperatura e pressão previstas (e umidade, "
+                                   "quando prevista); qualquer amostra que recaísse no ar de referência BLOQUEIA",
+    "referencia_do_catalogo": "ρ de referência da curva do catálogo (ar padrão) em todas as amostras — hipótese DECLARADA; "
+                              "temperatura/pressão previstas NÃO são usadas",
+}
+TECNOLOGIAS_RENOVAVEIS = {"pv": "fv", "wind": "eolica"}       # kind do inventário → tecnologia do contrato 3A
+CAMPOS_RENOVAVEL = {
+    "fv": {"eta_conversao_barramento": ("Conversão CC → barramento η (o modelo FV não representa inversor/MPPT)", "1",
+                                        "eficiencia")},
+    "eolica": {},
+}
 # Valores NUMÉRICOS de software (não físicos) usados nos ensaios 3C-4 auditados (ems_v2/fixtures_3c4.py,
 # ems_v2/milp/config.CONFIG_ANALITICA). São o ponto de partida do formulário; nunca um parâmetro de equipamento.
 REFERENCIA_NUMERICA = {
@@ -109,7 +136,11 @@ _CHAVES = {
     "termo_longo": {"tipo", "valores", "justificativa"},
     "solver": {"time_limit_s", "threads", "rel_gap", "abs_gap", "semente"},
     "bateria": set(CAMPOS_BATERIA) | {"hipotese_autodescarga", "procedencia"},
+    "clima": {"semantica", "emissao_utc"},
+    "fv": {"tecnologia", "eta_conversao_barramento", "custo_curtailment_R_kWh", "procedencia"},
+    "eolica": {"tecnologia", "hipotese_densidade", "custo_curtailment_R_kWh", "procedencia"},
 }
+_CHAVES["2"] = _CHAVES[""] | {"clima", "renovaveis"}
 
 
 # ------------------------------------------------------------------------------------------------ seleção do motor
@@ -127,10 +158,50 @@ def baterias_do_cenario(doc: dict) -> dict[str, dict]:
             if isinstance(r, dict) and r.get("kind") == "battery" and r.get("enabled", True)}
 
 
+def renovaveis_do_cenario(doc: dict) -> dict[str, dict]:
+    """Usinas FV e registros eólicos HABILITADOS na revisão do inventário referenciada pelo cenário."""
+    eqs = ((doc.get("inventory_ref") or {}).get("equipment") or {}) if isinstance(doc, dict) else {}
+    return {eid: r for eid, r in sorted(eqs.items(), key=lambda kv: kv[1].get("position", 0))
+            if isinstance(r, dict) and r.get("kind") in TECNOLOGIAS_RENOVAVEIS and r.get("enabled", True)}
+
+
+def renovaveis_participantes(doc: dict) -> dict[str, dict]:
+    """Renováveis habilitadas e NÃO declaradas indisponíveis no cenário (as que exigem declarações e clima)."""
+    ini = ((doc.get("initialization") or {}).get("equipment") or {}) if isinstance(doc, dict) else {}
+    return {eid: r for eid, r in renovaveis_do_cenario(doc).items()
+            if (ini.get(eid) or {}).get("availability") != "indisponivel"}
+
+
+def _renovavel_vazia(kind: str) -> dict:
+    tec = TECNOLOGIAS_RENOVAVEIS[kind]
+    base = {"tecnologia": tec, "custo_curtailment_R_kWh": None, "procedencia": {"tipo": None, "fonte": ""}}
+    if tec == "fv":
+        base["eta_conversao_barramento"] = None
+    else:
+        base["hipotese_densidade"] = None
+    return base
+
+
+def atualizar_bloco(b: dict, doc: dict) -> dict:
+    """Cópia do bloco no formato ATUAL: um bloco formato 1 (Piso 3D-A) ganha as seções ``clima`` e ``renovaveis`` VAZIAS
+    (nada é preenchido); renováveis do inventário ainda sem declaração ganham uma entrada vazia."""
+    n = copy.deepcopy(b)
+    if n.get("format_version") == 1:
+        n["format_version"] = FORMATO
+        n["clima"] = {"semantica": None, "emissao_utc": None}
+        n["renovaveis"] = {}
+    if isinstance(n.get("renovaveis"), dict):
+        for eid, r in renovaveis_do_cenario(doc).items():
+            n["renovaveis"].setdefault(eid, _renovavel_vazia(r["kind"]))
+    return n
+
+
 def novo_bloco(doc: dict) -> dict:
     """Bloco inicial: campos científicos VAZIOS para os bancos do cenário; numéricos de software = referência 3C-4."""
     return {
         "format_version": FORMATO, "contexto": "ensaio",
+        "clima": {"semantica": None, "emissao_utc": None},
+        "renovaveis": {eid: _renovavel_vazia(r["kind"]) for eid, r in renovaveis_do_cenario(doc).items()},
         "declarante": {"tipo": None, "fonte": ""},
         "malha": {"delta_min": None, "N": None, "m": None, "H_L": None},
         "demanda": {"nome": "Demanda agregada da microrrede", "criticidade": None, "semantica": None, "emissao_utc": None},
@@ -205,11 +276,20 @@ def erros_estruturais(b: Any, doc: dict | None = None) -> list[str]:
     p = "Estratégia MILP–MPC"
     if not isinstance(b, dict):
         return [f"{p}: bloco ilegível."]
-    if b.get("format_version") != FORMATO:
+    if b.get("format_version") not in FORMATOS_LEGIVEIS:
         return [f"{p}: formato não reconhecido."]
-    out = _chaves(b, "", p)
+    out = _chaves(b, "" if b["format_version"] == 1 else "2", p)
     if out:
         return out
+    if b["format_version"] >= 2:
+        out += _chaves(b["clima"], "clima", f"{p} · clima")
+        if not out:
+            out += _opcao(b["clima"]["semantica"], SEMANTICAS_CLIMA, f"{p} · clima · semântica")
+            if b["clima"]["emissao_utc"] is not None and not instante_valido(b["clima"]["emissao_utc"]):
+                out.append(f"{p} · clima · emissão: instante ISO 8601 com fuso explícito.")
+        out += _renovaveis_erros(b["renovaveis"], doc, p)
+        if out:
+            return out
     for sec in ("declarante", "malha", "demanda", "realizacao", "pcc", "objetivo", "planejador", "solver"):
         out += _chaves(b[sec], sec, f"{p} · {sec}")
     if out:
@@ -276,6 +356,40 @@ def _baterias_erros(bs: Any, doc: dict | None, p: str) -> list[str]:
                 faixa = {"eficiencia": "(0, 1]", "positivo": "> 0", "nao_negativo": ">= 0"}[dom]
                 out.append(f"{cam} · {rot}: valor fora do domínio {faixa}.")
         out += _opcao(d["hipotese_autodescarga"], HIPOTESES_AUTODESCARGA, f"{cam} · autodescarga")
+        out += _proc_erros(d["procedencia"], cam)
+    return out
+
+
+def _renovaveis_erros(rs: Any, doc: dict | None, p: str) -> list[str]:
+    if not isinstance(rs, dict):
+        return [f"{p} · renováveis: bloco ilegível."]
+    out = []
+    conhecidas = None if doc is None else renovaveis_do_cenario(doc)
+    for eid, d in rs.items():
+        cam = f"{p} · renovável {str(eid)[:20]}"
+        if conhecidas is not None and eid not in conhecidas:
+            out.append(f"{cam}: não é uma usina FV/registro eólico habilitado do inventário de referência (declaração órfã).")
+            continue
+        tec = d.get("tecnologia") if isinstance(d, dict) else None
+        if tec not in CAMPOS_RENOVAVEL:
+            out.append(f"{cam}: tecnologia ilegível.")
+            continue
+        if conhecidas is not None and TECNOLOGIAS_RENOVAVEIS[conhecidas[eid]["kind"]] != tec:
+            out.append(f"{cam}: tecnologia declarada '{tec}' difere do inventário.")
+            continue
+        e = _chaves(d, tec, cam)
+        if e:
+            out += e
+            continue
+        for campo, (rot, _un, dom) in CAMPOS_RENOVAVEL[tec].items():
+            v = d[campo]
+            if v is not None and (not _real(v) or (dom == "eficiencia" and not 0 < v <= 1)):
+                out.append(f"{cam} · {rot}: valor fora do domínio (0, 1].")
+        if tec == "eolica":
+            out += _opcao(d["hipotese_densidade"], HIPOTESES_DENSIDADE, f"{cam} · densidade do ar")
+        c = d["custo_curtailment_R_kWh"]
+        if c is not None and not (_real(c) and c >= 0):
+            out.append(f"{cam} · custo de vertimento: R$/kWh finito >= 0.")
         out += _proc_erros(d["procedencia"], cam)
     return out
 
@@ -396,6 +510,7 @@ def pendencias(b: dict, doc: dict) -> list[tuple[str, str]]:
             falta(f"baterias.{eid}.hipotese_autodescarga", "Hipótese de autodescarga não declarada (sem padrão).")
         if not procedencia_declarada(x["procedencia"]):
             falta(f"baterias.{eid}.procedencia", "Procedência das declarações do banco não declarada (tipo e fonte).")
+    out += _renovaveis_pendencias(b, doc)
     out += _pcc_pendencias(b["pcc"])
     g = b["planejador"]
     for k in ("tipo_sinal", "politica_atualizacao", "periodo_janelas", "pontos_iniciais", "pontos_max",
@@ -414,6 +529,41 @@ def pendencias(b: dict, doc: dict) -> list[tuple[str, str]]:
     for k, v in b["solver"].items():
         if v is None:
             falta(f"solver.{k}", f"Solver: '{k}' não declarado.")
+    return out
+
+
+def _renovaveis_pendencias(b: dict, doc: dict) -> list[tuple[str, str]]:
+    part = renovaveis_participantes(doc)
+    if not part:
+        return []
+    if b["format_version"] == 1:
+        return [("renovaveis", f"Estratégia no formato 1 (Piso 3D-A), sem declarações de renováveis, mas {len(part)} "
+                 "equipamento(s) FV/eólico(s) participa(m) da missão: atualize a estratégia (as seções de clima e "
+                 "renováveis começam vazias) ou declare-os indisponíveis neste cenário.")]
+    out: list[tuple[str, str]] = []
+    cl = b["clima"]
+    if cl["semantica"] is None:
+        out.append(("clima.semantica", "Semântica da previsão CLIMÁTICA não declarada (média de intervalo × amostra "
+                    "instantânea): o Piso 2B não a registra e o potencial médio do intervalo depende dela."))
+    if cl["emissao_utc"] is None:
+        out.append(("clima.emissao_utc", "Instante de EMISSÃO da previsão climática não declarado (sem ele a causalidade "
+                    "do potencial renovável não é verificável)."))
+    curt = "curtailment_operacional" in b["objetivo"]["termos"]
+    for eid in part:
+        x = b["renovaveis"].get(eid)
+        if x is None:
+            continue                                   # declaração ausente: constatada pelo preflight por UID
+        for campo, (rot, un, _dom) in CAMPOS_RENOVAVEL[x["tecnologia"]].items():
+            if x[campo] is None:
+                out.append((f"renovaveis.{eid}.{campo}", f"{rot} [{un}] não declarado(a)."))
+        if x["tecnologia"] == "eolica" and x["hipotese_densidade"] is None:
+            out.append((f"renovaveis.{eid}.hipotese_densidade", "Hipótese de densidade do ar não declarada (calculada do "
+                        "clima previsto × referência do catálogo; sem padrão)."))
+        if curt and x["custo_curtailment_R_kWh"] is None:
+            out.append((f"renovaveis.{eid}.custo_curtailment_R_kWh", "Custo de vertimento c_curt não declarado (termo "
+                        "'curtailment_operacional' no objetivo)."))
+        if not procedencia_declarada(x["procedencia"]):
+            out.append((f"renovaveis.{eid}.procedencia", "Procedência das declarações do recurso renovável não declarada."))
     return out
 
 
@@ -475,7 +625,9 @@ def status_estrategia(doc: dict) -> tuple[str, str, str]:
 
 
 __all__ = ["CAMPOS_BATERIA", "CHAVE_BLOCO", "CHAVE_MOTOR", "CONTEXTOS", "CONTEXTO_NAO_SUPORTADO", "CRITICIDADES",
-           "DISPONIBILIDADES_PCC", "FORMATO", "HIPOTESES_AUTODESCARGA", "LIMITES", "LIQUIDACOES", "MOTORES", "MOTOR_V16",
-           "MOTOR_V2", "REALIZACOES", "REFERENCIA_NUMERICA", "ROTULO_REFERENCIA", "SEMANTICAS", "TERMOS_BASE",
-           "TIPOS_DECLARAVEIS", "baterias_do_cenario", "erros_documento", "erros_estruturais", "instante_valido",
-           "motor_selecionado", "novo_bloco", "pendencias", "procedencia_declarada", "status_estrategia"]
+           "CAMPOS_RENOVAVEL", "DISPONIBILIDADES_PCC", "FORMATO", "FORMATOS_LEGIVEIS", "HIPOTESES_AUTODESCARGA",
+           "HIPOTESES_DENSIDADE", "LIMITES", "LIQUIDACOES", "MOTORES", "MOTOR_V16", "MOTOR_V2", "REALIZACOES",
+           "REFERENCIA_NUMERICA", "ROTULO_REFERENCIA", "SEMANTICAS", "SEMANTICAS_CLIMA", "TECNOLOGIAS_RENOVAVEIS",
+           "TERMOS_BASE", "TIPOS_DECLARAVEIS", "atualizar_bloco", "baterias_do_cenario", "erros_documento",
+           "erros_estruturais", "instante_valido", "motor_selecionado", "novo_bloco", "pendencias",
+           "procedencia_declarada", "renovaveis_do_cenario", "renovaveis_participantes", "status_estrategia"]

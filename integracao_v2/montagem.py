@@ -64,9 +64,12 @@ FIXOS = {
     "aceitacao": "somente solução ótima dentro dos gaps declarados, aprovada pelo auditor independente",
     "politica_revisao_tardia": "registrar_sem_reconciliar",
     "cobertura_fim_missao": "reduzido_ao_fim_da_missao",
-    "injecao_renovavel": "limitada_pela_disponibilidade (sem renováveis no modelo 3D-A)",
+    "injecao_renovavel": "limitada_pela_disponibilidade (injeção efetiva = min(consigna, a·A observado))",
+    "potencial_renovavel": "modelos físicos do SEEDS2 (FV por arranjo; eólica por registro) sobre o clima previsto do "
+                           "cenário; média aritmética das subamostras por intervalo; base 'antes_da_disponibilidade'",
+    "realizacao_renovavel": "igual ao potencial previsto (mesmo modelo, mesmo clima: sem erro de previsão renovável)",
     "latencia_observacao_s": 0,
-    "geradores_despachaveis": "nenhum (PEMFC e térmica não são representáveis no Piso 3D-A)",
+    "geradores_despachaveis": "nenhum (PEMFC e térmica não são representáveis nos Pisos 3D-A/3D-A2-R)",
 }
 JUST_PERMANENCIA = "Missão 3D-A sem geradores despacháveis: nenhuma permanência a cumprir"
 JUST_TERMINAL = "Missão 3D-A: janela reduzida ao fim da missão (nenhuma previsão pós-missão é usada)"
@@ -123,6 +126,10 @@ class Montagem:
     proc_politicas: Procedencia | None = None
     tarifas: dict = field(default_factory=dict)     # grandeza → lista de R$/kWh (decisão = liquidação declarada)
     hashes: dict = field(default_factory=dict)
+    renovaveis: list = field(default_factory=list)  # renovaveis.Derivacao por UID (arr-… / eq-…)
+    bases: dict = field(default_factory=dict)       # provedor: {uid: base_potencial}
+    clima: object | None = None                     # renovaveis.Clima (alinhado à malha)
+    doc_renovaveis: dict | None = None              # conteúdo de v2/renovaveis.json (comprometido antes da execução)
 
 
 # ------------------------------------------------------------------------------------------------ procedências
@@ -138,6 +145,10 @@ def inventario_efetivo(inv: IV.InventarioMicrorrede, bloco: dict, stored, exclui
     for d in inv.dispositivos:
         if d.uid in excluidos or (d.pai is not None and d.pai in excluidos):
             novos.append(replace(d, habilitado=False))
+            continue
+        if d.tipo in ("pv_arranjo", "eolica"):
+            d = _renovavel_efetivo(d, bloco, stored)
+            novos.append(d)
             continue
         decl = bloco["baterias"].get(d.uid) if d.tipo == "bateria" else None
         if decl is not None and E.procedencia_declarada(decl["procedencia"]):
@@ -162,6 +173,22 @@ def inventario_efetivo(inv: IV.InventarioMicrorrede, bloco: dict, stored, exclui
         "indisponíveis no cenário como não participantes; modo_operacao = 'isolada' = barramento interno da base 3B-P "
         f"(instalação declarada: {inv.modo_operacao!r}; a interconexão existe só no embrulho 3C-3 — C-3C3-01).",)
     return replace(inv, modo_operacao="isolada", dispositivos=tuple(novos), observacoes=obs)
+
+
+def _renovavel_efetivo(d, bloco: dict, stored):
+    """Acrescenta o custo de vertimento DECLARADO (só com o termo no objetivo) ao arranjo FV (declaração da usina-mãe) ou
+    ao registro eólico. Nenhum outro valor é acrescentado: o potencial vem do modelo físico, não de declaração."""
+    if "curtailment_operacional" not in bloco["objetivo"]["termos"]:
+        return d
+    eid = d.pai if d.tipo == "pv_arranjo" else d.uid
+    decl = (bloco.get("renovaveis") or {}).get(eid)
+    if decl is None or decl["custo_curtailment_R_kWh"] is None or not E.procedencia_declarada(decl["procedencia"]):
+        return d
+    cam = f"renovaveis.{eid}.custo_curtailment_R_kWh"
+    sint = decl["procedencia"]["tipo"] == "sintetico"
+    v = IV.ValorInventario("custo_curtailment", "R$/kWh", f"{E.CHAVE_BLOCO}.{cam}", "sintetico" if sint else "cenario",
+                           proc_declarada(decl["procedencia"], cam, stored), numero=float(decl["custo_curtailment_R_kWh"]))
+    return replace(d, valores=tuple(d.valores) + (v,))
 
 
 # ------------------------------------------------------------------------------------------------ séries
@@ -295,7 +322,7 @@ def construir_missao(mont: Montagem, missao_uid: str, stored, *, diretorio=None)
 
     cfg = configuracao_mpc(mont, missao_uid, stored)
     prov_proc = next(s.procedencia for (u, g), s in mont.tabela.items() if (u, g) == (UID_DEMANDA, "potencia"))
-    provedor = ProvedorTabelaDeclarada(ID_PROVEDOR, mont.tabela, prov_proc)
+    provedor = ProvedorTabelaDeclarada(ID_PROVEDOR, mont.tabela, prov_proc, bases=dict(mont.bases) or None)
     lat = {(s.uid, s.grandeza): 0 for s in mont.verdade.series}
     if mont.modelo.conectado:
         lat.update({(UID_MED_IMP, "potencia"): 0, (UID_MED_EXP, "potencia"): 0})
