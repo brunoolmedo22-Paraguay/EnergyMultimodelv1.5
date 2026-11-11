@@ -2693,7 +2693,7 @@ Rama `claude/adoring-newton-jzfmfx` desde `main` `a636350` (PR #20 integrado). *
 
 **Qué NO se tocó.** `ems_v2/` byte a byte (árbol Git `58cc13b6de0abff0f0cff824d469f2fb3f4ed3d7` en base y en la rama): formulación MILP, planificador, MPC, costo futuro, política numérica, fixtures y referencias. V1.6 (modelos, EMS, runtime, runner), `seeds2/microgrid`, `seeds2/archive`, `seeds2/report`, `requirements*.txt`, esquema SQLite v4 y formato `seeds2-study` v1. Ninguno de los archivos fijados por hash por las políticas eólica / estabilización / CI-01.
 
-**Archivos.** Nuevos: `integracao_v2/{__init__,estrategia,montagem,preflight,execucao,registro,ui}.py`; tests `tests/piso3da_util.py`, `tests/test_piso3da_{preflight,execucao,app}.py`, `tests/ems_v2/{piso3da_guard_policy,test_piso3da_guardas}.py`; E2E `tools/e2e/{seed_piso3da.py,e2e_piso3da_v2.js,run_piso3da.sh,sabotage_v2/sitecustomize.py}`; `docs/ems_v2/INTEGRACAO_3DA.md` + capturas en `docs/ems_v2/evidencia_3da/`. Modificados: `seeds2/operation/{scenarios,preflight}.py`, `seeds2/ui/{execution_ui,archive_ui}.py`, `tests/ems_v2/{test_ems_v2_isolamento,stabilization_guard_policy}.py`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, este archivo.
+**Archivos.** Nuevos: `integracao_v2/{__init__,estrategia,montagem,preflight,execucao,registro,ui}.py`; tests `tests/piso3da_util.py`, `tests/test_piso3da_{preflight,execucao,app}.py`, `tests/ems_v2/{piso3da_guard_policy,test_piso3da_guardas}.py`; E2E `tools/e2e/{seed_piso3da.py,e2e_piso3da_v2.js,run_piso3da.sh,sabotage_v2/sitecustomize.py}`; `docs/ems_v2/INTEGRACAO_3DA.md` + registros de texto del E2E y de las pruebas focalizadas en `docs/ems_v2/evidencia_3da/` (las capturas PNG del navegador NO están versionadas; se regeneran con `bash tools/e2e/run_piso3da.sh`). Modificados: `seeds2/operation/{scenarios,preflight}.py`, `seeds2/ui/{execution_ui,archive_ui}.py`, `tests/ems_v2/{test_ems_v2_isolamento,stabilization_guard_policy}.py`, `CLAUDE.md`, `docs/ai/HANDOFF.md`, este archivo.
 
 **Hallazgos de integración (GATE 0) — ninguno es defecto matemático del núcleo:**
 
@@ -2723,7 +2723,7 @@ Rama `claude/adoring-newton-jzfmfx` desde `main` `a636350` (PR #20 integrado). *
 |---|---|
 | `python -m pytest tests/ -q` con `requirements.txt` + `requirements-ems_v2.txt` | **2116 passed, 1 skipped, 9 warnings** (677 s) — el omitido es la auditoría explícita del diff, por diseño. Línea de base tras MATH-01: 2080. Después se añadió 1 test (rechazo del dossier 2D-B) ejecutado de forma focalizada; el conteo final lo da el CI remoto |
 | `python -m pytest tests/ -q` **sin** Pyomo/HiGHS | **1652 passed, 120 skipped, 9 warnings** (504 s) — línea de base 1629 passed / 101 omitidos |
-| `pytest tests/test_piso3da_*.py tests/ems_v2/test_piso3da_guardas.py` | ver HANDOFF (conteo final con y sin solver) |
+| `pytest tests/test_piso3da_*.py tests/ems_v2/test_piso3da_guardas.py tests/ems_v2/test_ems_v2_isolamento.py` (código final `5e2a458`) | con solver **40 passed, 1 skipped**; sin solver **24 passed, 17 skipped** |
 | Guardias de aislamiento (3A, ponte, 3C-2, 3C-3, 3C-4, eólica, estabilización) | 181 passed, 1 skipped |
 | `python tests/ems_v2/piso3da_guard_policy.py` (auditoría explícita del diff de la misión) | `ems_v2` idéntico a la base; V1.6 y archivos protegidos intactos; cambios nominales |
 | `tools/e2e/run_piso3da.sh` (Chromium real, servidores Streamlit reales) | **106 verificaciones**: operar 65 · reinicio tras `kill -9` 14 · tablet 8 · importar (sin solver, motores saboteados) 19; registro de llamadas al motor **vacío** |

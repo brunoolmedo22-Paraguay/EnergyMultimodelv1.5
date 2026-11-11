@@ -1,0 +1,8 @@
+1:== 1. semente
+3:== 2. operar (servidor com solver; kill -9 durante a missão longa)
+4:servidor 29000 derrubado com kill -9 durante a rodada
+6:== 3. reinício (mesmo diretório, novo processo)
+9:== 4. tablet
+12:== 5. importar (instalação limpa, SEM solver, motores sabotados)
+15:registro de chamadas ao motor na instalação de consulta: VAZIO
+21:exit 0
