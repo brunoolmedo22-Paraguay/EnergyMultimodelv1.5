@@ -259,6 +259,10 @@ def preparar(store, stored) -> PreflightV2:
     inv_ef = MT.inventario_efetivo(inv, bloco, stored, excl)
     proc_pol = MT.proc_declarada(bloco["declarante"], "declarante", stored)
     pol = MT.politicas(bloco, proc_pol, com_geradores=bool(pem))
+    sem = [t for t in ("combustivel_h2", "eventos") if t in bloco["objetivo"]["termos"] and not pem]
+    if sem:
+        pf.add(INFO, "estrategia", f"Termo(s) {', '.join(sem)} declarado(s), mas nenhuma PEMFC participa desta missão "
+               "(indisponível ou ausente): não aplicado(s) ao objetivo desta rodada.")
     mont = MT.Montagem(tempo, inv, inv_ef, cen, pf.excluded, pf.represented, prev_kw, real_kw, tabela, verdade,
                        fonte_verdade, pol, proc_politicas=proc_pol)
     derivs, clima = renov

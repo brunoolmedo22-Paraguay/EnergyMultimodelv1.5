@@ -153,8 +153,9 @@ def render_estrategia(store, cur, oc) -> None:
             st.rerun()
         oc._save_bar(store, cur, I.summarize(S.findings(doc)))
         return
-    if E.renovaveis_do_cenario(doc) and (b.get("format_version") == 1 or set(E.renovaveis_do_cenario(doc))
-                                         - set(b.get("renovaveis") or {})):
+    if (E.renovaveis_do_cenario(doc) or E.pemfc_do_cenario(doc)) and (
+            b.get("format_version", 1) < E.FORMATO or set(E.renovaveis_do_cenario(doc)) - set(b.get("renovaveis") or {})
+            or set(E.pemfc_do_cenario(doc)) - set(b.get("pemfc") or {})):
         doc[E.CHAVE_BLOCO] = b = E.atualizar_bloco(b, doc)   # seções de renováveis VAZIAS (nada é preenchido)
     if E.erros_estruturais(b, doc) and set(b) != set(E.novo_bloco(doc)):
         st.error("A estratégia V2 gravada tem estrutura incompatível com esta versão do formulário.")
@@ -215,6 +216,7 @@ def render_estrategia(store, cur, oc) -> None:
     for eid in [e for e in list(b["baterias"]) if e not in bats]:
         b["baterias"].pop(eid)                        # banco retirado/desabilitado: declaração órfã não é mantida
     _renovaveis_form(b, doc, k)
+    _pemfc_form(b, doc, k)
     with st.container(border=True):
         st.html('<div class="op-k">PCC, tarifas e objetivo</div>')
         c = b["pcc"]
@@ -347,6 +349,53 @@ def _renovaveis_form(b: dict, doc: dict, k: str) -> None:
                     x["custo_curtailment_R_kWh"] = _num("Custo de vertimento c_curt [R$/kWh]", x["custo_curtailment_R_kWh"],
                                                         f"{k}_rn_{eid}_cc", minimo=0.0, fmt="%.4g")
             _proc(x["procedencia"], f"{k}_rn_{eid}")
+
+
+def _pemfc_form(b: dict, doc: dict, k: str) -> None:
+    """Declarações PEMFC (Piso 3D-A2-H): inicialização física da curva, limites e commitment por unidade. A curva q(P)
+    NÃO é digitada: é gerada pelo modelo físico no preflight e só entra no MILP com certificado B04 aprovado."""
+    regs = E.pemfc_do_cenario(doc)
+    if not regs or b.get("format_version", 1) < 3:
+        return
+    with st.container(border=True):
+        st.html('<div class="op-k">PEMFC / H₂: inicialização física e commitment</div><p class="op-d">A curva de consumo '
+                'q(P) é gerada pelo MODELO FÍSICO do SEEDS2 a partir destas condições (uma vez por configuração) e só entra '
+                'no MILP com certificado B04 APROVADO pelo responsável. Modelo aproximado — não é caracterização '
+                'experimental do equipamento.</p>')
+        termos = b["objetivo"]["termos"]
+        for eid, ref in regs.items():
+            x = b["pemfc"][eid]
+            st.html(f'<div class="op-k" style="margin-top:.4rem">{escape(ref.get("name") or eid)} '
+                    f'<span class="op-m">{escape(eid)}</span></div>')
+            cols = st.columns(4)
+            for i, (campo, (rot, un)) in enumerate(E.CONDICOES_PEMFC.items()):
+                with cols[i]:
+                    x["condicoes"][campo] = _num(f"{rot} [{un}]", x["condicoes"][campo], f"{k}_fc_{eid}_{campo}", fmt="%.6g")
+            cols = st.columns(4)
+            vis = [c for c in E.CAMPOS_PEMFC if c not in ("custo_partida_R", "custo_parada_R") or "eventos" in termos]
+            for i, campo in enumerate(vis):
+                rot, un, _d = E.CAMPOS_PEMFC[campo]
+                with cols[i % 4]:
+                    x[campo] = _num(f"{rot} [{un}]", x[campo], f"{k}_fc_{eid}_{campo}", fmt="%.6g")
+            a1, a2 = st.columns(2)
+            with a1:
+                x["abstracao"] = _sel("Abstração de partida/parada (D05)", E.ABSTRACOES_PEMFC, x["abstracao"],
+                                      f"{k}_fc_{eid}_abs")
+            with a2:
+                x["limites_transicao"] = _sel("Limites de partida/parada", E.LIMITES_PEMFC, x["limites_transicao"],
+                                              f"{k}_fc_{eid}_lim")
+            for i, un in enumerate(x["unidades"]):
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    un["estado"] = _sel(f"Unidade {i + 1} · estado inicial", E.ESTADOS_UNIDADE, un["estado"],
+                                        f"{k}_fc_{eid}_u{i}_e")
+                with c2:
+                    un["potencia_kW"] = _num(f"Unidade {i + 1} · potência anterior [kW]", un["potencia_kW"],
+                                             f"{k}_fc_{eid}_u{i}_p", minimo=0.0, fmt="%.6g")
+                with c3:
+                    un["tempo_no_estado_min"] = _num(f"Unidade {i + 1} · tempo no estado [min]", un["tempo_no_estado_min"],
+                                                     f"{k}_fc_{eid}_u{i}_t", minimo=0.0, fmt="%.6g")
+            _proc(x["procedencia"], f"{k}_fc_{eid}")
 
 
 # ======================================================================= etapa 04 — preflight e execução
@@ -497,7 +546,7 @@ def _provenance(run) -> None:
         st.json(m, expanded=False)
 
 
-def _figuras(it, fr, bats: list[str], key: str, rens: list[str] = ()) -> None:
+def _figuras(it, fr, bats: list[str], key: str, rens: list[str] = (), gers: list[str] = ()) -> None:
     import plotly.graph_objects as go
 
     x = it["intervalo"]
@@ -506,6 +555,8 @@ def _figuras(it, fr, bats: list[str], key: str, rens: list[str] = ()) -> None:
                 name="Importação da rede (realizada)")
     for u in rens:
         fig.add_bar(x=x, y=it[f"{u}|P_R_kW"], name=f"Renovável {u} (aproveitada)")
+    for u in gers:
+        fig.add_bar(x=x, y=it[f"{u}|p_kW"], name=f"PEMFC {u}")
     for b in bats:
         fig.add_bar(x=x, y=it[f"{b}|P_d_kW"], name=f"Descarga {b}")
     fig.add_scatter(x=x, y=it["demanda_realizada_kW"], name="Demanda realizada", mode="lines+markers",
@@ -614,13 +665,29 @@ def run_results(source, run, *, key: str) -> None:
         st.caption("Potencial derivado pelos modelos físicos do SEEDS2 no preflight da rodada e GRAVADO (v2/renovaveis.json); "
                    "a reabertura não reexecuta modelos nem otimizador. Realização renovável = previsão (sem erro de previsão "
                    "renovável nesta simulação).")
+    pem = s.get("pemfc") or {}
+    if pem:
+        din = ((run.summary or {}).get("execution") or {}).get("pemfc_dinamica") or {}
+        st.html('<table class="op-tbl"><tr><th>PEMFC (unidade)</th><th>Energia [kWh]</th><th>H₂ suprido [kg]</th>'
+                '<th>Custo H₂ [R$]</th><th>Consumo específico [kg/kWh]</th><th>Partidas · paradas</th>'
+                '<th>Verificação dinâmica</th></tr>' + "".join(
+                    f"<tr><td class='op-m'>{escape(u)}</td><td>{forms.fmt(r['energia_kWh'], 3)}</td>"
+                    f"<td>{forms.fmt(r['massa_h2_kg'], 4)}</td><td>{forms.fmt(r['custo_h2_R'], 2)}</td>"
+                    f"<td>{forms.fmt(r['consumo_especifico_kg_kWh'], 4)}</td><td>{r['partidas']} · {r['paradas']}</td>"
+                    f"<td>{'coerente' if (din.get(u) or {}).get('coerente') else 'NÃO coerente'} "
+                    f"({forms.fmt((din.get(u) or {}).get('energia_entregue_kWh'), 2)} de "
+                    f"{forms.fmt((din.get(u) or {}).get('energia_solicitada_kWh'), 2)} kWh)</td></tr>"
+                    for u, r in pem.items()) + "</table>")
+        st.caption("Curva q(P) derivada do modelo físico APROXIMADO com certificado B04 (v2/pemfc.json); consignas avaliadas "
+                   "a posteriori pelo modelo dinâmico (v2/pemfc_dinamica.json). A abstração instantânea do MILP não é "
+                   "validação física; consignas fora das tolerâncias são declaradas NÃO coerentes.")
     try:
         it, fr = RG.ler_csv(source, run, RG.N_INTERVALOS), RG.ler_csv(source, run, RG.N_FRONTEIRAS)
         ja = RG.ler_csv(source, run, RG.N_JANELAS)
     except StoreError as exc:
         st.error(shell.md(exc))
         return
-    _figuras(it, fr, bats, key, list(ren))
+    _figuras(it, fr, bats, key, list(ren), list(pem))
     with st.expander("Intervalos aplicados (dados originais gravados)"):
         st.dataframe(it, hide_index=True, width="stretch")
     with st.expander("Decisões por janela: solver, gap, custos planejado × realizado, sinal de valor futuro"):

@@ -233,7 +233,8 @@ def serie(grandeza: str, t: Tempo, valores, proc: Procedencia, emissao: str | No
 
 def politicas(bloco: dict, proc: Procedencia, *, com_geradores: bool = False) -> PJ.PoliticasDeclaradas:
     d = bloco["demanda"]
-    termos = tuple(t for t in bloco["objetivo"]["termos"] if t != "eventos")      # "eventos" é termo do 3C-1
+    termos = tuple(t for t in bloco["objetivo"]["termos"] if t != "eventos"      # "eventos" é termo do 3C-1
+                   and (com_geradores or t != "combustivel_h2"))                # sem PEMFC participante: não se aplica
     return PJ.PoliticasDeclaradas(
         FORMULACAO_3BP, PoliticaServico("duro", proc),
         PoliticaTerminal("nenhuma", "Núcleo 3B-P sem termo terminal próprio: o tratamento terminal é o termo declarado "
