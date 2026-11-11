@@ -527,6 +527,41 @@ def _verificacao(source, run):
     return cache[chave]
 
 
+def _nomes_do_inventario(source, run) -> dict:
+    """{uid: (nome, tag)} do inventário de referência da versão do cenário executada, quando a origem o expõe."""
+    try:
+        doc = source.get_scenario(run.scenario_uid, run.scenario_version).document
+        return {eid: (ref.get("name"), ref.get("tag")) for eid, ref in doc["inventory_ref"]["equipment"].items()}
+    except (AttributeError, KeyError, TypeError, StoreError):
+        return {}
+
+
+def _partitura(source, run, v, key: str) -> None:
+    """Piso 3D-B0 — instrumento Partitura (motor gráfico Trama) sobre os dados GRAVADOS da rodada. Só é desenhado com a
+    evidência verificada; o marco de dados é montado uma vez por sessão e rodada. A vista clássica continua abaixo."""
+    if not v.ok:
+        return
+    from seeds2.ui import trama as TR
+
+    from . import trama_frame as TF
+
+    cache = _ss().setdefault("op_v2_frame", {})
+    chave = (run.run_uid, getattr(source, "archive_uid", None) or "local")
+    if chave not in cache:
+        if len(cache) > 4:
+            cache.clear()
+        try:
+            cache[chave] = TF.montar(source, run, verificacao=v, nomes=_nomes_do_inventario(source, run))
+        except (StoreError, KeyError, ValueError, TypeError) as exc:
+            st.caption(f"Partitura indisponível para esta rodada ({shell.md(exc)}). A vista clássica abaixo continua "
+                       "completa.")
+            return
+    TR.partitura(cache[chave], key=f"{key}_partitura")
+    st.markdown('<div class="sd-section">Vista clássica</div>', unsafe_allow_html=True)
+    st.caption("Tabelas, gráficos e descargas anteriores ao Piso 3D-B, mantidos durante a migração para a Partitura. Os "
+               "números são os mesmos: as duas vistas leem os dados gravados da rodada.")
+
+
 def _provenance(run) -> None:
     m = run.manifest
     with st.expander("Procedência da rodada (manifesto imutável)"):
@@ -633,9 +668,11 @@ def _aceitacao(run) -> None:
 def run_results(source, run, *, key: str) -> None:
     """Rodada V2 FINALIZADA lida de ``source`` (``MicrogridStore`` ou estudo arquivado). Nunca chama o otimizador."""
     m = run.manifest
+    v = _verificacao(source, run)
+    if run.state == "concluida":
+        _partitura(source, run, v, key)               # Piso 3D-B0: instrumento Partitura; a vista clássica segue abaixo
     shell.callout(f"<b>Motor V2 experimental (MILP–MPC hierárquico).</b> {escape(m.get('scope') or PF.ESCOPO)} Dados "
                   "sintéticos/declarados estão rotulados na procedência.", "warn")
-    v = _verificacao(source, run)
     with st.expander(("✓ Evidência verificada" if v.ok else "✕ EVIDÊNCIA COM PROBLEMAS") +
                      " — reabertura sem otimizador (hashes, vistas regeneradas, auditoria integral)", expanded=not v.ok):
         st.html("".join(shell.check(escape(t), "ok" if ok else "bad") for ok, t in v.itens))

@@ -39,14 +39,15 @@ REFERENCIAM_O_MOTOR = frozenset(TESTES_3DA2H)
 
 
 def referencia_autorizada(rel: str) -> bool:
-    return rel in REFERENCIAM_O_MOTOR
+    from piso3db_guard_policy import referencia_autorizada as autorizada_3db          # exceção nominal C-3DB-01
+    return rel in REFERENCIAM_O_MOTOR or autorizada_3db(rel)
 
 
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos. Remoção, renomeação ou qualquer outro arquivo continuam visíveis."""
-    _ = root
-    return [row for row in changes if not (len(row) == 2 and (
-        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from piso3db_guard_policy import filter_changes as filter_3db                    # exceção nominal C-3DB-01
+    return filter_3db(root, [row for row in changes if not (len(row) == 2 and (
+        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))])
 
 
 # ------------------------------------------------------------------------------------------------ auditoria explícita
