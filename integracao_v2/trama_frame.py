@@ -23,7 +23,9 @@ import math
 
 from . import registro as RG
 
-FORMATO, VERSAO = "seeds2-trama-frame", 1
+FORMATO, VERSAO = "seeds2-trama-frame", 2
+# Versão 2 (Piso 3D-B3): acrescenta ``planos``, ``coordenacoes``, ``auditoria``, ``procedencia``, ``limitacoes``,
+# ``convencoes`` e ``tabelas`` (lentes Decisão, Economia e Evidência). Nenhum campo da versão 1 mudou.
 ROTULOS_TECNOLOGIA = {"fv": "Solar fotovoltaica", "eolica": "Eólica"}
 
 
@@ -70,6 +72,69 @@ def _janelas(ja) -> list[dict]:
               "termo_terminal": "termo_terminal_aplicado"}
     cols = {k: _col(ja, c) for k, c in campos.items()}
     return [{k: (None if v is None else v[i]) for k, v in cols.items()} for i in range(len(ja))]
+
+
+def _planos(pl) -> list[dict]:
+    """Plano de cada decisão (``v2/planos.csv``): uma entrada por janela, com as colunas ``plano:<uid>|<grandeza>`` gravadas."""
+    fixas = ("janela", "indice_no_plano", "intervalo", "inicio_utc", "aplicado", "demanda_prevista_kW")
+    dinamicas = [c for c in pl.columns if c not in fixas]
+    out = []
+    for j, g in pl.groupby("janela", sort=True):
+        out.append({"janela": _v(j), "intervalo": _col(g, "intervalo"), "aplicado": _col(g, "aplicado"),
+                    "demanda_prevista_kW": _col(g, "demanda_prevista_kW"),
+                    "series": {c[len("plano:"):] if c.startswith("plano:") else c: _col(g, c) for c in dinamicas}})
+    return out
+
+
+def _coordenacoes(co: list) -> list[dict]:
+    """Registros de coordenação plano longo → MPC (``v2/coordenacoes.json``): só os campos de leitura científica; selos,
+    hashes de entrada e lotes ficam nos registros selados."""
+    out = []
+    for c in co or []:
+        s, d, pl = c.get("sinal"), c.get("decomposicao"), c.get("plano_longo")
+        sinal = None
+        if s:
+            q = s.get("qualidade") or {}
+            sinal = {"tipo": s.get("tipo"), "indice_fronteira": s.get("indice_fronteira"),
+                     "instante_fronteira_utc": s.get("instante_fronteira_utc"),
+                     "indice_fim_planejamento": s.get("indice_fim_planejamento"), "intervalos_cauda": s.get("intervalos_cauda"),
+                     "baterias": s.get("baterias"), "geradores": s.get("geradores"), "convencao": s.get("convencao"),
+                     "referencia": s.get("referencia"),
+                     "qualidade": {k: q.get(k) for k in ("estado", "motivo", "erro_interpolacao_max_R",
+                                                         "tolerancia_interpolacao_R", "gap_abs_max_R", "avaliacoes",
+                                                         "validacoes")},
+                     "modos": [{k: m.get(k) for k in ("indice", "geradores", "representacao", "pontos", "energias_inviaveis",
+                                                      "dominio_min_kWh", "dominio_max_kWh",
+                                                      "convexidade_verificada_na_amostra")} for m in (s.get("modos") or [])]}
+        out.append({"posicao": c.get("posicao"), "janela": c.get("indice_janela"), "k": c.get("k"),
+                    "instante_decisao_utc": c.get("instante_decisao_utc"), "situacao": c.get("situacao"),
+                    "origem_sinal": c.get("origem_sinal"), "motivo": c.get("motivo"), "classe_falha": c.get("classe_falha"),
+                    "avaliacoes_planejador": c.get("avaliacoes_planejador"),
+                    "termo_aplicado": (c.get("termo_aplicado") or {}).get("tipo"), "tempos_s": c.get("tempos_s"),
+                    "decomposicao": d, "sinal": sinal,
+                    "plano_longo": None if not pl else {k: pl.get(k) for k in ("k", "indice_fim", "classificacao",
+                                                                               "estado_despacho", "objetivo_R", "energias_kWh",
+                                                                               "compromisso", "potencias_kW")}})
+    return out
+
+
+def _auditoria(doc) -> dict | None:
+    """Resumo do relatório GRAVADO da auditoria integral (``v2/auditoria.json``); não reexecuta nada."""
+    if not isinstance(doc, dict):
+        return None
+    cons = doc.get("constatacoes") or []
+    por = {}
+    for c in cons:
+        sev = (c or {}).get("severidade") or "sem_severidade"
+        por[sev] = por.get(sev, 0) + 1
+    return {"aceito": doc.get("aceito"), "metodo": doc.get("metodo"), "verificacoes": doc.get("verificacoes"),
+            "tolerancias": doc.get("tolerancias"), "constatacoes": len(cons), "constatacoes_por_severidade": por,
+            "normalizacoes_pcc": len(doc.get("normalizacoes_pcc") or []),
+            "projecoes_numericas_energia": len(doc.get("projecoes_numericas_energia") or [])}
+
+
+def _tabela(df) -> dict:
+    return {"colunas": [str(c) for c in df.columns], "linhas": [[_v(x) for x in row] for row in df.itertuples(index=False)]}
 
 
 def _pemfc(source, run, unidades: list[str], it) -> dict:
@@ -135,6 +200,8 @@ def montar(source, run, *, verificacao=None, nomes: dict | None = None) -> dict:
     s = (run.summary or {}).get("mission") or {}
     ex = (run.summary or {}).get("execution") or {}
     it, fr, ja = (RG.ler_csv(source, run, n) for n in (RG.N_INTERVALOS, RG.N_FRONTEIRAS, RG.N_JANELAS))
+    pl = RG.ler_csv(source, run, RG.N_PLANOS)
+    sw, eng, ref = m.get("software") or {}, m.get("engine") or {}, m.get("reference") or {}
     mis, est = m.get("mission") or {}, m.get("strategy") or {}
     nomes = nomes or {}
     ren_doc = _opcional(source, run, RG.N_RENOV) or {}
@@ -207,6 +274,21 @@ def montar(source, run, *, verificacao=None, nomes: dict | None = None) -> dict:
         "clima": {"sha256_serie": clima.get("sha256_serie_normalizada"), "rotulo": clima.get("rotulo"),
                   "procedencia": clima.get("procedencia"), "realizacao": (ren_doc.get("realizacao") or {}).get("tipo")},
         "janelas": _janelas(ja),
+        "planos": _planos(pl), "coordenacoes": _coordenacoes(RG.ler_json(source, run, RG.N_COORD)),
+        "auditoria": _auditoria(_opcional(source, run, RG.N_AUDITORIA)),
+        "procedencia": {"microrrede_uid": ref.get("microgrid_uid"), "incarnacao": ref.get("microgrid_incarnation"),
+                        "cenario_uid": ref.get("scenario_uid"), "cenario_versao": ref.get("scenario_version"),
+                        "cenario_impressao": ref.get("scenario_fingerprint"), "inventario_revisao": ref.get("config_revision"),
+                        "inventario_impressao": ref.get("config_fingerprint"), "motor": eng.get("id"),
+                        "formulacoes": eng.get("formulations"), "integracao": eng.get("integration"),
+                        "rotulo_motor": eng.get("label"), "contrato_dados": eng.get("data_version"),
+                        "software": {str(k): v for k, v in sw.items() if isinstance(v, (str, int, float))},
+                        "codigo_cientifico_sha256": (sw.get("science") or {}).get("sha256"),
+                        "objetivo": (m.get("objective") or {}).get("label"), "termos_objetivo": (m.get("objective") or {}).get("terms"),
+                        "alcance": m.get("scope"), "declarante": (est.get("declarante") or {}).get("fonte")},
+        "limitacoes": list(RG.LIMITACOES), "convencoes": dict(RG.CONVENCOES),
+        "tabelas": {RG.N_INTERVALOS: _tabela(it), RG.N_FRONTEIRAS: _tabela(fr), RG.N_JANELAS: _tabela(ja),
+                    RG.N_PLANOS: _tabela(pl)},
         "resumo": {"custo_realizado_total_R": s.get("custo_realizado_total_R"),
                    "componentes_R": s.get("custo_realizado_componentes_R") or {},
                    "energia_demanda_kWh": s.get("energia_demanda_kWh"), "energia_atendida_kWh": s.get("energia_atendida_kWh"),
@@ -220,7 +302,8 @@ def montar(source, run, *, verificacao=None, nomes: dict | None = None) -> dict:
                                                          "itens": [[bool(ok), str(t)] for ok, t in verificacao.itens]},
         "arquivos": [[n, d.get("sha256"), d.get("size")] for n, d in (run.data or {}).items()],
         "fontes": {"intervalos": RG.N_INTERVALOS, "fronteiras": RG.N_FRONTEIRAS, "janelas": RG.N_JANELAS,
-                   "renovaveis": RG.N_RENOV, "pemfc": RG.N_PEMFC, "pemfc_dinamica": RG.N_PEMFC_DIN},
+                   "renovaveis": RG.N_RENOV, "pemfc": RG.N_PEMFC, "pemfc_dinamica": RG.N_PEMFC_DIN,
+                   "planos": RG.N_PLANOS, "coordenacoes": RG.N_COORD, "auditoria": RG.N_AUDITORIA},
     }
     frame["hash"] = hashlib.sha256(json.dumps(frame, sort_keys=True, ensure_ascii=False, allow_nan=False)
                                    .encode("utf-8")).hexdigest()

@@ -80,12 +80,23 @@
 .pt .trama { display: block; width: 100%; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 .pt .trama text { font-family: var(--f-t); fill: var(--ink-3); font-size: 11px; } .pt .trama text.t { font: 600 11.5px var(--f-d); fill: var(--ink-2); } .pt .trama text.t.lk { cursor: pointer; } .pt .trama text.t.lk:hover { fill: var(--ink); text-decoration: underline; }
 .pt .trama text.v { font-family: var(--f-d); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.pt .trama text.nd { fill: var(--warn); font-weight: 600; } .pt .trama text.v.nd { font-size: 9.5px; }
 .pt .trama .gr { stroke: var(--line); stroke-width: 1; } .pt .trama .ax { stroke: var(--line-2); stroke-width: 1; }
 .pt .trama [data-k] { transition: opacity .12s; } .pt .trama .dim { opacity: .14 !important; }
 .pt .trama:focus { outline: none; } .pt .trama:focus-visible { outline: 1.5px solid var(--ink-3); outline-offset: -1px; border-radius: 8px; }
 .pt .tip { position: absolute; z-index: 5; pointer-events: none; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 7px 10px; font-size: 11.5px; box-shadow: var(--shadow); min-width: 150px; max-width: 260px; }
 .pt .tip b { font: 700 12px var(--f-d); display: block; margin-bottom: 3px; } .pt .tip div { display: flex; justify-content: space-between; gap: 14px; color: var(--ink-2); } .pt .tip div span:last-child { font-family: var(--f-d); color: var(--ink); font-variant-numeric: tabular-nums; }
 
+.pt .g2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 10px; align-content: start; }
+.pt .ttl { font: 700 13.5px var(--f-d); letter-spacing: .01em; color: var(--ink); }
+.pt .rolar { overflow: auto; min-height: 0; height: 100%; } .pt .tabx { overflow: auto; max-height: 340px; border-radius: 8px; }
+.pt .tabx table { font-size: 11.5px; } .pt .tabx th { position: sticky; top: 0; background: var(--surface); white-space: nowrap; } .pt .tabx td { white-space: nowrap; padding: 3px 10px 3px 0; }
+.pt details { border-top: 1px solid var(--line); padding: 7px 0; } .pt summary { cursor: pointer; font-size: 12.5px; } .pt summary b { float: right; font-family: var(--f-d); }
+.pt .lead { color: var(--ink-2); font-size: 12.5px; line-height: 1.5; }
+.pt .stage.wide { grid-template-columns: minmax(0, 1fr) 400px; }
+.pt .kv.ev { grid-template-columns: minmax(96px, auto) minmax(0, 1fr); } .pt .kv.ev b { overflow-wrap: anywhere; }
+.pt .g2 > .larga { grid-column: span 2; } .pt .tool[disabled] { opacity: .35; pointer-events: none; }
+.pt code { font: 11.5px var(--f-m); } .pt ul { padding: 0; } .pt li { margin: 3px 0; }
 .pt .ov { position: fixed; inset: 0; z-index: 1000100; background: rgba(0,0,0,.5); backdrop-filter: blur(3px); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); justify-items: center; padding: 10px; animation: ptfade .14s ease both; }
 .pt .dlg { width: 100%; max-width: 1780px; min-width: 0; height: 100%; background: var(--bg); color: var(--ink); border-radius: 18px; box-shadow: var(--shadow); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; animation: ptrise .2s cubic-bezier(.2,.8,.2,1) both; border: 1px solid var(--line); }
 @keyframes ptrise { from { opacity: 0; transform: translateY(10px) scale(.99); } } @keyframes ptfade { from { opacity: 0; } }
@@ -100,7 +111,7 @@
 
 @media (max-width: 980px), (max-height: 600px) {
   .pt { height: auto; }
-  .pt .stage, .pt .dbody { grid-template-columns: minmax(0, 1fr); height: auto; } .pt .stage .host { min-height: 560px; } .pt .col { overflow: visible; }
+  .pt .stage, .pt .dbody { grid-template-columns: minmax(0, 1fr); height: auto; } .pt .rolar { height: auto; overflow: visible; } .pt .stage .host { min-height: 560px; } .pt .col { overflow: visible; }
   .pt .dbody { overflow: auto; display: block; padding: 0 10px; } .pt .dbody > * + * { margin-top: 10px; } .pt .dbody .host { min-height: 470px; }
   .pt .dhead { padding: 12px 14px 6px; flex-wrap: wrap; justify-content: flex-end; gap: 8px; } .pt .dhead .grow { order: 2; flex: 1 1 100%; } .pt .dhead .sel { display: none; }
   .pt .dtools { padding: 4px 14px 10px; overflow-x: auto; flex-wrap: nowrap; } .pt .dfoot { padding: 8px 14px; }

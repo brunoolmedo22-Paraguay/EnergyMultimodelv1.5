@@ -135,8 +135,8 @@ class MarcoDeRodadaRealTest(unittest.TestCase):
             "const fs = require('fs');"
             f"const src = fs.readFileSync({json.dumps(str(ESTATICO / 'trama.js'))}, 'utf8') + '\\n' + "
             f"fs.readFileSync({json.dumps(str(ESTATICO / 'partitura.js'))}, 'utf8').replace('export default function', 'function __componente');"
-            "const api = new Function(src + '\\nreturn { modelo, teto, acum, soma };')();"
-            "const F = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')), M = api.modelo(F), s = api.soma;"
+            "const api = new Function(src + '\\nreturn { modelo, teto, acum, somaT };')();"
+            "const F = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')), M = api.modelo(F), s = api.somaT;"
             "console.log(JSON.stringify({ K: M.K, ord: M.ord, rot: M.rot.slice(0, 3), n_rot: M.rot.length, wtP: s(M.A.wtP), fvP: s(M.A.fvP),"
             " pd: s(M.A.pd), pc: s(M.A.pc), fcP: s(M.A.fcP), impR: s(M.A.impR), fr: M.A.fr, teto: [api.teto(0), api.teto(37), api.teto(120)],"
             " acum: api.acum([1, null, 2]), janelas: M.jan.length, validas: M.jan.filter((w) => w.ok).length }));")
@@ -156,7 +156,7 @@ class MarcoDeRodadaRealTest(unittest.TestCase):
                              ("fcP", tot(uids("fc"), "p_kW")), ("impR", float(it["pcc_importacao_realizada_kW"].sum()))):
             self.assertTrue(math.isclose(js[chave], valor, rel_tol=1e-12, abs_tol=1e-9), (chave, js[chave], valor))
         self.assertEqual(js["fr"], list(f["baterias"][uids("bat")[0]]["energia_kWh"]))  # um banco: soma = o próprio estado
-        self.assertEqual(js["acum"], [0, 1, 1, 3])
+        self.assertEqual(js["acum"], [0, 1, None, None])          # nada se acumula depois de um dado ausente
         self.assertEqual(js["teto"][0], 1)
         self.assertGreaterEqual(js["teto"][1], 37)
         s = self.rodada.summary["mission"]

@@ -41,21 +41,28 @@ function trama(host, o) {
       sc(lo, hi) { const t = this.top, b = this.bot; return (v) => b - ((v - lo) / (hi - lo || 1)) * (b - t); },
       grid(y, ticks, f = (v) => nf(v, 0)) { ticks.forEach((v) => { svg.append(sv("line", { x1: padL, x2: W - padR, y1: y(v), y2: y(v), class: v === 0 ? "ax" : "gr" }), sv("text", { x: padL - 6, y: y(v) + 3.5, "text-anchor": "end", class: "v" }, f(v))); }); },
       stack(series, y, opt = {}) {
+        const vivas = series.filter((s) => s.v !== undefined);          // undefined = recurso não aplicável
+        if (vivas.some((s) => s.v === null)) this.nd();                   // null = série não persistida ⇒ N/D, nunca zero
+        const b0 = opt.b0 || 0;                                            // b0 = intervalo da missão do 1º valor (planos de janela)
         for (let i = 0; i < (opt.n ?? K); i++) { let acc = 0;
-          for (const s of series) { const v = s.v[i] || 0; if (v <= 1e-6) continue;
+          if (vivas.some((s) => s.v && s.v[i] == null)) g.append(sv("text", { x: x(b0 + i + .5), y: y(0) - 4, "text-anchor": "middle", class: "v nd" }, "N/D"));
+          for (const s of vivas) { if (!s.v) continue; const v = s.v[i] || 0; if (v <= 1e-6) continue;
             const a = y(opt.neg ? -acc : acc), b = y(opt.neg ? -(acc + v) : acc + v), hg = Math.abs(a - b), gp = hg > 3 ? 1 : 0;
-            g.append(sv("rect", { x: x(i) + 1, y: Math.min(a, b) + gp, width: Math.max(cw - 2, 1), height: Math.max(hg - gp, .8), rx: Math.min(2.5, cw / 6), "data-k": s.k, style: `fill:${s.hatch ? `url(#${o.pat || "h"}-${s.hatch})` : s.c};opacity:${opt.op ? opt.op(i) : 1}` }));
+            g.append(sv("rect", { x: x(b0 + i) + 1, y: Math.min(a, b) + gp, width: Math.max(cw - 2, 1), height: Math.max(hg - gp, .8), rx: Math.min(2.5, cw / 6), "data-k": s.k, style: `fill:${s.hatch ? `url(#${o.pat || "h"}-${s.hatch})` : s.c};opacity:${opt.op ? opt.op(i) : 1}` }));
             acc += v; } }
       },
-      step(vals, y, st = {}) { let d = ""; vals.forEach((v, j) => { if (v == null) return; d += `${d ? "L" : "M"}${x(j)},${y(v)}H${x(j + 1)}`; }); g.append(sv("path", { d, fill: "none", "data-k": st.k, style: `stroke:${st.c || COR.dem};stroke-width:${st.w || 2}`, "stroke-dasharray": st.dash, "stroke-linejoin": "round", opacity: st.op })); },
+      nd(msg) { if (this._nd) return; this._nd = true; g.append(sv("text", { x: x(v0 + .15), y: this.top + 13, class: "nd" }, "N/D — " + (msg || "série não persistida nesta rodada"))); },
+      step(vals, y, st = {}) { if (vals === undefined) return; if (vals === null) return this.nd(); let d = ""; let aberto = false; vals.forEach((v, j) => { if (v == null) { aberto = false; return; } d += `${aberto ? "L" : "M"}${x((st.b0 || 0) + j)},${y(v)}H${x((st.b0 || 0) + j + 1)}`; aberto = true; }); g.append(sv("path", { d, fill: "none", "data-k": st.k, style: `stroke:${st.c || COR.dem};stroke-width:${st.w || 2}`, "stroke-dasharray": st.dash, "stroke-linejoin": "round", opacity: st.op })); },
       front(vals, y, st = {}, b0 = 0) {
-        const pts = vals.map((v, j) => [x(b0 + j), y(v)]);
-        g.append(sv("polyline", { points: pts.map((p) => p.join(",")).join(" "), fill: "none", "data-k": st.k, style: `stroke:${st.c || COR.bat};stroke-width:${st.w || 2}`, "stroke-dasharray": st.dash, opacity: st.op, "stroke-linejoin": "round" }));
+        if (vals === undefined) return; if (vals === null) return this.nd();
+        const todos = vals.map((v, j) => (v == null ? null : [x(b0 + j), y(v)])), pts = todos.filter(Boolean), trechos = [[]];
+        todos.forEach((p) => { if (p) trechos[trechos.length - 1].push(p); else if (trechos[trechos.length - 1].length) trechos.push([]); });   // ausente interrompe a linha
+        trechos.filter((t) => t.length).forEach((t) => g.append(sv("polyline", { points: t.map((p) => p.join(",")).join(" "), fill: "none", "data-k": st.k, style: `stroke:${st.c || COR.bat};stroke-width:${st.w || 2}`, "stroke-dasharray": st.dash, opacity: st.op, "stroke-linejoin": "round" })));
         if (st.dots !== false) pts.forEach((p) => g.append(sv("circle", { cx: p[0], cy: p[1], r: st.r || 2.6, "data-k": st.k, style: `fill:${st.hollow ? "var(--surface)" : st.c || COR.bat};stroke:${st.hollow ? st.c || COR.bat : "var(--surface)"};stroke-width:1.5`, opacity: st.op })));
       },
-      dots(vals, y, st = {}) { vals.forEach((v, i) => { if (v == null) return; g.append(sv("circle", { cx: x(i + .5), cy: y(v), r: st.r || 3, "data-k": st.k, style: `fill:var(--surface);stroke:${st.c || "var(--ink)"};stroke-width:1.6` })); }); },
+      dots(vals, y, st = {}) { if (!vals) return; vals.forEach((v, i) => { if (v == null) return; g.append(sv("circle", { cx: x(i + .5), cy: y(v), r: st.r || 3, "data-k": st.k, style: `fill:var(--surface);stroke:${st.c || "var(--ink)"};stroke-width:1.6` })); }); },
       hline(v, y, label, st = {}) { svg.append(sv("line", { x1: padL, x2: W - padR, y1: y(v), y2: y(v), style: `stroke:${st.c || "var(--ink-3)"}`, "stroke-dasharray": "5 4" })); if (label) svg.append(sv("text", { x: W - padR - 2, y: y(v) - 4, "text-anchor": "end" }, label)); },
-      strip(vals, yy, hgt, col, lab) { vals.forEach((t, i) => { g.append(sv("rect", { x: x(i) + 1, y: yy, width: Math.max(cw - 2, 1), height: hgt, rx: 3, style: `fill:${col(t, i)}` })); if (lab && cw > 30) { const s = lab(t, i); if (s) g.append(sv("text", { x: x(i + .5), y: yy + hgt / 2 + 3.5, "text-anchor": "middle", class: "v", style: `fill:${s[1] || "var(--ink)"}${s[2] ? ";paint-order:stroke;stroke:var(--surface);stroke-width:3px" : ""}` }, s[0])); } }); },
+      strip(vals, yy, hgt, col, lab) { if (vals === undefined) return; if (vals === null) return this.nd(); vals.forEach((t, i) => { g.append(sv("rect", { x: x(i) + 1, y: yy, width: Math.max(cw - 2, 1), height: hgt, rx: 3, style: `fill:${col(t, i)}` })); if (lab && cw > 30) { const s = lab(t, i); if (s) g.append(sv("text", { x: x(i + .5), y: yy + hgt / 2 + 3.5, "text-anchor": "middle", class: "v", style: `fill:${s[1] || "var(--ink)"}${s[2] ? ";paint-order:stroke;stroke:var(--surface);stroke-width:3px" : ""}` }, s[0])); } }); },
       text(i, yy, s, a = {}) { g.append(sv("text", { x: x(i), y: yy, ...a }, s)); },
       add(e) { g.append(e); return e; },
       out(e) { svg.append(e); return e; },

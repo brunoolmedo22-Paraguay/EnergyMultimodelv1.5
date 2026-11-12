@@ -536,17 +536,22 @@ def _nomes_do_inventario(source, run) -> dict:
         return {}
 
 
-def _partitura(source, run, v, key: str) -> None:
-    """Piso 3D-B0 — instrumento Partitura (motor gráfico Trama) sobre os dados GRAVADOS da rodada. Só é desenhado com a
-    evidência verificada; o marco de dados é montado uma vez por sessão e rodada. A vista clássica continua abaixo."""
+CLASSICA = "Vista clássica — tabelas completas, gráficos anteriores, descargas e procedência"
+
+
+def _partitura(source, run, v, key: str) -> bool:
+    """Piso 3D-B — instrumento Partitura (motor gráfico Trama) sobre os dados GRAVADOS da rodada. Só é desenhado com a
+    evidência verificada; o marco de dados é montado uma vez por sessão e rodada. Devolve ``True`` se foi desenhado
+    (a vista clássica fica então recolhida num expansor identificado; senão continua aberta, como antes)."""
     if not v.ok:
-        return
+        return False
     from seeds2.ui import trama as TR
 
     from . import trama_frame as TF
 
     cache = _ss().setdefault("op_v2_frame", {})
-    chave = (run.run_uid, getattr(source, "archive_uid", None) or "local")
+    # origem do marco: estudo ARQUIVADO (identidade local do arquivo) ou microrrede aberta — nunca compartilham cache
+    chave = (run.run_uid, getattr(getattr(source, "study", None), "archive_uid", None) or "local")
     if chave not in cache:
         if len(cache) > 4:
             cache.clear()
@@ -555,11 +560,9 @@ def _partitura(source, run, v, key: str) -> None:
         except (StoreError, KeyError, ValueError, TypeError) as exc:
             st.caption(f"Partitura indisponível para esta rodada ({shell.md(exc)}). A vista clássica abaixo continua "
                        "completa.")
-            return
+            return False
     TR.partitura(cache[chave], key=f"{key}_partitura")
-    st.markdown('<div class="sd-section">Vista clássica</div>', unsafe_allow_html=True)
-    st.caption("Tabelas, gráficos e descargas anteriores ao Piso 3D-B, mantidos durante a migração para a Partitura. Os "
-               "números são os mesmos: as duas vistas leem os dados gravados da rodada.")
+    return True
 
 
 def _provenance(run) -> None:
@@ -669,10 +672,23 @@ def run_results(source, run, *, key: str) -> None:
     """Rodada V2 FINALIZADA lida de ``source`` (``MicrogridStore`` ou estudo arquivado). Nunca chama o otimizador."""
     m = run.manifest
     v = _verificacao(source, run)
-    if run.state == "concluida":
-        _partitura(source, run, v, key)               # Piso 3D-B0: instrumento Partitura; a vista clássica segue abaixo
+    desenhada = run.state == "concluida" and _partitura(source, run, v, key)      # Piso 3D-B: instrumento Partitura
     shell.callout(f"<b>Motor V2 experimental (MILP–MPC hierárquico).</b> {escape(m.get('scope') or PF.ESCOPO)} Dados "
                   "sintéticos/declarados estão rotulados na procedência.", "warn")
+    if not desenhada:                         # rodada falha/interrompida, evidência com problemas ou marco indisponível
+        _vista_classica(source, run, v, key)
+        return
+    # Decisão do responsável (3D-B3): com a Partitura desenhada, a vista clássica fica RECOLHIDA por padrão, inteira e
+    # acessível num expansor identificado (tabelas originais, gráficos anteriores, descargas, procedência).
+    with st.expander(CLASSICA, expanded=False):
+        st.caption("Vista anterior ao Piso 3D-B, mantida inteira durante a migração para a Partitura. Os números são os "
+                   "mesmos: as duas vistas leem os dados gravados da rodada.")
+        _vista_classica(source, run, v, key)
+
+
+def _vista_classica(source, run, v, key: str) -> None:
+    """Página da rodada V2 anterior ao Piso 3D-B (verificação, indicadores, figuras Plotly, tabelas, descargas e
+    procedência). Conteúdo inalterado; só o invólucro mudou."""
     with st.expander(("✓ Evidência verificada" if v.ok else "✕ EVIDÊNCIA COM PROBLEMAS") +
                      " — reabertura sem otimizador (hashes, vistas regeneradas, auditoria integral)", expanded=not v.ok):
         st.html("".join(shell.check(escape(t), "ok" if ok else "bad") for ok, t in v.itens))
