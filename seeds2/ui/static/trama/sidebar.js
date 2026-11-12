@@ -1,7 +1,8 @@
 // BARRA LATERAL SEEDS2 (Piso 3D-B2-A) — navegação da plataforma na linguagem Partitura.
 // Trilho estreito (só ícones) que se expande POR CIMA do conteúdo com o mouse ou o foco; em telas estreitas vira uma barra
 // inferior. Só navega: {type:"nav", view, tab} | {type:"switch"} (voltar ao Catálogo). A navegação anterior (barra superior)
-// continua intacta. Um rerun do Streamlit com os mesmos dados não redesenha nada.
+// continua intacta. Um rerun do Streamlit com os mesmos dados não redesenha nada. Depois de um clique de mouse a barra se
+// recolhe até o ponteiro sair (não fica por cima do conteúdo); o foco do TECLADO a expande.
 const ICO_SB = {
   catalogo: "M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z", planta: "M3 12h18M7 12V6M12 12V4M17 12V7M9 12v6M15 12v5",
   ensaios: "M5 4h11l3 3v13H5zM8.5 9.5h7M8.5 13h7M8.5 16.5h4", folha: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h9M17 18h3M15 4v4M9 10v4M15 16v4",
@@ -11,11 +12,12 @@ const ICO_SB = {
 };
 export default function (component) {
   const { data, parentElement, setTriggerValue } = component, d = data || {}, [root] = raizPt(parentElement, "sb"), sig = JSON.stringify(d);
+  if (!root.__ouve) { root.__ouve = true; root.addEventListener("pointerleave", () => root.classList.remove("fechada")); }
   if (root.__sig === sig) return;
   root.__sig = sig;
   const ir = (a) => setTriggerValue("action", { ...a, t: Date.now() });
   const item = (it) => { const b = h("button", { class: "it" + (it.movel ? " mv" : ""), type: "button", title: it.dica || it.rotulo, "data-id": it.id, "aria-current": it.atual ? "page" : null,
-    onclick: () => { if (!it.atual || it.acao.type === "switch") ir(it.acao); }, html: `${icoPt(ICO_SB[it.icone] || ICO_SB.operacao)}<span class="lab"><span class="lg">${esc(it.rotulo)}</span><span class="sm">${esc(it.curto || it.rotulo)}</span></span>` });
+    onclick: (e) => { if (e.detail > 0) root.classList.add("fechada"); if (!it.atual || it.acao.type === "switch") ir(it.acao); }, html: `${icoPt(ICO_SB[it.icone] || ICO_SB.operacao)}<span class="lab"><span class="lg">${esc(it.rotulo)}</span><span class="sm">${esc(it.curto || it.rotulo)}</span></span>` });
     return b; };
   const corpo = []; let grupo = null;
   for (const it of d.itens || []) { if (it.grupo && it.grupo !== grupo) corpo.push(h("div", { class: "grp", html: `<span>${esc(it.grupo)}</span>` })); grupo = it.grupo || grupo; corpo.push(item(it)); }

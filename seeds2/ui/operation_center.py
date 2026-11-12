@@ -28,7 +28,7 @@ from seeds2.operation import initialization as I
 from seeds2.operation import scenarios as S
 from seeds2.operation import service
 
-from . import archive_ui, execution_ui, forecasts_ui, forms, home, planta_ui, session, shell
+from . import archive_ui, caderno_ui, execution_ui, folha_ui, forecasts_ui, forms, home, planta_ui, session, shell
 
 SCN = shell.SCENARIO_KEY
 TAB_INIT = "inicializacao"
@@ -621,6 +621,8 @@ def render() -> None:
     if ss.get("op_error"):
         st.error(shell.md(ss.pop("op_error")))
     tab = shell.route().get("tab")
+    if tab in folha_ui.TABS:                            # Piso 3D-B2-D: cabeçalho da Folha de Ensaio acima da etapa (inalterada)
+        folha_ui.cabecalho(store, cur, work(), tab, dirty=is_dirty())
     if tab == TAB_INIT:
         _initialization(store, cur)
     elif tab == TAB_FC:
@@ -635,6 +637,8 @@ def render() -> None:
         archive_ui.render(store, base_view="operacao")
     elif tab == planta_ui.TAB:                          # Piso 3D-B2-B: Planta (barramento equivalente)
         planta_ui.render(store, cur)
+    elif tab == caderno_ui.TAB:                         # Piso 3D-B2-C: Caderno de Ensaios (cenários, rodadas, estudos)
+        caderno_ui.render(store, cur)
     else:
         _panel(store, items, cur)
 

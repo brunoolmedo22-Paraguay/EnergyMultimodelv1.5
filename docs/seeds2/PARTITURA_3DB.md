@@ -227,9 +227,9 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
 |---|---|
 | C0 — correções A (N/D × não aplicável), B (zero negativo), C (E2E) | concluído |
 | B2-A — barra lateral, navegação responsiva, identidade | concluído (§8.3) |
-| B2-B — Catálogo e Planta | Planta concluída (§8.4); Catálogo não iniciado |
-| B2-C — Caderno de Ensaios | não iniciado |
-| B2-D — Folha de Ensaio | não iniciado |
+| B2-B — Catálogo e Planta | concluído (§8.4, §8.5) |
+| B2-C — Caderno de Ensaios | concluído (§8.5) |
+| B2-D — Folha de Ensaio | concluído como cabeçalho + índice sobre as etapas existentes (§8.5) |
 
 ### 8.3 B2-A — barra lateral, navegação e identidade (concluído)
 
@@ -269,3 +269,20 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
   `planta_ui` não a importa: usa o acesso tardio já existente em `execution_ui` e a seleção vive em `integracao_v2/ui.py`.
 * **Defeito encontrado pelo teste novo e corrigido antes de publicar:** a energia da bateria (K + 1 fronteiras) era
   agregada com K valores (perdia a última fronteira).
+
+### 8.5 Catálogo, Caderno de Ensaios e Folha de Ensaio (concluídos)
+
+* **Catálogo = o Gestor de microrredes.** Não há uma segunda lista: cada cartão existente ganhou a assinatura do barramento
+  (só o que o inventário tem; «isolada» quando não há PCC) e a linha de ensaios (cenários e rodadas por estado), e a página
+  ganhou a prateleira do Arquivo Científico. Criar, importar, abrir, ZIP, PDF e excluir são os mesmos botões.
+  **C-3DB-13:** o `st.html` remove SVG, por isso a assinatura é HTML/CSS; ela ilustra o inventário, não é diagrama elétrico.
+* **Caderno de Ensaios** (`tab = caderno`). Uma página para tudo o que foi ensaiado numa microrrede: cenários (com a versão
+  atual e o motor) e todas as rodadas, de qualquer cenário e dos dois motores, com estado, datas, revisão do inventário,
+  resultado rotulado pelo motor e dados gravados. Rodadas V1.6 abrem na página anterior; rodadas V2 concluídas, na
+  Partitura; as demais, no diagnóstico. Os estudos do Arquivo aparecem como somente leitura. Nenhum dado é alterado.
+* **Folha de Ensaio.** O cabeçalho da folha (cenário, versão, motor, índice de seções com estado, prontidão, alterações não
+  salvas) fica acima de cada uma das quatro etapas existentes e permite ir de uma a outra. **C-3DB-14:** a Folha não
+  reescreve os formulários — widgets, chaves, campos científicos, validações, preflight e execução são os de antes; por
+  isso o layout de três colunas do protótipo e a régua de horizontes ficaram de fora desta entrega (pendência declarada).
+* **Barra lateral.** Ganhou Planta, Caderno de ensaios e Folha de ensaio. Depois de um clique de mouse recolhe-se até o
+  ponteiro sair; expande com hover ou com o foco do teclado.

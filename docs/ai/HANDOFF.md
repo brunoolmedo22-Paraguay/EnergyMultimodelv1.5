@@ -16,9 +16,10 @@
 |---|---|---|---|
 | C0 | Três correções focalizadas pedidas antes da expansão: (A) N/D × não aplicável por EVIDÊNCIA (`termo`/`declarado`, `F.objetivo.termos`), (B) zero negativo só na formatação (`nf`/`ne`), (C) limpeza garantida dos servidores E2E (`tools/e2e/servidor.sh`) | **concluído** | `d4f7780` |
 | B2-A | Barra lateral compacta (hover/foco), barra inferior no celular, paleta neutra da Partitura no tema, navegação anterior preservada, estável em reruns | **concluído** (ver «B2-A — o que existe») | `4061f29` |
-| B2-B | Catálogo integrado ao Gestor + Planta com barramento equivalente (hover/foco/seleção, dados reais do inventário e da rodada, abrir painéis por UID; sem fluxos inventados) | **Planta: concluída** (ver «B2-B — Planta»); **Catálogo: NÃO iniciado** | commit «B2-B · Planta» |
-| B2-C | Caderno de Ensaios (cenários e rodadas: versões, motores, estados, datas, integridade; locais e Arquivo Científico; V1.6 compatível) | não iniciado | — |
-| B2-D | Folha de Ensaio (organização aprovada no protótipo sobre os formulários longos; parâmetros, validações, estados iniciais e preflight intactos) | não iniciado | — |
+| B2-B | Catálogo integrado ao Gestor + Planta com barramento equivalente (hover/foco/seleção, dados reais do inventário e da rodada, abrir painéis por UID; sem fluxos inventados) | **concluído** (Planta `84c21fb`; Catálogo no commit «Catálogo, Caderno e Folha») | ver `git log` |
+| B2-C | Caderno de Ensaios (cenários e rodadas: versões, motores, estados, datas, integridade; locais e Arquivo Científico; V1.6 compatível) | **concluído** | commit «Catálogo, Caderno e Folha» |
+| B2-D | Folha de Ensaio (organização aprovada no protótipo sobre os formulários longos; parâmetros, validações, estados iniciais e preflight intactos) | **concluído como cabeçalho + índice de seções sobre as etapas existentes** (ver limites abaixo) | commit «Catálogo, Caderno e Folha» |
+| Est. | Estabilização visual (barra superior × lateral, responsividade, temas) | em curso — ver «Próxima tarefa exata» | — |
 
 ## B2-A — o que existe (implementado e verificado)
 
@@ -41,11 +42,21 @@
 - Verificado neste checkpoint: testes focalizados + todas as guardas ⇒ aprovados; auditoria do diff `ok: true`. **Regressão completa com e sem solver: em execução/pendente sobre este checkpoint — ver a linha «Regressão» abaixo quando atualizada.**
 - Não feito na Planta: comparação entre rodadas; nós para estudos arquivados; a térmica não tem painel na Partitura (o motor V2 não a representa).
 
-## Próxima tarefa exata (Catálogo, resto do B2-B) e critérios de aceitação
+## Catálogo, Caderno e Folha (implementados e verificados)
 
-1. **Catálogo** dentro de `seeds2/ui/gestor.py` (a lista atual, os botões e os textos continuam: os testes `tests/test_seeds2_gestor_app.py` e os E2E clicam «ABRIR MICRORREDE», ZIP, PDF, Excluir): em cada cartão acrescentar a **assinatura** do barramento (SVG a partir de `card_summary`: kWp, kW, kWh, PEMFC, conexão) e a linha «N cenários · rodadas por estado» (`store.list_scenarios()`/`list_runs()`); trocar os acentos verde-azulados de `GESTOR_CSS` pela paleta neutra; prateleira «Arquivo Científico» com os estudos (`ArchiveStore.list_studies()`), cada um abrindo o estudo. Catálogo vazio ⇒ estado vazio já existente.
-2. Aceitação: nenhum texto/botão existente removido; teste novo do cartão (assinatura e contagens × dados reais, microrrede sem equipamentos, sem cenários); E2E: Gestor → abrir → Planta.
-3. Depois: **B2-C Caderno de Ensaios** (`tab` novo do Centro de Operação: todas as rodadas de todos os cenários, V1.6 e V2, com versão, motor, estado, datas e integridade; abrir local e estudos do Arquivo) e **B2-D Folha de Ensaio** (reorganizar as etapas 01–04 em índice de seções + seção + prontidão; widgets, chaves e validações intactos).
+- **Catálogo** (`seeds2/ui/gestor.py`): cada cartão do Gestor ganhou a **assinatura** do barramento (`_assinatura`, HTML/CSS puro — o `st.html` remove SVG; marcadores só das tecnologias presentes, tamanho crescente com kWp/kW/kWh, PCC ou «isolada») e a linha **Ensaios** (`_ensaios`/`_ensaios_txt`: cenários e rodadas por estado lidos do armazenamento); prateleira **Arquivo Científico** (`_estudos`, só se o banco do Arquivo já existir — nada é criado) com «ABRIR ESTUDO». Todos os botões e textos anteriores continuam (testes do Gestor inalterados). `shell.GLOBAL_CSS`: `--primary-color` segue a tinta do tema (acentos neutros).
+- **Caderno de Ensaios** (`seeds2/ui/caderno_ui.py`, `static/trama/caderno.js`; `tab=caderno`; barra lateral «Caderno de ensaios»): cartões dos cenários (motor, versão, inventário de referência, rodadas por estado, «Abrir a folha de ensaio»), tabela de TODAS as rodadas da microrrede (cenário · versão, UID, motor V1.6/V2, estado, início/fim, revisão do inventário, resultado rotulado pelo motor, nº de arquivos gravados, «Abrir»/«Diagnóstico»), filtros por motor/estado/cenário no navegador, estudos do Arquivo Científico. Só leitura; nada de outra microrrede.
+- **Folha de Ensaio** (`seeds2/ui/folha_ui.py`, `static/trama/folha.js`; barra lateral «Folha de ensaio»): cabeçalho desenhado por `operation_center.render` ACIMA das quatro etapas existentes (`inicializacao`, `previsoes`, `estrategia`, `execucao`): cenário, versão, motor, índice das seções com o estado de cada uma (os mesmos de `S.readiness`/`strategy_status`/`execution_ui.stage_state`), prontidão e «alterações não salvas»; navegação entre seções sem voltar ao painel. **Os formulários, chaves de widgets, validações, preflight e execução são os das etapas existentes, sem alteração.**
+- **Barra lateral:** depois de um clique de mouse recolhe-se até o ponteiro sair; expande com hover ou foco de TECLADO (`:has(:focus-visible)`).
+- Testes: `tests/test_piso3db_plataforma.py` ⇒ **22 passed** (com solver e navegador); E2E `tools/e2e/e2e_piso3db_plataforma.js` ⇒ **58 verificações** (barra, Planta, Catálogo, Caderno com V1.6 e V2, Folha nas 4 seções, 400 px). Suítes AppTest de todos os pisos + guardas: aprovadas antes do Caderno/Folha (135) e as focalizadas depois; auditoria do diff `ok`.
+- **Limites da Folha (não feito):** não há o layout de três colunas do protótipo (índice | seção | prontidão) nem subseções navegáveis dentro do formulário longo da estratégia V2 (malha, baterias, renováveis, PEMFC, PCC, planejador); a régua de horizontes do protótipo não foi implementada. Observação pré-existente: abrir a etapa 03 de um cenário V2 já marca «alterações não salvas» sem edição (o formulário normaliza o documento); a Folha só mostra esse estado.
+- **Regressão completa com e sem solver: pendente sobre este checkpoint** (a última completa é a do `590b826`; uma com solver sobre `84c21fb` chegou a 90 % sem falhas e foi interrompida pelo reinício da sessão).
+
+## Próxima tarefa exata (estabilização visual) e critérios de aceitação
+
+1. **Barra superior × lateral sem duplicação:** `topbar.js` ganha o modo compacto (`data.compacta`): esconde os links de navegação e o link «Alcance» (já estão na barra lateral) e mantém marca, identidade da microrrede, TROCAR MICRORREDE e estado de salvamento. Compacto por omissão; **navegação clássica completa** com `SEEDS2_NAV_CLASSICA=1` no servidor (os roteiros E2E dos pisos anteriores clicam em `.tb-link`: `tools/e2e/servidor.sh` deve ligar essa variável por omissão e o roteiro 3D-B desligá-la).
+2. Revisar 400/820 px (a barra superior anterior quebra mal a 400 px), tema escuro e a continuidade Gestor → Catálogo → Planta → Folha → Execução → Rodada → Painel → Arquivo.
+3. Regressão completa com e sem solver no HEAD final; atualizar este bloco, `PARTITURA_3DB.md` §8, `PARAMIJEFE.md` Entrega 18 e o corpo do PR #24.
 
 ## Como retomar
 

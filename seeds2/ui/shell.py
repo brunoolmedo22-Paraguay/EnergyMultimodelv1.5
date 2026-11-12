@@ -76,6 +76,8 @@ def payload(key: str, field: str = "action"):
 
 GLOBAL_CSS = """
 <style>
+/* Piso 3D-B2-A: os acentos das páginas SEEDS2 seguem a tinta do tema (paleta neutra da Partitura), não mais o verde fixo. */
+.stApp { --primary-color: var(--st-primary-color, currentColor); }
 .block-container { padding-top: calc(3.75rem + 0.6rem) !important; padding-bottom: 5rem !important; max-width: 1360px; }
 h1, h2, h3 { letter-spacing: -0.012em; }
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
@@ -224,11 +226,17 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
                         atual=view == "comissionamento", movel=True), doc]
     arq = view == "operacao" and tab in ("arquivo", "estudo")
     planta = view == "operacao" and tab == "planta"
+    caderno = view == "operacao" and tab == "caderno"
+    folha = view == "operacao" and tab in ("inicializacao", "previsoes", "estrategia", "execucao")
     return [cat,
             it("planta", "Planta", "planta", "Microrrede", "operacao", "planta", atual=planta, movel=True,
                dica="Planta: barramento equivalente e equipamentos do inventário"),
+            it("caderno", "Caderno de ensaios", "ensaios", "Microrrede", "operacao", "caderno", atual=caderno, curto="Ensaios",
+               movel=True, dica="Caderno de ensaios: cenários, versões e rodadas (V1.6 e V2)"),
+            it("folha", "Folha de ensaio", "folha", "Microrrede", "operacao", "inicializacao", atual=folha, curto="Folha",
+               dica="Folha de ensaio do cenário selecionado: estado inicial, previsões, estratégia e execução"),
             it("operacao", "Centro de Operação", "operacao", "Microrrede", "operacao",
-               atual=view == "operacao" and not arq and not planta, curto="Operação", movel=True),
+               atual=view == "operacao" and not arq and not planta and not caderno and not folha, curto="Operação", movel=True),
             it("gestao", "Gestão da Microrrede", "gestao", "Microrrede", "gestao", atual=view == "gestao", curto="Gestão", movel=True),
             it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
             it("simulacao", "Simulação V1.6", "simulacao", "Console V1.6", "simulacao", atual=view == "simulacao", curto="Simulação"),

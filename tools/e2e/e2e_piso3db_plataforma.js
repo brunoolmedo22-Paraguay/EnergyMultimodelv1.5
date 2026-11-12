@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const [base, seedFile, out] = process.argv.slice(2);
 const seed = JSON.parse(fs.readFileSync(seedFile, "utf8"));
+const brl = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 fs.mkdirSync(out, { recursive: true });
 let n = 0; const falhas = [];
 const log = (...a) => console.log("[3db2]", ...a);
@@ -38,16 +39,16 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   const recuo = await p.locator(".block-container").evaluate((e) => parseFloat(getComputedStyle(e).paddingLeft));
   ok(recuo >= 56, `o conteúdo começa depois do trilho (recuo ${Math.round(recuo)} px)`);
   await p.mouse.move(900, 500); await p.waitForTimeout(350);
-  await p.locator('.pt.sb .it[data-id="arquivo"]').focus(); await p.waitForTimeout(350);
-  ok(await largura(p) >= 240, "foco pelo teclado também expande a barra");
-  await p.keyboard.press("Enter"); await p.waitForTimeout(2500);
+  let tabs = 0; while (tabs < 30 && await largura(p) < 240) { await p.keyboard.press("Tab"); await p.waitForTimeout(120); tabs += 1; }
+  ok(await largura(p) >= 240, `foco pelo teclado (Tab) também expande a barra (${tabs} tabulações)`);
+  await p.locator('.pt.sb .it[data-id="arquivo"]').focus(); await p.keyboard.press("Enter"); await p.waitForTimeout(2500);
   ok(p.url().includes("view=arquivo") && JSON.stringify(await atual(p)) === JSON.stringify(["arquivo"]), "Enter navega para o Arquivo Científico");
   await ctx.close();
 
   // ------------------------------------------------------------------ B2-A · microrrede ativa
   [ctx, p] = await abrir(1500, 900, `${base}/?view=operacao&mg=${seed.mg}`);
   const ids = await itens(p);
-  ok(["catalogo", "planta", "operacao", "gestao", "arquivo", "simulacao", "resultados", "alcance"].every((i) => ids.includes(i)), "microrrede ativa: todos os destinos anteriores estão na barra lateral");
+  ok(["catalogo", "planta", "caderno", "folha", "operacao", "gestao", "arquivo", "simulacao", "resultados", "alcance"].every((i) => ids.includes(i)), "microrrede ativa: todos os destinos anteriores estão na barra lateral");
   ok(JSON.stringify(await atual(p)) === JSON.stringify(["operacao"]), "Centro de Operação marcado como destino atual");
   await p.locator(".pt.sb .side-in").evaluate((e) => e.setAttribute("data-marca", "1"));
   await p.locator("body").press("r"); await p.waitForTimeout(3500);
@@ -55,6 +56,9 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   await p.hover(".pt.sb"); await p.waitForTimeout(400); await foto(p, "b2a_02_microrrede_barra_expandida");
   await p.locator('.pt.sb .it[data-id="gestao"]').click(); await p.waitForTimeout(3000);
   ok(p.url().includes("view=gestao") && p.url().includes(`mg=${seed.mg}`) && JSON.stringify(await atual(p)) === JSON.stringify(["gestao"]), "clique navega para a Gestão da Microrrede mantendo a microrrede");
+  ok(await largura(p) === 56, "depois de navegar com o mouse a barra se recolhe (não fica por cima do conteúdo)");
+  await p.mouse.move(900, 600); await p.waitForTimeout(250); await p.hover(".pt.sb"); await p.waitForTimeout(400);
+  ok(await largura(p) >= 240, "… e volta a expandir no próximo hover"); await p.mouse.move(900, 600);
   await p.locator(".tb .tb-link", { hasText: "Centro de Operação" }).click(); await p.waitForTimeout(3000);
   ok(p.url().includes("view=operacao") && JSON.stringify(await atual(p)) === JSON.stringify(["operacao"]), "a barra superior continua navegando e a lateral acompanha");
   await p.goto(`${base}/?view=operacao&tab=rodada&mg=${seed.mg}&sc=${seed.sc}&run=${seed.run}`); await p.locator(".pt svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1500);
@@ -100,6 +104,64 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
   const ovp = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   ok(ovp <= 1, `Planta a 400 px: sem transbordo horizontal da página (${ovp}px; o desenho rola dentro do painel)`); await foto(p, "b2b_r_400x850_planta"); await ctx.close();
+
+  // ------------------------------------------------------------------ B2-B · Catálogo (Gestor) → microrrede → Planta
+  [ctx, p] = await abrir(1500, 950, `${base}/`);
+  const cartoes = p.locator('[class*="st-key-mgc_"]');
+  ok(await cartoes.count() === 2 && await p.locator(".gc-sig .gs-bus").count() === 2, "Catálogo: cada microrrede com a assinatura do barramento (inventário real)");
+  const cv2 = p.locator(`.st-key-mgc_${seed.mg}`), tv2 = (await cv2.textContent()).replace(/\s+/g, " ");
+  ok(tv2.includes("Ensaios: 2 cenário(s) · 2 concluída(s)") && await cv2.locator(".gs-m").count() === 3 && await cv2.locator(".gs-pcc").count() === 1, "Catálogo: cenários e rodadas por estado; FV + eólica + PEMFC + PCC na assinatura");
+  const cv16 = p.locator(`.st-key-mgc_${seed.v16.mg}`);
+  ok((await cv16.textContent()).includes("isolada") && await cv16.locator(".gs-pcc").count() === 0, "Catálogo: microrrede isolada sem PCC na assinatura");
+  ok(await p.getByText("ABRIR MICRORREDE").count() === 2 && await p.getByRole("button", { name: /NOVA MICRORREDE/ }).count() === 1 && await p.getByRole("button", { name: /IMPORTAR MICRORREDE/ }).count() === 1, "Catálogo: operações do Gestor preservadas (nova, importar, abrir, ZIP, PDF, excluir)");
+  ok((await p.locator(".gs-sec").textContent()).includes("Arquivo Científico · 1 estudo") && await p.getByRole("button", { name: "ABRIR ESTUDO" }).count() === 1, "Catálogo: prateleira do Arquivo Científico (somente leitura)");
+  await foto(p, "b2b_05_catalogo");
+  await cv2.getByText("ABRIR MICRORREDE").click(); await p.waitForTimeout(3500);
+  ok(p.url().includes("view=operacao") && p.url().includes(`mg=${seed.mg}`), "Catálogo → ABRIR MICRORREDE → Centro de Operação");
+
+  // ------------------------------------------------------------------ B2-C · Caderno de Ensaios
+  await p.locator('.pt.sb .it[data-id="caderno"]').click(); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.mouse.move(900, 940); await p.waitForTimeout(1200);
+  ok(p.url().includes("tab=caderno") && JSON.stringify(await atual(p)) === JSON.stringify(["caderno"]), "barra lateral → Caderno de ensaios");
+  ok(await p.locator(".pt.caderno .cd-cen").count() === 2 && await p.locator(".pt.caderno tr[data-run]").count() === 2, "Caderno: 2 cenários e as 2 rodadas desta microrrede");
+  const lin = (await p.locator(`.pt.caderno tr[data-run="${seed.run}"]`).textContent()).replace(/\s+/g, " ");
+  ok(lin.includes(seed.cenario) && lin.includes("V2") && lin.includes("Concluída") && lin.includes("R$ " + brl(seed.custo_R)), "Caderno: versão, motor, estado e custo realizado da rodada (valor gravado)");
+  ok(await p.locator(`.pt.caderno tr[data-run="${seed.v16.run}"]`).count() === 0, "Caderno: nenhuma rodada de outra microrrede");
+  ok(await p.locator(".pt.caderno [data-study]").count() === 1 && (await p.locator(".pt.caderno [data-study]").textContent()).includes("Origem: esta microrrede"), "Caderno: estudo do Arquivo Científico originado nesta microrrede");
+  await foto(p, "b2c_01_caderno");
+  await p.locator(`.pt.caderno tr[data-run="${seed.run}"] .cd-abrir`).click(); await p.locator(".pt svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
+  ok(p.url().includes(`run=${seed.run}`) && (await p.locator(".pt .bar h1").innerText()).includes(seed.cenario), "Caderno → Abrir → rodada na Partitura");
+  await p.locator('.pt.sb .it[data-id="caderno"]').click(); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  await p.locator(".pt.caderno .cd-estudo").click(); await p.waitForTimeout(3500);
+  ok(p.url().includes("tab=estudo") && p.url().includes(`study=${seed.estudo}`), "Caderno → Abrir o estudo → Arquivo Científico (somente leitura)");
+  await ctx.close();
+  [ctx, p] = await abrir(1500, 950, `${base}/?view=operacao&tab=caderno&mg=${seed.v16.mg}`);
+  await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  const l16 = (await p.locator(`.pt.caderno tr[data-run="${seed.v16.run}"]`).textContent()).replace(/\s+/g, " ");
+  ok(l16.includes("V1.6") && l16.includes("Concluída") && l16.includes("R$"), "Caderno: rodada V1.6 listada com o seu motor e resultado (compatibilidade)");
+  await p.locator(`.pt.caderno tr[data-run="${seed.v16.run}"] .cd-abrir`).click(); await p.getByText("Rodada · imutável").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(2000);
+  ok(await p.locator(".pt:not(.sb)").count() === 0 && await p.locator(".js-plotly-plot").count() >= 1, "Caderno → rodada V1.6 abre na página anterior (sem Partitura)");
+  await ctx.close();
+
+  // ------------------------------------------------------------------ B2-D · Folha de Ensaio (etapas existentes, intactas)
+  [ctx, p] = await abrir(1500, 950, `${base}/?view=operacao&tab=caderno&mg=${seed.mg}`);
+  await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  await p.locator(`.pt.caderno [data-sc="${seed.sc}"] .cd-folha`).click(); await p.locator(".pt.folha .fl-cab").waitFor({ timeout: 120000 }); await p.waitForTimeout(2500);
+  ok(p.url().includes("tab=inicializacao") && p.url().includes(`sc=${seed.sc}`) && JSON.stringify(await atual(p)) === JSON.stringify(["folha"]), "Caderno → Abrir a folha de ensaio → seção 01 do cenário escolhido");
+  const cabf = (await p.locator(".pt.folha .fl-cab").textContent()).replace(/\s+/g, " ");
+  ok(cabf.includes(seed.cenario) && cabf.includes("motor V2") && await p.locator(".pt.folha .fl-sec").count() === 4, "Folha: cenário, versão, motor e as quatro seções com o seu estado");
+  ok(await p.locator('.pt.folha .fl-sec[aria-current="step"]').getAttribute("data-sec") === "inicializacao" && await p.getByText("SOC inicial", { exact: false }).count() >= 1, "Folha · 01: os widgets de estado inicial continuam na página");
+  await foto(p, "b2d_01_folha_estado_inicial");
+  for (const [sec, marca] of [["previsoes", "Demanda"], ["estrategia", "Motor de execução"], ["execucao", "Preflight V2"]]) {
+    await p.locator(`.pt.folha .fl-sec[data-sec="${sec}"]`).click(); await p.waitForTimeout(4000);
+    ok(p.url().includes("tab=" + sec) && await p.locator('.pt.folha .fl-sec[aria-current="step"]').getAttribute("data-sec") === sec && await p.getByText(marca, { exact: false }).count() >= 1, `Folha · seção ${sec}: navegação pelo índice e formulário existente presente`);
+  }
+  ok(await p.getByRole("button", { name: /EXECUTAR MISSÃO V2/ }).count() === 1 || await p.getByText("solver", { exact: false }).count() >= 1, "Folha · 04: preflight e execução da etapa existente (servidor sem solver: bloqueio explicado)");
+  await foto(p, "b2d_02_folha_execucao");
+  await ctx.close();
+  [ctx, p] = await abrir(400, 850, `${base}/?view=operacao&tab=estrategia&mg=${seed.mg}&sc=${seed.sc}`);
+  await p.locator(".pt.folha .fl-cab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1500);
+  const ovf = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  ok(ovf <= 1, `Folha a 400 px: sem transbordo horizontal (${ovf}px)`); await foto(p, "b2d_r_400x850_folha"); await ctx.close();
 
   // ------------------------------------------------------------------ B2-A · celular e tablet
   for (const [w, h] of [[400, 850], [820, 1100]]) {

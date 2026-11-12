@@ -53,6 +53,13 @@ class DestinosDaBarraLateralTest(unittest.TestCase):
         self.assertEqual([i["id"] for i in it if i["atual"]], ["operacao"])
         at = shell.sidebar_items(view="operacao", tab="planta", is_open=True, commissioned=True)      # B2-B: Planta
         self.assertEqual([i["id"] for i in at if i["atual"]], ["planta"])
+        at = shell.sidebar_items(view="operacao", tab="caderno", is_open=True, commissioned=True)     # B2-C: Caderno
+        self.assertEqual([i["id"] for i in at if i["atual"]], ["caderno"])
+        for tab in ("inicializacao", "previsoes", "estrategia", "execucao"):                          # B2-D: Folha = as 4 etapas
+            at = shell.sidebar_items(view="operacao", tab=tab, is_open=True, commissioned=True)
+            self.assertEqual([i["id"] for i in at if i["atual"]], ["folha"])
+        at = shell.sidebar_items(view="operacao", tab="rodada", is_open=True, commissioned=True)
+        self.assertEqual([i["id"] for i in at if i["atual"]], ["operacao"])
         self.assertEqual(next(i for i in at if i["id"] == "planta")["acao"], {"type": "nav", "view": "operacao", "tab": "planta"})
         for tab in ("arquivo", "estudo"):                               # o Arquivo vive no Centro de Operação
             at = shell.sidebar_items(view="operacao", tab=tab, is_open=True, commissioned=True)
@@ -345,6 +352,163 @@ class PlantaNaAplicacaoTest(unittest.TestCase):
             self.assertEqual(len(app.exception), 0, [e.value for e in app.exception])
         self.assertEqual(st.load().fingerprint, antes)                    # a Planta não altera o inventário
         self.assertEqual([r.run_uid for r in st.list_runs()], [run.run_uid])
+
+
+# ============================================================================= B2-B Catálogo · B2-C Caderno · B2-D Folha
+class CatalogoCadernoFolhaTest(unittest.TestCase):
+    """Sobre microrredes do catálogo em diretório temporário: tudo é LIDO do armazenamento; nada é gravado."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = self._tmp.name
+        os.environ["SEEDS2_DATA_DIR"] = self.dir
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _microrrede(self, cfg):
+        from seeds2.microgrid.registry import MicrogridRegistry
+
+        MicrogridRegistry(self.dir).create(cfg)
+        return MicrogridRegistry(self.dir).open(cfg["installation"]["uid"])
+
+    def test_catalogo_assinatura_e_ensaios_vem_do_inventario_e_do_armazenamento(self):
+        from seeds2.microgrid.registry import card_summary
+        from seeds2.ui import gestor
+
+        st = self._microrrede(P.H.config_pemfc("Catálogo híbrido (teste)", fv=True, eolica=True))
+        s = card_summary(st.load())
+        s["ensaios"] = gestor._ensaios(st, st.load().config)
+        self.assertEqual((s["ensaios"]["cenarios"], s["ensaios"]["rodadas"], s["ensaios"]["conectada"]), (0, {}, True))
+        self.assertGreater(s["ensaios"]["pemfc_kW"], 0)
+        self.assertEqual(gestor._ensaios_txt(s["ensaios"]), "Ensaios: 0 cenário(s) · nenhuma rodada")
+        sig = gestor._assinatura(s)
+        self.assertEqual(sig.count('class="gs-m"'), 3)                     # FV, eólica e PEMFC presentes
+        self.assertIn("gs-b", sig)
+        self.assertIn("gs-pcc", sig)
+        self.assertNotIn("<svg", sig)                                      # o st.html remove SVG: a assinatura é HTML/CSS
+        so_bat = self._microrrede(P.U.config_bateria("Catálogo isolado (teste)", modo="isolada"))
+        s2 = card_summary(so_bat.load())
+        s2["ensaios"] = gestor._ensaios(so_bat, so_bat.load().config)
+        sig2 = gestor._assinatura(s2)
+        self.assertEqual((sig2.count('class="gs-m"'), "gs-pcc" in sig2), (0, False))     # nada é desenhado para o que não existe
+        self.assertIn("isolada", sig2)
+        self.assertIn("sem geração registrada", sig2)
+        self.assertEqual(gestor._ensaios_txt(None), "Ensaios: não disponível")
+        html = gestor._card_html(type("E", (), {"uid": s["uid"], "origin": "commissioning"})(), s)
+        for texto in ("gc-sig", "Ensaios: 0 cenário(s)", "gc-kpis", "Comissionamento concluído"):      # o cartão anterior continua inteiro
+            self.assertIn(texto, html)
+
+    @unittest.skipUnless(P.SOLVER, "Pyomo/HiGHS não instalados")
+    def test_caderno_lista_cenarios_e_rodadas_desta_microrrede_sem_gravar(self):
+        from seeds2.ui import caderno_ui, gestor
+
+        uid, st, run = P.missao_24h(self.dir, "Caderno (teste)")
+        sc2 = P.U.criar_cenario_v2(st, nome="Cenário sem rodadas", com_estrategia=False)          # motor por omissão = V1.6
+        _uid2, st2, run2 = P.missao_passo_30(self.dir, "Outra microrrede (teste)")
+        antes = (st.load().fingerprint, [r.run_uid for r in st.list_runs()], [(s.scenario_uid, s.version) for s in st.list_scenarios()])
+        d = caderno_ui.dados(st, ativo=run.scenario_uid)
+        self.assertEqual([r["uid"] for r in d["rodadas"]], [run.run_uid])                     # nada da outra microrrede
+        self.assertNotIn(run2.run_uid, [r["uid"] for r in d["rodadas"]])
+        r = d["rodadas"][0]
+        self.assertEqual((r["motor"], r["estado"], r["estado_rotulo"], r["versao"], r["revisao"], r["cenario_existe"]),
+                         ("V2", "concluida", "Concluída", run.scenario_version, run.config_revision, True))
+        self.assertEqual(r["dados"], len(run.data))
+        self.assertIn("custo realizado R$", r["resultado"])
+        cen = {c["uid"]: c for c in d["cenarios"]}
+        self.assertEqual(set(cen), {run.scenario_uid, sc2.scenario_uid})
+        self.assertEqual((cen[run.scenario_uid]["motor"], cen[run.scenario_uid]["rodadas"], cen[run.scenario_uid]["atual"]), ("V2", {"concluida": 1}, True))
+        self.assertEqual((cen[sc2.scenario_uid]["motor"], cen[sc2.scenario_uid]["rodadas"], cen[sc2.scenario_uid]["atual"]), ("V1.6", {}, False))
+        self.assertEqual(d["estudos"], [])                                                    # sem Arquivo: nada é criado
+        self.assertFalse((Path(self.dir) / "scientific_archive").exists())
+        self.assertEqual(gestor._ensaios_txt(gestor._ensaios(st, st.load().config)), "Ensaios: 2 cenário(s) · 1 concluída(s)")
+        depois = (st.load().fingerprint, [x.run_uid for x in st.list_runs()], [(x.scenario_uid, x.version) for x in st.list_scenarios()])
+        self.assertEqual(antes, depois)
+
+    @unittest.skipUnless(P.SOLVER, "Pyomo/HiGHS não instalados")
+    def test_folha_usa_os_mesmos_estados_das_etapas_e_nao_muda_o_cenario(self):
+        from seeds2.operation import scenarios as S
+        from seeds2.ui import execution_ui, folha_ui
+
+        _uid, st, run = P.missao_24h(self.dir, "Folha (teste)")
+        cur = st.get_scenario(run.scenario_uid)
+        doc = copy.deepcopy(cur.document)
+        d = folha_ui.dados(st, cur, doc, "estrategia", dirty=False)
+        self.assertEqual([x["id"] for x in d["secoes"]], ["inicializacao", "previsoes", "estrategia", "execucao"])
+        self.assertEqual([x["id"] for x in d["secoes"] if x["atual"]], ["estrategia"])
+        rd = S.readiness(doc, S.findings(doc), None)
+        sec = {x["id"]: x for x in d["secoes"]}
+        self.assertEqual(sec["inicializacao"]["estado"], rd["stages"]["inicializacao"][1])
+        self.assertEqual(sec["previsoes"]["estado"], rd["stages"]["previsoes"][1])
+        self.assertEqual(sec["estrategia"]["estado"], S.strategy_status(doc)[1])
+        self.assertEqual(sec["execucao"]["estado"], execution_ui.stage_state(st, cur)[1])
+        self.assertEqual((d["cenario"]["versao"], d["rodadas"], d["alterado"]), (cur.version, 1, False))
+        self.assertIn("V2", d["cenario"]["motor"])
+        self.assertEqual(doc, cur.document)                                                   # o cabeçalho não toca o documento
+        self.assertEqual(st.get_scenario(run.scenario_uid).version, cur.version)
+
+
+@unittest.skipUnless(P.NODE, "Node.js não instalado")
+class CadernoEFolhaNoNavegadorTest(unittest.TestCase):
+    CAD = {"cenarios": [{"uid": "sc1", "nome": "Dia útil", "versao": 3, "motor": "V2", "atualizado": "12/11 10:00", "revisao": 1, "rodadas": {"concluida": 2, "interrompida": 1}, "atual": True},
+                        {"uid": "sc2", "nome": "Padrão V1.6", "versao": 1, "motor": "V1.6", "atualizado": "11/11 09:00", "revisao": 1, "rodadas": {}, "atual": False}],
+           "rodadas": [{"uid": "a" * 32, "cenario_uid": "sc1", "cenario": "Dia útil", "versao": 3, "motor": "V2", "estado": "concluida", "estado_rotulo": "Concluída", "tom": "ok",
+                        "criada": "12/11 10:01", "finalizada": "12/11 10:02", "revisao": 1, "resultado": "V2 · custo realizado R$ 277,53", "dados": 13, "cenario_existe": True},
+                       {"uid": "b" * 32, "cenario_uid": "sc1", "cenario": "Dia útil", "versao": 2, "motor": "V2", "estado": "interrompida", "estado_rotulo": "Interrompida", "tom": "w",
+                        "criada": "12/11 09:01", "finalizada": "12/11 09:02", "revisao": 1, "resultado": "", "dados": 0, "cenario_existe": True},
+                       {"uid": "c" * 32, "cenario_uid": "sc9", "cenario": "Removido", "versao": 1, "motor": "V1.6", "estado": "concluida", "estado_rotulo": "Concluída", "tom": "ok",
+                        "criada": "10/11 09:01", "finalizada": "10/11 09:02", "revisao": 1, "resultado": "R$ 10,00", "dados": 9, "cenario_existe": False}],
+           "estudos": [{"uid": "e" * 32, "nome": "Estudo de teste", "origem": "Outra", "versoes": 2, "rodadas": 1, "verificado": True, "content_id": "0123456789abcdef", "desta": False, "importado": "12/11"}],
+           "rotulos": {"concluida": "Concluída", "interrompida": "Interrompida", "falhou": "Falhou", "em_execucao": "Em execução", "preparada": "Preparada"},
+           "microrrede": {"nome": "Teste", "revisao": 1}}
+
+    def test_filtro_puro_das_rodadas(self):
+        r = P.node("const R = F.rodadas, f = api.filtrarRodadas; return [f(R, {}).length, f(R, { motor: 'V2' }).length, f(R, { motor: 'V1.6' }).map((x) => x.uid[0]), "
+                   "f(R, { estado: 'concluida' }).length, f(R, { motor: 'V2', estado: 'concluida' }).length, f(R, { cenario: 'sc1' }).length, api.contarRodadas(R)];",
+                   self.CAD, componente="caderno", puros="filtrarRodadas, contarRodadas")
+        self.assertEqual(r, [3, 2, ["c"], 2, 1, 2, {"concluida": 2, "interrompida": 1}])
+
+    @unittest.skipUnless(P.navegador_disponivel(), "Chromium/Playwright (Node) não instalados")
+    def test_caderno_filtra_no_navegador_e_devolve_as_acoes(self):
+        linhas = "[...document.querySelectorAll('.pt.caderno tr[data-run]')].map((t) => t.dataset.run[0] + ':' + t.dataset.motor + ':' + t.dataset.estado)"
+        passos = [["avaliar", "todas", linhas], ["clicar", '.pt.caderno [data-f="motor:V1.6"]'], ["avaliar", "v16", linhas], ["clicar", '.pt.caderno [data-f="motor:"]'],
+                  ["clicar", '.pt.caderno [data-f="estado:interrompida"]'], ["avaliar", "interrompidas", linhas], ["clicar", '.pt.caderno [data-f="estado:"]'],
+                  ["clicar", '.pt.caderno tr[data-run^="a"] .cd-abrir'], ["clicar", '.pt.caderno [data-sc="sc2"] .cd-folha'], ["clicar", ".pt.caderno .cd-estudo"],
+                  ["avaliar", "acoes", "window.__acoes.map((a) => [a.type, a.run || a.sc || a.study, a.tab || null])"], ["texto", "t"]]
+        r = P.bancada({"caderno": self.CAD}, passos=passos, componente="caderno")["caderno"]
+        self.assertEqual(r["erros"], [])
+        v = r["vistas"]
+        self.assertEqual(v["todas"], ["a:V2:concluida", "b:V2:interrompida", "c:V1.6:concluida"])
+        self.assertEqual(v["v16"], ["c:V1.6:concluida"])
+        self.assertEqual(v["interrompidas"], ["b:V2:interrompida"])
+        self.assertEqual(v["acoes"], [["abrir_rodada", "a" * 32, None], ["abrir_cenario", "sc2", "inicializacao"], ["abrir_estudo", "e" * 32, None]])
+        for texto in ("Removido · v1 (cenário removido)", "V2 · custo realizado R$ 277,53", "Diagnóstico", "Rodadas: 2 concluída · 1 interrompida", "content_id 0123456789abcdef"):
+            self.assertIn(texto, v["t"])
+        vazio = {"cenarios": [], "rodadas": [], "estudos": [], "rotulos": self.CAD["rotulos"], "microrrede": {"nome": "Vazia", "revisao": 1}}
+        r = P.bancada({"vazio": vazio}, passos=[["texto", "t"]], componente="caderno")["vazio"]
+        self.assertEqual(r["erros"], [])
+        for texto in ("Nenhum cenário", "Nenhuma rodada", "Nenhum estudo arquivado"):
+            self.assertIn(texto, r["vistas"]["t"])
+
+    @unittest.skipUnless(P.navegador_disponivel(), "Chromium/Playwright (Node) não instalados")
+    def test_folha_indice_das_secoes_e_navegacao(self):
+        folha = {"cenario": {"uid": "sc1", "nome": "Dia útil", "versao": 3, "motor": "V2 · MILP–MPC hierárquico (experimental)", "revisao": 1},
+                 "secoes": [{"id": "inicializacao", "n": "01", "titulo": "Estado inicial", "tom": "ok", "estado": "Definida", "detalhe": "", "atual": False},
+                            {"id": "previsoes", "n": "02", "titulo": "Previsões", "tom": "w", "estado": "Incompletas", "detalhe": "", "atual": True},
+                            {"id": "estrategia", "n": "03", "titulo": "Motor e estratégia", "tom": "b", "estado": "Com erros", "detalhe": "", "atual": False},
+                            {"id": "execucao", "n": "04", "titulo": "Missão e execução", "tom": "", "estado": "Indisponível", "detalhe": "", "atual": False}],
+                 "constatacoes": {"erro": 0, "aviso": 2, "pendente": 1, "incompleto": 0}, "alterado": True, "rodadas": 3}
+        passos = [["texto", "t"], ["avaliar", "atual", "[...document.querySelectorAll('.pt.folha .fl-sec[aria-current=\"step\"]')].map((b) => b.dataset.sec)"],
+                  ["clicar", '.pt.folha .fl-sec[data-sec="previsoes"]'], ["clicar", '.pt.folha .fl-sec[data-sec="execucao"]'],
+                  ["avaliar", "acoes", "window.__acoes.map((a) => [a.type, a.view, a.tab])"]]
+        r = P.bancada({"folha": folha}, passos=passos, componente="folha")["folha"]
+        self.assertEqual(r["erros"], [])
+        v = r["vistas"]
+        self.assertEqual(v["atual"], ["previsoes"])
+        self.assertEqual(v["acoes"], [["nav", "operacao", "execucao"]])                # a seção atual não navega para si mesma
+        for texto in ("Folha de ensaio", "Dia útil", "versão 3", "alterações não salvas", "2 aviso(s)", "1 pendência(s) do motor", "3 rodada(s) deste cenário"):
+            self.assertIn(texto, v["t"])
+        self.assertNotIn("erro(s)", v["t"])                                            # contagem zero não é mostrada
 
 
 if __name__ == "__main__":

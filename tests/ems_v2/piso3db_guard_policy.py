@@ -19,13 +19,16 @@ MODIFICADOS = frozenset({
     "tests/ems_v2/piso3da2h_guard_policy.py",    # encadeia este filtro (regras do 3D-A2-H inalteradas)
     # Piso 3D-B2 (integração visual da plataforma, autorizada pelo responsável): só a camada de apresentação do shell.
     "seeds2/ui/shell.py",                        # B2-A: itens, retorno e desenho da barra lateral (junto da barra superior)
-    "seeds2/ui/operation_center.py",             # B2-B: despacho de ``tab = planta``
+    "seeds2/ui/operation_center.py",             # B2-B/C/D: despacho das abas novas (planta, caderno) e Folha de Ensaio
+    "seeds2/ui/gestor.py",                       # B2-B: Catálogo (assinatura, ensaios e prateleira do Arquivo nos cartões)
 })
 # Arquivos NOVOS do 3D-B dentro dos alvos das guardas anteriores (somente adição).
 COMPONENTE = ("seeds2/ui/trama.py", "seeds2/ui/static/trama/trama.js", "seeds2/ui/static/trama/partitura.js",
               "seeds2/ui/static/trama/trama.css",
               "seeds2/ui/static/trama/sidebar.js",                                   # 3D-B2-A: barra lateral
-              "seeds2/ui/static/trama/planta.js", "seeds2/ui/planta_ui.py")          # 3D-B2-B: Planta
+              "seeds2/ui/static/trama/planta.js", "seeds2/ui/planta_ui.py",          # 3D-B2-B: Planta
+              "seeds2/ui/static/trama/caderno.js", "seeds2/ui/caderno_ui.py",        # 3D-B2-C: Caderno de Ensaios
+              "seeds2/ui/static/trama/folha.js", "seeds2/ui/folha_ui.py")            # 3D-B2-D: Folha de Ensaio
 TESTES_3DB = ("tests/test_piso3db_trama.py", "tests/test_piso3db_app.py", "tests/piso3db_util.py",
               "tests/test_piso3db_nd.py", "tests/test_piso3db_lentes.py",          # 3D-B3: N/D e lentes
               "tests/test_piso3db_e2e_servidor.py",                                # limpeza dos servidores E2E
