@@ -22,7 +22,8 @@ MODIFICADOS = frozenset({
 COMPONENTE = ("seeds2/ui/trama.py", "seeds2/ui/static/trama/trama.js", "seeds2/ui/static/trama/partitura.js",
               "seeds2/ui/static/trama/trama.css")
 TESTES_3DB = ("tests/test_piso3db_trama.py", "tests/test_piso3db_app.py", "tests/piso3db_util.py",
-              "tests/test_piso3db_nd.py", "tests/test_piso3db_lentes.py")          # 3D-B3: N/D e lentes
+              "tests/test_piso3db_nd.py", "tests/test_piso3db_lentes.py",          # 3D-B3: N/D e lentes
+              "tests/test_piso3db_e2e_servidor.py")                                # limpeza dos servidores E2E
 ADICIONADOS = frozenset({*COMPONENTE, *TESTES_3DB, "tests/ems_v2/piso3db_guard_policy.py",
                          "tests/ems_v2/test_piso3db_guardas.py"})
 # Nenhum arquivo do 3D-B fora de ``ems_v2/`` e ``tests/ems_v2/`` menciona o pacote do motor (guarda 3A).

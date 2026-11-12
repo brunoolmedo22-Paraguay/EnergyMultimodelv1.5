@@ -1,3 +1,53 @@
+# CONTINUAÇÃO IMEDIATA — INSTRUÇÕES PARA O PRÓXIMO AGENTE
+
+> Seção viva: atualizada a CADA checkpoint publicado do Piso 3D-B2. Se a sessão anterior foi interrompida, este bloco e o
+> último commit publicado bastam para continuar. Histórico das entregas anteriores: logo abaixo e em `PARAMIJEFE.md`.
+
+| Item | Estado |
+|---|---|
+| **Branch** | `claude/stoic-meitner-2vs91m` (base `main` `724d235`) |
+| **PR** | Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24) contra `main` — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Último checkpoint publicado** | ver `git log -1` da branch; tabela «Checkpoints do 3D-B2» abaixo |
+| **Missão em curso** | Piso **3D-B2** — integração visual da plataforma (autorizado pelo responsável após aprovar o 3D-B3 no HEAD `590b826`, CI verde nos dois ambientes) |
+
+## Checkpoints do 3D-B2
+
+| # | Unidade | Estado | Commit |
+|---|---|---|---|
+| C0 | Três correções focalizadas pedidas antes da expansão: (A) N/D × não aplicável por EVIDÊNCIA (`termo`/`declarado`, `F.objetivo.termos`), (B) zero negativo só na formatação (`nf`/`ne`), (C) limpeza garantida dos servidores E2E (`tools/e2e/servidor.sh`) | **concluído** | este commit |
+| B2-A | Barra lateral compacta (hover), navegação responsiva, identidade Partitura, navegação atual preservada, estável em reruns | não iniciado | — |
+| B2-B | Catálogo integrado ao Gestor + Planta com barramento equivalente (hover/foco/seleção, dados reais do inventário e da rodada, abrir painéis por UID; sem fluxos inventados) | não iniciado | — |
+| B2-C | Caderno de Ensaios (cenários e rodadas: versões, motores, estados, datas, integridade; locais e Arquivo Científico; V1.6 compatível) | não iniciado | — |
+| B2-D | Folha de Ensaio (organização aprovada no protótipo sobre os formulários longos; parâmetros, validações, estados iniciais e preflight intactos) | não iniciado | — |
+
+## Como retomar
+
+1. `git fetch origin && git checkout claude/stoic-meitner-2vs91m && git pull`; ler `CLAUDE.md`, este bloco e `docs/seeds2/PARTITURA_3DB.md`.
+2. Ambientes: Python 3.13 + `pip install -r requirements.txt -r requirements-ems_v2.txt pytest` (com solver) e outro só com
+   `requirements.txt pytest` (sem solver). Node 22 + Chromium/Playwright para a bancada e os E2E. Sempre `PYTHONDONTWRITEBYTECODE=1`.
+3. Testes focalizados do Piso 3D-B (≈ 6 min com solver):
+   `python -m pytest tests/test_piso3db_trama.py tests/test_piso3db_nd.py tests/test_piso3db_lentes.py tests/test_piso3db_app.py tests/test_piso3db_e2e_servidor.py tests/ems_v2/test_piso3db_guardas.py -q -p no:cacheprovider`
+4. Navegador real: `tools/e2e/run_piso3db.sh <python com solver> <pasta nova>`; auditoria do diff: `python tests/ems_v2/piso3db_guard_policy.py` (tem de dar `ok: true`).
+5. Regressão completa (com solver ≈ 16 min; sem solver ≈ 9 min): `python -m pytest tests/ -q -p no:cacheprovider` nos dois ambientes, **no HEAD final de cada entrega importante**.
+
+## Referência visual e fontes do protótipo aprovado
+
+A linguagem visual é a **Partitura V2 aprovada** (não criar outra): tokens e classes em `seeds2/ui/static/trama/trama.css`
+(tudo sob `.pt`; paleta neutra, painéis de raio 14 com linha de acento, diálogo de raio 18). O protótipo navegável aprovado
+(barra lateral, Catálogo, Planta, Caderno, Folha) NÃO está no repositório: foi entregue ao responsável como artefato; a
+descrição das telas está em `docs/seeds2/PARTITURA_3DB.md` §8 (plano do 3D-B2).
+
+## Restrições e decisões já aprovadas (não reabrir)
+
+- Não alterar `ems_v2/`, modelos físicos (`models/`, `h2_pemfc/`, `simulation/`, `config/`, `ems_integration/`, `reference_models/`), contratos nem persistência sem autorização. Auditoria nominal: `tests/ems_v2/piso3db_guard_policy.py` (todo arquivo NOVO de teste precisa entrar em `TESTES_3DB`/`ADICIONADOS`).
+- **R-1, R-2 e R-3 continuam pendentes e separados desta missão** (não corrigir).
+- Nenhum fluxo anterior pode desaparecer durante a migração; a vista clássica da rodada V2 fica num expansor recolhido (C-3DB-05); não enfraquecer asserções de testes de interface.
+- N/D em três estados no JavaScript (C-3DB-04) e, desde o C0, «não aplicável» só com evidência (C-3DB-07).
+- A interface descreve; não atribui causas; a Planta não pode inventar fluxos físicos nas conexões.
+- Checkpoints frequentes: commit + push + este bloco atualizado ANTES de começar outra funcionalidade.
+
+---
+
 > **PISO 3D-B3 — N/D EN EL NAVEGADOR + LENTES DECISIÓN / ECONOMÍA / EVIDENCIA (2026-11-12, misma rama `claude/stoic-meitner-2vs91m`, mismo PR Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24), SIN merge):** el responsable aprobó el checkpoint 3D-B0/B1 **solo para continuidad** y pidió, en este orden: (1) **corrección N/D en JavaScript** — hecha: tres estados que no se confunden (número = grabado; `null` = AUSENTE ⇒ «N/D», no se suma ni se dibuja como cero y vuelve N/D todo derivado; `undefined` = NO APLICABLE ⇒ se omite), en el modelo de vista, en el motor Trama y en los paneles (antes había `|| 0`, `fill(0)` y `100 * null`); (2) **lentes** Decisión (tapete de decisiones, selección de ventana, plan MPC × plan largo × ejecutado, V(E) solo con puntos grabados, ventanas sin señal explícitas, lo que se sabía × lo que ocurrió después), Economía (costo realizado por intervalo/acumulado/componente, bloque previsto × realizado, objetivo MILP ≠ costo ≠ valor futuro) y Evidencia (verificación del SERVIDOR, tres aceptaciones, auditoría, solver por decisión, procedencia, archivos con SHA-256, tablas originales, advertencias y limitaciones); (3) **vista clásica plegada por defecto** en un expansor identificado cuando la Partitura se dibuja (contenido íntegro, `_vista_classica`); (4) **cobertura**: dos bancos y dos unidades PEMFC por UID, contrato v1, ventanas sin señal, cambio de lente sin perder el instante, cambio de rodada, sesión nueva sin solver, 12 h / 24 h (m = 2) / paso de 30 min, microrred aislada. Marco `seeds2-trama-frame` **v2** (solo añade lecturas de archivos ya grabados: planos, coordinaciones, auditoría, tablas). Sin cambios en `ems_v2/`, modelos físicos, contratos ni persistencia. Hallazgos propios corregidos: clave de caché del marco para estudios archivados (C-3DB-06) y columna ancha de la lente Decisión en móvil. Hallazgo ajeno registrado: el guion `tools/e2e/e2e_piso3da_v2.js` ya estaba desactualizado en `main` (etiqueta del formulario renombrada en un piso posterior); se actualizó solo esa etiqueta. **R-1, R-2 y R-3 siguen sin corregir.** Verificado sobre `6bef66c`: regresión completa **con solver 2284 passed, 2 skipped** (= 2249 + 35) y **sin solver 1769 passed, 172 skipped**; E2E real `run_piso3db.sh` **103 verificaciones** con servidor sin solver y motor/modelos saboteados (registro vacío); E2E 3D-A (106), 3D-A2-R y 3D-A2-H (60) aprobados con la vista clásica plegada; auditoría explícita del diff `ok`. Detalle: `PARAMIJEFE.md` Entrega 17; diseño y decisiones C-3DB-04…06: [`docs/seeds2/PARTITURA_3DB.md`](../seeds2/PARTITURA_3DB.md). **Próximo paso (solo tras revisar este checkpoint):** 3D-B2 — barra lateral, Catálogo, Planta, Caderno de Ensaios, Folha de Ensaio.
 
 > **PISO 3D-B0/B1 — PARTITURA + MOTOR TRAMA (2026-11-11, rama `claude/stoic-meitner-2vs91m` desde `main` `724d235`, PR Draft contra `main` SIN merge):** dirección de diseño **Partitura V2 aprobada por el responsable** e implementación autorizada. Integrado en la aplicación real: marco de datos `seeds2-trama-frame` (`integracao_v2/trama_frame.py`, solo lectura de los datos persistidos, sin solver ni modelos), motor gráfico Trama en SVG sin dependencias (`seeds2/ui/static/trama/`), componente v2 `seeds2/ui/trama.py` y el instrumento en la página de la rodada V2 (local y estudio archivado): lente **Operación**, inspector, y **explorador de recursos** con los siete paneles (PEMFC con sus tres vistas). La vista clásica permanece debajo. **No integrado todavía (solo prototipo):** lentes Decisión/Economía/Evidencia, barra lateral, Catálogo, Planta, Caderno, Folha, exportación de figuras, series climáticas en los paneles solar/eólico. Verificado: 15 tests nuevos; E2E real `tools/e2e/run_piso3db.sh` con **40 verificaciones** sobre servidor sin solver y con motor/modelos saboteados (registro de llamadas vacío); regresión completa con solver **2249 passed, 2 skipped** (= 2234 + 15). Guardas: excepción nominal C-3DB-01. Pendientes técnicas R-1/R-2/R-3 registradas y NO corregidas. Detalle: [`docs/seeds2/PARTITURA_3DB.md`](../seeds2/PARTITURA_3DB.md) y `PARAMIJEFE.md` Entrega 16. **Próximo paso propuesto:** 3D-B2 (navegación: barra lateral, Catálogo, Planta, Caderno, Folha) o 3D-B3 (lentes Decisión, Economía, Evidencia), a decisión del responsable.

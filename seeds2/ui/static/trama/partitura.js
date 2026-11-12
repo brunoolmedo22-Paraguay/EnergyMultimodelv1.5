@@ -31,7 +31,13 @@ const mapa = (a, f) => (a == null ? a : a.map(f));
 const conta = (a, f) => (a == null ? null : a.some((v) => v == null) ? null : a.filter(f).length);
 const somaT = (a) => (a == null ? a : a.some((v) => v == null) ? null : a.reduce((x, y) => x + y, 0));
 const acum = (a, f = 1) => { if (a == null) return a; let s = 0, ok = true; return [0, ...a.map((v) => { if (v == null) ok = false; return ok ? (s += v * f) : null; })]; };
-const opc = (a) => (a == null ? null : a.every((v) => v == null) ? undefined : a);
+// Termo OPCIONAL do objetivo. Uma série toda vazia só é «não aplicável» (undefined) com EVIDÊNCIA: os termos DECLARADOS
+// na estratégia gravada (F.objetivo.termos) não incluem o termo. Termo declarado — ou declaração ilegível — com a série
+// vazia/ausente é DADO AUSENTE (null ⇒ N/D). Valores gravados são sempre mostrados, declarado ou não.
+const vazia = (a) => a == null || a.every((v) => v == null);
+const declarado = (F, t) => (Array.isArray((F.objetivo || {}).termos) ? F.objetivo.termos.includes(t) : null);
+const termo = (a, decl) => (!vazia(a) ? a : decl === false ? undefined : null);
+const termoAgg = (ls, decl, n) => (!ls.length ? undefined : ls.every(vazia) ? (decl === false ? undefined : null) : agg(ls, n));
 const maxv = (...arrs) => Math.max(0, ...arrs.flat().map((v) => (v == null || Number.isNaN(v) ? 0 : v)));
 const teto = (v) => { if (!(v > 0)) return 1; const p = 10 ** Math.floor(Math.log10(v)); return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((m) => m * p).find((x) => x >= v * 1.04) || 10 * p; };
 const tk = (mx) => [0, mx / 2, mx], fd = (mx) => (v) => nf(v, mx < 10 ? (mx < 1 ? 2 : 1) : 0);
@@ -46,19 +52,18 @@ function modelo(F) {
   const rot = loc.map((s) => { const t = String(s); const hm = semMin ? t.slice(11, 13) + "h" : t.slice(11, 16); return multi && t.slice(11, 16) === "00:00" ? t.slice(8, 10) + "/" + t.slice(5, 7) : hm; });
   const R = F.recursos, onde = { fv: "renovaveis", wt: "renovaveis", bat: "baterias", fc: "pemfc" };
   const col = (k, g) => R[k].map((r) => (F[onde[k]][r.uid] || {})[g] ?? null), con = F.pcc.modo === "conectado", pcc = (c) => (con ? I[c] ?? null : undefined);
-  const opcAgg = (ls, n) => { const vivos = ls.map(opc).filter((a) => a !== undefined); return vivos.length ? agg(vivos, n) : undefined; };
   const din = R.fc.map((r) => (F.pemfc[r.uid] || {}).dinamica);
   const A = {
     demR: I.demanda_realizada_kW ?? null, demP: I.demanda_prevista_kW ?? null, ens: I.demanda_nao_atendida_kW ?? null, at: I.demanda_atendida_kW ?? null,
     wtP: agg(col("wt", "P_R_kW"), K), wtA: agg(col("wt", "A_utilizavel_kW"), K), wtV: agg(col("wt", "vertimento_kW"), K),
     fvP: agg(col("fv", "P_R_kW"), K), fvA: agg(col("fv", "A_utilizavel_kW"), K), fvV: agg(col("fv", "vertimento_kW"), K),
     pd: agg(col("bat", "P_d_kW"), K), pc: agg(col("bat", "P_c_kW"), K), fr: agg(col("bat", "energia_kWh"), K + 1),
-    fcP: agg(col("fc", "p_kW"), K), fcM: agg(col("fc", "m_h2_kg"), K), cH2: opcAgg(col("fc", "custo_h2_R"), K), cEv: opcAgg(col("fc", "custo_eventos_R"), K),
+    fcP: agg(col("fc", "p_kW"), K), fcM: agg(col("fc", "m_h2_kg"), K), cH2: termoAgg(col("fc", "custo_h2_R"), declarado(F, "combustivel_h2"), K), cEv: termoAgg(col("fc", "custo_eventos_R"), declarado(F, "eventos"), K),
     fcOn: R.fc.length ? Array.from({ length: K }, (_, i) => R.fc.some((r) => ((F.pemfc[r.uid] || {}).u || [])[i])) : undefined,
     dinP: !R.fc.length ? undefined : din.some((d) => !d) ? null : Array.from({ length: K }, (_, i) => { let s = 0; for (const d of din) { const v = (d.intervalos[i] || {}).p_entregue_media_kW; if (v == null) return null; s += v; } return s; }),
     impR: pcc("pcc_importacao_realizada_kW"), impP: pcc("pcc_importacao_programada_kW"), expR: pcc("pcc_exportacao_realizada_kW"), expP: pcc("pcc_exportacao_programada_kW"),
-    tar: pcc("tarifa_importacao_decisao_R_kWh"), cImp: pcc("custo_importacao_R"), rec: pcc("receita_exportacao_R"), cDes: con ? opc(I.custo_desvio_rede_R ?? null) : undefined,
-    cThr: R.bat.length ? opc(I.custo_throughput_R ?? null) : undefined, cInt: I.custo_realizado_intervalo_R ?? null, cAcc: I.custo_realizado_acumulado_R ?? null,
+    tar: pcc("tarifa_importacao_decisao_R_kWh"), cImp: pcc("custo_importacao_R"), rec: pcc("receita_exportacao_R"), cDes: con ? I.custo_desvio_rede_R ?? null : undefined,
+    cThr: R.bat.length ? termo(I.custo_throughput_R ?? null, declarado(F, "throughput_bess")) : undefined, cInt: I.custo_realizado_intervalo_R ?? null, cAcc: I.custo_realizado_acumulado_R ?? null,
     jan: I.janela ?? null, ip: I.indice_no_plano ?? null, res: I.residuo_balanco_kW ?? null,
   };
   A.cap = R.bat.length ? somaT(R.bat.map((r) => ((F.baterias[r.uid] || {}).resumo || {}).capacidade_kWh ?? null)) : undefined;
@@ -122,7 +127,7 @@ function Partitura(root, F) {
     const seg = (a, ht) => a.filter((x) => x[1] > 1e-6).map(([k, x]) => `<i class="${ht && k !== "dem" ? "ht" : ""}" style="width:${(100 * x) / base}%;background-color:${COR[k]}" title="${nf(x, 2)} kW"></i>`).join("");
     if (B.faltam.length) return h("div", {}, h("div", { class: "nd", html: `<b>N/D</b> — balanço incompleto: ${[...new Set(B.faltam)].map((k) => NOMES[k]).join(", ")} sem dado neste intervalo. Nada é assumido como zero.` }));
     return h("div", {}, h("div", { class: "bal", html: `<span>injeta</span><div class="b">${seg(B.inj)}</div><span>consome</span><div class="b">${seg(B.con, true)}</div>` }),
-      h("p", { class: "note", html: `Σ injeção (derivado) = <b>${nf(tot, 2)} kW</b> · resíduo do balanço gravado ${el(A.res, g) != null ? el(A.res, g).toExponential(1) : "N/D"} kW` }));
+      h("p", { class: "note", html: `Σ injeção (derivado) = <b>${nf(tot, 2)} kW</b> · resíduo do balanço gravado ${ne(el(A.res, g), 1)} kW` }));
   }
   function inspetor(g, T) {
     const w = janDe(g), fo = (k) => ({ onpointerenter: () => T() && T().focus(k), onpointerleave: () => T() && T().focus(null), onfocus: () => T() && T().focus(k), onblur: () => T() && T().focus(null), onclick: () => abrir(k) });
@@ -190,7 +195,7 @@ function Partitura(root, F) {
       // comportamento DERIVADO: 4 = N/D (falta potência ou energia do intervalo)
       const st = seq((i) => { const qc = el(pc, i), qd = el(pd, i), e = el(E, i); return qc == null || qd == null ? 4 : qc > 1e-6 ? 2 : qd > 1e-6 ? 3 : e == null ? 4 : e > 1e-6 ? 1 : 0; });
       const stN = ["vazia", "preserva", "carga", "descarga", "N/D"], stC = ["var(--field-2)", "var(--seq-1)", "url(#pth-bat)", c, "var(--field)"], pres = st.filter((s) => s === 1).length, semDado = st.filter((s) => s === 4).length;
-      const thr = seq((i) => vezes(mais(el(pc, i) ?? null, el(pd, i) ?? null), hD)), cT = cth != null ? thr.map((t) => vezes(t, cth)) : undefined;
+      const thr = seq((i) => vezes(mais(el(pc, i) ?? null, el(pd, i) ?? null), hD)), cT = cth != null ? thr.map((t) => vezes(t, cth)) : b.declaracao ? undefined : null;
       const mE = teto(Math.max(cap || 0, maxv(E))), mP = teto(maxv(pd, [dc.p_descarga_barramento_kW])), mC = teto(maxv(pc, [dc.p_carga_barramento_kW])), mT = teto(maxv(cT));
       const pbar = (i) => { const qd = el(pd, i), qc = el(pc, i); return qd == null || qc == null ? "N/D" : qd > 0 ? "+" + nf(qd, 1) + " kW" : qc > 0 ? "−" + nf(qc, 1) + " kW" : "0 kW"; };
       const socTxt = (i, d) => `${nf(vezes(el(soc, i), 100), d)} → ${nf(vezes(el(soc, i + 1), 100), d)} %`;
@@ -202,7 +207,7 @@ function Partitura(root, F) {
         { title: "Custo de throughput [R$] · derivado: (P carga + P descarga) × Δ × custo declarado", h: 46, w: 1, draw(x) { if (cT === undefined) return x.text(v0(), x.top + 13, "custo de throughput não declarado para este banco (termo fora do objetivo)"); const y = x.sc(0, mT); x.grid(y, [0, mT], fd(mT)); x.stack([{ v: cT, c, k }], y); } }].filter(Boolean),
         tip: tip((i) => [["Energia (início → fim)", `${nf(el(E, i), 2)} → ${nf(el(E, i + 1), 2)} kWh`], ["SOC (início → fim)", socTxt(i, 1)], ["Descarga", nf(el(pd, i), 2) + " kW"], ["Carga", nf(el(pc, i), 2) + " kW"], ["Comportamento (derivado)", stN[st[i]]]]),
         cards: (i) => [
-          card({ acc: c, t: `Instante ${ivl(i)}`, tag: stN[st[i]], tc: st[i] === 4 ? "w" : "", big: `${nf(el(E, i), 1)} → ${nf(el(E, i + 1), 1)}<small>kWh</small>`, grid: [["SOC", socTxt(i, 0)], ["Potência no barramento", pbar(i)], M.conectado ? ["Tarifa", nf(el(A.tar, i), 2) + " R$/kWh"] : null, ["Throughput (derivado)", cT === undefined ? "não declarado" : rs(cT[i])]] }),
+          card({ acc: c, t: `Instante ${ivl(i)}`, tag: stN[st[i]], tc: st[i] === 4 ? "w" : "", big: `${nf(el(E, i), 1)} → ${nf(el(E, i + 1), 1)}<small>kWh</small>`, grid: [["SOC", socTxt(i, 0)], ["Potência no barramento", pbar(i)], M.conectado ? ["Tarifa", nf(el(A.tar, i), 2) + " R$/kWh"] : null, ["Throughput (derivado)", cT === undefined ? "não declarado" : rs(el(cT, i))]] }),
           card({ t: "Missão", big: `${nf(rsm.energia_descarregada_kWh, 1)}<small>kWh descarregados</small>`, grid: [["Carregados", nf(rsm.energia_carregada_kWh, 1) + " kWh"], ["Estado inicial → final", `${nf(rsm.energia_inicial_kWh, 1)} → ${nf(rsm.energia_final_kWh, 1)} kWh`], ["SOC inicial → final", `${nf(vezes(rsm.soc_inicial, 100), 0)} → ${nf(vezes(rsm.soc_final, 100), 0)} %`], ["Throughput (derivado)", nf(somaT(thr), 1) + " kWh"],
             ["Custo de throughput (missão)", cT === undefined ? "não declarado" : R.bat.length === 1 ? rs((F.resumo.componentes_R || {}).throughput_bess) : rs(somaT(cT))], ["Intervalos preservando", `${pres} de ${K}` + (semDado ? ` · ${semDado} sem dado` : "")]] }),
           card({ t: "Limites e declarações", tag: "cenário v" + F.rodada.versao_cenario, kv: [["Capacidade", nf(cap, 1) + " kWh"], ["Carga · descarga no barramento", `${nf(dc.p_carga_barramento_kW, 0)} · ${nf(dc.p_descarga_barramento_kW, 0)} kW`], ["η carga · descarga", `${nf(dc.eta_carga, 2)} · ${nf(dc.eta_descarga, 2)}`], ["Custo de throughput", nf(cth, 3) + " R$/kWh"], ["Autodescarga", esc(dc.hipotese_autodescarga ?? "N/D")]],
@@ -210,7 +215,7 @@ function Partitura(root, F) {
     }
     if (k === "fc") {
       const p = F.pemfc[ui] || {}, d = p.dinamica, dx = d && d.intervalos ? d.intervalos : null, cv = p.curva, dc = p.declaracao || {}, rsm = p.resumo || {}, rd = p.resumo_dinamica || {}, me = p.massas_eventos || {}, md = me.modelo_dinamico || {}, t = T || "op";
-      const U = p.u ?? null, Pk = p.p_kW ?? null, Q = p.q_h2_kg_h ?? null, Mh = p.m_h2_kg ?? null, Ch = opc(p.custo_h2_R ?? null), par = p.partida ?? null, pad = p.parada ?? null;
+      const U = p.u ?? null, Pk = p.p_kW ?? null, Q = p.q_h2_kg_h ?? null, Mh = p.m_h2_kg ?? null, Ch = termo(p.custo_h2_R ?? null, declarado(F, "combustivel_h2")), par = p.partida ?? null, pad = p.parada ?? null;
       const dP = dx ? dx.map((q) => q.p_entregue_media_kW ?? null) : null, dM = dx ? dx.map((q) => q.h2_modelo_dinamico_kg ?? null) : null;
       const base = { src: `${fonte.intervalos} · ${fonte.pemfc} · ${fonte.pemfc_dinamica}`, tabs: [["op", "Operação"], ["curva", "Curva q(P) e B04"], ["din", "Verificação dinâmica"]], tab: t };
       const dom = (cv && cv.dominio_kW) || [dc.p_min_kW ?? null, null], mP = teto(maxv(Pk, [dom[1]])), mQ = teto(maxv(Q)), mM = teto(maxv(Mh, dM)), mC = teto(maxv(Ch));
@@ -397,7 +402,7 @@ function Partitura(root, F) {
     const cards = (g) => { const dentro = emJ(g), ap = dentro && T ? T.aplicado[g - w.k] : null, wg = janDe(g);
       return [
         card({ acc: "var(--ink)", t: `Decisão · janela ${w.j}`, tag: w.ok ? "com valor futuro" : "sem valor futuro", tc: w.ok ? "ok" : "w", big: `${lab(w.k)}<small>instante da decisão τ</small>`, sub: `horizonte ${ivl(w.k).split("–")[0]}–${lab(Math.min(K, fimJ))} (${n} intervalos) · aplicou ${w.ap} de ${w.mk} previstos`,
-          grid: [["Solver", esc(w.classe ?? "N/D")], ["Gap relativo", w.gap_rel == null ? "N/D" : w.gap_rel.toExponential(1)], ["Objetivo do MILP", rs(w.objetivo)], ["Custo operativo previsto", rs(w.custo_operativo_previsto)], ["Custo futuro estimado", w.custo_futuro_estimado == null ? "N/D" : rs(w.custo_futuro_estimado)], ["Termo terminal", esc(String(w.termo_terminal ?? "N/D").replace(/_/g, " "))]],
+          grid: [["Solver", esc(w.classe ?? "N/D")], ["Gap relativo", ne(w.gap_rel, 1)], ["Objetivo do MILP", rs(w.objetivo)], ["Custo operativo previsto", rs(w.custo_operativo_previsto)], ["Custo futuro estimado", w.custo_futuro_estimado == null ? "N/D" : rs(w.custo_futuro_estimado)], ["Termo terminal", esc(String(w.termo_terminal ?? "N/D").replace(/_/g, " "))]],
           note: w.ok ? null : "Sem sinal válido, esta decisão foi tomada <b>sem valor futuro</b> (degradação declarada): " + esc(w.sinal_motivo || "motivo não registrado") + "." }),
         card({ t: `Valor futuro · fronteira ${C && C.sinal ? lab(C.sinal.indice_fronteira) : "N/D"}`, tag: C && C.sinal ? esc(((C.sinal.qualidade || {}).estado || "N/D").replace("valido", "válido").replace("indisponivel", "indisponível")) : "N/D", tc: w.ok ? "ok" : "w", el: veCaixa }),
         C && C.sinal ? card({ t: "Qualidade do sinal", kv: [["Origem", esc(String(C.origem_sinal ?? "N/D").replace(/_/g, " "))], ["Erro de interpolação máx.", rs((C.sinal.qualidade || {}).erro_interpolacao_max_R, 6)], ["Tolerância declarada", rs((C.sinal.qualidade || {}).tolerancia_interpolacao_R, 6)], ["Avaliações do planejador", String((C.sinal.qualidade || {}).avaliacoes ?? "N/D")], dec.modo != null ? ["Modo terminal escolhido", `${dec.modo} · ${esc(modoTxt((C.sinal.modos || []).find((m) => m.indice === dec.modo) || {}))}`] : null] }) : null,
@@ -497,8 +502,8 @@ function Partitura(root, F) {
       painel("Auditoria independente da missão", au ? h("div", {}, h("div", { class: "card", style: "padding:0" }, h("div", { class: "big", html: au.aceito == null ? "N/D" : au.aceito ? "Aceita" : "REJEITADA" }), h("div", { class: "sub", html: esc(au.metodo || "método não registrado") })),
         h("table", { style: "margin-top:8px", html: `<tr><th>Verificação gravada</th><th class=n>Resultado</th></tr>${Object.entries(au.verificacoes || {}).map(([q, ok]) => `<tr><td>${txt(q)}</td><td class=n>${marca(ok)}</td></tr>`).join("")}` }),
         kv([["Constatações", String(au.constatacoes ?? "N/D") + (au.constatacoes_por_severidade ? " (" + Object.entries(au.constatacoes_por_severidade).map(([q, n]) => `${n} ${esc(q)}`).join(" · ") + ")" : "")], ["Normalizações numéricas do PCC", String(au.normalizacoes_pcc ?? "N/D")], ["Projeções numéricas de energia", String(au.projecoes_numericas_energia ?? "N/D")], ["Tolerâncias", esc(au.tolerancias ?? "N/D")]])) : h("div", { class: "nd", html: "<b>N/D</b> — v2/auditoria.json não persistido nesta rodada" })),
-      painel2("Solver e critérios por decisão", kv([["Janelas resolvidas · ótimas", `${sol.janelas_resolvidas ?? "N/D"} · ${sol.janelas_otimas ?? "N/D"}`], ["Gap relativo máximo", sol.gap_rel_max == null ? "N/D" : Number(sol.gap_rel_max).toExponential(2)], ["Solver", esc([pr.software && pr.software.pyomo ? "Pyomo " + pr.software.pyomo : null, pr.software && pr.software.highs ? "HiGHS " + pr.software.highs : null].filter(Boolean).join(" · ") || "N/D")]]),
-        h("div", { class: "tabx", style: "margin-top:8px", html: `<table><tr><th>j</th><th>τ</th><th class=n>N</th><th class=n>aplic.</th><th>classe</th><th>terminação</th><th class=n>objetivo [R$]</th><th class=n>limite dual [R$]</th><th class=n>gap rel.</th><th class=n>var.</th><th class=n>bin.</th><th class=n>restr.</th><th>valor futuro</th></tr>${M.jan.map((q) => `<tr data-j="${q.j}" style="cursor:pointer"><td>${q.j}</td><td>${lab(q.k)}</td><td class=n>${q.Nk}</td><td class=n>${q.ap}</td><td>${txt(q.classe)}</td><td>${txt(q.terminacao)}</td><td class=n>${nf(q.objetivo, 4)}</td><td class=n>${nf(q.limite_dual, 4)}</td><td class=n>${q.gap_rel == null ? "N/D" : Number(q.gap_rel).toExponential(1)}</td><td class=n>${nf(q.variaveis, 0)}</td><td class=n>${nf(q.binarias, 0)}</td><td class=n>${nf(q.restricoes, 0)}</td><td>${q.ok ? '<span class="tag ok">válido</span>' : '<span class="tag w">indisponível</span>'}</td></tr>`).join("")}</table>`, onclick: (e) => { const tr = e.target.closest("tr[data-j]"); if (tr) irLente("decisao", +tr.dataset.j); } }),
+      painel2("Solver e critérios por decisão", kv([["Janelas resolvidas · ótimas", `${sol.janelas_resolvidas ?? "N/D"} · ${sol.janelas_otimas ?? "N/D"}`], ["Gap relativo máximo", ne(sol.gap_rel_max, 2)], ["Solver", esc([pr.software && pr.software.pyomo ? "Pyomo " + pr.software.pyomo : null, pr.software && pr.software.highs ? "HiGHS " + pr.software.highs : null].filter(Boolean).join(" · ") || "N/D")]]),
+        h("div", { class: "tabx", style: "margin-top:8px", html: `<table><tr><th>j</th><th>τ</th><th class=n>N</th><th class=n>aplic.</th><th>classe</th><th>terminação</th><th class=n>objetivo [R$]</th><th class=n>limite dual [R$]</th><th class=n>gap rel.</th><th class=n>var.</th><th class=n>bin.</th><th class=n>restr.</th><th>valor futuro</th></tr>${M.jan.map((q) => `<tr data-j="${q.j}" style="cursor:pointer"><td>${q.j}</td><td>${lab(q.k)}</td><td class=n>${q.Nk}</td><td class=n>${q.ap}</td><td>${txt(q.classe)}</td><td>${txt(q.terminacao)}</td><td class=n>${nf(q.objetivo, 4)}</td><td class=n>${nf(q.limite_dual, 4)}</td><td class=n>${ne(q.gap_rel, 1)}</td><td class=n>${nf(q.variaveis, 0)}</td><td class=n>${nf(q.binarias, 0)}</td><td class=n>${nf(q.restricoes, 0)}</td><td>${q.ok ? '<span class="tag ok">válido</span>' : '<span class="tag w">indisponível</span>'}</td></tr>`).join("")}</table>`, onclick: (e) => { const tr = e.target.closest("tr[data-j]"); if (tr) irLente("decisao", +tr.dataset.j); } }),
         h("p", { class: "note", html: "Clique numa linha para abrir a decisão. Objetivo e limite dual são do MILP de cada janela (previsão), não custo realizado." })),
       painel("Procedência e versões", kv([["Microrrede (UID · incarnação)", `${curto(pr.microrrede_uid, 12)} · ${curto(pr.incarnacao, 12)}`], ["Cenário (UID · versão)", `${curto(pr.cenario_uid, 12)} · v${pr.cenario_versao ?? "N/D"}`], ["Impressão do cenário", curto(pr.cenario_impressao)], ["Inventário (revisão · impressão)", `rev. ${pr.inventario_revisao ?? "N/D"} · ${curto(pr.inventario_impressao)}`], ["Motor", esc(pr.motor ?? "N/D")], ["Formulações", esc(Object.entries(pr.formulacoes || {}).map(([q, v]) => `${q} ${v}`).join(" · ") || "N/D")], ["Integração · contrato de dados", `${esc(pr.integracao ?? "N/D")} · v${pr.contrato_dados ?? "N/D"}`], ["Software", esc(Object.entries(pr.software || {}).map(([q, v]) => `${q} ${v}`).join(" · ") || "N/D")], ["Código científico (SHA-256)", curto(pr.codigo_cientifico_sha256)], ["Declarante", esc(pr.declarante ?? "N/D")]]),
         h("p", { class: "note", html: esc(pr.rotulo_motor || "") }), pr.alcance ? h("p", { class: "note", html: esc(pr.alcance) }) : null),

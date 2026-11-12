@@ -227,6 +227,8 @@ def marco_sintetico(*, K: int = 6, bancos: int = 1, eolicas: int = 2, pemfc: int
                  "limite_importacao_kW": 8.0 if conectado else None, "limite_exportacao_kW": None, "ajuste": "teste",
                  "rotulo_tarifa": "SINTÉTICA — teste", "procedencia": "sintetico"},
          "demanda": {"criticidade": "critica", "semantica": "media_intervalo"}, "clima": {},
+         # termos DECLARADOS no objetivo (como na estratégia gravada): «eventos» NÃO está declarado neste marco
+         "objetivo": {"termos": (["throughput_bess"] if bancos else []) + (["combustivel_h2"] if pemfc else [])},
          "janelas": jan, "planos": planos, "coordenacoes": coords,
          "auditoria": {"aceito": True, "metodo": "teste", "verificacoes": {"hierarquica": True}, "constatacoes": 0},
          "procedencia": {"motor": "milp_mpc_v1", "software": {}}, "limitacoes": ["Marco sintético de teste."],
@@ -257,8 +259,8 @@ def marco_sintetico(*, K: int = 6, bancos: int = 1, eolicas: int = 2, pemfc: int
 RAIZ = Path(__file__).resolve().parents[1]
 ESTATICO = RAIZ / "seeds2" / "ui" / "static" / "trama"
 NODE = shutil.which("node")
-PUROS = ("modelo, balancoDe, planoPorTipo, agg, el, mais, vezes, menos, razao, nfu, mapa, conta, somaT, acum, opc, teto, "
-         "maxv, agruparAvisos, nf")
+PUROS = ("modelo, balancoDe, planoPorTipo, agg, el, mais, vezes, menos, razao, nfu, mapa, conta, somaT, acum, teto, "
+         "maxv, agruparAvisos, nf, ne, termo, termoAgg, declarado, vazia")
 
 
 def node(corpo: str, *marcos: dict):

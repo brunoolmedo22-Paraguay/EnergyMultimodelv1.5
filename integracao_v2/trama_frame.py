@@ -133,6 +133,11 @@ def _auditoria(doc) -> dict | None:
             "projecoes_numericas_energia": len(doc.get("projecoes_numericas_energia") or [])}
 
 
+def _termos(est: dict):
+    t = (est.get("objetivo") or {}).get("termos") if isinstance(est.get("objetivo"), dict) else None
+    return [str(x) for x in t] if isinstance(t, list) else None
+
+
 def _tabela(df) -> dict:
     return {"colunas": [str(c) for c in df.columns], "linhas": [[_v(x) for x in row] for row in df.itertuples(index=False)]}
 
@@ -271,6 +276,9 @@ def montar(source, run, *, verificacao=None, nomes: dict | None = None) -> dict:
                 "ajuste": pcc.get("ajuste"), "liquidacao": pcc.get("tarifa_liquidacao"), "rotulo_tarifa": pcc.get("rotulo_tarifa"),
                 "procedencia": (pcc.get("procedencia") or {}).get("tipo")},
         "demanda": {k: v for k, v in (est.get("demanda") or {}).items() if not isinstance(v, (dict, list))},
+        # Termos DECLARADOS no objetivo da estratégia gravada: única evidência com que o navegador pode tratar uma coluna
+        # de custo vazia como «não aplicável» (termo fora do objetivo); sem ela, coluna vazia = dado ausente (N/D).
+        "objetivo": {"termos": _termos(est)},
         "clima": {"sha256_serie": clima.get("sha256_serie_normalizada"), "rotulo": clima.get("rotulo"),
                   "procedencia": clima.get("procedencia"), "realizacao": (ren_doc.get("realizacao") or {}).get("tipo")},
         "janelas": _janelas(ja),

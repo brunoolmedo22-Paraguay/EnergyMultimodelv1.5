@@ -3157,3 +3157,20 @@ Entorno: Python 3.13.18, Streamlit 1.66.1, Node 22, Chromium + Playwright; con s
 ### 8. Próximo paso
 
 Revisión de este checkpoint por el responsable. Solo después: 3D-B2 (barra lateral, Catálogo, Planta, Caderno de Ensaios, Folha de Ensaio). **Sin merge.**
+
+## Entrega 18 — SEEDS2 Piso 3D-B2 · Integración visual de la plataforma (EN CURSO, por checkpoints) — 2026-11-12
+
+### 1. Identificación
+
+- Misma rama `claude/stoic-meitner-2vs91m`, mismo PR Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24), **sin merge**. Autorización del responsable tras aprobar el checkpoint 3D-B3 (HEAD `590b826`, CI verde en los dos entornos).
+- Esta entrega se publica **por checkpoints**; cada uno actualiza esta sección, `docs/seeds2/PARTITURA_3DB.md` §8 y el bloque «Continuação imediata» de `docs/ai/HANDOFF.md`. Sin cambios en `ems_v2/`, modelos físicos, contratos ni persistencia. R-1, R-2 y R-3 siguen separadas y sin corregir.
+
+### 2. Checkpoint C0 — tres correcciones focalizadas previas (pedidas por el responsable)
+
+| | Qué se pidió | Qué se hizo | Prueba |
+|---|---|---|---|
+| A | Una serie entera vacía no debe pasar a «no aplicable» sin declaración o evidencia contractual; prueba negativa para una columna persistida pero vacía | `opc()` eliminada. El marco lleva `objetivo.termos` (términos DECLARADOS en la estrategia grabada en el manifiesto). `termo(serie, declarado)`: vacía + término comprobadamente fuera del objetivo ⇒ omitida; vacía + término declarado **o sin declaración legible** ⇒ N/D; los valores grabados se muestran siempre. El costo de desvío del PCC dejó de tratarse como opcional. En el panel de batería, «não declarado» exige la declaración grabada del banco | `tests/test_piso3db_nd.py`: `test_coluna_persistida_mas_vazia_e_nd_salvo_termo_comprovadamente_fora_do_objetivo` (Node, casos a–f) y `test_coluna_vazia_declarada_e_nd_e_termo_fora_do_objetivo_e_omitido` (navegador); `tests/test_piso3db_lentes.py` confirma que el marco real trae los términos del manifiesto |
+| B | Corregir `-0,0` solo en la capa de formato | `nf`/`ne` en `trama.js`: un cero con signo negativo (el `-0.0` del solver o un negativo que redondea a cero en la precisión mostrada) se presenta como «0,0». Números del marco, tablas originales, tolerancias y decisiones intactos | Node (`nf(-0)`, `nf(-1e-15)`, `nf(-0.04, 1)`, `nf(-0.05, 1) = "-0,1"`) y navegador (`test_zero_negativo_so_muda_na_apresentacao`) |
+| C | Limpieza del servidor y de sus hijos aunque el test falle; sin interferencia entre ejecuciones | `tools/e2e/servidor.sh`, usada por los cuatro guiones `run_piso3d*.sh`: puerto libre obligatorio, servidor en grupo de procesos propio, trampa EXIT/INT/TERM que termina servidor e hijos; `e2e_fase` propaga el fallo | `tests/test_piso3db_e2e_servidor.py` (servidor de fachada con proceso hijo: fase que falla, error cualquiera, `kill -9` simulado, ejecuciones sucesivas en el mismo puerto, puerto ocupado rechazado) |
+
+Verificación del C0: tests focalizados 3D-B con solver (trama, nd, lentes, app, e2e_servidor, guardas) aprobados; E2E real `tools/e2e/run_piso3db.sh` con el guion refactorizado ⇒ **103 verificaciones**, registro del motor vacío y **ningún** proceso `streamlit` vivo al terminar; auditoría del diff `ok: true`. La regresión completa con y sin solver se ejecutará sobre el HEAD final de cada etapa importante del 3D-B2 y se anotará aquí.

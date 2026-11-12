@@ -107,6 +107,9 @@ class LentesSobreRodadasReaisTest(unittest.TestCase):
                 for a, b in zip([lin[c] for lin in t["linhas"]], df[col].tolist(), strict=True):
                     self.assertTrue(_igual(a, b.item() if isinstance(b, np.generic) else b), (nome, col, a, b))
         self.assertEqual(f["limitacoes"], list(RG.LIMITACOES))
+        # evidência contratual para «não aplicável»: os termos DECLARADOS no objetivo da estratégia gravada
+        self.assertEqual(f["objetivo"]["termos"], run.manifest["strategy"]["objetivo"]["termos"])
+        self.assertIn("combustivel_h2", f["objetivo"]["termos"])
         self.assertNotIn("pyomo", sys.modules)
 
     # ------------------------------------------------------------------------------------- várias unidades por tipo

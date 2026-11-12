@@ -48,7 +48,12 @@ class UtilitariosPurosTest(unittest.TestCase):
             somaT: [a.somaT([1, 2]), a.somaT([1, null]), a.somaT(null), a.somaT(undefined), a.somaT([0, 0])],
             acum: [a.acum([1, 2, 3]), a.acum([1, null, 3]), a.acum(null), a.acum([0, 0])],
             agg: [a.agg([[1, 2], [3, 4]], 2), a.agg([[1, 2], null], 2), a.agg([[1, null], [3, 4]], 2), a.agg([], 2), a.agg([[0, 0]], 2)],
-            opc: [a.opc([null, null]), a.opc([0, null]), a.opc(null)],
+            termo: [a.termo([null, null], false), a.termo([null, null], true), a.termo([null, null], null), a.termo(null, false),
+                    a.termo(null, true), a.termo([0, null], false), a.termo([0, 0], false)],
+            termoAgg: [a.termoAgg([[null], [null]], false, 1), a.termoAgg([[null], [null]], true, 1), a.termoAgg([[null], [2]], false, 1),
+                       a.termoAgg([], true, 1), a.termoAgg([[1], [2]], false, 1)],
+            zero: [a.nf(-0, 1), a.nf(-1e-15, 2), a.nf(-0.04, 1), a.nf(-0.05, 1), a.nf(-12.3, 1), a.nf(0, 0), a.nf(-0, 0),
+                   a.ne(-0, 1), a.ne(-2.5e-16, 1), a.ne(null), a.ne(0, 2)],
             conta: [a.conta([1, 5, 9], (v) => v > 4), a.conta([1, null, 9], (v) => v > 4), a.conta(null, (v) => v > 4)],
             el: [a.el([7], 0), a.el(null, 0), a.el(undefined, 0)],
             texto: [a.nf(null), a.nf(0, 1), a.nfu(undefined, 1, " %"), a.nfu(null, 1, " %"), a.nfu(0, 1, " %")] };""", {})
@@ -59,7 +64,11 @@ class UtilitariosPurosTest(unittest.TestCase):
         self.assertEqual(r["somaT"], [3, None, None, ND, 0])
         self.assertEqual(r["acum"], [[0, 1, 3, 6], [0, 1, None, None], None, [0, 0, 0]])   # nada é acumulado depois da lacuna
         self.assertEqual(r["agg"], [[4, 6], None, [4, None], ND, [0, 0]])
-        self.assertEqual(r["opc"], [ND, [0, None], None])               # termo opcional todo vazio = não declarado
+        # série toda vazia: «não aplicável» SÓ com o termo comprovadamente fora do objetivo; declarado ou sem declaração ⇒ N/D
+        self.assertEqual(r["termo"], [ND, None, None, ND, None, [0, None], [0, 0]])
+        self.assertEqual(r["termoAgg"], [ND, None, [None], ND, [3]])
+        # zero negativo: só a APRESENTAÇÃO muda ("0,0"); negativos de verdade continuam negativos
+        self.assertEqual(r["zero"], ["0,0", "0,00", "0,0", "-0,1", "-12,3", "0", "0", "0.0e+0", "-2.5e-16", "N/D", "0.00e+0"])
         self.assertEqual(r["conta"], [2, None, None])
         self.assertEqual(r["el"], [7, None, ND])
         self.assertEqual(r["texto"], ["N/D", "0,0", "—", "N/D", "0,0 %"])
@@ -159,13 +168,48 @@ class ModeloComDadosAusentesTest(unittest.TestCase):
         r = self._modelo(P.marco_sintetico(bancos=0))
         self.assertEqual((r["A"]["pd"], r["A"]["fr"], r["A"]["cThr"], r["A"]["cap"]), (ND, ND, ND, ND))
 
-    def test_termo_opcional_nao_declarado_nao_e_dado_ausente(self):
+    def test_coluna_persistida_mas_vazia_e_nd_salvo_termo_comprovadamente_fora_do_objetivo(self):
+        """PROVA NEGATIVA: uma coluna de custo persistida e totalmente vazia NÃO vira «não aplicável» por si só."""
+        vazio = [None] * 6
+        # (a) termo DECLARADO no objetivo e coluna vazia ⇒ dado ausente (N/D), nunca omitido
         g = copy.deepcopy(self.f)
-        g["pemfc"]["eq-fc#1"]["custo_eventos_R"] = [None] * 6           # termo de eventos fora do objetivo
-        g["intervalos"]["custo_desvio_rede_R"] = [None] * 6
+        g["intervalos"]["custo_throughput_R"] = list(vazio)
+        g["pemfc"]["eq-fc#1"]["custo_h2_R"] = list(vazio)
+        self.assertIn("throughput_bess", g["objetivo"]["termos"])
         r = self._modelo(g)
-        self.assertEqual((r["A"]["cEv"], r["A"]["cDes"]), (ND, ND))
-        self.assertEqual(r["A"]["cH2"], [6.0] * 6)
+        self.assertEqual((r["A"]["cThr"], r["A"]["cH2"]), (None, None))
+        # (b) o MESMO marco com o termo comprovadamente FORA do objetivo declarado ⇒ não aplicável (omitido)
+        h = copy.deepcopy(g)
+        h["objetivo"]["termos"] = []
+        r = self._modelo(h)
+        self.assertEqual((r["A"]["cThr"], r["A"]["cH2"]), (ND, ND))
+        # (c) sem declaração legível (marco sem a evidência) ⇒ não há como provar: N/D
+        for sem in ({"termos": None}, None):
+            k = copy.deepcopy(g)
+            if sem is None:
+                del k["objetivo"]
+            else:
+                k["objetivo"] = sem
+            r = self._modelo(k)
+            self.assertEqual((r["A"]["cThr"], r["A"]["cH2"]), (None, None))
+        # (d) valores gravados aparecem mesmo com o termo fora do objetivo (dado nunca é escondido)
+        k = copy.deepcopy(self.f)
+        k["objetivo"]["termos"] = []
+        r = self._modelo(k)
+        self.assertEqual(r["A"]["cThr"], [0.01] * 6)
+        self.assertEqual(r["A"]["cEv"], [0.0] * 6)                      # zeros GRAVADOS do termo «eventos» não declarado
+        # (e) «eventos» não declarado e coluna vazia ⇒ omitido; o desvio do PCC não é termo opcional: vazio ⇒ N/D
+        k = copy.deepcopy(self.f)
+        k["pemfc"]["eq-fc#1"]["custo_eventos_R"] = list(vazio)
+        k["intervalos"]["custo_desvio_rede_R"] = list(vazio)
+        r = self._modelo(k)
+        self.assertEqual(r["A"]["cEv"], ND)
+        self.assertEqual(r["A"]["cDes"], vazio)                          # N/D em cada intervalo, não «não aplicável»
+        # (f) duas unidades: uma com a coluna vazia e outra com valores ⇒ a soma é N/D (não a soma da outra)
+        dois = P.marco_sintetico(pemfc=2)
+        dois["pemfc"]["eq-fc#2"]["custo_h2_R"] = list(vazio)
+        r = self._modelo(dois)
+        self.assertEqual(r["A"]["cH2"], vazio)
 
     def test_plano_de_janela_com_serie_ausente(self):
         r = P.node("return api.planoPorTipo(F, F.planos[0]);", self.f)
@@ -203,8 +247,34 @@ class NavegadorComDadosAusentesTest(unittest.TestCase):
             "decisao": _sem(_sem(_sem(f, "planos"), "coordenacoes"), "auditoria"),
             "pemfc": _sem(_sem(f, "pemfc/eq-fc#1/p_kW"), "pemfc/eq-fc#1/u", intervalo=0),
             "sem_recursos": P.marco_sintetico(pemfc=0, eolicas=0, bancos=0, conectado=False),
+            "coluna_vazia": cls._coluna_vazia(f, declarado=True),
+            "termo_fora": cls._coluna_vazia(f, declarado=False),
+            "zero_negativo": cls._zero_negativo(f),
         }
         cls.r = P.bancada(cls.marcos)
+
+    @staticmethod
+    def _coluna_vazia(f: dict, *, declarado: bool) -> dict:
+        g = copy.deepcopy(f)
+        g["intervalos"]["custo_throughput_R"] = [None] * 6             # coluna persistida, totalmente vazia
+        if not declarado:
+            g["objetivo"]["termos"] = [t for t in g["objetivo"]["termos"] if t != "throughput_bess"]
+            for b in g["baterias"].values():
+                b["declaracao"]["custo_throughput_R_kWh"] = None
+            g["resumo"]["componentes_R"].pop("throughput_bess")
+        g["hash"] = f["hash"] + ("|vazia" if declarado else "|fora")
+        return g
+
+    @staticmethod
+    def _zero_negativo(f: dict) -> dict:
+        g = copy.deepcopy(f)
+        g["pemfc"]["eq-fc#1"]["p_kW"] = [-0.0] * 6                      # o −0.0 que o solver grava numa unidade parada
+        g["pemfc"]["eq-fc#1"]["u"] = [0.0] * 6
+        g["intervalos"]["residuo_balanco_kW"] = [-0.0] * 6
+        g["planos"][0]["series"]["eq-fc#1|p"] = [-0.0, -1e-15, 0.0, -0.0]
+        g["intervalos"]["pcc_exportacao_realizada_kW"] = [-1e-15] * 6
+        g["hash"] = f["hash"] + "|zero"
+        return g
 
     def test_nenhum_marco_quebra_o_componente(self):
         for nome, res in self.r.items():
@@ -268,6 +338,27 @@ class NavegadorComDadosAusentesTest(unittest.TestCase):
         self.assertIn("balanço incompleto: PEMFC sem dado", v["lente:operacao"])
         self.assertIn("N/DkW pedidos", v["painel:PEMFC:eq-fc#1:0"])
         self.assertIn("Instante 00h–01hN/D", v["painel:PEMFC:eq-fc#1:0"])       # estado da unidade ausente ≠ OFF
+
+    def test_coluna_vazia_declarada_e_nd_e_termo_fora_do_objetivo_e_omitido(self):
+        """PROVA NEGATIVA no navegador: a mesma coluna vazia é N/D quando o termo está no objetivo e some quando não está."""
+        v = self.r["coluna_vazia"]["vistas"]
+        self.assertIn("Throughput da bateriaN/D", v["lente:economia"])
+        self.assertIn("Throughput", v["lente:economia"].split("objetivo do MILP")[0])     # a legenda continua a nomear o termo
+        v = self.r["termo_fora"]["vistas"]
+        self.assertNotIn("Throughput da bateria", v["lente:economia"])
+        self.assertNotIn("Throughput", v["lente:economia"].split("objetivo do MILP")[0])
+        self.assertIn("não declarado", v["painel:Bateria:eq-bat1"])
+
+    def test_zero_negativo_so_muda_na_apresentacao(self):
+        v = self.r["zero_negativo"]["vistas"]
+        for chave, texto in v.items():
+            self.assertNotRegex(texto, r"-0,0+(?![0-9])", chave)          # nunca «-0,0» nem «-0,00»
+            self.assertNotIn("-0.0e", texto, chave)
+        self.assertIn("PEMFCdesligada0,0kW", v["lente:operacao"])
+        self.assertIn("resíduo do balanço gravado 0.0e+0 kW", v["lente:operacao"])
+        # o número gravado não muda: a tabela original continua a trazer o valor do arquivo
+        self.assertEqual(self.marcos["zero_negativo"]["pemfc"]["eq-fc#1"]["p_kW"][0], -0.0)
+        self.assertEqual(str(self.marcos["zero_negativo"]["pemfc"]["eq-fc#1"]["p_kW"][0]), "-0.0")
 
     def test_recurso_inexistente_nao_gera_nd_nem_painel(self):
         v = self.r["sem_recursos"]["vistas"]

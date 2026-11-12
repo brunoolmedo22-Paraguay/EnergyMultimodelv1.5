@@ -144,6 +144,20 @@ instante. O estado (lente, janela, instante, zoom, opções) é guardado por rod
   (blob por SHA-256), não nos dados da rodada. Lê-las exige ligar o marco à leitura de blobs do cenário, inclusive em
   estudos arquivados; até lá os painéis solar e eólico declaram N/D.
 
+* **C-3DB-07 — «não aplicável» só com evidência (C0 do 3D-B2, pedido do responsável).** A regra anterior (`opc`) tratava
+  uma série toda vazia como termo não declarado. Agora o marco leva `objetivo.termos` (os termos DECLARADOS na estratégia
+  gravada no manifesto) e o navegador usa `termo(série, declarado)`: série vazia + termo comprovadamente fora do objetivo
+  ⇒ não aplicável (omitido); série vazia + termo declarado, **ou sem declaração legível**, ⇒ dado ausente (N/D); valores
+  gravados aparecem sempre. O custo de desvio do PCC deixou de ser «opcional» (não é termo do objetivo): vazio ⇒ N/D. No
+  painel da bateria, «não declarado» exige a declaração gravada do banco; sem ela ⇒ N/D.
+* **C-3DB-08 — zero negativo só na apresentação (C0).** `nf`/`ne` (formatação) mostram «0,0» para o `-0.0` do solver e
+  para negativos que arredondam a zero na precisão exibida. Os números do marco, das tabelas originais e dos arquivos não
+  mudam; tolerâncias e decisões do solver não foram tocadas.
+* **C-3DB-09 — limpeza garantida dos servidores E2E (C0).** `tools/e2e/servidor.sh` (biblioteca dos quatro roteiros
+  `run_piso3d*.sh`): exige a porta livre, inicia cada servidor num grupo de processos próprio e instala uma armadilha que,
+  em qualquer saída (fase falha, erro, Ctrl-C), encerra o servidor e os filhos. Teste com servidor de fachada:
+  `tests/test_piso3db_e2e_servidor.py`.
+
 ## 6. Pendências técnicas independentes (não corrigidas)
 
 Achados da investigação anterior, mantidos fora do escopo visual:
@@ -179,3 +193,40 @@ python tools/e2e/bancada_piso3db.py <marco.json> <saida.html>        # bancada: 
   Pyomo/HiGHS. O marco sintético de `tests/piso3db_util.marco_sintetico` é dado de teste (números redondos), nunca resultado.
 
 Evidência: `docs/seeds2/evidencia_3db/` (registro do E2E e capturas da aplicação real; B3 em `e2e_partitura_b3.log`).
+
+## 8. Piso 3D-B2 — integração visual da plataforma (em curso)
+
+Autorizado pelo responsável depois de aprovar o 3D-B3 (HEAD `590b826`). Critério central: percorrer **Gestor → Microrrede →
+Planta → Cenário → Folha de Ensaio → Execução → Rodada Partitura → Dashboard individual → Arquivo Científico** numa
+experiência coerente, sem que nenhum fluxo anterior desapareça. Estado por etapa: `docs/ai/HANDOFF.md` (bloco «Continuação
+imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (não há outra linguagem).
+
+### 8.1 Telas do protótipo aprovado (descrição para quem não viu o artefato)
+
+* **Barra lateral.** Trilho estreito à esquerda (só ícones) que se expande por cima do conteúdo ao passar o mouse ou receber
+  foco; marca SEEDS2; Catálogo; grupo «Microrrede»: Planta, Caderno de ensaios, Folha de ensaio, Rodada; tema. Em telas
+  estreitas vira navegação horizontal.
+* **Catálogo.** Uma prateleira de cartões, um por microrrede: nome, «assinatura» (um barramento com um marcador por
+  tecnologia, dimensionado pela potência/energia instalada), linha de contexto (natureza, modo, cenários, rodadas por
+  estado), quatro números (Solar kWp, Eólica kW, Bateria kWh, PEMFC kW) e prontidão por motor; abaixo, os estudos do
+  Arquivo Científico (somente leitura, com a identidade do conteúdo).
+* **Planta.** O barramento equivalente único desenhado como o modelo o enxerga: o que injeta acima, o que armazena ou
+  consome abaixo; um nó por equipamento (nome, TAG/UID, potência do instante); passar o mouse/foco destaca o nó e abre um
+  resumo; clique/Enter abre o painel do recurso; um cursor de instante percorre a missão. **Sem ramos nem fluxos por
+  linha**: o modelo não os calcula.
+* **Caderno de ensaios.** Tabela de todas as rodadas (cenário · versão, rodada, estado, N · m · H_L, PCC, custo realizado,
+  energia importada, H₂, valor futuro) com «Abrir»; seleção de rodadas concluídas para comparar (a diferença é um fato dos
+  ensaios; a interface não lhe atribui causa).
+* **Folha de ensaio.** Três colunas: índice das seções (estado inicial, previsões, motor e estratégia, malha e horizontes,
+  baterias, renováveis, PEMFC/H₂, PCC e tarifas, planejador e solver, missão) com o estado de cada uma; a seção escolhida ao
+  centro; à direita a prontidão (o mesmo preflight do motor) e o botão de executar a versão salva.
+
+### 8.2 Estado
+
+| Etapa | Estado |
+|---|---|
+| C0 — correções A (N/D × não aplicável), B (zero negativo), C (E2E) | concluído |
+| B2-A — barra lateral, navegação responsiva, identidade | não iniciado |
+| B2-B — Catálogo e Planta | não iniciado |
+| B2-C — Caderno de Ensaios | não iniciado |
+| B2-D — Folha de Ensaio | não iniciado |
