@@ -110,6 +110,12 @@ def missao_legada_v1(data_dir: str, nome: str = "Legado v1 3D-B (teste)"):
     return uid, st, _executar(st, U.criar_cenario_v2(st), versao=1)
 
 
+def missao_isolada(data_dir: str, nome: str = "Isolada 3D-B (teste)"):
+    """Microrrede ISOLADA declarada (sem PCC): um banco atende 1 kW por 12 h."""
+    uid, st = _abrir(data_dir, U.config_bateria(nome, modo="isolada"))
+    return uid, st, _executar(st, U.criar_cenario_v2(st, soc0=100.0, demanda_kW=1.0, isolado=True))
+
+
 def marco(st, run) -> dict:
     return TF.montar(st, run, verificacao=RG.verificar(st, run))
 

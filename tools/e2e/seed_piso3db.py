@@ -3,7 +3,8 @@
 Cria no catálogo (dados FICTÍCIOS, sintéticos e rotulados; motores e modelos reais do código):
 
 * «Campus Piloto H₂ (SINTÉTICA)»: FV + eólica + bateria + PEMFC + PCC, cenário V2 «Dia útil · m = 2» (24 h, demanda e clima
-  declarados ponto a ponto, tarifa em três patamares, importação limitada) e UMA missão real concluída (HiGHS);
+  declarados ponto a ponto, tarifa em três patamares, importação limitada) e UMA missão real concluída (HiGHS); mais um
+  segundo cenário, «Dia nublado · m = 2» (irradiância reduzida), com a sua própria missão concluída (troca de rodada);
 * «Industrial A (SINTÉTICA · padrão V1.6)» com uma rodada V1.6 concluída (compatibilidade do motor anterior);
 * o cenário V2 arquivado no Arquivo Científico da instalação (estudo somente leitura).
 
@@ -24,6 +25,7 @@ import piso3da2r_util as R  # noqa: E402
 import piso3da_util as U  # noqa: E402
 from integracao_v2 import estrategia as E  # noqa: E402
 from integracao_v2 import execucao as X  # noqa: E402
+from integracao_v2 import registro as RG  # noqa: E402
 from seeds2.archive import service as AS  # noqa: E402
 from seeds2.archive.store import ArchiveStore  # noqa: E402
 from seeds2.microgrid.registry import MicrogridRegistry  # noqa: E402
@@ -41,7 +43,7 @@ VENTO = [6.5, 7.0, 7.5, 7.0, 6.0, 5.0, 4.5, 4.0, 3.5, 3.0, 3.0, 3.5, 4.0, 4.0, 4
 TARIFA = [0.38] * 6 + [0.62] * 12 + [1.65] * 3 + [0.62] * 3
 
 
-def cenario(st, nome: str):
+def cenario(st, nome: str, *, f_ghi: float = 1.0):
     sc = SV.create(st, name=nome)
     doc = copy.deepcopy(sc.document)
     for eid in E.baterias_do_cenario(doc):
@@ -49,7 +51,7 @@ def cenario(st, nome: str):
     tab = FS.regular_table(("demand_kW",), U.INICIO_LOCAL, 3600, 24, {"demand_kW": [float(v) for v in DEM]})
     dem = FS.manual_candidate(tab, "demand", timezone="UTC", inventory_ref=doc["inventory_ref"], provenance="sintetico")
     assert dem.ok, [f.message for f in dem.analysis.findings]
-    cl = R.clima_tabela(doc, {"ghi_W_m2": [float(v) for v in GHI], "temperature_C": [float(v) for v in TEMP],
+    cl = R.clima_tabela(doc, {"ghi_W_m2": [float(v) * f_ghi for v in GHI], "temperature_C": [float(v) for v in TEMP],
                               "wind_speed_m_s": VENTO})
     doc["forecasts"]["demand"], doc["forecasts"]["climate"] = dem.entry, cl.entry
     doc["mission"] = SG.default_mission(U.INICIO_LOCAL, "UTC", 24 * 60)
@@ -74,6 +76,10 @@ def main(data_dir: str) -> None:
     run = X.submit(st, sc.scenario_uid, sc.version, X.new_request_id(), background=False)
     if run.state != "concluida":
         raise SystemExit(f"missão V2 não concluiu: {run.error}")
+    sc2 = cenario(st, "Dia nublado · m = 2", f_ghi=0.35)
+    run2 = X.submit(st, sc2.scenario_uid, sc2.version, X.new_request_id(), background=False)
+    if run2.state != "concluida":
+        raise SystemExit(f"segunda missão V2 não concluiu: {run2.error}")
     c16 = v16_equivalent_config("Industrial A (SINTÉTICA · padrão V1.6)")
     reg.create(c16, origin="commissioning")
     s16 = reg.open(c16["installation"]["uid"])
@@ -83,12 +89,21 @@ def main(data_dir: str) -> None:
         raise SystemExit(f"rodada V1.6 não concluiu: {r16.error}")
     estudo = AS.archive_scenario(st, ArchiveStore(data_dir), sc.scenario_uid).study
     it = json.loads(json.dumps(run.summary["mission"]))
+    ja = RG.ler_csv(st, run, RG.N_JANELAS)
+    validas = [int(j) for j, q in zip(ja["janela"], ja["sinal_qualidade"], strict=True) if q == "valido"]
+    sem = [int(j) for j, q in zip(ja["janela"], ja["sinal_qualidade"], strict=True) if q != "valido"]
+    if not validas or not sem:
+        raise SystemExit("a missão de referência deve ter janelas com e sem sinal de valor futuro válido")
     info = {"mg": cfg["installation"]["uid"], "sc": sc.scenario_uid, "run": run.run_uid, "cenario": sc.name,
             "custo_R": it["custo_realizado_total_R"], "demanda_18h_kW": float(DEM[18]),
+            "janelas": len(ja), "j_com": validas[0], "j_sem": sem[0], "n_validas": len(validas),
+            "arquivos": len(run.data), "linhas_planos": len(RG.ler_csv(st, run, RG.N_PLANOS)),
+            "sc2": sc2.scenario_uid, "run2": run2.run_uid, "cenario2": sc2.name,
+            "custo2_R": run2.summary["mission"]["custo_realizado_total_R"],
             "v16": {"mg": c16["installation"]["uid"], "sc": sc16.scenario_uid, "run": r16.run_uid},
             "estudo": estudo.archive_uid}
     (Path(data_dir).resolve().parent / "seed_piso3db.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
-    print(f"OK: {data_dir} — microrrede {info['mg']} · rodada V2 {run.run_uid[:8]}… · V1.6 {r16.run_uid[:8]}… · estudo "
+    print(f"OK: {data_dir} — microrrede {info['mg']} · rodadas V2 {run.run_uid[:8]}… e {run2.run_uid[:8]}… · V1.6 {r16.run_uid[:8]}… · estudo "
           f"{estudo.archive_uid[:8]}…")
 
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# E2E em navegador real do Piso 3D-B0/B1 — Partitura (motor gráfico Trama) na aplicação Streamlit REAL.
+# E2E em navegador real do Piso 3D-B (B0/B1/B3) — Partitura (motor gráfico Trama) na aplicação Streamlit REAL.
 #
 # Uso: tools/e2e/run_piso3db.sh <python COM Pyomo/HiGHS> <pasta de saída vazia>
 #
 # Fases (servidor Streamlit real; nenhum serviço externo):
-#   1. semente  — microrrede FICTÍCIA FV + eólica + bateria + PEMFC + PCC com UMA missão V2 real (HiGHS), uma microrrede
+#   1. semente  — microrrede FICTÍCIA FV + eólica + bateria + PEMFC + PCC com DUAS missões V2 reais (HiGHS), uma microrrede
 #                 V1.6 com rodada concluída e o cenário V2 arquivado no Arquivo Científico;
 #   2. consulta — servidor NOVO com o solver BLOQUEADO e o motor e os modelos físicos sabotados (tools/e2e/sabotage_v2):
 #                 a Partitura é aberta, percorrida e reaberta; o registro de chamadas ao motor/modelos deve ficar VAZIO.

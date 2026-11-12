@@ -41,7 +41,8 @@ class LentesSobreRodadasReaisTest(unittest.TestCase):
         cls._tmp = tempfile.TemporaryDirectory()
         d = cls._tmp.name
         cls.m = {"hibrida": P.missao_hibrida(d), "bancos": P.missao_dois_bancos(d), "pemfc": P.missao_duas_pemfc(d),
-                 "passo30": P.missao_passo_30(d), "dia": P.missao_24h(d), "legado": P.missao_legada_v1(d)}
+                 "passo30": P.missao_passo_30(d), "dia": P.missao_24h(d), "legado": P.missao_legada_v1(d),
+                 "isolada": P.missao_isolada(d)}
         sys.modules.pop("pyomo", None)
         cls.f = {k: P.marco(st, run) for k, (_uid, st, run) in cls.m.items()}
 
@@ -184,6 +185,18 @@ class LentesSobreRodadasReaisTest(unittest.TestCase):
             self.assertEqual(js, [["bat", "grid", "dem", "eco"], "__undefined__", "__undefined__", "__undefined__", []])
 
 
+    # ------------------------------------------------------------------------------------------- microrrede isolada
+    def test_microrrede_isolada_rede_nao_aplicavel(self):
+        """Sem PCC a rede NÃO participa: não é dado ausente (N/D) nem importação zero inventada no balanço."""
+        f = self.f["isolada"]
+        self.assertEqual(f["pcc"]["modo"], "isolado_declarado")
+        self.assertNotIn("importacao_rede", f["resumo"]["componentes_R"])
+        if P.NODE:
+            js = P.node("const M = api.modelo(F), b = api.balancoDe(M.A, 0); return [M.ord, M.A.impR, M.A.tar, M.A.cImp, b.inj.map((x) => x[0]), b.faltam, b.total];", f)
+            self.assertEqual(js[:4], [["bat", "dem", "eco"], "__undefined__", "__undefined__", "__undefined__"])
+            self.assertEqual(js[4:], [["bat"], [], 1.0])
+
+
 @unittest.skipUnless(P.SOLVER and P.navegador_disponivel(), "Pyomo/HiGHS ou Chromium/Playwright não instalados")
 class LentesNoNavegadorTest(unittest.TestCase):
     @classmethod
@@ -191,7 +204,7 @@ class LentesNoNavegadorTest(unittest.TestCase):
         cls._tmp = tempfile.TemporaryDirectory()
         d = cls._tmp.name
         m = {"bancos": P.missao_dois_bancos(d), "passo30": P.missao_passo_30(d), "legado": P.missao_legada_v1(d),
-             "pemfc": P.missao_duas_pemfc(d)}
+             "pemfc": P.missao_duas_pemfc(d), "isolada": P.missao_isolada(d)}
         cls.f = {k: P.marco(st, run) for k, (_uid, st, run) in m.items()}
         cls.r = P.bancada(cls.f)
 
@@ -234,6 +247,11 @@ class LentesNoNavegadorTest(unittest.TestCase):
         self.assertIn("Contrato de dadosv1", v["lente:evidencia"])
         self.assertEqual(sorted(k.split(":")[1] for k in v if k.startswith("painel:")), ["Bateria", "Carga", "Custos", "Rede"])
         self.assertNotIn("balanço incompleto", v["lente:operacao"])     # recurso inexistente ≠ dado ausente
+        v = self.r["isolada"]["vistas"]
+        self.assertEqual(sorted(k.split(":")[1] for k in v if k.startswith("painel:")), ["Bateria", "Carga", "Custos"])
+        self.assertNotIn("balanço incompleto", v["lente:operacao"])
+        self.assertIn("Σ injeção (derivado) = 1,00 kW", v["lente:operacao"])
+        self.assertNotIn("Tarifa de decisão", v["lente:economia"])       # sem PCC não há tarifa: omitida, não N/D
 
     def test_janelas_sem_sinal_valido_sao_explicitas_na_lente_decisao(self):
         f = self.f["bancos"]

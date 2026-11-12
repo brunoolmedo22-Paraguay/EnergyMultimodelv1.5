@@ -9,6 +9,13 @@
 //   reabrir — servidor NOVO, SEM solver, motor e modelos (renováveis e PEMFC) sabotados: a rodada PEMFC e as rodadas
 //             legadas (contratos v1 e v2) são reabertas pela interface.
 const { chromium } = require("playwright");
+// Piso 3D-B3: com a Partitura desenhada, a vista clássica da rodada V2 fica RECOLHIDA num expansor identificado. Este
+// roteiro continua verificando a vista clássica: apenas a abre antes (navegação) — nenhuma verificação foi alterada.
+const abrirClassica = async (p) => {
+  const s = p.locator('[data-testid="stExpander"] summary', { hasText: "Vista clássica" }).first();
+  try { await s.waitFor({ timeout: 120000 }); } catch (_) { return; }       // sem Partitura a vista clássica já está aberta
+  if (!(await s.evaluate((e) => e.parentElement.open))) { await s.click(); await p.waitForTimeout(800); }
+};
 const path = require("path");
 const fs = require("fs");
 const [url, fase, outDir, seedInfo] = process.argv.slice(2);
@@ -73,7 +80,7 @@ async function waitRun(p, seconds = 600) {
   throw new Error(`FALHA: a rodada V2 não terminou em ${seconds} s`);
 }
 async function conferirRodada(p, tag) {
-  await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 120000 }); await ready(p);
+  await abrirClassica(p); await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 120000 }); await ready(p);
   assert(await visible(p, "✓ Evidência verificada"), `${tag}: evidência verificada (hashes, vistas regeneradas, auditoria, B04)`);
   assert(!(await visible(p, "EVIDÊNCIA COM PROBLEMAS")), `${tag}: nenhuma falha de integridade`);
   assert(await visible(p, "Critério de aceitação"), `${tag}: aceitação SEPARADA exibida`);
@@ -204,7 +211,7 @@ async function reabrir(b) {
     for (const [nome, leg] of Object.entries(seed.legado)) {
       await p.goto(`${base}/?view=operacao&tab=rodada&mg=${leg.mg}&run=${leg.run}`); await ready(p);
       await p.getByText("Rodada · imutável").first().waitFor({ timeout: 120000 });
-      await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 120000 }); await ready(p);
+      await abrirClassica(p); await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 120000 }); await ready(p);
       assert(await visible(p, "✓ Evidência verificada") && !(await visible(p, "EVIDÊNCIA COM PROBLEMAS")),
         `rodada legada (contrato ${nome}) continua legível e verificada`);
       assert(!(await visible(p, "PEMFC (unidade)")), `rodada legada ${nome}: sem PEMFC (nada inventado)`);
