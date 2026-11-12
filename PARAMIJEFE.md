@@ -3085,3 +3085,75 @@ R-1 (residuo numérico en la potencia de la PEMFC apagada interrumpe misiones co
 - **E2E en navegador real** `tools/e2e/run_piso3db.sh <python con solver> <carpeta>`: semilla con una misión V2 real (HiGHS), una rodada V1.6 y un estudio archivado; servidor Streamlit **sin solver y con motor y modelos saboteados** (`tools/e2e/sabotage_v2`) ⇒ **40 verificaciones aprobadas**, sin errores de página ni de consola, registro de llamadas al motor **vacío**. Cubre: montaje, datos × registros (costo del resumen sellado, demanda a las 18 h), cursor e inspector, foco por recurso, fijación del instante, los siete paneles (PEMFC con tres vistas; B04 rotulada matemática), cambio de instante dentro del panel, Esc y retorno con contexto, rerun de Streamlit, recarga, temas claro/oscuro detectados y alternados, 400 × 850 a 2560 × 1440 sin desbordamiento, rodada V1.6 intacta y estudio archivado en la Partitura. Evidencia: `docs/seeds2/evidencia_3db/`.
 - Regresión completa con solver: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` (Python 3.13.18, Streamlit 1.66.1, Pyomo 6.10.1, HiGHS 1.15.1) ⇒ **2249 passed, 2 skipped, 9 warnings, 128 subtests (677,4 s)** = 2234 de la línea de base del PR #23 + 15 nuevos. Árbol de trabajo limpio tras la ejecución.
 - Limitaciones: la suite sin solver no se ejecutó localmente (la ejecuta el CI del PR); el E2E usa una única microrred sintética con un equipo de cada tipo, por lo que la selección por UID con varios equipos del mismo tipo solo está cubierta por la lógica del modelo de vista, no por navegador.
+
+## Entrega 17 — SEEDS2 Piso 3D-B3 · N/D en el navegador y lentes Decisión, Economía y Evidencia — 2026-11-12
+
+### 1. Identificación
+
+- Misma rama `claude/stoic-meitner-2vs91m` y mismo PR Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24) contra `main`, **sin merge**. Base `main` `724d235`. Commits de esta entrega: `4e5d531`, `6bef66c` (código, tests, E2E y documentación; las regresiones completas se ejecutaron sobre este) y un commit final que **solo** añade este informe y los números al cuaderno de relevo.
+- Decisión del responsable que origina la entrega: el checkpoint 3D-B0/B1 queda aprobado **para continuidad, no para merge**; orden pedido: (1) preservar N/D también en JavaScript, (2) lentes Decisión, Economía y Evidencia, (3) vista clásica plegada por defecto, (4) cobertura adicional. 3D-B2 (barra lateral, Catálogo, Planta, Caderno, Folha) **no se inició**.
+- Sin cambios en `ems_v2/`, modelos físicos, contratos científicos, persistencia ni formulación. R-1, R-2 y R-3 **siguen registradas y sin corregir**.
+
+### 2. Corrección N/D en JavaScript (hallazgo de la auditoría independiente del B1)
+
+El defecto era real: `partitura.js` agregaba con `|| 0` y `Array(K).fill(0)`, y los paneles hacían `100 * x` sobre valores que podían ser `null` (JavaScript evalúa `100 * null` como 0). Una magnitud no persistida podía mostrarse como cero o entrar en una suma.
+
+| Situación | Representación | Comportamiento |
+|---|---|---|
+| cero grabado | número `0` | se suma y se dibuja como cero |
+| dato ausente | `null` | «N/D»; no se suma; no se dibuja como cero; **vuelve N/D todo derivado** que dependa de él |
+| no aplicable (recurso inexistente, PCC aislado, término fuera del objetivo) | `undefined` | se omite: ni N/D ni cero inventado |
+
+- **Modelo de vista** (funciones puras, ejecutables en Node): `agg`, `mais`, `vezes`, `menos`, `razao`, `somaT`, `acum`, `opc`, `conta`, `el`, `modelo`, `balancoDe`, `planoPorTipo`. Ninguna expresión aritmética toca un ausente. `acum` deja de acumular tras una laguna; `agg` de N unidades con una sin dato es N/D (nunca la suma de las demás).
+- **Motor Trama**: `stack`/`step`/`front`/`strip` distinguen `null` (la raia declara «N/D — série não persistida») de `undefined` (nada), marcan «N/D» en el intervalo sin valor e interrumpen las líneas en la laguna.
+- **Paneles**: toda lectura pasa por `el()`; porcentajes y diferencias por `vezes`/`menos`/`razao`. El comportamiento derivado de la batería tiene el estado «N/D». El inspector declara «balanço incompleto: rede sem dado neste intervalo. Nada é assumido como zero».
+- El test Node del B1 que fijaba `acum([1, null, 2]) = [0, 1, 1, 3]` describía el defecto; ahora exige `[0, 1, null, null]` (C-3DB-04). No es una relajación: es la corrección del valor esperado erróneo, pedida por la auditoría.
+
+### 3. Lentes entregadas (componente real, datos persistidos)
+
+- **Decisión.** Tapete de decisiones (una fila por ventana; magnitud seleccionable por UID de banco, PEMFC o importación; marca del intervalo aplicado; ∅ en las ventanas sin señal); selector de ventana y «janela do instante»; energía de la batería **ejecutada hasta τ_k × plan MPC × plan de largo plazo × lo ocurrido después**; despacho planificado (lleno = aplicado, claro = planificado y luego revisado) con demanda prevista × realizada; **V(E)** dibujado solo con los puntos grabados (modos, puntos, dominio, validaciones, energías inviables, referencia del plan largo, energía terminal elegida); con dos bancos, tabla de puntos (sin proyección inventada). Ventana sin señal válida ⇒ «sem valor futuro», costo futuro N/D y el motivo grabado; los puntos evaluados aparecen solo como registro. Botón para ocultar lo que ocurrió después de la decisión. La interfaz describe; no atribuye causas.
+- **Economía.** Costo operacional realizado por intervalo (por componente) y acumulado (valor grabado); bloque aplicado previsto × realizado por decisión; objetivo del MILP = operativo previsto + valor futuro estimado (rayado), ∅ sin valor futuro. Tarjeta «Três grandezas que não se somam». Toda suma mostrada está rotulada «derivado».
+- **Evidencia.** Resultado de `registro.verificar` **del servidor** (el navegador solo lo exhibe), tres aceptaciones separadas con su criterio, auditoría independiente grabada, solver/gap/terminación por decisión, procedencia y versiones, archivos con SHA-256, **tablas originales** (los cuatro CSV, valores como grabados), advertencias agrupadas, limitaciones y convenciones, y un botón que abre la vista clásica.
+- Marco `seeds2-trama-frame` **v2**: v1 + `planos`, `coordenacoes`, `auditoria`, `procedencia`, `limitacoes`, `convencoes`, `tabelas`. Solo lecturas adicionales de archivos ya grabados; nada se escribe (C-3DB-03 sigue vigente).
+
+### 4. Vista clásica (autorizada por el responsable; C-3DB-05)
+
+Con la Partitura dibujada, toda la página anterior queda dentro del expansor «Vista clássica — tabelas completas, gráficos anteriores, descargas e procedência», **plegado por defecto**; el aviso de motor experimental permanece visible fuera. Sin Partitura (rodada fallida/interrumpida, evidencia con problemas, marco indisponible) la vista clásica sigue abierta como antes. Contenido sin cambios (`integracao_v2/ui._vista_classica`). Comprobado: tests de interfaz anteriores sin modificar; Arquivo Científico; descargas, tablas y exportaciones.
+
+### 5. Hallazgos durante la entrega
+
+| Id | Hallazgo | Tratamiento |
+|---|---|---|
+| C-3DB-06 | La clave de caché del marco usaba un atributo que el estudio archivado no tiene: rodada local y la misma rodada en un estudio compartían entrada | **corregido** (identidad local del estudio); test nuevo |
+| — | Lente Decisión cortada en 400 px (la columna ancha no colapsaba) | **corregido**; el E2E ahora mide paneles cortados dentro del instrumento, no solo el desborde de la página |
+| — | La guarda detectó el literal del solver en `trama_frame.py` (filtro de versiones de software) | **corregido**: el bloque `software` se copia tal como está persistido; guarda sin tocar |
+| — | `tools/e2e/e2e_piso3da_v2.js` ya estaba desactualizado en `main`: espera la etiqueta «Termos de custo das baterias no objetivo», renombrada en un piso posterior | se actualizó **solo** esa etiqueta para poder ejecutar el guion; registrado |
+| — | Los guiones E2E dejan vivo el servidor si fallan a mitad; el siguiente intento opera sobre el directorio anterior | **no corregido**, registrado en `CLAUDE.md` |
+| — | Un cero negativo del solver (`-0.0`) se muestra «-0,0» en la tabla planificado × ejecutado | **no corregido** (valor grabado); observación de presentación para 3D-B2 |
+| R-1, R-2, R-3 | Pendientes técnicas de la investigación anterior | **sin cambios**; R-3 es ahora visible en las lentes (ventanas ∅) |
+
+### 6. Verificación realizada
+
+Entorno: Python 3.13.18, Streamlit 1.66.1, Node 22, Chromium + Playwright; con solver Pyomo 6.10.1 + HiGHS 1.15.1; sin solver un entorno virtual separado con solo `requirements.txt` + pytest.
+
+- **Tests nuevos o ampliados** (`tests/test_piso3db_nd.py` 20, `tests/test_piso3db_lentes.py` 13, `tests/test_piso3db_app.py` 4, `tests/test_piso3db_trama.py`, guardas):
+  - *Sin solver:* utilitarios puros y modelo de vista en Node con PCC, renovables, batería, costos y planos ausentes (serie entera, un intervalo, columna inexistente, registro del equipo inexistente), cero grabado, recurso inexistente, término no declarado; y el componente REAL en Chromium con ocho marcos adulterados, recorriendo las cuatro lentes y todos los paneles (recurso × vista × UID): sin errores y con la ausencia visible.
+  - *Con HiGHS:* marco v2 × archivos grabados (planos, coordinaciones/señal, auditoría, tablas, bit a bit); **dos bancos** y **dos unidades PEMFC** con selección por UID; **12 h/60 min, 24 h con m = 2 y 6 h/30 min**; rodada del **contrato v1**; microrred **aislada**; ventanas sin señal válida; en navegador: cambio de lente sin perder el instante, cambio de rodada sin mezclar estado, recarga.
+  - *AppTest:* vista clásica plegada e íntegra, cambio de rodada en la misma sesión, **sesión nueva sin solver** (marco idéntico), estudio archivado.
+- **E2E en navegador real, servidor sin solver y con motor y modelos saboteados** — `tools/e2e/run_piso3db.sh`: **103 verificaciones aprobadas**, registro de llamadas al motor/solver/modelos **vacío** (`docs/seeds2/evidencia_3db/e2e_partitura_b3.log` y capturas).
+- **E2E de los pisos anteriores con la vista clásica plegada:** 3D-A2-H `run_piso3da2h.sh` ⇒ 60 verificaciones (incluye rodadas legadas v1 y v2); 3D-A2-R `run_piso3da2r.sh` ⇒ concluido en ejecución limpia; 3D-A (`e2e_piso3da_v2.js`, fases operar → `kill -9` → reinicio → tablet → importar sin solver) ⇒ 106 verificaciones, registro del motor vacío. Dos intentos previos del 3D-A2-R fallaron por causas ajenas al cambio (temporización del preflight en la primera carga y, después, el servidor huérfano de ese intento); se repitió hasta obtener una ejecución limpia y se registra aquí.
+- **Auditoría explícita del diff:** `python tests/ems_v2/piso3db_guard_policy.py` ⇒ `ok: true`, `intocados_violados: []`.
+- **Regresión completa sobre `6bef66c`, con solver:** `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q` ⇒ **2284 passed, 2 skipped, 9 warnings, 147 subtests (927,8 s)** = 2249 de la Entrega 16 + 35 nuevos (20 + 13 + 2). Árbol de trabajo limpio tras la ejecución.
+- **Regresión completa sobre `6bef66c`, sin solver:** mismo comando en el entorno sin Pyomo/HiGHS ⇒ **1769 passed, 172 skipped, 9 warnings, 142 subtests (499,9 s)**; de los tests 3D-B corren 28 (N/D en Node y en navegador, guardas, rodada V1.6) y 22 se omiten explícitamente por requerir una misión real. Es la primera vez que esta suite se ejecuta localmente sin solver en esta rama (limitación declarada en la Entrega 16, ahora cerrada).
+
+### 7. Limitaciones declaradas
+
+- Los tests de navegador dentro de pytest se **omiten explícitamente** donde no hay Node/Chromium/Playwright (p. ej. un CI sin navegador); allí solo queda la cobertura Node y el E2E manual.
+- El marco sintético (`tests/piso3db_util.marco_sintetico`) es dato de test con números redondos; no es resultado de ninguna microrred.
+- V(E) con dos bancos se presenta como tabla; no hay todavía una vista gráfica 2D.
+- Series climáticas por intervalo en los paneles solar y eólico siguen N/D (dependencia registrada en la Entrega 16).
+- La lente Evidencia muestra hasta 200 filas por tabla; la tabla completa está en la vista clásica.
+
+### 8. Próximo paso
+
+Revisión de este checkpoint por el responsable. Solo después: 3D-B2 (barra lateral, Catálogo, Planta, Caderno de Ensaios, Folha de Ensaio). **Sin merge.**
