@@ -115,3 +115,16 @@ function xy(host, o) {
       ring.setAttribute("cx", X(q.x)); ring.setAttribute("cy", Y(q.y)); ring.setAttribute("visibility", "visible"); tip.hidden = false; tip.innerHTML = q.html; const px = (X(q.x) / W) * host.clientWidth; tip.style.left = Math.max(0, px > host.clientWidth * .6 ? px - tip.offsetWidth - 12 : px + 12) + "px"; tip.style.top = "30px"; });
     svg.addEventListener("pointerleave", () => { tip.hidden = true; ring.setAttribute("visibility", "hidden"); }); }
 }
+// ---- raiz e tema comuns aos componentes .pt (Partitura, barra lateral, Catálogo, Planta, Caderno, Folha)
+function temaPt() {
+  let t = null; try { t = localStorage.getItem("seeds2.partitura.tema"); } catch (_) { /* sem armazenamento */ }
+  if (t !== "dark" && t !== "light") { const m = /rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)/.exec(getComputedStyle(document.body).backgroundColor || ""); t = m && (0.2126 * m[1] + 0.7152 * m[2] + 0.0722 * m[3]) < 110 ? "dark" : "light"; }
+  return t;
+}
+function raizPt(parentElement, cls) {
+  let root = parentElement.querySelector(".pt"); const nova = !root;
+  if (nova) { root = h("div", { class: "pt " + cls }); parentElement.appendChild(root); }
+  root.dataset.theme = temaPt();
+  return [root, nova];
+}
+const icoPt = (d, s = 20) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;

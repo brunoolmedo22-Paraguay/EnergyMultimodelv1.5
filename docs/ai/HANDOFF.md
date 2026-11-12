@@ -14,11 +14,28 @@
 
 | # | Unidade | Estado | Commit |
 |---|---|---|---|
-| C0 | Três correções focalizadas pedidas antes da expansão: (A) N/D × não aplicável por EVIDÊNCIA (`termo`/`declarado`, `F.objetivo.termos`), (B) zero negativo só na formatação (`nf`/`ne`), (C) limpeza garantida dos servidores E2E (`tools/e2e/servidor.sh`) | **concluído** | este commit |
-| B2-A | Barra lateral compacta (hover), navegação responsiva, identidade Partitura, navegação atual preservada, estável em reruns | não iniciado | — |
+| C0 | Três correções focalizadas pedidas antes da expansão: (A) N/D × não aplicável por EVIDÊNCIA (`termo`/`declarado`, `F.objetivo.termos`), (B) zero negativo só na formatação (`nf`/`ne`), (C) limpeza garantida dos servidores E2E (`tools/e2e/servidor.sh`) | **concluído** | `d4f7780` |
+| B2-A | Barra lateral compacta (hover/foco), barra inferior no celular, paleta neutra da Partitura no tema, navegação anterior preservada, estável em reruns | **concluído** (ver «B2-A — o que existe») | commit «B2-A» |
 | B2-B | Catálogo integrado ao Gestor + Planta com barramento equivalente (hover/foco/seleção, dados reais do inventário e da rodada, abrir painéis por UID; sem fluxos inventados) | não iniciado | — |
 | B2-C | Caderno de Ensaios (cenários e rodadas: versões, motores, estados, datas, integridade; locais e Arquivo Científico; V1.6 compatível) | não iniciado | — |
 | B2-D | Folha de Ensaio (organização aprovada no protótipo sobre os formulários longos; parâmetros, validações, estados iniciais e preflight intactos) | não iniciado | — |
+
+## B2-A — o que existe (implementado e verificado)
+
+- `seeds2/ui/static/trama/sidebar.js` + regras `.pt.sb` em `trama.css`: componente v2 `seeds_sidebar` (trilho fixo de 56 px que se expande por cima do conteúdo com hover/foco; ≤ 760 px vira barra inferior só com os itens `movel`). Só navega: devolve `{type:"nav", view, tab}` ou `{type:"switch"}`.
+- `seeds2/ui/trama.py`: `_pagina(nome)` (fábrica dos componentes de PÁGINA na linguagem Partitura: `trama.js` + `<nome>.js` + `trama.css`), `sidebar()`, `RAIL_CSS` (variável `--seeds-rail`; o conteúdo recua a largura do trilho). `trama.js` ganhou `raizPt`, `temaPt`, `icoPt` (raiz/tema/ícone comuns).
+- `seeds2/ui/shell.py`: `sidebar_items()` (tabela de destinos por contexto: sem microrrede / comissionamento / microrrede ativa), `_on_sidebar()`, `sidebar()`; **a barra lateral é desenhada dentro de `shell.topbar()`**.
+- `.streamlit/config.toml`: paleta neutra da Partitura (claro e escuro) e raios; cores categóricas dos gráficos nativos inalteradas.
+- Testes: `tests/test_piso3db_plataforma.py` (destinos por contexto, retorno do componente, estáticos, tema); navegador: `tools/e2e/e2e_piso3db_plataforma.js` (21 verificações; fase 3 de `run_piso3db.sh`).
+- Verificado neste checkpoint: suítes AppTest de todos os pisos + Partitura + guardas ⇒ **150 passed** (`tests/test_app_smoke.py tests/test_seeds2_*app.py tests/test_piso3d*_app.py tests/test_piso3db_{plataforma,trama,nd}.py tests/ems_v2/test_piso3db_guardas.py`); auditoria do diff `ok: true`. **Regressão completa com e sem solver ainda NÃO executada sobre este checkpoint** (última: `590b826`); executar no fim do B2-B.
+- **Restrição descoberta (não contornar):** `seeds2/ui/main.py`, `seeds2/ui/operations.py`, `seeds2/operation/runner.py` e `thermal_app.py` estão FIXADOS por SHA-256 na guarda de estabilização (`tests/fixtures/stabilization_scope_v1.json`). Não podem ser alterados. Consequência para o 3D-B2: **páginas novas não podem ganhar uma `view` nova em `main.py`**; entram como `tab` do Centro de Operação (`view=operacao&tab=…`, despachadas em `operation_center.render`) ou dentro de `gestor.render()`.
+- Pendências visuais conhecidas do B2-A: restam acentos verde-azulados fixos no CSS de algumas páginas (`gestor.py`, `operation_center.py`: chip do herói, gradiente); a barra superior anterior quebra mal a 400 px (já era assim antes do B2); a barra lateral ainda não tem os destinos Planta/Caderno/Folha (entram com B2-B/C/D).
+
+## Próxima tarefa exata (B2-B) e critérios de aceitação
+
+1. **Catálogo** dentro de `seeds2/ui/gestor.py` (acima da lista atual, que continua inteira): componente de página `catalogo.js` com um cartão por microrrede (nome, assinatura do barramento a partir do inventário real, natureza/modo, cenários e rodadas por estado, kWp/kW/kWh instalados, prontidão) e a prateleira de estudos do Arquivo Científico; clique abre a microrrede pelo fluxo existente (`session.open_microgrid`). Catálogo vazio ⇒ estado vazio com «Nova microrrede».
+2. **Planta** como `tab=planta` do Centro de Operação: barramento equivalente; um nó por equipamento do inventário (UID, nome, TAG, nominal), demanda e PCC; hover/foco/seleção; com uma rodada V2 concluída escolhida, valores gravados do instante (marco `trama_frame`); clique abre o painel do recurso na Partitura (gravar `{ex, uid}` em `sessionStorage["seeds2.partitura.<run>"]` e navegar para `tab=rodada&run=`). **Sem setas nem fluxos nas ligações.** Inventário vazio e vários equipamentos por tecnologia têm de funcionar.
+3. Aceitação: testes de modelo (Node) + AppTest + E2E em navegador real (clique, hover, UID, inventário vazio); barra lateral ganha «Planta»; nenhum teste anterior alterado para passar; auditoria do diff `ok`.
 
 ## Como retomar
 

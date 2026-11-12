@@ -17,13 +17,17 @@ PACOTE_INTEGRACAO = "integracao_v2/"
 # Arquivos EXISTENTES na base, dentro dos alvos das guardas anteriores, alterados pelo 3D-B (somente modificação).
 MODIFICADOS = frozenset({
     "tests/ems_v2/piso3da2h_guard_policy.py",    # encadeia este filtro (regras do 3D-A2-H inalteradas)
+    # Piso 3D-B2 (integração visual da plataforma, autorizada pelo responsável): só a camada de apresentação do shell.
+    "seeds2/ui/shell.py",                        # B2-A: itens, retorno e desenho da barra lateral (junto da barra superior)
 })
 # Arquivos NOVOS do 3D-B dentro dos alvos das guardas anteriores (somente adição).
 COMPONENTE = ("seeds2/ui/trama.py", "seeds2/ui/static/trama/trama.js", "seeds2/ui/static/trama/partitura.js",
-              "seeds2/ui/static/trama/trama.css")
+              "seeds2/ui/static/trama/trama.css",
+              "seeds2/ui/static/trama/sidebar.js")                                   # 3D-B2-A: barra lateral
 TESTES_3DB = ("tests/test_piso3db_trama.py", "tests/test_piso3db_app.py", "tests/piso3db_util.py",
               "tests/test_piso3db_nd.py", "tests/test_piso3db_lentes.py",          # 3D-B3: N/D e lentes
-              "tests/test_piso3db_e2e_servidor.py")                                # limpeza dos servidores E2E
+              "tests/test_piso3db_e2e_servidor.py",                                # limpeza dos servidores E2E
+              "tests/test_piso3db_plataforma.py")                                  # 3D-B2: navegação e páginas
 ADICIONADOS = frozenset({*COMPONENTE, *TESTES_3DB, "tests/ems_v2/piso3db_guard_policy.py",
                          "tests/ems_v2/test_piso3db_guardas.py"})
 # Nenhum arquivo do 3D-B fora de ``ems_v2/`` e ``tests/ems_v2/`` menciona o pacote do motor (guarda 3A).
@@ -49,7 +53,8 @@ INTOCADOS = ("ems_v2", "models", "h2_pemfc", "simulation", "config", "ems_integr
              "integracao_v2/registro.py", "integracao_v2/execucao.py", "integracao_v2/montagem.py",
              "integracao_v2/preflight.py", "integracao_v2/estrategia.py", "integracao_v2/renovaveis.py",
              "integracao_v2/curva_h2.py", "integracao_v2/pemfc_dinamica.py")
-INTEGRACAO_3DB = {"integracao_v2/ui.py": "M", "integracao_v2/trama_frame.py": "A"}
+INTEGRACAO_3DB = {"integracao_v2/ui.py": "M", "integracao_v2/trama_frame.py": "A",
+                  ".streamlit/config.toml": "M"}        # 3D-B2-A: paleta neutra da Partitura no tema (só cores e raios)
 OUTROS_PERMITIDOS = ("docs/", "tools/e2e/", "CLAUDE.md", "PARAMIJEFE.md")
 
 

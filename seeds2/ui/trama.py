@@ -17,9 +17,16 @@ import streamlit as st
 
 STATIC = Path(__file__).resolve().parent / "static" / "trama"
 FRAME_FORMAT = "seeds2-trama-frame"
-# A Partitura usa a largura da janela; o restante da aplicação mantém a largura de leitura do shell.
-WIDE_CSS = ("<style>.block-container { max-width: none !important; padding-left: 1.4rem !important; "
-            "padding-right: 1.4rem !important; }</style>")
+# A Partitura usa a largura da janela; o restante da aplicação mantém a largura de leitura do shell. ``--seeds-rail`` é a
+# largura do trilho da barra lateral (0 quando ela não está na página ou em telas estreitas).
+WIDE_CSS = ("<style>.block-container { max-width: none !important; padding-left: calc(var(--seeds-rail, 0px) + 1.4rem) "
+            "!important; padding-right: 1.4rem !important; }</style>")
+# Barra lateral (Piso 3D-B2-A): o trilho é fixo; o conteúdo da página desloca-se a largura dele. Em telas estreitas vira uma
+# barra inferior e o conteúdo ganha espaço embaixo. O invólucro do componente não ocupa lugar no fluxo da página.
+RAIL_CSS = ("<style>:root { --seeds-rail: 56px; } .block-container { padding-left: calc(var(--seeds-rail) + 1.6rem) !important; }"
+            " .st-key-seeds_sidebar { position: absolute; width: 0; height: 0; }"
+            " @media (max-width: 760px) { :root { --seeds-rail: 0px; } .block-container { padding-left: 1rem !important; "
+            "padding-bottom: 6.5rem !important; } }</style>")
 
 
 def _src(name: str) -> str:
@@ -32,6 +39,17 @@ def component():
                                       css=_src("trama.css"))
 
 
+def _pagina(nome: str):
+    """Componente v2 de PÁGINA na linguagem Partitura: motor Trama + ``<nome>.js``, estilos de ``trama.css`` (sob ``.pt``)."""
+    return st.components.v2.component(f"seeds_{nome}", js=_src("trama.js") + "\n" + _src(f"{nome}.js"), css=_src("trama.css"))
+
+
+def sidebar(dados: dict, *, on_action) -> None:
+    """Barra lateral da plataforma (só navegação; os destinos são decididos pelo shell)."""
+    st.html(RAIL_CSS)
+    _pagina("sidebar")(key="seeds_sidebar", data=dados, on_action_change=on_action)
+
+
 def partitura(frame: dict, *, key: str, wide: bool = True) -> None:
     """Desenha o instrumento Partitura de UMA rodada a partir do marco ``frame`` (somente leitura)."""
     if not isinstance(frame, dict) or frame.get("formato") != FRAME_FORMAT:
@@ -41,4 +59,4 @@ def partitura(frame: dict, *, key: str, wide: bool = True) -> None:
     component()(key=key, data={"frame": frame})
 
 
-__all__ = ["FRAME_FORMAT", "component", "partitura"]
+__all__ = ["FRAME_FORMAT", "component", "partitura", "sidebar"]

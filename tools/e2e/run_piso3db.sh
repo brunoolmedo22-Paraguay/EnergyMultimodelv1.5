@@ -21,7 +21,9 @@ rm -f "$LOGM"
 e2e_servidor "$PY" "$DADOS" "$PORTA" "$OUT/servidor.log" PYTHONPATH="$RAIZ/tools/e2e/sabotage_v2" \
     SEEDS2_E2E_ENGINE_LOG="$LOGM" SEEDS2_E2E_ROOT="$RAIZ"
 e2e_fase "$OUT/e2e_partitura.log" node tools/e2e/e2e_piso3db_partitura.js "http://localhost:$PORTA" "$SEED" "$CAP"
+echo "== 3. plataforma (3D-B2: navegação e páginas; mesmo servidor sem solver)"
+e2e_fase "$OUT/e2e_plataforma.log" node tools/e2e/e2e_piso3db_plataforma.js "http://localhost:$PORTA" "$SEED" "$CAP"
 e2e_parar "$PORTA"
 if [ -s "$LOGM" ]; then echo "FALHA: motor, solver ou modelo chamado na consulta:"; cat "$LOGM"; exit 1; fi
 echo "registro de chamadas ao motor/solver/modelos na consulta: VAZIO"
-grep -h "CONCLUÍDO" "$OUT/e2e_partitura.log"
+grep -h "CONCLUÍDO" "$OUT/e2e_partitura.log" "$OUT/e2e_plataforma.log"

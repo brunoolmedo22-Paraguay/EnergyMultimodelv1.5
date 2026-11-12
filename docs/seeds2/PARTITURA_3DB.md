@@ -226,7 +226,27 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
 | Etapa | Estado |
 |---|---|
 | C0 — correções A (N/D × não aplicável), B (zero negativo), C (E2E) | concluído |
-| B2-A — barra lateral, navegação responsiva, identidade | não iniciado |
+| B2-A — barra lateral, navegação responsiva, identidade | concluído (§8.3) |
 | B2-B — Catálogo e Planta | não iniciado |
 | B2-C — Caderno de Ensaios | não iniciado |
 | B2-D — Folha de Ensaio | não iniciado |
+
+### 8.3 B2-A — barra lateral, navegação e identidade (concluído)
+
+* **Componente.** `seeds_sidebar` (`static/trama/sidebar.js`, regras `.pt.sb`): trilho fixo de 56 px com ícones; expande-se
+  **por cima** do conteúdo (244 px) com o mouse ou o foco do teclado — o conteúdo não se move; abaixo de 760 px vira uma
+  barra inferior com os destinos essenciais. Não guarda estado no servidor e não provoca reruns por si; um rerun com os
+  mesmos dados não o redesenha.
+* **Destinos** (`shell.sidebar_items`): sem microrrede — Catálogo, Arquivo Científico, Alcance; em comissionamento —
+  Catálogo (= trocar de microrrede), Comissionamento, Alcance; microrrede ativa — Catálogo (= trocar), Centro de Operação,
+  Gestão, Arquivo Científico, Simulação V1.6, Resultados V1.6, Alcance. **A barra superior anterior continua completa**
+  (os testes e roteiros dos pisos anteriores navegam por ela).
+* **C-3DB-10 — onde a barra é desenhada.** `seeds2/ui/main.py` é fixado por SHA-256 na guarda de estabilização; por isso a
+  barra lateral é desenhada dentro de `shell.topbar()`, que já recebe o contexto. Pelo mesmo motivo, as páginas novas do
+  3D-B2 entram como `tab` do Centro de Operação ou dentro do Gestor, nunca como uma `view` nova em `main.py`.
+* **C-3DB-11 — tema.** `.streamlit/config.toml` passou à paleta neutra da Partitura (claro: fundo `#F4F4F2`, tinta `#171717`;
+  escuro: fundo `#0F0F0F`), com raios maiores e botões em pílula. As cores categóricas dos gráficos nativos não mudaram.
+  A mudança é de apresentação, reversível num arquivo.
+* **Verificação.** `tests/test_piso3db_plataforma.py`; navegador `tools/e2e/e2e_piso3db_plataforma.js` (fase 3 de
+  `run_piso3db.sh`): trilho, expansão por hover e por foco, Enter, destino atual, rerun sem redesenho, navegação lateral e
+  superior em conjunto, troca de microrrede, barra inferior a 400 px, tablet em tema escuro, sem transbordo horizontal.

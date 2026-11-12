@@ -198,6 +198,49 @@ def _on_topbar() -> None:
         st.session_state[SWITCH_KEY] = True
 
 
+def _on_sidebar() -> None:
+    a = payload("seeds_sidebar")
+    if a and a.get("type") == "nav":
+        go(a["view"], a.get("tab"))
+    elif a and a.get("type") == "switch":               # Catálogo com microrrede aberta = TROCAR MICRORREDE
+        st.session_state[SWITCH_KEY] = True
+
+
+def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bool) -> list[dict]:
+    """Destinos da barra lateral (Piso 3D-B2-A). Espelha a navegação existente — nada é retirado da barra superior —
+    e dá nome aos lugares da experiência Partitura: Catálogo, (Planta, Caderno, Folha quando integrados), Arquivo."""
+    def it(ident, rotulo, icone, grupo, alvo_view, alvo_tab=None, *, atual=False, curto=None, movel=False, dica=None, troca=False):
+        return {"id": ident, "rotulo": rotulo, "curto": curto or rotulo, "icone": icone, "grupo": grupo, "atual": bool(atual),
+                "movel": movel, "dica": dica or rotulo,
+                "acao": {"type": "switch"} if troca else {"type": "nav", "view": alvo_view, "tab": alvo_tab}}
+    doc = it("alcance", "Alcance e limitações", "alcance", "Documentação", "alcance", atual=view == "alcance", curto="Alcance")
+    if not is_open:
+        return [it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", atual=view == "gestor", curto="Catálogo", movel=True),
+                it("arquivo", "Arquivo Científico", "arquivo", None, "arquivo", atual=view == "arquivo", curto="Arquivo", movel=True), doc]
+    cat = it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", curto="Catálogo", movel=True, troca=True,
+             dica="Voltar ao Catálogo (trocar de microrrede; os dados não são alterados)")
+    if not commissioned:
+        return [cat, it("comissionamento", "Comissionamento", "comissionamento", "Microrrede", "comissionamento",
+                        atual=view == "comissionamento", movel=True), doc]
+    arq = view == "operacao" and tab in ("arquivo", "estudo")
+    return [cat,
+            it("operacao", "Centro de Operação", "operacao", "Microrrede", "operacao", atual=view == "operacao" and not arq,
+               curto="Operação", movel=True),
+            it("gestao", "Gestão da Microrrede", "gestao", "Microrrede", "gestao", atual=view == "gestao", curto="Gestão", movel=True),
+            it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
+            it("simulacao", "Simulação V1.6", "simulacao", "Console V1.6", "simulacao", atual=view == "simulacao", curto="Simulação"),
+            it("resultados", "Resultados V1.6", "resultados", "Console V1.6", "resultados", atual=view == "resultados",
+               curto="Resultados"), doc]
+
+
+def sidebar(*, view: str, tab: str | None, is_open: bool, commissioned: bool, contexto: str = "") -> None:
+    from . import trama
+
+    trama.sidebar({"versao": APP_VERSION, "contexto": contexto,
+                   "itens": sidebar_items(view=view, tab=tab, is_open=is_open, commissioned=commissioned)},
+                  on_action=_on_sidebar)
+
+
 def fmt_time(iso: str | None) -> str:
     if not iso:
         return ""
@@ -215,3 +258,7 @@ def topbar(*, view: str, items: list[tuple], site: str, site_title: str, save: d
                               "site_title": site_title, "site_sub": site_sub, "mg_name": mg_name, "save": save,
                               "force_light": force_light, "home": home, "switch": switch,
                               "aux": [list(a) for a in (NAV_DOCS if aux is None else aux)]})
+    # Piso 3D-B2-A: a barra lateral acompanha SEMPRE a barra superior (mesmo contexto; a superior continua completa).
+    # ``items`` distingue os três contextos do shell: Gestor (sem microrrede), comissionamento e microrrede ativa.
+    sidebar(view=view, tab=route().get("tab"), is_open=bool(switch), commissioned=items is NAV_ACTIVE,
+            contexto=mg_name if switch else "Nenhuma microrrede aberta")
