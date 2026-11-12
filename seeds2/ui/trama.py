@@ -50,6 +50,13 @@ def sidebar(dados: dict, *, on_action) -> None:
     _pagina("sidebar")(key="seeds_sidebar", data=dados, on_action_change=on_action)
 
 
+def pagina(nome: str, dados: dict, *, key: str, on_action=None, wide: bool = True) -> None:
+    """Componente de página (Planta, Catálogo, Caderno, Folha) com os dados já montados pelo chamador."""
+    if wide:
+        st.html(WIDE_CSS)
+    _pagina(nome)(key=key, data=dados, **({"on_action_change": on_action} if on_action else {}))
+
+
 def partitura(frame: dict, *, key: str, wide: bool = True) -> None:
     """Desenha o instrumento Partitura de UMA rodada a partir do marco ``frame`` (somente leitura)."""
     if not isinstance(frame, dict) or frame.get("formato") != FRAME_FORMAT:
@@ -59,4 +66,4 @@ def partitura(frame: dict, *, key: str, wide: bool = True) -> None:
     component()(key=key, data={"frame": frame})
 
 
-__all__ = ["FRAME_FORMAT", "component", "partitura", "sidebar"]
+__all__ = ["FRAME_FORMAT", "component", "pagina", "partitura", "sidebar"]

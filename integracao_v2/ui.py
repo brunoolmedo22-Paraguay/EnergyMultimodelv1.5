@@ -565,6 +565,36 @@ def _partitura(source, run, v, key: str) -> bool:
     return True
 
 
+def planta_rodada(source, run) -> dict | None:
+    """Piso 3D-B2-B — valores GRAVADOS de uma rodada V2 concluída, por UID, para a Planta da microrrede. É uma SELEÇÃO do
+    marco da Partitura (``trama_frame``): nenhuma aritmética, nenhum solver, nenhum modelo. ``None`` se a evidência não for
+    verificada ou o marco não puder ser montado (a Planta mostra então só o inventário)."""
+    from . import trama_frame as TF
+
+    try:
+        v = RG.verificar(source, run)
+        if not v.ok:
+            return None
+        f = TF.montar(source, run, verificacao=v)
+    except (StoreError, KeyError, ValueError, TypeError):
+        return None
+    it, series = f["intervalos"], {}
+    for u, r in f["renovaveis"].items():
+        series[u] = {"p": r.get("P_R_kW"), "pot": r.get("A_utilizavel_kW")}
+    for u, b in f["baterias"].items():
+        series[u] = {"pd": b.get("P_d_kW"), "pc": b.get("P_c_kW"), "e": b.get("energia_kWh")}
+    for u, g in f["pemfc"].items():
+        series[u] = {"p": g.get("p_kW"), "u": g.get("u"), "q": g.get("q_h2_kg_h")}
+    con = f["pcc"]["modo"] == "conectado"
+    return {"uid": run.run_uid, "cenario": f["rodada"]["cenario"], "versao": f["rodada"]["versao_cenario"], "K": f["rodada"]["K"],
+            "delta_min": f["rodada"]["delta_min"], "local": f["fronteiras"]["local"], "revisao": f["rodada"]["revisao_inventario"],
+            "series": series, "hash": f["hash"],
+            "demanda": {"realizada": it.get("demanda_realizada_kW"), "atendida": it.get("demanda_atendida_kW")},
+            "pcc": {"conectado": con, "imp": it.get("pcc_importacao_realizada_kW") if con else None,
+                    "exp": it.get("pcc_exportacao_realizada_kW") if con else None,
+                    "tarifa": it.get("tarifa_importacao_decisao_R_kWh") if con else None}}
+
+
 def _provenance(run) -> None:
     m = run.manifest
     with st.expander("Procedência da rodada (manifesto imutável)"):
@@ -790,6 +820,6 @@ def estrategia_arquivada(doc: dict) -> None:
         st.json(doc[E.CHAVE_BLOCO], expanded=False)
 
 
-__all__ = ["MOTOR_V2", "custo_texto", "e_v2", "estrategia_arquivada", "motor", "preflight", "progresso",
+__all__ = ["MOTOR_V2", "custo_texto", "e_v2", "estrategia_arquivada", "motor", "planta_rodada", "preflight", "progresso",
            "relatorio_preflight", "render_estrategia", "render_execucao", "run_results", "seletor_motor", "stage_state"]
 _ = json

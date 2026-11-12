@@ -115,6 +115,30 @@ function xy(host, o) {
       ring.setAttribute("cx", X(q.x)); ring.setAttribute("cy", Y(q.y)); ring.setAttribute("visibility", "visible"); tip.hidden = false; tip.innerHTML = q.html; const px = (X(q.x) / W) * host.clientWidth; tip.style.left = Math.max(0, px > host.clientWidth * .6 ? px - tip.offsetWidth - 12 : px + 12) + "px"; tip.style.top = "30px"; });
     svg.addEventListener("pointerleave", () => { tip.hidden = true; ring.setAttribute("visibility", "hidden"); }); }
 }
+// ---- utilitários puros de N/D, partilhados pela Partitura e pelos componentes de página (executados também em Node)
+//   número = gravado · null = AUSENTE (N/D; contamina os derivados) · undefined = NÃO APLICÁVEL (omitido)
+const agg = (ls, n) => (!ls.length ? undefined : ls.some((a) => a == null) ? null : Array.from({ length: n }, (_, i) => { let s = 0; for (const a of ls) { if (a[i] == null) return null; s += a[i]; } return s; }));
+const el = (a, i) => (a == null ? a : a[i]);
+const mais = (...xs) => { let s = 0; for (const x of xs) { if (x === null || Number.isNaN(x)) return null; if (x !== undefined) s += x; } return s; };
+const vezes = (x, f) => (x == null ? x : x * f);
+const menos = (a, b) => (a == null || b == null ? null : a - b);
+// razão a ÷ b × f: null se faltar dado; undefined (não aplicável) se o denominador for zero
+const razao = (a, b, f = 100) => (a == null || b == null ? null : b ? (f * a) / b : undefined);
+const nfu = (v, d = 1, u = "") => (v === undefined ? "—" : v === null || Number.isNaN(v) ? "N/D" : nf(v, d) + u);
+const mapa = (a, f) => (a == null ? a : a.map(f));
+const conta = (a, f) => (a == null ? null : a.some((v) => v == null) ? null : a.filter(f).length);
+const somaT = (a) => (a == null ? a : a.some((v) => v == null) ? null : a.reduce((x, y) => x + y, 0));
+const acum = (a, f = 1) => { if (a == null) return a; let s = 0, ok = true; return [0, ...a.map((v) => { if (v == null) ok = false; return ok ? (s += v * f) : null; })]; };
+// Termo OPCIONAL do objetivo. Uma série toda vazia só é «não aplicável» (undefined) com EVIDÊNCIA: os termos DECLARADOS
+// na estratégia gravada (F.objetivo.termos) não incluem o termo. Termo declarado — ou declaração ilegível — com a série
+// vazia/ausente é DADO AUSENTE (null ⇒ N/D). Valores gravados são sempre mostrados, declarado ou não.
+const vazia = (a) => a == null || a.every((v) => v == null);
+const declarado = (F, t) => (Array.isArray((F.objetivo || {}).termos) ? F.objetivo.termos.includes(t) : null);
+const termo = (a, decl) => (!vazia(a) ? a : decl === false ? undefined : null);
+const termoAgg = (ls, decl, n) => (!ls.length ? undefined : ls.every(vazia) ? (decl === false ? undefined : null) : agg(ls, n));
+const maxv = (...arrs) => Math.max(0, ...arrs.flat().map((v) => (v == null || Number.isNaN(v) ? 0 : v)));
+const teto = (v) => { if (!(v > 0)) return 1; const p = 10 ** Math.floor(Math.log10(v)); return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((m) => m * p).find((x) => x >= v * 1.04) || 10 * p; };
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // ---- raiz e tema comuns aos componentes .pt (Partitura, barra lateral, Catálogo, Planta, Caderno, Folha)
 function temaPt() {
   let t = null; try { t = localStorage.getItem("seeds2.partitura.tema"); } catch (_) { /* sem armazenamento */ }

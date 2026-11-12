@@ -263,14 +263,15 @@ PUROS = ("modelo, balancoDe, planoPorTipo, agg, el, mais, vezes, menos, razao, n
          "maxv, agruparAvisos, nf, ne, termo, termoAgg, declarado, vazia")
 
 
-def node(corpo: str, *marcos: dict):
+def node(corpo: str, *marcos: dict, componente: str = "partitura", puros: str | None = None):
     """Executa ``corpo`` (JavaScript; ``api`` = funções puras do componente, ``Fs`` = marcos, ``F`` = o primeiro) em Node
-    e devolve o JSON de ``return``. Sem DOM: só o modelo de vista."""
+    e devolve o JSON de ``return``. Sem DOM: só o modelo de vista. ``componente``: arquivo de ``static/trama`` carregado
+    depois do motor (``partitura``, ``planta``…); ``puros``: nomes exportados (por omissão, os da Partitura)."""
     harness = ("const fs = require('fs');"
                f"const src = fs.readFileSync({json.dumps(str(ESTATICO / 'trama.js'))}, 'utf8') + '\\n' + "
-               f"fs.readFileSync({json.dumps(str(ESTATICO / 'partitura.js'))}, 'utf8')"
+               f"fs.readFileSync({json.dumps(str(ESTATICO / (componente + '.js')))}, 'utf8')"
                ".replace('export default function', 'function __componente');"
-               f"const api = new Function(src + '\\nreturn {{ {PUROS} }};')();"
+               f"const api = new Function(src + '\\nreturn {{ {puros or PUROS} }};')();"
                "const Fs = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')), F = Fs[0];"
                f"const out = (function () {{ {corpo} }})();"
                "console.log(JSON.stringify(out === undefined ? '__undefined__' : out, (k, v) => (v === undefined ? '__undefined__' : v)));")
@@ -291,7 +292,8 @@ def navegador_disponivel() -> bool:
     return r.returncode == 0
 
 
-def bancada(marcos: dict, *, passos=None, largura: int = 1400, altura: int = 900, outros: dict | None = None) -> dict:
+def bancada(marcos: dict, *, passos=None, largura: int = 1400, altura: int = 900, outros: dict | None = None,
+            componente: str = "partitura") -> dict:
     """Monta o componente REAL (sem Streamlit) numa página local para cada marco e percorre lentes e painéis num
     navegador de verdade (``tools/e2e/bancada_piso3db.js``). Devolve, por marco, erros de página e o texto de cada vista."""
     import importlib.util as iu
@@ -302,7 +304,7 @@ def bancada(marcos: dict, *, passos=None, largura: int = 1400, altura: int = 900
         paginas = {}
         for nome, f in marcos.items():
             p = Path(d) / f"{nome}.html"
-            p.write_text(mod.pagina(f, outros), encoding="utf-8")
+            p.write_text(mod.pagina(f, outros) if componente == "partitura" else mod.pagina_componente(componente, f), encoding="utf-8")
             paginas[nome] = str(p)
         plano = Path(d) / "plano.json"
         plano.write_text(json.dumps({"paginas": paginas, "passos": passos, "largura": largura, "altura": altura}), encoding="utf-8")

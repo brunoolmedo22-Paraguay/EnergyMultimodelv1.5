@@ -124,6 +124,15 @@
 .pt.sb .brand { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 8px; font: 800 16px var(--f-d); letter-spacing: .01em; white-space: nowrap; flex: none; color: var(--ink); }
 .pt.sb .brand small { font: 500 10.5px var(--f-m); color: var(--ink-3); margin-left: 4px; } .pt.sb .sp { flex: 1; }
 .pt.sb .ctx { font-size: 11.5px; color: var(--ink-3); padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
+/* ---- Planta (.pt.planta): barramento equivalente, um nó por equipamento */
+.pt.planta .pl-stage { height: auto; align-items: start; } .pt.planta .pl-host { min-height: 470px; overflow-x: auto; overflow-y: hidden; }
+.pt.planta .node { cursor: pointer; transition: opacity .14s; outline: none; } .pt.planta .node .bx { fill: var(--surface-2); stroke: var(--line-2); transition: stroke .12s, stroke-width .12s; }
+.pt.planta .node.on .bx, .pt.planta .node:focus-visible .bx { stroke: var(--k); stroke-width: 2; } .pt.planta .node.sel .bx { stroke: var(--ink); stroke-width: 2.4; } .pt.planta .node.off { opacity: .32; }
+.pt.planta .node.dis .bx { stroke-dasharray: 5 4; fill: var(--field); } .pt.planta .node text { font-family: var(--f-t); font-size: 11.5px; fill: var(--ink-2); pointer-events: none; }
+.pt.planta .node text.nm { font: 700 13.5px var(--f-d); fill: var(--ink); } .pt.planta .node text.tg { font: 10.5px var(--f-m); fill: var(--ink-3); } .pt.planta .node text.pw { font: 700 15px var(--f-d); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.pt.planta .wire { transition: opacity .14s; } .pt.planta .pl-bus { font: 600 10.5px var(--f-d); fill: var(--ink-3); letter-spacing: .12em; } .pt.planta .pl-vazio { font: 13px var(--f-t); fill: var(--ink-3); }
+.pt .pop { position: absolute; z-index: 6; width: 250px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; pointer-events: none; }
+.pt .pop .pn { font: 700 14px var(--f-d); display: block; }
 @media (max-width: 760px) {
   .pt.sb { inset: auto 0 0 0; width: 100%; height: calc(58px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -1px 0 var(--line); }
   .pt.sb .side-in, .pt.sb:hover .side-in, .pt.sb:focus-within .side-in { position: static; width: 100%; height: 100%; flex-direction: row; box-shadow: none; padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); overflow-x: auto; }

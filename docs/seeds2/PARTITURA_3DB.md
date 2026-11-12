@@ -227,7 +227,7 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
 |---|---|
 | C0 — correções A (N/D × não aplicável), B (zero negativo), C (E2E) | concluído |
 | B2-A — barra lateral, navegação responsiva, identidade | concluído (§8.3) |
-| B2-B — Catálogo e Planta | não iniciado |
+| B2-B — Catálogo e Planta | Planta concluída (§8.4); Catálogo não iniciado |
 | B2-C — Caderno de Ensaios | não iniciado |
 | B2-D — Folha de Ensaio | não iniciado |
 
@@ -250,3 +250,22 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
 * **Verificação.** `tests/test_piso3db_plataforma.py`; navegador `tools/e2e/e2e_piso3db_plataforma.js` (fase 3 de
   `run_piso3db.sh`): trilho, expansão por hover e por foco, Enter, destino atual, rerun sem redesenho, navegação lateral e
   superior em conjunto, troca de microrrede, barra inferior a 400 px, tablet em tema escuro, sem transbordo horizontal.
+
+### 8.4 B2-B — Planta (concluída)
+
+* **O que mostra.** O barramento equivalente da microrrede a partir do **inventário salvo**: acima o que injeta (FV, eólica,
+  PEMFC, térmica), abaixo o que armazena ou consome (bancos, demanda agregada) e o PCC, se houver conexão. Um nó por
+  equipamento, identificado por nome, TAG e UID, com o nominal do inventário («não declarado» quando desconhecido).
+  Equipamento desabilitado aparece tracejado.
+* **Rodada opcional.** Escolhida uma rodada V2 concluída **e verificada**, cada nó mostra a potência média GRAVADA do
+  intervalo do cursor (e, na bateria, a energia nas duas fronteiras). É uma seleção do marco da Partitura por UID
+  (`integracao_v2/ui.planta_rodada`): sem solver, sem modelos, sem aritmética no servidor. Equipamento que não estava na
+  rodada diz «não participou desta rodada» (não é zero nem N/D). Dado ausente é «N/D» e torna N/D a soma do nó.
+* **Sem fluxos.** As ligações só dizem que o equipamento está no barramento; apagam-se quando a potência gravada é nula e
+  ficam tracejadas quando o dado falta. Não há setas, sentidos nem animação: o modelo não calcula ramos.
+* **Interação.** Hover ou foco destaca o nó (os outros recuam) e abre o resumo; clique ou Enter seleciona; o cartão do
+  selecionado leva ao **painel individual por UID** na Partitura da rodada (no instante do cursor) ou ao inventário.
+* **C-3DB-12 — acesso à integração.** A guarda do 3D-A fixa quais módulos de `seeds2` importam a camada de integração.
+  `planta_ui` não a importa: usa o acesso tardio já existente em `execution_ui` e a seleção vive em `integracao_v2/ui.py`.
+* **Defeito encontrado pelo teste novo e corrigido antes de publicar:** a energia da bateria (K + 1 fronteiras) era
+  agregada com K valores (perdia a última fronteira).

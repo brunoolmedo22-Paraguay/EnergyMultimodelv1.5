@@ -2,7 +2,8 @@
 // Roteiro completo: tools/e2e/run_piso3db.sh (mesma semente e mesmo servidor SEM solver do E2E da Partitura).
 // Uso: node tools/e2e/e2e_piso3db_plataforma.js <url> <seed_piso3db.json> <pasta_capturas>
 // B2-A: barra lateral (trilho, expansão por hover/foco, destino atual, navegação, troca de microrrede, barra inferior no
-// celular, estabilidade em reruns) com a barra superior anterior intacta.
+// celular, estabilidade em reruns) com a barra superior anterior intacta. B2-B: Planta (nós por UID, hover, foco, seleção,
+// cursor de instante, painel individual por UID na Partitura, só inventário, microrrede sem rodada V2/isolada, celular).
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
@@ -46,7 +47,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   // ------------------------------------------------------------------ B2-A · microrrede ativa
   [ctx, p] = await abrir(1500, 900, `${base}/?view=operacao&mg=${seed.mg}`);
   const ids = await itens(p);
-  ok(["catalogo", "operacao", "gestao", "arquivo", "simulacao", "resultados", "alcance"].every((i) => ids.includes(i)), "microrrede ativa: todos os destinos anteriores estão na barra lateral");
+  ok(["catalogo", "planta", "operacao", "gestao", "arquivo", "simulacao", "resultados", "alcance"].every((i) => ids.includes(i)), "microrrede ativa: todos os destinos anteriores estão na barra lateral");
   ok(JSON.stringify(await atual(p)) === JSON.stringify(["operacao"]), "Centro de Operação marcado como destino atual");
   await p.locator(".pt.sb .side-in").evaluate((e) => e.setAttribute("data-marca", "1"));
   await p.locator("body").press("r"); await p.waitForTimeout(3500);
@@ -62,6 +63,43 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   await p.locator('.pt.sb .it[data-id="catalogo"]').click(); await p.waitForTimeout(3500);
   ok(p.url().includes("view=gestor") && !p.url().includes("mg=") && JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)");
   await ctx.close();
+
+  // ------------------------------------------------------------------ B2-B · Planta (barramento equivalente por UID)
+  [ctx, p] = await abrir(1600, 950, `${base}/?view=operacao&mg=${seed.mg}`);
+  await p.locator('.pt.sb .it[data-id="planta"]').click(); await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.mouse.move(900, 930); await p.waitForTimeout(1500);
+  ok(p.url().includes("tab=planta") && JSON.stringify(await atual(p)) === JSON.stringify(["planta"]), "barra lateral → Planta (tab do Centro de Operação)");
+  const nos = await p.locator(".pt.planta .node").evaluateAll((e) => e.map((x) => x.dataset.tipo));
+  ok(JSON.stringify(nos) === JSON.stringify(["fv", "wt", "fc", "bat", "dem", "grid"]), "Planta: um nó por equipamento do inventário + demanda + PCC");
+  ok(await p.locator(".pt.planta svg marker, .pt.planta svg animate, .pt.planta svg animateMotion").count() === 0, "Planta: nenhuma seta nem animação de fluxo nas ligações");
+  const lado = async () => (await p.locator(".pt.planta .col").textContent()).replace(/\s+/g, " ");
+  ok((await lado()).includes("valores gravados") && await p.locator(".pt.planta select.sel option").count() === 3, "Planta: rodadas V2 concluídas selecionáveis (2) ou só o inventário");
+  await p.locator('.pt.planta .node[data-tipo="fc"]').hover(); await p.waitForTimeout(400);
+  ok(await p.locator(".pt.planta .pop").isVisible() && (await p.locator(".pt.planta .pop").textContent()).includes("FC-01") && await p.locator(".pt.planta .node.off").count() === 5, "hover destaca o equipamento (os outros recuam) e mostra o resumo do inventário");
+  await foto(p, "b2b_01_planta_hover");
+  await p.locator('.pt.planta .node[data-tipo="bat"]').focus(); await p.keyboard.press("Enter"); await p.waitForTimeout(400);
+  ok((await lado()).includes("BAT-01") && (await lado()).includes("selecionado"), "foco + Enter seleciona o equipamento (identidade por TAG e UID)");
+  await p.locator(".pt.planta .pl-t").fill("18"); await p.waitForTimeout(400);
+  ok((await p.locator(".pt.planta .pl-inst").textContent()).includes("18h–19h") && (await lado()).includes("Em 18h–19h"), "cursor de instante percorre os valores gravados da rodada");
+  await p.mouse.move(900, 930); await foto(p, "b2b_02_planta_selecao");
+  const uidBat = await p.locator('.pt.planta .node[data-tipo="bat"]').getAttribute("data-uid");
+  await p.locator(".pt.planta .pl-abrir").click(); await p.locator(".pt .dlg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
+  const cab = await p.locator(".pt .dlg .dhead").innerText();
+  ok(cab.includes(uidBat) && cab.includes("18h–19h") && p.url().includes("tab=rodada"), "Planta → painel individual do equipamento por UID, no instante escolhido, na Partitura da rodada");
+  await foto(p, "b2b_03_painel_por_uid");
+  await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  await p.locator('.pt.sb .it[data-id="planta"]').click(); await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
+  await p.locator(".pt.planta select.sel").selectOption(""); await p.waitForTimeout(3000);
+  ok((await p.locator('.pt.planta .node[data-tipo="bat"] .pw').textContent()) === "" && !(await lado()).includes("valores gravados"), "«Só o inventário»: a Planta deixa de mostrar valores de rodada");
+  await ctx.close();
+  [ctx, p] = await abrir(1500, 900, `${base}/?view=operacao&tab=planta&mg=${seed.v16.mg}`);
+  await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
+  ok((await p.locator(".pt.planta .col").textContent()).includes("Sem rodada V2 concluída") && await p.locator(".pt.planta .node").count() >= 3, "microrrede só com rodadas V1.6: a Planta mostra o inventário e diz que não há rodada V2");
+  ok(await p.locator('.pt.planta .node[data-tipo="grid"]').count() === 0, "microrrede isolada: nenhum PCC desenhado");
+  await foto(p, "b2b_04_planta_sem_rodada_v2"); await ctx.close();
+  [ctx, p] = await abrir(400, 850, `${base}/?view=operacao&tab=planta&mg=${seed.mg}`);
+  await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
+  const ovp = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  ok(ovp <= 1, `Planta a 400 px: sem transbordo horizontal da página (${ovp}px; o desenho rola dentro do painel)`); await foto(p, "b2b_r_400x850_planta"); await ctx.close();
 
   // ------------------------------------------------------------------ B2-A · celular e tablet
   for (const [w, h] of [[400, 850], [820, 1100]]) {

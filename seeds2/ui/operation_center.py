@@ -28,7 +28,7 @@ from seeds2.operation import initialization as I
 from seeds2.operation import scenarios as S
 from seeds2.operation import service
 
-from . import archive_ui, execution_ui, forecasts_ui, forms, home, session, shell
+from . import archive_ui, execution_ui, forecasts_ui, forms, home, planta_ui, session, shell
 
 SCN = shell.SCENARIO_KEY
 TAB_INIT = "inicializacao"
@@ -633,6 +633,8 @@ def render() -> None:
         execution_ui.render_run(store, cur)
     elif tab in (TAB_AR, TAB_STUDY):
         archive_ui.render(store, base_view="operacao")
+    elif tab == planta_ui.TAB:                          # Piso 3D-B2-B: Planta (barramento equivalente)
+        planta_ui.render(store, cur)
     else:
         _panel(store, items, cur)
 

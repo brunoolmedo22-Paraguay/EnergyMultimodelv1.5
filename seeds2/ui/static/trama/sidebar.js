@@ -17,7 +17,6 @@ export default function (component) {
   const item = (it) => { const b = h("button", { class: "it" + (it.movel ? " mv" : ""), type: "button", title: it.dica || it.rotulo, "data-id": it.id, "aria-current": it.atual ? "page" : null,
     onclick: () => { if (!it.atual || it.acao.type === "switch") ir(it.acao); }, html: `${icoPt(ICO_SB[it.icone] || ICO_SB.operacao)}<span class="lab"><span class="lg">${esc(it.rotulo)}</span><span class="sm">${esc(it.curto || it.rotulo)}</span></span>` });
     return b; };
-  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const corpo = []; let grupo = null;
   for (const it of d.itens || []) { if (it.grupo && it.grupo !== grupo) corpo.push(h("div", { class: "grp", html: `<span>${esc(it.grupo)}</span>` })); grupo = it.grupo || grupo; corpo.push(item(it)); }
   root.replaceChildren(h("nav", { class: "side-in", "aria-label": "Navegação da plataforma" },

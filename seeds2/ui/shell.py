@@ -223,9 +223,12 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
         return [cat, it("comissionamento", "Comissionamento", "comissionamento", "Microrrede", "comissionamento",
                         atual=view == "comissionamento", movel=True), doc]
     arq = view == "operacao" and tab in ("arquivo", "estudo")
+    planta = view == "operacao" and tab == "planta"
     return [cat,
-            it("operacao", "Centro de Operação", "operacao", "Microrrede", "operacao", atual=view == "operacao" and not arq,
-               curto="Operação", movel=True),
+            it("planta", "Planta", "planta", "Microrrede", "operacao", "planta", atual=planta, movel=True,
+               dica="Planta: barramento equivalente e equipamentos do inventário"),
+            it("operacao", "Centro de Operação", "operacao", "Microrrede", "operacao",
+               atual=view == "operacao" and not arq and not planta, curto="Operação", movel=True),
             it("gestao", "Gestão da Microrrede", "gestao", "Microrrede", "gestao", atual=view == "gestao", curto="Gestão", movel=True),
             it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
             it("simulacao", "Simulação V1.6", "simulacao", "Console V1.6", "simulacao", atual=view == "simulacao", curto="Simulação"),

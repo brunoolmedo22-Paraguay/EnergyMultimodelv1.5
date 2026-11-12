@@ -18,31 +18,10 @@ const TIPOS = {
 };
 const LENTES = [["operacao", "Operação"], ["decisao", "Decisão"], ["economia", "Economia"], ["evidencia", "Evidência"]];
 const ico = (d, s = 16) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
-// ---- utilitários puros (executados também em Node pelos testes)
-const agg = (ls, n) => (!ls.length ? undefined : ls.some((a) => a == null) ? null : Array.from({ length: n }, (_, i) => { let s = 0; for (const a of ls) { if (a[i] == null) return null; s += a[i]; } return s; }));
-const el = (a, i) => (a == null ? a : a[i]);
-const mais = (...xs) => { let s = 0; for (const x of xs) { if (x === null || Number.isNaN(x)) return null; if (x !== undefined) s += x; } return s; };
-const vezes = (x, f) => (x == null ? x : x * f);
-const menos = (a, b) => (a == null || b == null ? null : a - b);
-// razão a ÷ b × f: null se faltar dado; undefined (não aplicável) se o denominador for zero
-const razao = (a, b, f = 100) => (a == null || b == null ? null : b ? (f * a) / b : undefined);
-const nfu = (v, d = 1, u = "") => (v === undefined ? "—" : v === null || Number.isNaN(v) ? "N/D" : nf(v, d) + u);
-const mapa = (a, f) => (a == null ? a : a.map(f));
-const conta = (a, f) => (a == null ? null : a.some((v) => v == null) ? null : a.filter(f).length);
-const somaT = (a) => (a == null ? a : a.some((v) => v == null) ? null : a.reduce((x, y) => x + y, 0));
-const acum = (a, f = 1) => { if (a == null) return a; let s = 0, ok = true; return [0, ...a.map((v) => { if (v == null) ok = false; return ok ? (s += v * f) : null; })]; };
-// Termo OPCIONAL do objetivo. Uma série toda vazia só é «não aplicável» (undefined) com EVIDÊNCIA: os termos DECLARADOS
-// na estratégia gravada (F.objetivo.termos) não incluem o termo. Termo declarado — ou declaração ilegível — com a série
-// vazia/ausente é DADO AUSENTE (null ⇒ N/D). Valores gravados são sempre mostrados, declarado ou não.
-const vazia = (a) => a == null || a.every((v) => v == null);
-const declarado = (F, t) => (Array.isArray((F.objetivo || {}).termos) ? F.objetivo.termos.includes(t) : null);
-const termo = (a, decl) => (!vazia(a) ? a : decl === false ? undefined : null);
-const termoAgg = (ls, decl, n) => (!ls.length ? undefined : ls.every(vazia) ? (decl === false ? undefined : null) : agg(ls, n));
-const maxv = (...arrs) => Math.max(0, ...arrs.flat().map((v) => (v == null || Number.isNaN(v) ? 0 : v)));
-const teto = (v) => { if (!(v > 0)) return 1; const p = 10 ** Math.floor(Math.log10(v)); return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((m) => m * p).find((x) => x >= v * 1.04) || 10 * p; };
+// (os utilitários puros de N/D — agg, el, mais, vezes, menos, razao, somaT, acum, termo… — vivem em trama.js, partilhados
+// com os componentes de página)
 const tk = (mx) => [0, mx / 2, mx], fd = (mx) => (v) => nf(v, mx < 10 ? (mx < 1 ? 2 : 1) : 0);
 const ESTADOS = { aprovada: "aprovado", coerente: "coerente", incoerente: "INCOERENTE", nao_aplicavel: "não aplicável", nao_validada: "não validado" };
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const GRUPOS_AVISO = [["Abstrações declaradas do modelo", /abstra|instant[âa]nea|amostra clim/i], ["Previsão × realização coincidentes (sem evidência de fuga)", /previsao_coincide|IGUAL à previsão|REALIZADO = potencial/], ["Parâmetros cobertos por declaração", /necessario_3C1|herdada|redundante/], ["Dados sintéticos", /SINT[ÉE]TIC/i]];
 function agruparAvisos(avisos) { const usados = new Set(), out = GRUPOS_AVISO.map(([t, re]) => [t, avisos.filter((a, n) => !usados.has(n) && re.test(a) && usados.add(n))]); const resto = avisos.filter((_, n) => !usados.has(n)); return out.concat(resto.length ? [["Outras advertências", resto]] : []).filter((g) => g[1].length); }
 
