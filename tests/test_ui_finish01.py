@@ -169,6 +169,7 @@ class CartaoDeRodadaTest(unittest.TestCase):
         self.assertIn('data-rc="aponta"', html)                                       # a seção aponta para o cartão
         self.assertEqual(self.st.list_runs(), [])
 
+    @unittest.skipUnless(P.SOLVER, "Pyomo/HiGHS não instalados: sem solver o preflight V2 BLOQUEIA (e o cartão diz isso)")
     def test_apto_resumo_igual_ao_preflight_e_aprovadas_recolhidas(self):
         sc = U.criar_cenario_v2(self.st)
         app = self.sessao(sc)
