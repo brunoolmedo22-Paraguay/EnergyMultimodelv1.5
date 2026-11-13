@@ -14,6 +14,7 @@
 //   tablet       — capturas em largura de tablet (retrato e paisagem) e tema escuro
 // Requer o pacote "playwright" com Chromium disponível. Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const path = require("path");
 const fs = require("fs");
 
@@ -29,7 +30,7 @@ async function novaMicrorrede(p) {                // Gestor → "＋ NOVA MICROR
   await p.getByRole("button", { name: "＋ NOVA MICRORREDE" }).click(); await ready(p);
 }
 async function abrirUnica(p) {                    // Gestor → "ABRIR MICRORREDE" na (única) tarjeta
-  await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+  await expandirCartoes(p); await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
 }
 async function ready(p) {
   await p.waitForLoadState("networkidle");

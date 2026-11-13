@@ -652,7 +652,7 @@ def render() -> None:
     from . import home
     st.html(BANCADAS_CSS.replace("op_bancadas_movel", "gestor_bancadas_movel"))
     with st.container(key="gestor_bancadas_movel"):
-        st.html('<div class="gs-sec">Bancadas dos modelos</div>')
+        st.html('<div class="sd-section">Bancadas dos modelos</div>')
         home.benches()
     legacy = reg.meta("legacy_adoption")
     if legacy:

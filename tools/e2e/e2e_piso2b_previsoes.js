@@ -15,6 +15,7 @@
 //   tablet   — Previsões em tablet (retrato/paisagem, sem rolagem horizontal, gráficos dentro da tela) e tema escuro
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const path = require("path");
 const fs = require("fs");
 
@@ -48,7 +49,7 @@ async function noErrors(p, tag) { assert(await p.locator('[data-testid="stExcept
 async function overflow(p) { return p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); }
 async function abrir(p) {
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
-  await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+  await expandirCartoes(p); await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
 }
 async function previsoes(p) {

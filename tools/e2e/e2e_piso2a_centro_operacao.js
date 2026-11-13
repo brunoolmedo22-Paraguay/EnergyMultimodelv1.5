@@ -15,6 +15,7 @@
 //   tablet    — Centro de Operação e Inicialização em tablet (retrato/paisagem, sem rolagem horizontal) e tema escuro
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const path = require("path");
 const fs = require("fs");
 
@@ -50,7 +51,7 @@ const cardOf = (p, text) => p.locator('[data-testid="stVerticalBlock"]').filter(
 async function noErrors(p, tag) { assert(await p.locator('[data-testid="stException"]').count() === 0, `${tag}: nenhuma exceção`); }
 async function abrir(p) {
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
-  await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+  await expandirCartoes(p); await p.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
 }
 async function inicializacao(p) {

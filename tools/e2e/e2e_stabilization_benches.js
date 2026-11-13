@@ -1,6 +1,7 @@
 // Real application controls, real calculations, downloads and rendered charts.
 // node ... <url> <bench> <output>; bench: solar/wind/thermal/battery/h2/mix
 const {chromium} = require('playwright');
+const { expandirCartoes } = require("./catalogo_util");
 const fs = require('fs'), path = require('path');
 const [url, bench, out] = process.argv.slice(2);
 fs.mkdirSync(out, {recursive:true});
@@ -40,7 +41,7 @@ async function download(name,suffix='') {
 }
 async function openBench() {
   if(bench==='mix') return;
-  await page.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();
+  await expandirCartoes(page); await page.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();
   // UI-REDESIGN-01: as bancadas abrem pelo grupo «Bancadas» da barra lateral (mesma ação dos antigos botões «ABRIR …»)
   await page.locator(`.pt.sb .it[data-id="bancada_${bench}"]`).click();await ready();
 }

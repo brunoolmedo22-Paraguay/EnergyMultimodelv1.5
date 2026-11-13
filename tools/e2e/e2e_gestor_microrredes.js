@@ -11,6 +11,7 @@
 //   legado    — servidor apontando para um SEEDS2_DATA_DIR com o seeds2.db ANTERIOR ao Gestor: adoção
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const path = require("path");
 const fs = require("fs");
 
@@ -110,15 +111,15 @@ async function multi(b) {
   assert(ENTRIES().length === 2, "dois armazenamentos independentes em microgrids/");
   await shot(p, "g03_gestor_duas_microrredes.png");
   // abrir A: sem contaminação de B
-  await card(p, "Microrrede A — Solar").getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
+  await expandirCartoes(p); await card(p, "Microrrede A — Solar").getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
   assert(await p.getByText("Etapa 02 — Inventário energético").isVisible(), "A reabre exatamente na etapa onde estava");
   assert(await p.locator(".inv-card", { hasText: "Usina FV A" }).count() === 1, "inventário de A preservado");
   assert(await p.locator(".inv-card", { hasText: "Aerogerador B" }).count() === 0, "nenhum equipamento de B aparece em A");
   await trocar(p);
   // exportar A e PDF de B pelo Gestor, sem abrir
-  const zipA = await download(p, card(p, "Microrrede A — Solar"), "ZIP", "⬇ Baixar ZIP");
+  await expandirCartoes(p); const zipA = await download(p, card(p, "Microrrede A — Solar"), "ZIP", "⬇ Baixar ZIP");
   assert(zipA.endsWith(".seeds2backup.zip") && /Microrrede_A_Solar_[0-9a-f]{8}_/.test(path.basename(zipA)), "ZIP de A com nome legível + identificador: " + path.basename(zipA));
-  const pdfB = await download(p, card(p, "Microrrede B — Eólica"), "PDF", "⬇ Baixar relatório PDF", "relatorio_B.pdf");
+  await expandirCartoes(p); const pdfB = await download(p, card(p, "Microrrede B — Eólica"), "PDF", "⬇ Baixar relatório PDF", "relatorio_B.pdf");
   assert(fs.readFileSync(pdfB).subarray(0, 5).toString() === "%PDF-", "PDF de B gerado pelo Gestor");
   assert(await p.locator(".tb-site").innerText() === "Nenhuma microrrede aberta", "exportar/relatório não abrem a microrrede");
   await shot(p, "g04_gestor_exportacoes.png");
@@ -136,7 +137,7 @@ async function multi(b) {
   assert(await card(p, "Cópia independente importada").count() === 1, "cópia identificada pela origem");
   await shot(p, "g06_gestor_com_copia.png");
   // excluir B
-  await card(p, "Microrrede B — Eólica").getByRole("button", { name: "Excluir" }).click(); await ready(p);
+  await expandirCartoes(p); await card(p, "Microrrede B — Eólica").getByRole("button", { name: "Excluir" }).click(); await ready(p);
   const del = p.getByRole("dialog");
   assert(await del.getByText("Exclusão definitiva").isVisible(), "diálogo de exclusão com resumo");
   assert(await del.getByRole("button", { name: "EXCLUIR DEFINITIVAMENTE" }).isDisabled(), "botão bloqueado sem o nome");
@@ -152,7 +153,7 @@ async function multi(b) {
   assert(ENTRIES().length === 2, "diretório de B removido do disco; os outros dois intactos");
   await shot(p, "g08_gestor_apos_exclusao.png");
   // reabrir A
-  await card(p, "Microrrede A — Solar").filter({ hasText: "Criada no SEEDS2" }).getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
+  await expandirCartoes(p); await card(p, "Microrrede A — Solar").filter({ hasText: "Criada no SEEDS2" }).getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
   assert(await p.locator(".inv-card", { hasText: "Usina FV A" }).count() === 1, "A reaberta intacta após excluir B");
   await noErrors(p, "multi");
   assert(errs.length === 0, "sem erros de JavaScript: " + JSON.stringify(errs));
@@ -166,10 +167,10 @@ async function reinicio(b) {
   await p.goto(url); await ready(p);
   await cards(p).nth(1).waitFor({ timeout: 120000 });            // servidor recém-reiniciado: carga a frio
   assert(await cards(p).count() === 2, "após reiniciar o servidor o catálogo persiste (A + cópia)");
-  await card(p, "Cópia independente importada").getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
+  await expandirCartoes(p); await card(p, "Cópia independente importada").getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
   assert(await p.locator(".inv-card", { hasText: "Usina FV A" }).count() === 1, "cópia contém o inventário de A");
   await trocar(p);
-  await card(p, "Criada no SEEDS2").getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
+  await expandirCartoes(p); await card(p, "Criada no SEEDS2").getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
   assert(await p.locator(".tb-site").innerText() === "Comissionamento · Microrrede A — Solar", "A aberta pelo Gestor após reinício");
   await noErrors(p, "reinicio");
   assert(errs.length === 0, "sem erros de JavaScript: " + JSON.stringify(errs));
@@ -203,7 +204,7 @@ async function legado(b) {
   assert(await p.getByText("adotado em", { exact: false }).isVisible(), "aviso de adoção com o caminho do arquivo original");
   assert(fs.existsSync(path.join(dataDir, "seeds2.db")), "arquivo anterior mantido");
   await shot(p, "g20_gestor_legado_adotado.png");
-  await cards(p).first().getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
+  await expandirCartoes(p); await cards(p).first().getByRole("button", { name: "ABRIR MICRORREDE" }).click(); await ready(p);
   assert(await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).isVisible(),
          "microrrede adotada abre no Centro de Operação (Piso 2A)");
   await shot(p, "g21_legado_inicio.png");

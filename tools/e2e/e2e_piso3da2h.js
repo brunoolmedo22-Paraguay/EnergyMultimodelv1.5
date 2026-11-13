@@ -9,6 +9,7 @@
 //   reabrir — servidor NOVO, SEM solver, motor e modelos (renováveis e PEMFC) sabotados: a rodada PEMFC e as rodadas
 //             legadas (contratos v1 e v2) são reabertas pela interface.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 // Piso 3D-B3: com a Partitura desenhada, a vista clássica da rodada V2 fica RECOLHIDA num expansor identificado. Este
 // roteiro continua verificando a vista clássica: apenas a abre antes (navegação) — nenhuma verificação foi alterada.
 const abrirClassica = async (p) => {
@@ -44,10 +45,11 @@ async function rolarAte(p, loc, n = 240) {
 }
 async function abrirMicrorrede(p) {
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
+  await expandirCartoes(p);
   const cartao = p.locator('[data-testid="stVerticalBlock"]').filter({ has: p.getByText("Microrrede E2E 3D-A2-H", { exact: true }) })
     .filter({ has: p.getByRole("button", { name: "ABRIR MICRORREDE" }) }).last();
   await cartao.waitFor({ timeout: 60000 });
-  await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+  await expandirCartoes(cartao); await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
 }
 async function numero(escopo, p, rotulo, valor) {

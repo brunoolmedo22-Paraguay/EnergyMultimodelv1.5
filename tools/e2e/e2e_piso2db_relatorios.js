@@ -16,6 +16,7 @@
 //   tablet   — painel de exportação em tablet retrato/paisagem (sem rolagem horizontal) + geração de PDF.
 // Os arquivos baixados ficam em <pasta_saida>/downloads/<fase>_*; conferência: tools/e2e/check_piso2db_downloads.py.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const path = require("path");
 const fs = require("fs");
 
@@ -79,7 +80,7 @@ async function local(b) {
   const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
   await p.goto(url); await ready(p);
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
-  await btn(p, "ABRIR MICRORREDE");
+  await expandirCartoes(p); await btn(p, "ABRIR MICRORREDE");
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
   await btn(p, "ABRIR EXECUÇÃO");
   await p.getByText("Rodadas registradas").first().waitFor({ timeout: 60000 });

@@ -1,4 +1,5 @@
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
+const { expandirCartoes } = require("./catalogo_util");
 const [url,out,expectedFile]=process.argv.slice(2), expected=JSON.parse(fs.readFileSync(expectedFile));
 fs.mkdirSync(out,{recursive:true});let p,checks=0;const receipt=[];
 function check(ok,msg){if(!ok)throw Error(msg);checks++;console.log('PASS '+msg);}
@@ -6,7 +7,7 @@ async function ready(){await p.waitForLoadState('networkidle');await p.waitForTi
 async function nav(name){await p.locator('[data-testid="stSidebar"]').getByRole('button',{name,exact:true}).click();await ready();}
 async function select(label,value){const box=p.locator('[data-testid="stSelectbox"]').filter({hasText:label}).first();await box.locator('input').click();await p.keyboard.type(value);await p.getByRole('option',{name:value,exact:true}).click();await ready();}
 (async()=>{const b=await chromium.launch();try{
- p=await b.newPage({viewport:{width:1440,height:1000},acceptDownloads:true});await p.goto(url);await ready();await p.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();await p.getByText('Ferramentas V1.6 — bancadas individuais dos modelos',{exact:true}).click();await p.getByRole('button',{name:'ABRIR EÓLICA',exact:true}).click();await ready();await nav('Catálogo de aerogeradores');
+ p=await b.newPage({viewport:{width:1440,height:1000},acceptDownloads:true});await p.goto(url);await ready();await expandirCartoes(p); await p.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();await p.getByText('Ferramentas V1.6 — bancadas individuais dos modelos',{exact:true}).click();await p.getByRole('button',{name:'ABRIR EÓLICA',exact:true}).click();await ready();await nav('Catálogo de aerogeradores');
  const input=p.locator('[data-testid="stSelectbox"]').filter({hasText:'Aerogerador do catálogo'}).locator('input');await input.click();check(await p.getByRole('option').count()===13,'exactly thirteen selector entries');await p.keyboard.press('Escape');
  for(const entry of expected){await select('Aerogerador do catálogo',entry.key);
   check(await p.getByText('Potência nominal / referência',{exact:true}).isVisible(),'reference distinguished '+entry.key);

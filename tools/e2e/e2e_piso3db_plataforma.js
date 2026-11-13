@@ -5,6 +5,7 @@
 // celular, estabilidade em reruns) com a barra superior anterior intacta. B2-B: Planta (nós por UID, hover, foco, seleção,
 // cursor de instante, painel individual por UID na Partitura, só inventário, microrrede sem rodada V2/isolada, celular).
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const fs = require("fs");
 const path = require("path");
 const [base, seedFile, out, logMotor] = process.argv.slice(2);
@@ -32,7 +33,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   // ------------------------------------------------------------------ CONSULTA sem motor, solver nem modelos
   // Antes de qualquer página de preparação: Catálogo → Planta com rodada → painel por UID → Caderno → rodada → estudo.
   let [ctx, p] = await abrir(1500, 950, `${base}/`);
-  await p.locator(".gc-sig .gs-bus").first().waitFor({ timeout: 120000 });
+  await expandirCartoes(p); await p.locator(".gc-sig .gs-bus").first().waitFor({ timeout: 120000 });
   await p.goto(`${base}/?view=operacao&tab=planta&mg=${seed.mg}`); await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
   await p.locator('.pt.planta .node[data-tipo="wt"]').click(); await p.waitForTimeout(300);
   await p.locator(".pt.planta .pl-abrir").click(); await p.locator(".pt.partitura .dlg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
@@ -139,6 +140,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
 
   // ------------------------------------------------------------------ B2-B · Catálogo (Gestor) → microrrede → Planta
   [ctx, p] = await abrir(1500, 950, `${base}/`);
+  await expandirCartoes(p);
   const cartoes = p.locator('[class*="st-key-mgc_"]');
   ok(await cartoes.count() === 2 && await p.locator(".gc-sig .gs-bus").count() === 2, "Catálogo: cada microrrede com a assinatura do barramento (inventário real)");
   const cv2 = p.locator(`.st-key-mgc_${seed.mg}`), tv2 = (await cv2.textContent()).replace(/\s+/g, " ");
