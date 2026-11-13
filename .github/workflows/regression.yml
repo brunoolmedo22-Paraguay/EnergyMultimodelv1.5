@@ -28,6 +28,9 @@ jobs:
       - name: Install optional solver
         if: matrix.solver
         run: python -m pip install -r requirements-ems_v2.txt
+      - name: Remove solver for solver-free regression
+        if: ${{ !matrix.solver }}
+        run: python -m pip uninstall --yes pyomo highspy
       - name: Verify absence of optional solver
         if: ${{ !matrix.solver }}
         run: python -c "import importlib.util; assert importlib.util.find_spec('pyomo') is None; assert importlib.util.find_spec('highspy') is None"

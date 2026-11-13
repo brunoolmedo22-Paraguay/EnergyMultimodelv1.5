@@ -78,6 +78,8 @@ def auditar_missao(root: Path, base: str = BASE, head: str = "HEAD", *, incluir_
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base, *alvo).splitlines() if ln.strip()]
     if incluir_arvore_de_trabalho:
         linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
+    from deploy_requirements_guard_policy import filter_changes as filter_deploy  # C-DEPLOY-01: exceção byte a byte
+    linhas = filter_deploy(root, linhas)
     from ui_finish01_guard_policy import filter_intocados          # UI-FINISH-01: só M seeds2/report/dossier.py, conforme
     linhas = filter_intocados(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
