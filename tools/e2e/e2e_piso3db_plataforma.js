@@ -59,7 +59,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
 
   // ------------------------------------------------------------------ B2-A · sem microrrede aberta (Gestor)
   [ctx, p] = await abrir(1500, 900, `${base}/`);
-  ok(JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "sem microrrede: barra lateral com Catálogo, Arquivo Científico e Alcance");
+  ok(JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "bancada_solar", "bancada_wind", "bancada_battery", "bancada_h2", "bancada_thermal", "alcance"]), "sem microrrede: barra lateral com Catálogo, Arquivo Científico, as cinco bancadas (UI-FINISH-01) e Alcance");
   ok(JSON.stringify(await atual(p)) === JSON.stringify(["catalogo"]), "Gestor de microrredes = Catálogo (destino atual marcado)");
   ok(await largura(p) === 56, "trilho compacto de 56 px");
   ok(await p.locator(".tb.tb-compacta").count() === 1 && await p.locator(".tb .tb-link").count() >= 2 && !(await p.locator(".tb .tb-link").first().isVisible()) && await p.locator(".tb .tb-brand").isVisible(), "barra superior compacta: marca e identidade; a navegação fica só na barra lateral (sem duplicar)");
@@ -98,7 +98,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   const inst = await p.locator(".pt.partitura").first().evaluate((e) => e.getBoundingClientRect().left);
   ok(inst >= 56, `rodada: a Partitura começa depois do trilho (${Math.round(inst)} px)`); await foto(p, "b2a_03_rodada_com_barra");
   await p.locator('.pt.sb .it[data-id="catalogo"]').click(); await p.waitForTimeout(3500);
-  ok(p.url().includes("view=gestor") && !p.url().includes("mg=") && JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)");
+  ok(p.url().includes("view=gestor") && !p.url().includes("mg=") && JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "bancada_solar", "bancada_wind", "bancada_battery", "bancada_h2", "bancada_thermal", "alcance"]), "Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)");
   await ctx.close();
 
   // ------------------------------------------------------------------ B2-B · Planta (barramento equivalente por UID)
