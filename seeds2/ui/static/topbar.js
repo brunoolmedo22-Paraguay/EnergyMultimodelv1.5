@@ -50,6 +50,7 @@ export default function (component) {
   }
   const c = root.__ctl;
   root.classList.toggle("sd-light", !!data.force_light);
+  root.classList.toggle("tb-compacta", !!data.compacta);          // Piso 3D-B2: a navegação está na barra lateral
   c.home = data.home || "operacao";
   c.ver.textContent = `v${data.version}`;
   c.site.textContent = data.site || "Nenhuma microrrede aberta";

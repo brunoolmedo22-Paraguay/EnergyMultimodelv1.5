@@ -7,7 +7,8 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
-const [base, seedFile, out] = process.argv.slice(2);
+const [base, seedFile, out, logMotor] = process.argv.slice(2);
+const motorVazio = () => !logMotor || !fs.existsSync(logMotor) || fs.statSync(logMotor).size === 0;
 const seed = JSON.parse(fs.readFileSync(seedFile, "utf8"));
 const brl = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 fs.mkdirSync(out, { recursive: true });
@@ -28,12 +29,26 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   const atual = (p) => p.locator('.pt.sb .it[aria-current="page"]').evaluateAll((e) => e.map((x) => x.dataset.id));
   const largura = (p) => p.locator(".pt.sb .side-in").evaluate((e) => Math.round(e.getBoundingClientRect().width));
 
+  // ------------------------------------------------------------------ CONSULTA sem motor, solver nem modelos
+  // Antes de qualquer página de preparação: Catálogo → Planta com rodada → painel por UID → Caderno → rodada → estudo.
+  let [ctx, p] = await abrir(1500, 950, `${base}/`);
+  await p.locator(".gc-sig .gs-bus").first().waitFor({ timeout: 120000 });
+  await p.goto(`${base}/?view=operacao&tab=planta&mg=${seed.mg}`); await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
+  await p.locator('.pt.planta .node[data-tipo="wt"]').click(); await p.waitForTimeout(300);
+  await p.locator(".pt.planta .pl-abrir").click(); await p.locator(".pt.partitura .dlg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  await p.goto(`${base}/?view=operacao&tab=caderno&mg=${seed.mg}`); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  await p.locator(`.pt.caderno tr[data-run="${seed.run2}"] .cd-abrir`).click(); await p.locator(".pt.partitura svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  await p.goto(`${base}/?view=operacao&tab=caderno&mg=${seed.mg}`); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(800);
+  await p.locator(".pt.caderno .cd-estudo").click(); await p.waitForTimeout(3500);
+  ok(motorVazio(), "consultar Catálogo, Planta, painel por UID, Caderno, rodada e estudo NÃO chama motor, solver nem modelos (registro vazio)");
+  await ctx.close();
+
   // ------------------------------------------------------------------ B2-A · sem microrrede aberta (Gestor)
-  let [ctx, p] = await abrir(1500, 900, `${base}/`);
+  [ctx, p] = await abrir(1500, 900, `${base}/`);
   ok(JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "sem microrrede: barra lateral com Catálogo, Arquivo Científico e Alcance");
   ok(JSON.stringify(await atual(p)) === JSON.stringify(["catalogo"]), "Gestor de microrredes = Catálogo (destino atual marcado)");
   ok(await largura(p) === 56, "trilho compacto de 56 px");
-  ok(await p.locator(".tb .tb-link").count() >= 2, "barra superior anterior continua na página (navegação preservada)");
+  ok(await p.locator(".tb.tb-compacta").count() === 1 && await p.locator(".tb .tb-link").count() >= 2 && !(await p.locator(".tb .tb-link").first().isVisible()) && await p.locator(".tb .tb-brand").isVisible(), "barra superior compacta: marca e identidade; a navegação fica só na barra lateral (sem duplicar)");
   await p.hover(".pt.sb"); await p.waitForTimeout(450);
   ok(await largura(p) >= 240, "hover expande a barra por cima do conteúdo"); await foto(p, "b2a_01_gestor_barra_expandida");
   const recuo = await p.locator(".block-container").evaluate((e) => parseFloat(getComputedStyle(e).paddingLeft));
@@ -59,10 +74,11 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   ok(await largura(p) === 56, "depois de navegar com o mouse a barra se recolhe (não fica por cima do conteúdo)");
   await p.mouse.move(900, 600); await p.waitForTimeout(250); await p.hover(".pt.sb"); await p.waitForTimeout(400);
   ok(await largura(p) >= 240, "… e volta a expandir no próximo hover"); await p.mouse.move(900, 600);
-  await p.locator(".tb .tb-link", { hasText: "Centro de Operação" }).click(); await p.waitForTimeout(3000);
-  ok(p.url().includes("view=operacao") && JSON.stringify(await atual(p)) === JSON.stringify(["operacao"]), "a barra superior continua navegando e a lateral acompanha");
+  ok(await p.locator(".tb .tb-switch").isVisible() && (await p.locator(".tb .tb-site").innerText()).length > 3 && await p.locator(".tb .tb-save").isVisible(), "barra superior compacta mantém a identidade da microrrede, TROCAR MICRORREDE e o estado de salvamento");
+  await p.locator(".tb .tb-brand").click(); await p.waitForTimeout(3000);
+  ok(p.url().includes("view=operacao") && JSON.stringify(await atual(p)) === JSON.stringify(["operacao"]), "a marca na barra superior volta ao Centro de Operação e a lateral acompanha");
   await p.goto(`${base}/?view=operacao&tab=rodada&mg=${seed.mg}&sc=${seed.sc}&run=${seed.run}`); await p.locator(".pt svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1500);
-  const inst = await p.locator(".pt:not(.sb)").first().evaluate((e) => e.getBoundingClientRect().left);
+  const inst = await p.locator(".pt.partitura").first().evaluate((e) => e.getBoundingClientRect().left);
   ok(inst >= 56, `rodada: a Partitura começa depois do trilho (${Math.round(inst)} px)`); await foto(p, "b2a_03_rodada_com_barra");
   await p.locator('.pt.sb .it[data-id="catalogo"]').click(); await p.waitForTimeout(3500);
   ok(p.url().includes("view=gestor") && !p.url().includes("mg=") && JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)");
@@ -139,7 +155,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   const l16 = (await p.locator(`.pt.caderno tr[data-run="${seed.v16.run}"]`).textContent()).replace(/\s+/g, " ");
   ok(l16.includes("V1.6") && l16.includes("Concluída") && l16.includes("R$"), "Caderno: rodada V1.6 listada com o seu motor e resultado (compatibilidade)");
   await p.locator(`.pt.caderno tr[data-run="${seed.v16.run}"] .cd-abrir`).click(); await p.getByText("Rodada · imutável").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(2000);
-  ok(await p.locator(".pt:not(.sb)").count() === 0 && await p.locator(".js-plotly-plot").count() >= 1, "Caderno → rodada V1.6 abre na página anterior (sem Partitura)");
+  ok(await p.locator(".pt.partitura").count() === 0 && await p.locator(".js-plotly-plot").count() >= 1, "Caderno → rodada V1.6 abre na página anterior (sem Partitura)");
   await ctx.close();
 
   // ------------------------------------------------------------------ B2-D · Folha de Ensaio (etapas existentes, intactas)

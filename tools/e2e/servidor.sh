@@ -21,7 +21,9 @@ e2e_servidor() {
     echo "E2E: a porta $porta já está ocupada (servidor de outra execução?). Encerre-o ou escolha outra porta." >&2
     return 2
   fi
-  local lanca=(env PYTHONDONTWRITEBYTECODE=1 SEEDS2_DATA_DIR="$dados" "$@" "$py" -m streamlit run app.py
+  # SEEDS2_NAV_CLASSICA=1: os roteiros dos pisos anteriores navegam pelos links da barra superior (navegação clássica);
+  # um roteiro que queira a barra compacta do 3D-B2 passa SEEDS2_NAV_CLASSICA=0 nos argumentos (o último vence).
+  local lanca=(env PYTHONDONTWRITEBYTECODE=1 SEEDS2_NAV_CLASSICA=1 SEEDS2_DATA_DIR="$dados" "$@" "$py" -m streamlit run app.py
                --server.headless true --server.port "$porta" --browser.gatherUsageStats false)
   if command -v setsid >/dev/null 2>&1; then setsid "${lanca[@]}" >"$log" 2>&1 &
   else "${lanca[@]}" >"$log" 2>&1 &

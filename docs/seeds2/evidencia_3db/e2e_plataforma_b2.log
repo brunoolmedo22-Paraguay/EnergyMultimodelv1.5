@@ -1,0 +1,61 @@
+[3db2] ok — consultar Catálogo, Planta, painel por UID, Caderno, rodada e estudo NÃO chama motor, solver nem modelos (registro vazio)
+[3db2] ok — sem microrrede: barra lateral com Catálogo, Arquivo Científico e Alcance
+[3db2] ok — Gestor de microrredes = Catálogo (destino atual marcado)
+[3db2] ok — trilho compacto de 56 px
+[3db2] ok — barra superior compacta: marca e identidade; a navegação fica só na barra lateral (sem duplicar)
+[3db2] ok — hover expande a barra por cima do conteúdo
+[3db2] ok — o conteúdo começa depois do trilho (recuo 82 px)
+[3db2] ok — foco pelo teclado (Tab) também expande a barra (4 tabulações)
+[3db2] ok — Enter navega para o Arquivo Científico
+[3db2] ok — microrrede ativa: todos os destinos anteriores estão na barra lateral
+[3db2] ok — Centro de Operação marcado como destino atual
+[3db2] ok — rerun do Streamlit não redesenha a barra lateral
+[3db2] ok — clique navega para a Gestão da Microrrede mantendo a microrrede
+[3db2] ok — depois de navegar com o mouse a barra se recolhe (não fica por cima do conteúdo)
+[3db2] ok — … e volta a expandir no próximo hover
+[3db2] ok — barra superior compacta mantém a identidade da microrrede, TROCAR MICRORREDE e o estado de salvamento
+[3db2] ok — a marca na barra superior volta ao Centro de Operação e a lateral acompanha
+[3db2] ok — rodada: a Partitura começa depois do trilho (78 px)
+[3db2] ok — Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)
+[3db2] ok — barra lateral → Planta (tab do Centro de Operação)
+[3db2] ok — Planta: um nó por equipamento do inventário + demanda + PCC
+[3db2] ok — Planta: nenhuma seta nem animação de fluxo nas ligações
+[3db2] ok — Planta: rodadas V2 concluídas selecionáveis (2) ou só o inventário
+[3db2] ok — hover destaca o equipamento (os outros recuam) e mostra o resumo do inventário
+[3db2] ok — foco + Enter seleciona o equipamento (identidade por TAG e UID)
+[3db2] ok — cursor de instante percorre os valores gravados da rodada
+[3db2] ok — Planta → painel individual do equipamento por UID, no instante escolhido, na Partitura da rodada
+[3db2] ok — «Só o inventário»: a Planta deixa de mostrar valores de rodada
+[3db2] ok — microrrede só com rodadas V1.6: a Planta mostra o inventário e diz que não há rodada V2
+[3db2] ok — microrrede isolada: nenhum PCC desenhado
+[3db2] ok — Planta a 400 px: sem transbordo horizontal da página (0px; o desenho rola dentro do painel)
+[3db2] ok — Catálogo: cada microrrede com a assinatura do barramento (inventário real)
+[3db2] ok — Catálogo: cenários e rodadas por estado; FV + eólica + PEMFC + PCC na assinatura
+[3db2] ok — Catálogo: microrrede isolada sem PCC na assinatura
+[3db2] ok — Catálogo: operações do Gestor preservadas (nova, importar, abrir, ZIP, PDF, excluir)
+[3db2] ok — Catálogo: prateleira do Arquivo Científico (somente leitura)
+[3db2] ok — Catálogo → ABRIR MICRORREDE → Centro de Operação
+[3db2] ok — barra lateral → Caderno de ensaios
+[3db2] ok — Caderno: 2 cenários e as 2 rodadas desta microrrede
+[3db2] ok — Caderno: versão, motor, estado e custo realizado da rodada (valor gravado)
+[3db2] ok — Caderno: nenhuma rodada de outra microrrede
+[3db2] ok — Caderno: estudo do Arquivo Científico originado nesta microrrede
+[3db2] ok — Caderno → Abrir → rodada na Partitura
+[3db2] ok — Caderno → Abrir o estudo → Arquivo Científico (somente leitura)
+[3db2] ok — Caderno: rodada V1.6 listada com o seu motor e resultado (compatibilidade)
+[3db2] ok — Caderno → rodada V1.6 abre na página anterior (sem Partitura)
+[3db2] ok — Caderno → Abrir a folha de ensaio → seção 01 do cenário escolhido
+[3db2] ok — Folha: cenário, versão, motor e as quatro seções com o seu estado
+[3db2] ok — Folha · 01: os widgets de estado inicial continuam na página
+[3db2] ok — Folha · seção previsoes: navegação pelo índice e formulário existente presente
+[3db2] ok — Folha · seção estrategia: navegação pelo índice e formulário existente presente
+[3db2] ok — Folha · seção execucao: navegação pelo índice e formulário existente presente
+[3db2] ok — Folha · 04: preflight e execução da etapa existente (servidor sem solver: bloqueio explicado)
+[3db2] ok — Folha a 400 px: sem transbordo horizontal (0px)
+[3db2] ok — 400×850: a barra vira navegação inferior
+[3db2] ok — 400×850: só os destinos essenciais na barra inferior
+[3db2] ok — 400×850: a barra inferior navega
+[3db2] ok — 400×850: sem transbordo horizontal (0px)
+[3db2] ok — 820×1100: trilho lateral
+[3db2] ok — 820×1100: sem transbordo horizontal (0px)
+[3db2] CONCLUÍDO — 60 verificações aprovadas, sem erros de página nem de console

@@ -19,11 +19,19 @@ PYTHONDONTWRITEBYTECODE=1 "$PY" tools/e2e/seed_piso3db.py "$DADOS"
 echo "== 2. consulta (servidor SEM solver; motor e modelos sabotados)"
 rm -f "$LOGM"
 e2e_servidor "$PY" "$DADOS" "$PORTA" "$OUT/servidor.log" PYTHONPATH="$RAIZ/tools/e2e/sabotage_v2" \
-    SEEDS2_E2E_ENGINE_LOG="$LOGM" SEEDS2_E2E_ROOT="$RAIZ"
+    SEEDS2_E2E_ENGINE_LOG="$LOGM" SEEDS2_E2E_ROOT="$RAIZ" SEEDS2_NAV_CLASSICA=0
 e2e_fase "$OUT/e2e_partitura.log" node tools/e2e/e2e_piso3db_partitura.js "http://localhost:$PORTA" "$SEED" "$CAP"
+if [ -s "$LOGM" ]; then echo "FALHA: motor, solver ou modelo chamado na CONSULTA de rodadas e estudos:"; cat "$LOGM"; exit 1; fi
+echo "registro de chamadas ao motor/solver/modelos na consulta (fase 2): VAZIO"
 echo "== 3. plataforma (3D-B2: navegação e páginas; mesmo servidor sem solver)"
-e2e_fase "$OUT/e2e_plataforma.log" node tools/e2e/e2e_piso3db_plataforma.js "http://localhost:$PORTA" "$SEED" "$CAP"
+# O roteiro confere, ele próprio, que a consulta (Catálogo, Planta, painéis, Caderno, rodada, estudo) deixa o registro
+# VAZIO; só depois visita as páginas de PREPARAÇÃO (Centro de Operação, Folha, Execução), cujo preflight V2 deriva o
+# potencial renovável pelos modelos físicos — comportamento anterior ao 3D-B2, que aqui falha por estarem sabotados.
+e2e_fase "$OUT/e2e_plataforma.log" node tools/e2e/e2e_piso3db_plataforma.js "http://localhost:$PORTA" "$SEED" "$CAP" "$LOGM"
 e2e_parar "$PORTA"
-if [ -s "$LOGM" ]; then echo "FALHA: motor, solver ou modelo chamado na consulta:"; cat "$LOGM"; exit 1; fi
-echo "registro de chamadas ao motor/solver/modelos na consulta: VAZIO"
+PREFLIGHT='^(v2\.derivar_(fv|eolica)|v2\.curva_h2\.(obter_curva|_gerar)|v2\.pemfc_dinamica\.(analise_transitoria|massas_eventos)|h2_pemfc\.solve_requested_power)$'
+if [ -s "$LOGM" ] && grep -Evq "$PREFLIGHT" "$LOGM"; then
+  echo "FALHA: motor ou solver chamado na fase de plataforma (só derivações do preflight são admitidas):"; grep -Ev "$PREFLIGHT" "$LOGM" | sort | uniq -c; exit 1
+fi
+echo "registro na fase 3: só derivações do PREFLIGHT das páginas de preparação ($( [ -s "$LOGM" ] && sort "$LOGM" | uniq -c | tr -s ' ' | tr '\n' ';' || echo nenhuma)); nenhuma execução de motor nem importação do solver"
 grep -h "CONCLUÍDO" "$OUT/e2e_partitura.log" "$OUT/e2e_plataforma.log"

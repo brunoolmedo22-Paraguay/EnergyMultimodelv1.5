@@ -520,7 +520,7 @@ export default function (component) {
   const { data, parentElement } = component;
   let root = parentElement.querySelector(".pt");
   if (!root) {
-    root = h("div", { class: "pt" }); parentElement.appendChild(root);
+    root = h("div", { class: "pt partitura" }); parentElement.appendChild(root);   // «partitura» distingue o instrumento dos outros .pt
     let lw = 0, lh = 0, t = null;
     if (typeof ResizeObserver !== "undefined") new ResizeObserver(() => { const w = root.clientWidth, hgt = root.clientHeight; if (Math.abs(w - lw) < 2 && Math.abs(hgt - lh) < 2) return; lw = w; lh = hgt; clearTimeout(t); t = setTimeout(() => root.__pt && root.__pt.render(), 140); }).observe(root);
   }

@@ -7,6 +7,7 @@ por ``tools/e2e/e2e_piso3db_plataforma.js``.
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 import unittest
@@ -84,6 +85,30 @@ class DestinosDaBarraLateralTest(unittest.TestCase):
             app.run()
             self.assertEqual(len(app.exception), 0, [e.value for e in app.exception])
             self.assertEqual(app.markdown[0].value, repr(esperado), acao)
+
+
+class BarraSuperiorCompactaTest(unittest.TestCase):
+    """Estabilização: por omissão a barra superior não repete a navegação da lateral; a clássica volta por variável."""
+
+    def test_navegacao_classica_so_por_pedido_explicito_da_instalacao(self):
+        from unittest import mock
+
+        with mock.patch.dict(os.environ, {"SEEDS2_NAV_CLASSICA": ""}):
+            self.assertFalse(shell.nav_classica())
+        with mock.patch.dict(os.environ, {"SEEDS2_NAV_CLASSICA": "1"}):
+            self.assertTrue(shell.nav_classica())
+        with mock.patch.dict(os.environ, {"SEEDS2_NAV_CLASSICA": "0"}):
+            self.assertFalse(shell.nav_classica())
+        js = (RAIZ / "seeds2" / "ui" / "static" / "topbar.js").read_text(encoding="utf-8")
+        css = (RAIZ / "seeds2" / "ui" / "static" / "topbar.css").read_text(encoding="utf-8")
+        self.assertIn('classList.toggle("tb-compacta", !!data.compacta)', js)
+        self.assertIn(".tb.tb-compacta .tb-nav, .tb.tb-compacta .tb-aux { display: none; }", css)
+        # os links continuam a ser criados (a navegação clássica é a MESMA barra, só não escondida)
+        self.assertIn('el("button", `tb-link', js)
+        # os roteiros E2E dos pisos anteriores (que clicam nos links da barra superior) rodam com a navegação clássica
+        lib = (RAIZ / "tools" / "e2e" / "servidor.sh").read_text(encoding="utf-8")
+        self.assertIn("SEEDS2_NAV_CLASSICA=1 SEEDS2_DATA_DIR", lib)
+        self.assertIn("SEEDS2_NAV_CLASSICA=0", (RAIZ / "tools" / "e2e" / "run_piso3db.sh").read_text(encoding="utf-8"))
 
 
 class EstaticosDaPlataformaTest(unittest.TestCase):

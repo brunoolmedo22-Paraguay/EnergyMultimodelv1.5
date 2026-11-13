@@ -1,6 +1,7 @@
 """Camada de apresentação comum: componentes v2 locais, CSS global, roteamento e barra superior."""
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime
 from html import escape
@@ -200,6 +201,12 @@ def _on_topbar() -> None:
         st.session_state[SWITCH_KEY] = True
 
 
+def nav_classica() -> bool:
+    """Navegação CLÁSSICA (links na barra superior, como antes do Piso 3D-B2) pedida pela instalação com
+    ``SEEDS2_NAV_CLASSICA=1``. Por omissão a barra superior é compacta: os mesmos destinos estão na barra lateral."""
+    return os.environ.get("SEEDS2_NAV_CLASSICA", "").strip() == "1"
+
+
 def _on_sidebar() -> None:
     a = payload("seeds_sidebar")
     if a and a.get("type") == "nav":
@@ -268,7 +275,7 @@ def topbar(*, view: str, items: list[tuple], site: str, site_title: str, save: d
                         data={"version": APP_VERSION, "view": view, "items": [list(i) for i in items], "site": site,
                               "site_title": site_title, "site_sub": site_sub, "mg_name": mg_name, "save": save,
                               "force_light": force_light, "home": home, "switch": switch,
-                              "aux": [list(a) for a in (NAV_DOCS if aux is None else aux)]})
+                              "aux": [list(a) for a in (NAV_DOCS if aux is None else aux)], "compacta": not nav_classica()})
     # Piso 3D-B2-A: a barra lateral acompanha SEMPRE a barra superior (mesmo contexto; a superior continua completa).
     # ``items`` distingue os três contextos do shell: Gestor (sem microrrede), comissionamento e microrrede ativa.
     sidebar(view=view, tab=route().get("tab"), is_open=bool(switch), commissioned=items is NAV_ACTIVE,

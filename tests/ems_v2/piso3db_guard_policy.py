@@ -21,6 +21,8 @@ MODIFICADOS = frozenset({
     "seeds2/ui/shell.py",                        # B2-A: itens, retorno e desenho da barra lateral (junto da barra superior)
     "seeds2/ui/operation_center.py",             # B2-B/C/D: despacho das abas novas (planta, caderno) e Folha de Ensaio
     "seeds2/ui/gestor.py",                       # B2-B: Catálogo (assinatura, ensaios e prateleira do Arquivo nos cartões)
+    "seeds2/ui/static/topbar.js",                # estabilização: modo compacto (a navegação fica na barra lateral)
+    "seeds2/ui/static/topbar.css",
 })
 # Arquivos NOVOS do 3D-B dentro dos alvos das guardas anteriores (somente adição).
 COMPONENTE = ("seeds2/ui/trama.py", "seeds2/ui/static/trama/trama.js", "seeds2/ui/static/trama/partitura.js",

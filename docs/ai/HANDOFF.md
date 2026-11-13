@@ -19,7 +19,7 @@
 | B2-B | Catálogo integrado ao Gestor + Planta com barramento equivalente (hover/foco/seleção, dados reais do inventário e da rodada, abrir painéis por UID; sem fluxos inventados) | **concluído** (Planta `84c21fb`; Catálogo no commit «Catálogo, Caderno e Folha») | ver `git log` |
 | B2-C | Caderno de Ensaios (cenários e rodadas: versões, motores, estados, datas, integridade; locais e Arquivo Científico; V1.6 compatível) | **concluído** | commit «Catálogo, Caderno e Folha» |
 | B2-D | Folha de Ensaio (organização aprovada no protótipo sobre os formulários longos; parâmetros, validações, estados iniciais e preflight intactos) | **concluído como cabeçalho + índice de seções sobre as etapas existentes** (ver limites abaixo) | commit «Catálogo, Caderno e Folha» |
-| Est. | Estabilização visual (barra superior × lateral, responsividade, temas) | em curso — ver «Próxima tarefa exata» | — |
+| Est. | Estabilização visual (barra superior × lateral, responsividade, temas) | **concluída** (barra superior compacta; navegação clássica por `SEEDS2_NAV_CLASSICA=1`) | commit «estabilização visual» |
 
 ## B2-A — o que existe (implementado e verificado)
 
@@ -52,11 +52,19 @@
 - **Limites da Folha (não feito):** não há o layout de três colunas do protótipo (índice | seção | prontidão) nem subseções navegáveis dentro do formulário longo da estratégia V2 (malha, baterias, renováveis, PEMFC, PCC, planejador); a régua de horizontes do protótipo não foi implementada. Observação pré-existente: abrir a etapa 03 de um cenário V2 já marca «alterações não salvas» sem edição (o formulário normaliza o documento); a Folha só mostra esse estado.
 - **Regressão completa com e sem solver: pendente sobre este checkpoint** (a última completa é a do `590b826`; uma com solver sobre `84c21fb` chegou a 90 % sem falhas e foi interrompida pelo reinício da sessão).
 
-## Próxima tarefa exata (estabilização visual) e critérios de aceitação
+## Estabilização visual (implementada e verificada)
 
-1. **Barra superior × lateral sem duplicação:** `topbar.js` ganha o modo compacto (`data.compacta`): esconde os links de navegação e o link «Alcance» (já estão na barra lateral) e mantém marca, identidade da microrrede, TROCAR MICRORREDE e estado de salvamento. Compacto por omissão; **navegação clássica completa** com `SEEDS2_NAV_CLASSICA=1` no servidor (os roteiros E2E dos pisos anteriores clicam em `.tb-link`: `tools/e2e/servidor.sh` deve ligar essa variável por omissão e o roteiro 3D-B desligá-la).
-2. Revisar 400/820 px (a barra superior anterior quebra mal a 400 px), tema escuro e a continuidade Gestor → Catálogo → Planta → Folha → Execução → Rodada → Painel → Arquivo.
-3. Regressão completa com e sem solver no HEAD final; atualizar este bloco, `PARTITURA_3DB.md` §8, `PARAMIJEFE.md` Entrega 18 e o corpo do PR #24.
+- **Barra superior compacta por omissão** (`topbar.js`/`topbar.css`: classe `tb-compacta`; `shell.nav_classica()`): os links de navegação e «Alcance» ficam só na barra lateral; a superior mantém marca, identidade da microrrede, TROCAR MICRORREDE e estado de salvamento. **Navegação clássica completa:** `SEEDS2_NAV_CLASSICA=1` no ambiente do servidor (os links são os mesmos, só deixam de ficar escondidos).
+- **Roteiros E2E:** `tools/e2e/servidor.sh` liga `SEEDS2_NAV_CLASSICA=1` por omissão (os roteiros dos pisos anteriores clicam em `.tb-link`); `run_piso3db.sh` passa `SEEDS2_NAV_CLASSICA=0`. Roteiros antigos iniciados À MÃO (pisos 1, 2A–2D) precisam dessa variável no servidor.
+- O instrumento da rodada tem a classe `pt partitura` (antes só `pt`): seletores E2E usam `.pt.partitura` (a barra lateral é `.pt.sb`).
+- `run_piso3db.sh` agora confere o registro do motor em dois tempos: **vazio** depois da consulta de rodadas/estudos (fase 2) e, na fase 3, o próprio roteiro confere que Catálogo → Planta → painel por UID → Caderno → rodada → estudo deixam o registro vazio; depois visita as páginas de PREPARAÇÃO (Centro de Operação, Folha, Execução), cujo preflight V2 deriva o potencial renovável (comportamento anterior ao 3D-B2) — no fim só essas derivações são admitidas; nenhuma execução de motor nem importação do solver.
+- Verificado: E2E real `run_piso3db.sh` ⇒ **103 (Partitura) + 60 (plataforma) verificações**, nenhum processo de servidor vivo ao final; testes focalizados e guardas aprovados; auditoria do diff `ok`.
+
+## Próxima tarefa exata
+
+1. Conferir as **regressões completas** (com e sem solver) do HEAD final — resultado na linha «Regressão» abaixo; se faltar, executar (item 5 de «Como retomar»).
+2. Pendências concretas (por ordem de valor): (a) Folha em três colunas com subseções navegáveis da estratégia V2 e a régua de horizontes do protótipo; (b) comparação de rodadas no Caderno; (c) restos de verde-azulado fixo em CSS de páginas antigas (`operation_center.OP_CSS`, `execution_ui.EX_CSS`); (d) séries climáticas nos painéis solar/eólico; (e) V(E) com dois bancos em gráfico 2D.
+3. Rodar os E2E dos pisos anteriores com a navegação clássica (`tools/e2e/run_piso3da.sh`, `run_piso3da2r.sh`, `run_piso3da2h.sh`) antes de pedir a integração — **não foram reexecutados depois do 3D-B2** (só o `run_piso3db.sh`).
 
 ## Como retomar
 
