@@ -215,7 +215,7 @@ def _on_sidebar() -> None:
         st.session_state[SWITCH_KEY] = True
 
 
-def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bool) -> list[dict]:
+def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bool, rodada: str | None = None) -> list[dict]:
     """Destinos da barra lateral (Piso 3D-B2-A). Espelha a navegação existente — nada é retirado da barra superior —
     e dá nome aos lugares da experiência Partitura: Catálogo, (Planta, Caderno, Folha quando integrados), Arquivo."""
     def it(ident, rotulo, icone, grupo, alvo_view, alvo_tab=None, *, atual=False, curto=None, movel=False, dica=None, troca=False):
@@ -235,6 +235,10 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
     planta = view == "operacao" and tab == "planta"
     caderno = view == "operacao" and tab == "caderno"
     folha = view == "operacao" and tab in ("inicializacao", "previsoes", "estrategia", "execucao")
+    # Rodada: só quando há uma rodada selecionada DESTA microrrede (``rodada`` já conferido pelo chamador).
+    na_rodada = bool(rodada) and view == "operacao" and tab == "rodada"
+    rod = [it("rodada", f"Rodada · {rodada[:8]}", "rodada", "Microrrede", "operacao", "rodada", atual=na_rodada, curto="Rodada",
+              dica="Rodada aberta (resultados gravados; abrir não executa nada)")] if rodada else []
     return [cat,
             it("planta", "Planta", "planta", "Microrrede", "operacao", "planta", atual=planta, movel=True,
                dica="Planta: barramento equivalente e equipamentos do inventário"),
@@ -242,8 +246,10 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
                movel=True, dica="Caderno de ensaios: cenários, versões e rodadas (V1.6 e V2)"),
             it("folha", "Folha de ensaio", "folha", "Microrrede", "operacao", "inicializacao", atual=folha, curto="Folha",
                dica="Folha de ensaio do cenário selecionado: estado inicial, previsões, estratégia e execução"),
+            *rod,
             it("operacao", "Centro de Operação", "operacao", "Microrrede", "operacao",
-               atual=view == "operacao" and not arq and not planta and not caderno and not folha, curto="Operação", movel=True),
+               atual=view == "operacao" and not arq and not planta and not caderno and not folha and not na_rodada,
+               curto="Operação", movel=True),
             it("gestao", "Gestão da Microrrede", "gestao", "Microrrede", "gestao", atual=view == "gestao", curto="Gestão", movel=True),
             it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
             it("simulacao", "Simulação V1.6", "simulacao", "Console V1.6", "simulacao", atual=view == "simulacao", curto="Simulação"),
@@ -251,11 +257,25 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
                curto="Resultados"), doc]
 
 
+def _rodada_da_sessao() -> str | None:
+    """Rodada aberta nesta sessão (``op_run_uid`` ou ``?run=``), SÓ se existir no banco da microrrede ativa."""
+    uid = st.session_state.get("op_run_uid") or st.query_params.get("run")
+    if not uid or not st.session_state.get("mg_active_uid"):
+        return None
+    try:
+        from . import session
+
+        return session.store().get_run(str(uid)).run_uid
+    except Exception:  # noqa: BLE001 — rodada inexistente, de outra microrrede ou banco indisponível: sem destino
+        return None
+
+
 def sidebar(*, view: str, tab: str | None, is_open: bool, commissioned: bool, contexto: str = "") -> None:
     from . import trama
 
+    rodada = _rodada_da_sessao() if is_open and commissioned else None
     trama.sidebar({"versao": APP_VERSION, "contexto": contexto,
-                   "itens": sidebar_items(view=view, tab=tab, is_open=is_open, commissioned=commissioned)},
+                   "itens": sidebar_items(view=view, tab=tab, is_open=is_open, commissioned=commissioned, rodada=rodada)},
                   on_action=_on_sidebar)
 
 

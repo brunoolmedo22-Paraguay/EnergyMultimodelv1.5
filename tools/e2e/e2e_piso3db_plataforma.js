@@ -159,6 +159,10 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   await foto(p, "b2c_01_caderno");
   await p.locator(`.pt.caderno tr[data-run="${seed.run}"] .cd-abrir`).click(); await p.locator(".pt svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
   ok(p.url().includes(`run=${seed.run}`) && (await p.locator(".pt .bar h1").innerText()).includes(seed.cenario), "Caderno → Abrir → rodada na Partitura");
+  ok(JSON.stringify(await atual(p)) === JSON.stringify(["rodada"]) && (await p.locator('.pt.sb .it[data-id="rodada"]').getAttribute("title") || (await p.locator('.pt.sb .it[data-id="rodada"]').textContent())).length > 0, "barra lateral: destino «Rodada» da rodada aberta (ativo)");
+  await p.locator('.pt.sb .it[data-id="planta"]').click(); await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(800);
+  await p.locator('.pt.sb .it[data-id="rodada"]').click(); await p.locator(".pt svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(800);
+  ok(p.url().includes(`run=${seed.run}`), "barra lateral: Planta → «Rodada» volta à MESMA rodada");
   await p.locator('.pt.sb .it[data-id="caderno"]').click(); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
   await p.locator(".pt.caderno .cd-estudo").click(); await p.waitForTimeout(3500);
   ok(p.url().includes("tab=estudo") && p.url().includes(`study=${seed.estudo}`), "Caderno → Abrir o estudo → Arquivo Científico (somente leitura)");

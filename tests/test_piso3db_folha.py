@@ -260,3 +260,41 @@ class AlteracoesNaoSalvasTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ============================================================================================ barra lateral: Rodada
+class BarraLateralRodadaTest(unittest.TestCase):
+    def test_destino_rodada_so_com_rodada_desta_microrrede(self):
+        from seeds2.ui import shell
+
+        sem = shell.sidebar_items(view="operacao", tab="rodada", is_open=True, commissioned=True)
+        self.assertNotIn("rodada", [i["id"] for i in sem])
+        self.assertEqual([i["id"] for i in sem if i["atual"]], ["operacao"])           # comportamento anterior preservado
+        com = shell.sidebar_items(view="operacao", tab="rodada", is_open=True, commissioned=True, rodada="ab" * 16)
+        r = next(i for i in com if i["id"] == "rodada")
+        self.assertEqual((r["rotulo"], r["acao"], r["atual"]), ("Rodada · abababab", {"type": "nav", "view": "operacao", "tab": "rodada"}, True))
+        self.assertEqual([i["id"] for i in com if i["atual"]], ["rodada"])
+        self.assertEqual([i["id"] for i in com][:5], ["catalogo", "planta", "caderno", "folha", "rodada"])
+        fora = shell.sidebar_items(view="operacao", tab="caderno", is_open=True, commissioned=True, rodada="ab" * 16)
+        self.assertEqual([i["id"] for i in fora if i["atual"]], ["caderno"])
+        self.assertNotIn("rodada", [i["id"] for i in shell.sidebar_items(view="gestor", tab=None, is_open=False, commissioned=False, rodada="x" * 32)])
+
+    def test_rodada_da_sessao_confere_a_microrrede_ativa(self):
+        from seeds2.microgrid.store import RunNotFound
+        from seeds2.ui import shell
+
+        class _St:
+            def get_run(self, uid):
+                if uid != "ok" * 16:
+                    raise RunNotFound(uid)
+                return SimpleNamespace(run_uid=uid)
+
+        from types import SimpleNamespace
+        for estado, q, esperado in (({"mg_active_uid": "mg", "op_run_uid": "ok" * 16}, {}, "ok" * 16),
+                                    ({"mg_active_uid": "mg"}, {"run": "ok" * 16}, "ok" * 16),
+                                    ({"mg_active_uid": "mg", "op_run_uid": "zz" * 16}, {}, None),     # de outra microrrede
+                                    ({"op_run_uid": "ok" * 16}, {}, None),                           # sem microrrede ativa
+                                    ({"mg_active_uid": "mg"}, {}, None)):
+            with mock.patch.object(shell.st, "session_state", estado), mock.patch.object(shell.st, "query_params", q), \
+                    mock.patch("seeds2.ui.session.store", return_value=_St()):
+                self.assertEqual(shell._rodada_da_sessao(), esperado, (estado, q))

@@ -39,7 +39,7 @@ GESTOR_CSS = """
 .st-key-gestor_grid > div { width: auto !important; min-width: 0; }
 [class*="st-key-mgc_"] { border-radius: 16px !important; height: 100%; transition: box-shadow .18s, transform .18s; animation: sdfade .28s ease both;
   border-color: color-mix(in srgb, var(--primary-color, #0E7C86) 18%, rgba(128,128,128,.28)) !important; }
-[class*="st-key-mgc_"]:hover { box-shadow: 0 10px 28px rgba(14,124,134,.10); transform: translateY(-1px); }
+[class*="st-key-mgc_"]:hover { box-shadow: 0 10px 28px rgba(20,24,28,.10); transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) { [class*="st-key-mgc_"], .gs-hero { animation: none; transition: none; } }
 .gc-top { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-bottom: .45rem; }
 .gc-chip { display: inline-flex; align-items: center; gap: .35rem; font-size: .7rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase;
