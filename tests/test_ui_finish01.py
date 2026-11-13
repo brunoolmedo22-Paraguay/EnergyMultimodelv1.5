@@ -33,7 +33,7 @@ except ImportError:
     AppTest = None
 
 RAIZ = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(RAIZ / "tests"), str(RAIZ / "tests" / "ems_v2")]
+sys.path[:0] = [str(RAIZ / "tests")]
 if AppTest is not None:
     from apptest_utils import APP_PATH
 
@@ -261,13 +261,6 @@ class DossierPorMotorTest(unittest.TestCase):
         with self.assertRaises(D.DossierError):
             D.require_complete(v16, engine=E.MOTOR_V2)                                # geradores V2 recusam rodada V1.6
         self.assertEqual(D.missing_required(v2.run), [])
-
-    def test_politica_de_guarda_e_estrita(self):
-        import ui_finish01_guard_policy as G
-        self.assertEqual(G.removidas_fora_da_lista(RAIZ), {})
-        with mock.patch.dict(G.REMOVIDAS, {"seeds2/report/dossier.py": {""}}):
-            self.assertIn("seeds2/report/dossier.py", G.removidas_fora_da_lista(RAIZ))
-            self.assertEqual(G.filter_intocados(RAIZ, [["M", "seeds2/report/dossier.py"]]), [["M", "seeds2/report/dossier.py"]])
 
 
 @unittest.skipUnless(P.SOLVER, "Pyomo/HiGHS não instalados")

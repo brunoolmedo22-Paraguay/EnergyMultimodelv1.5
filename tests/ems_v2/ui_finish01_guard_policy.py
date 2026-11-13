@@ -13,9 +13,10 @@ explícita (``REMOVIDAS``) — qualquer outra alteração que apague código vol
 * ``seeds2/ui/report_exports.py``: o MESMO painel aceita, opcionalmente, o gerador, os rótulos e as ajudas do chamador
   (página da rodada V2); sem eles, o comportamento V1.6 é idêntico.
 
-Três asserções ANTIGAS foram atualizadas porque o pedido muda exatamente o que fixavam (bancadas sem microrrede e no
-comissionamento; botões do Gestor vazio): ``tests/test_ui_redesign01.py``, ``tests/test_piso3db_plataforma.py``,
-``tests/test_seeds2_gestor_app.py``. As políticas anteriores ``ui_running01_guard_policy.py`` (encadeamento) e
+Asserções ANTIGAS atualizadas porque o pedido muda exatamente o que fixavam (bancadas sem microrrede e no
+comissionamento; botões do Gestor vazio; o dossiê 2D-B que não lia rodadas V2 — a recusa dos geradores V1.6 continua):
+``tests/test_ui_redesign01.py``, ``tests/test_piso3db_plataforma.py``, ``tests/test_seeds2_gestor_app.py``,
+``tests/test_piso3da_execucao.py``. As políticas anteriores ``ui_running01_guard_policy.py`` (encadeamento) e
 ``piso3db_guard_policy.py`` (a auditoria do 3D-B consulta esta exceção para os caminhos intocados) recebem só o gancho.
 
 Este módulo não gera nem atualiza hashes e não consulta a rede.
@@ -28,8 +29,10 @@ from pathlib import Path
 BASE = "c29e600"                                       # main no início da missão (merge do PR #27)
 MODIFICADOS = frozenset({"seeds2/report/dossier.py", "seeds2/ui/report_exports.py",
                          "tests/test_ui_redesign01.py", "tests/test_piso3db_plataforma.py", "tests/test_seeds2_gestor_app.py",
+                         "tests/test_piso3da_execucao.py",
                          "tests/ems_v2/ui_running01_guard_policy.py", "tests/ems_v2/piso3db_guard_policy.py"})
-ADICIONADOS = frozenset({"integracao_v2/documentos.py", "tests/test_ui_finish01.py", "tests/ems_v2/ui_finish01_guard_policy.py"})
+ADICIONADOS = frozenset({"integracao_v2/documentos.py", "tests/test_ui_finish01.py", "tests/ems_v2/ui_finish01_guard_policy.py",
+                         "tests/ems_v2/test_ui_finish01_guardas.py"})
 # linhas que PODEM ter saído dos dois arquivos fora da interface (substituídas pelas versões cientes do motor)
 REMOVIDAS = {
     "seeds2/report/dossier.py": {
