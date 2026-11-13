@@ -94,7 +94,18 @@ function Partitura(root, F) {
     o.kv ? h("div", { class: "kv", html: kvh(o.kv) }) : null, o.nd ? o.nd.map((t) => h("div", { class: "nd", html: "<b>N/D</b> — " + t })) : null, o.note ? h("p", { class: "note", html: o.note }) : null, o.el || null);
   const tarCol = (t) => (t == null ? "var(--field)" : `var(--seq-${M.nivel(t)})`), tarLab = (t) => (t == null ? ["N/D", "var(--warn)"] : [nf(t, 2), M.nivel(t) === 3 ? "var(--surface)" : "var(--ink)"]);
   const nd = (c, t) => c.nd(t);
-  const opts = (extra) => ({ K, lab, bus, pat: "pth", cur: S.cur, pin: S.pin, fill: true, view: vista(), onCur: setCur, onPin, onRes: abrir, ...extra });
+  // UI-FINISH-01: metadados de exportação de cada gráfico (título = o do gráfico; identificação = a da rodada gravada;
+  // legenda = a mostrada junto do gráfico; fontes = os dados persistidos desenhados)
+  const expMeta = (svg) => {
+    const r = F.rodada, dlg = svg.closest(".dlg"), rec = dlg ? (dlg.querySelector(".dhead h2") || {}).textContent : null;
+    const caixa = svg.closest(".dlg,.panel,.stage") || svg.parentElement;
+    const legenda = [...caixa.querySelectorAll(".chead .leg, .dhead .leg")].map((l) => { const i = l.querySelector("i"); return { t: l.textContent.trim(), estilo: i ? i.getAttribute("style") : "", ht: !!(i && i.classList.contains("ht")) }; }).filter((x) => x.t);
+    const titulo = (rec ? rec.replace(/\s+/g, " ").trim() + " — " : "") + (svg.getAttribute("aria-label") || "Gráfico") + (dlg ? "" : ` · lente ${(LENTES.find((l) => l[0] === S.lens) || [0, ""])[1]}`);
+    return { titulo, rodada: r.uid, cenario: r.cenario, legenda, fontes: [...new Set(Object.values(F.fontes || {}).filter((x) => typeof x === "string" && (F.arquivos || []).some((a) => a[0] === x)))],
+      sub: `${r.cenario || "Rodada"} · cenário v${r.versao_cenario} · rodada ${String(r.uid).slice(0, 8)} · ${K} intervalos de ${nf(r.delta_min, 0)} min · N ${r.N} · m ${r.m} · H_L ${r.H_L} · ${r.fuso || "fuso não declarado"}`,
+      aviso: r.sintetico ? "dados sintéticos de ensaio" : "" };
+  };
+  const opts = (extra) => ({ K, lab, bus, pat: "pth", cur: S.cur, pin: S.pin, fill: true, view: vista(), onCur: setCur, onPin, onRes: abrir, exp: expMeta, ...extra });
   const painel = (t, ...k) => h("div", { class: "panel" }, h("div", { class: "chead" }, h("span", { class: "ttl" }, t)), ...k);
   const painel2 = (t, ...k) => { const e = painel(t, ...k); e.classList.add("larga"); return e; };
   const rs = (v, d = 2) => (v == null ? "N/D" : "R$ " + nf(v, d));
@@ -235,7 +246,7 @@ function Partitura(root, F) {
         const a = h("div", { style: "flex:1.7 1 0;min-height:230px;position:relative" }), b = h("div", { style: "flex:1 1 0;min-height:150px;position:relative" });
         host.replaceChildren(h("div", { style: "display:flex;flex-direction:column;gap:6px;height:100%" }, h("div", { class: "chead" }, h("span", { class: "leg", html: `<i class="ln" style="background:var(--ink-2)"></i>modelo estacionário (${cv.P_kW.length} pontos gravados)` }), h("span", { class: "leg", html: `<i style="background:none;box-shadow:inset 0 0 0 2px ${c};border-radius:50%"></i>PWL certificada (${V.length} vértices)` }), h("span", { class: "leg", html: `<i style="background:${c};border-radius:50%"></i>pontos operados na missão` })), a, b));
         const ops = (U || []).map((u, n) => (u && el(Pk, n) != null && el(Q, n) != null ? [Pk[n], Q[n], n] : null)).filter(Boolean);
-        xy(a, { x: [0, xM * 1.04], y: [0, qM], xl: "potência líquida [kW]", yl: "vazão de H₂ suprido [kg/h]", label: "Curva característica q(P)",
+        xy(a, { exp: expMeta, x: [0, xM * 1.04], y: [0, qM], xl: "potência líquida [kW]", yl: "vazão de H₂ suprido [kg/h]", label: "Curva característica q(P)",
           near(xv) { if (xv < dom[0] || xv > dom[1]) return null; let n = 0; cv.P_kW.forEach((Pv, j) => { if (Math.abs(Pv - xv) < Math.abs(cv.P_kW[n] - xv)) n = j; }); const Pv = cv.P_kW[n], qm = cv.q_suprido_kg_h[n], qp = V.length ? pwl(Pv) : null; return { x: Pv, y: qm, html: `<b>P = ${nf(Pv, 2)} kW</b><div><span>Modelo (gravado)</span><span>${nf(qm, 4)} kg/h</span></div><div><span>PWL (derivado)</span><span>${nf(qp, 4)} kg/h</span></div><div><span>Diferença</span><span>${nf(vezes(menos(qp, qm), 1000), 2)} g/h</span></div>${cv.corrente_A ? `<div><span>Corrente</span><span>${nf(cv.corrente_A[n], 0)} A</span></div>` : ""}` }; },
           draw({ svg, X, Y, pt, H, pb }) { if (dom[0] > 0) svg.append(sv("rect", { x: X(0), y: pt, width: X(dom[0]) - X(0), height: H - pb - pt, style: "fill:var(--field)" }), sv("text", { x: X(dom[0] / 2), y: pt + 14, "text-anchor": "middle" }, "sem operação"), sv("text", { x: X(dom[0] / 2), y: pt + 27, "text-anchor": "middle" }, "entre 0 e P mín"));
             svg.append(sv("polyline", { points: cv.P_kW.map((Pv, j) => `${X(Pv)},${Y(cv.q_suprido_kg_h[j])}`).join(" "), fill: "none", style: "stroke:var(--ink-2);stroke-width:2.4" }), sv("polyline", { points: V.map((q) => `${X(q[0])},${Y(q[1])}`).join(" "), fill: "none", style: `stroke:${c};stroke-width:1.2` }));
@@ -245,7 +256,7 @@ function Partitura(root, F) {
         const er = V.length ? (cv.validacao || []).filter((q) => q[0] != null && q[1] != null).map((q) => [q[0], 1000 * (pwl(q[0]) - q[1])]) : [];
         if (!er.length) return b.replaceChildren(h("div", { class: "nd", html: "<b>N/D</b> — pontos de validação não gravados nesta rodada" }));
         const e1 = Math.max(...er.map((q) => q[1])), e0 = Math.min(0, ...er.map((q) => q[1])), pd2 = (e1 - e0) * .12 || 1;
-        xy(b, { x: [0, xM * 1.04], y: [e0 - pd2, e1 + pd2], xl: `potência líquida [kW] · ${er.length} pontos de validação gravados`, yl: "PWL − modelo [g/h] · derivado dos pontos gravados", label: "Erro da aproximação PWL",
+        xy(b, { exp: expMeta, x: [0, xM * 1.04], y: [e0 - pd2, e1 + pd2], xl: `potência líquida [kW] · ${er.length} pontos de validação gravados`, yl: "PWL − modelo [g/h] · derivado dos pontos gravados", label: "Erro da aproximação PWL",
           draw({ svg, X, Y }) { svg.append(sv("polyline", { points: er.map((q) => `${X(q[0])},${Y(q[1])}`).join(" "), fill: "none", style: `stroke:${c};stroke-width:1.6` })); } });
       }, cards: (i) => [
         card({ acc: c, t: "Certificação B04", tag: "matemática", big: `${nf(vezes(mt.erro_rel_max, 100), 3)}<small>% de erro relativo máximo</small>`, sub: `política ${esc(b4.politica ?? "N/D")} · ${esc(String(b4.situacao_politica ?? "N/D").replace(/_/g, " "))} · ${crit.filter((q) => q.atendido).length} de ${crit.length} critérios`,
@@ -356,7 +367,7 @@ function Partitura(root, F) {
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(0, ...ys), y1 = Math.max(...ys), py = (y1 - y0) * .1 || 1, px = (x1 - x0) * .04 || 1;
     const eT = (dec.energias_fronteira_kWh || {})[s.baterias[0]], eR = ((s.referencia || {}).energias_kWh || [])[0], cor = valido ? COR.bat : "var(--ink-3)", ch = h("div", { style: "height:200px;position:relative" });
     box.replaceChildren(...[aviso, ch, h("p", { class: "note", html: `V [R$] = custo de continuação estimado a partir de ${lab(s.indice_fronteira)} em função da energia armazenada nessa fronteira${s.baterias[0] !== ui ? " (banco " + esc(s.baterias[0]) + ")" : ""}. ${modos.length} modo(s) terminal(is) · ${todos.length} pontos · ${val.length} validações${inv.length ? " · " + inv.length + " energia(s) inviável(is)" : ""}. Instrumento de decisão: não é custo realizado.` })].filter(Boolean));
-    xy(ch, { h: 200, x: [x0 - px, x1 + px], y: [y0 - py, y1 + py], xl: "energia na fronteira [kWh]", yl: "V [R$]", label: "Sinal de valor futuro V(E)",
+    xy(ch, { exp: expMeta, h: 200, x: [x0 - px, x1 + px], y: [y0 - py, y1 + py], xl: "energia na fronteira [kWh]", yl: "V [R$]", label: "Sinal de valor futuro V(E)",
       near(xv) { let b = null; todos.forEach((p) => { if (!b || Math.abs(p[0] - xv) < Math.abs(b[0] - xv) || (Math.abs(p[0] - xv) === Math.abs(b[0] - xv) && p[2].__m === dec.modo)) b = p; }); return b && { x: b[0], y: b[1], html: `<b>E = ${nf(b[0], 2)} kWh · modo ${b[2].__m}</b><div><span>V (gravado)</span><span>${rs(b[1], 4)}</span></div><div><span>Limite inferior</span><span>${rs(b[2].limite_inferior_R, 4)}</span></div><div><span>Classificação</span><span>${esc(b[2].classificacao ?? "N/D")}</span></div>` }; },
       draw({ svg, X, Y, pt, H, pb }) {
         modos.forEach((m) => { const P = pts(m), sel = valido && dec.modo === m.indice; P.forEach((p) => { p[2].__m = m.indice; });

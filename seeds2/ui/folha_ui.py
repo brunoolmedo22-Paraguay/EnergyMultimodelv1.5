@@ -9,8 +9,11 @@ Organização aprovada no protótipo, em TRÊS COLUNAS (no celular, empilhadas):
   barra de salvar e execução. A Folha só a envolve; o cartão de abertura da etapa vira o cabeçalho da seção (CSS);
 * **prontidão** (direita): o acompanhamento do ensaio — versão salva × alterações não salvas, o estado de cada seção,
   o preflight da versão salva e se a execução está disponível, pelas MESMAS razões que habilitam o botão da seção 04
-  (alterações não salvas, bloqueios do preflight, outra rodada em execução). Nenhum critério novo; o botão de executar
-  continua só na seção 04.
+  (alterações não salvas, bloqueios do preflight, outra rodada em execução). Nenhum critério novo.
+
+UI-FINISH-01: na seção 04 com o motor V2, o botão de executar (o MESMO, com as mesmas guardas) vive num cartão de rodada
+desenhado na coluna do índice, logo abaixo da Folha. A etapa entrega o cartão por um «slot» de sessão (``CTA_SLOT``) — a
+Folha não importa o pacote do motor.
 
 O índice e a prontidão são desenhados DEPOIS da etapa, na mesma execução, para refletirem as edições feitas nela.
 """
@@ -28,6 +31,7 @@ SECOES = (("inicializacao", "01", "Estado inicial"), ("previsoes", "02", "Previs
           ("execucao", "04", "Missão e execução"))
 TABS = tuple(s[0] for s in SECOES)
 TOM = {"ok": "ok", "warn": "w", "bad": "b", "info": "i", "off": ""}
+CTA_SLOT = "fl_cta_slot"            # = integracao_v2.ui.CTA_SLOT (cartão de rodada entregue pela etapa 04)
 
 # Estilos da Folha na página (fora do componente): colunas, colunas laterais fixas ao rolar, cabeçalho compacto da etapa
 # (o cartão de abertura vira título de seção; os mesmos textos continuam na página) e âncoras das subseções.
@@ -119,6 +123,7 @@ def prontidao(store, cur, doc: dict, d: dict, *, dirty: bool) -> dict:
         ult = {"uid": r.run_uid, "estado": r.state, "versao": r.scenario_version,
                "quando": str(getattr(r, "finished_at", None) or getattr(r, "created_at", "") or "")[:16].replace("T", " ")}
     return {"parte": "prontidao", "tab": next((s["id"] for s in d["secoes"] if s["atual"]), None),
+            "cta_lateral": bool(execution_ui._is_v2_doc(cur.document)),
             "versao": cur.version, "alterado": bool(dirty), "secoes": d["secoes"], "constatacoes": d["constatacoes"],
             "pendencias": pend, "executavel": not motivo, "motivo": motivo,
             "ativa": ativa.run_uid if ativa is not None else None, "ultima": ult, "rodadas": d["rodadas"]}
@@ -164,17 +169,23 @@ def render(store, cur, work: Callable[[], dict | None], tab: str, *, is_dirty: C
     st.html(FOLHA_CSS)
     with st.container(key="fl_folha"):
         ci, cc, cr = st.columns([1.25, 3.6, 1.35], gap="medium")
-        with cc, st.container(key="fl_col_secao"):
-            corpo()
+        st.session_state[CTA_SLOT] = []                  # a etapa 04 V2 deposita aqui o cartão de rodada
+        try:
+            with cc, st.container(key="fl_col_secao"):
+                corpo()
+        finally:
+            ctas = st.session_state.pop(CTA_SLOT, None) or []
         doc, dirty = work(), is_dirty()                  # depois da etapa: reflete as edições desta execução
         if doc is None:
             return
         d = dados(store, cur, doc, tab, dirty=dirty)
         with ci, st.container(key="fl_col_indice"):
             trama.pagina("folha", d, key="seeds_folha", on_action=_on_action, wide=False)
+            for cta in ctas:                             # UI-FINISH-01: cartão de rodada logo abaixo da Folha
+                cta()
         with cr, st.container(key="fl_col_prontidao"):
             trama.pagina("folha", prontidao(store, cur, doc, d, dirty=dirty), key="seeds_folha_pr", on_action=_on_action_pr,
                          wide=False)
 
 
-__all__ = ["FOLHA_CSS", "SECOES", "TABS", "cabecalho", "dados", "prontidao", "render"]
+__all__ = ["CTA_SLOT", "FOLHA_CSS", "SECOES", "TABS", "cabecalho", "dados", "prontidao", "render"]

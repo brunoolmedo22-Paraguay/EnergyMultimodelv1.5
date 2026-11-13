@@ -242,14 +242,21 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
                 "movel": movel, "dica": dica or rotulo,
                 "acao": acao or ({"type": "switch"} if troca else {"type": "nav", "view": alvo_view, "tab": alvo_tab})}
     doc = it("alcance", "Alcance e limitações", "alcance", "Documentação", "alcance", atual=view == "alcance", curto="Alcance")
+    # UI-REDESIGN-01: as cinco bancadas no lugar do antigo console V1.6. UI-FINISH-01: TAMBÉM sem microrrede aberta e no
+    # comissionamento — as bancadas não dependem da microrrede (mesma ação de sempre, ``abrir_bancada``); uma lista por
+    # contexto, logo nunca duplicadas.
+    bancadas = [it(f"bancada_{fonte}", rot, f"k:{kind}", "Bancadas", None, curto=rot.split(" ")[0],
+                   dica=f"Bancada {rot}: modelo físico isolado, sem usar nem alterar a configuração de nenhuma microrrede",
+                   acao={"type": "bancada", "fonte": fonte}) for fonte, rot, kind in BANCADAS]
     if not is_open:
         return [it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", atual=view == "gestor", curto="Catálogo", movel=True),
-                it("arquivo", "Arquivo Científico", "arquivo", None, "arquivo", atual=view == "arquivo", curto="Arquivo", movel=True), doc]
+                it("arquivo", "Arquivo Científico", "arquivo", None, "arquivo", atual=view == "arquivo", curto="Arquivo", movel=True),
+                *bancadas, doc]
     cat = it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", curto="Catálogo", movel=True, troca=True,
              dica="Voltar ao Catálogo (trocar de microrrede; os dados não são alterados)")
     if not commissioned:
         return [cat, it("comissionamento", "Comissionamento", "comissionamento", "Microrrede", "comissionamento",
-                        atual=view == "comissionamento", movel=True), doc]
+                        atual=view == "comissionamento", movel=True), *bancadas, doc]
     arq = view == "operacao" and tab in ("arquivo", "estudo")
     planta = view == "operacao" and tab == "planta"
     caderno = view == "operacao" and tab == "caderno"
@@ -273,9 +280,7 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
             it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
             # UI-REDESIGN-01: o grupo «Console V1.6» (Simulação/Resultados V1.6, sem o EMS hierárquico) saiu da navegação;
             # no lugar, as cinco bancadas. As vistas antigas continuam existindo (URL ``?view=`` e navegação clássica).
-            *[it(f"bancada_{fonte}", rot, f"k:{kind}", "Bancadas", None, curto=rot.split(" ")[0],
-                 dica=f"Bancada {rot}: modelo físico isolado, sem usar nem alterar a configuração da microrrede",
-                 acao={"type": "bancada", "fonte": fonte}) for fonte, rot, kind in BANCADAS], doc]
+            *bancadas, doc]
 
 
 def _rodada_da_sessao() -> str | None:

@@ -179,6 +179,8 @@ export default function (component) {
   };
   renderAcoes(false);
   root.querySelector(".mx-faixa-txt").textContent = `${titulo} · ${P.rotulo}`;
+  // UI-FINISH-01: pedido explícito de reabrir (cartão de rodada «VER PROGRESSO DA RODADA»): esquece o «oculto» uma vez
+  if (D.abrir != null && D.abrir !== root.__abrirVisto) { root.__abrirVisto = D.abrir; gravarOculto(null); }
   // visível? oculto vale só enquanto o desfecho não muda (uma falha/cancelamento/conclusão reabre o painel)
   root.__mostrar(lerOculto() !== D.situacao);
 }
