@@ -85,7 +85,7 @@ class IndicadoresTest(unittest.TestCase):
         y = CD.indicadores(_v2("c" * 32, estado="interrompida"))                        # nenhum custo de missão parcial
         self.assertEqual((y["custo"], y["energia_importada_kWh"], y["h2_kg"], y["sinal"], y["auditoria"]), (None, None, None, None, None))
 
-    def test_v16_sem_metricas_do_ems_v2(self):
+    def test_v16_sem_metricas_do_motor_v2(self):
         x = CD.indicadores(_v16("d" * 32))
         self.assertEqual((x["motor"], x["N"], x["m"], x["H_L"], x["pcc"], x["sinal"]), ("V1.6", 3, "na", "na", "na", "na"))
         self.assertEqual((x["custo"], x["custo_natureza"], x["h2_kg"], x["energia_importada_kWh"]), (88.3, "funcao_objetivo_v16", 3.5, None))
