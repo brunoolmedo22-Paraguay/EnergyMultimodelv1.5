@@ -3204,3 +3204,64 @@ Verificación del C0: tests focalizados 3D-B con solver (trama, nd, lentes, app,
 - **Verificación final:** E2E real `tools/e2e/run_piso3db.sh` ⇒ **103 (Partitura) + 60 (plataforma) verificaciones**, sin procesos de servidor vivos al terminar; regresión completa sobre `5cade04`: con solver ⇒ **2314 passed, 2 skipped, 150 subtests (929,9 s)**; sin solver ⇒ **1795 passed, 176 skipped, 145 subtests (520,0 s)**; auditoría explícita del diff `ok: true`; ninguna guarda relajada (las de estabilización y del 3D-A obligaron a rediseñar dos veces: C-3DB-10 y C-3DB-12).
 - **No verificado en esta entrega:** los E2E de los pisos anteriores (`run_piso3da.sh`, `run_piso3da2r.sh`, `run_piso3da2h.sh` y los guiones manuales de los pisos 1–2D-B) no se reejecutaron tras el 3D-B2; requieren `SEEDS2_NAV_CLASSICA=1` (los tres con `run_*.sh` ya lo reciben de `servidor.sh`).
 - **Pendientes concretos:** Folha en tres columnas con subsecciones de la estrategia V2 y regla de horizontes; comparación de rodadas en el Caderno; restos de color fijo en CSS de páginas antiguas; series climáticas en paneles solar/eólico; V(E) 2D. R-1, R-2 y R-3 siguen separadas y sin corregir. **Sin merge.**
+
+## Entrega 19 — SEEDS2 · Finalización de la Partitura V2 (pendientes de la auditoría independiente del Piso 3D-B2) — 2026-11-13
+
+### 1. Identificación
+
+- Misma rama `claude/stoic-meitner-2vs91m`, mismo PR Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24), **sin merge**. Rama de respaldo `backup/partitura-v2-fable-audit-3688414-20261113` **no modificada**. Base: `3688414` (código `5cade04` aprobado técnicamente en auditoría independiente; CI verde).
+- Autorización del responsable: misión «Finalização da Partitura V2» (Folha de Ensaio, Caderno de Ensaios, refinamientos de usabilidad, entrega final). Sin cambios en `ems_v2/`, modelos físicos, contratos, persistencia ni criterios de aceptación; R-1, R-2 y R-3 siguen **sin corregir**.
+- Checkpoints: F1+F2 `f890f54`, F3 `5293241`, F4 (documentación y regresiones) en el commit siguiente.
+
+### 2. Qué se entregó
+
+| | Pendiente de la auditoría | Entregado | Prueba |
+|---|---|---|---|
+| F1 | Folha simplificada (cabecera sobre los formularios antiguos) | Tres columnas: **índice** (secciones con el MISMO estado del panel + subsecciones 03.x de la estrategia V2 con sus declaraciones ausentes) · **sección** (etapa existente intacta; el cartón de apertura pasa a cabecera de sección) · **prontitud** (versión guardada × cambios, estado de las 4 secciones, preflight de la versión guardada, disponibilidad de ejecución por las MISMAS razones del botón de la sección 04; ningún botón de ejecutar fuera de la 04). Columnas laterales fijas al desplazar (> 1180 px), prontitud debajo (641–1180 px), apiladas en móvil | `tests/test_piso3db_folha.py`; E2E plataforma (tres columnas, anclas = índice, desplazamiento, destacado, tema oscuro, 400 px) |
+| F1 | Subsecciones navegables de la estrategia V2 | Motor · Malla y horizontes · Demanda y realización · Bancos · Renovables · PEMFC/H₂ · Red, PCC y objetivo · Planificador · MPC y solver · Pendientes y políticas fijas (solo las existentes). Mismas claves, campos, vocabularios, unidades, procedencia y validaciones | AppTest: anclas = `subsecoes_estrategia`; suites AppTest 3D-A/A2-R/A2-H sin cambios |
+| F1 | Regla visual de horizontes | `regua_dados`: K_M = duración/Δ, Δ, N, m, H_L, ⌈K_M/m⌉ ventanas (planifica N, aplica m; reducida al fin de la misión — política fija de la integración). Ausente ⇒ N/D; las relaciones del preflight V2 se MUESTRAN, no se imponen. En 03.2 (copia de trabajo) y en la 04 (versión GUARDADA) | tests puros (Python y Node), banco de navegador |
+| F2 | Caderno sin indicadores científicos | Por rodada, del resumen PERSISTIDO: malla N·m·H_L (V1.6: paso y N), PCC, costo rotulado por NATURALEZA (V1.6 función objetivo × V2 costo realizado; nunca el parcial), energía importada, H₂, señal de valor futuro, integridad. Métricas del EMS V2 «no aplicables» al V1.6 por evidencia del motor; lo no registrado = N/D | `tests/test_piso3db_caderno.py` |
+| F2 | Comparación entre rodadas | `caderno_ui.comparar`: diferencia absoluta solo mismo motor y misma naturaleza, relativa solo con |A| > 0; motores distintos ⇒ lado a lado; condiciones experimentales conferidas y ADVERTIDAS; comparación temporal solo entre dos V2 concluidas con instantes IDÉNTICOS (nada alineado ni interpolado); «abrir resultados completos». Solo rodadas de ESTA microrred; sin solver | unit (rodadas ficticias: misma malla, malla distinta, V1.6×V2, A = 0, interrumpida), misión REAL con HiGHS leída sin solver, E2E |
+| F3 | «Cambios no guardados» falso al abrir la etapa 03 | **Causa:** los campos numéricos devuelven `float` para valores grabados como `int` (0 → 0.0; `time_limit_s` 60 → 60.0). **Corrección:** solo la comparación de edición es canónica (`operation_center._fp_edicao`); el documento no cambia. También ocurría en la etapa 01 | test negativo (4 secciones V2 y V1.6, nada grabado; falla sin la corrección) y positivos (número y texto) |
+| F3 | Sin destino «Rodada»; identidad poco visible con la barra recogida | «Rodada» solo para rodada seleccionada que EXISTE en la microrred activa; el icono de la marca se encogía hasta un punto (corregido) | tests unitarios; E2E |
+| F3 | Verde-azulado fijo | Sombra del Catálogo neutralizada; el resto ya seguía `--primary-color` (neutro desde el B2-A). Se conservan los verdes de ESTADO y los colores científicos; `kit.css` mantiene el acento solo en las pantallas V1.6 forzadas en claro | inspección de colores calculados en 4 páginas |
+| F3 | `run_piso3da.sh` sin `PYTHONDONTWRITEBYTECODE=1` | Corregido en la semilla (autorizado); guardas intactas | — |
+| F3 | Preflight en las secciones 01–03 | Mantenido (caché por versión y sesión ya existente) y documentado; la columna de prontitud no recupera rodadas de procesos muertos (solo lee) | — |
+
+### 3. Decisiones nuevas (registradas en `docs/seeds2/PARTITURA_3DB.md` §8.8)
+
+- **C-3DB-16** — la Folha es un marco: ningún widget, clave, validación, regla de preflight, condición inicial ni grabación cambió; índice y prontitud se dibujan DESPUÉS de la etapa.
+- **C-3DB-17** — «cambios no guardados»: comparación numérica canónica solo para la edición.
+- **C-3DB-18** — elegibilidad de la comparación de rodadas (arriba).
+- Archivos nominales añadidos a la política 3D-B: `tests/test_piso3db_folha.py`, `tests/test_piso3db_caderno.py` (`TESTES_3DB`); auditoría explícita del diff `ok: true`.
+
+### 4. Hallazgo operativo
+
+Editar archivos `.py` durante un E2E hace que el observador del Streamlit recargue módulos y deshaga la sabotaje de `tools/e2e/sabotage_v2` (el preflight llegó a intentar importar Pyomo). No es defecto de la aplicación; el E2E se repitió sin ediciones y pasó (§5).
+
+### 5. Verificación (F4)
+
+Código final: `068ef9d` (los commits siguientes solo cambian documentación y evidencias).
+
+- **Regresión completa sin solver** (`/tmp` venv solo con `requirements.txt` + pytest; HEAD `068ef9d`): **1814 passed, 178 skipped, 145 subtests (625 s)** — línea de base `5cade04`: 1795 passed, 176 skipped.
+- **Regresión completa con solver** (Pyomo 6.10.1 + HiGHS): primera pasada sobre `5293241` ⇒ 2332 passed, 2 skipped y **3 fallos con una sola causa**: el nombre de un método de prueba nuevo contenía el literal del paquete del motor, prohibido por la guarda 3A de aislamiento (y reejecutada como subproceso por dos guardas eólicas). Corregido renombrando el método (`068ef9d`; la guarda no se tocó) ⇒ esas 3 pruebas + la suite del Caderno: 135 passed. Pasada final sobre `068ef9d`: **2335 passed, 2 skipped, 150 subtests (1194 s), 0 fallos** (línea de base `5cade04`: 2314 passed).
+- **Suites focalizadas** (Folha, Caderno, plataforma, app 3D-B, app 3D-A/A2-R/A2-H, app 2A/2B/2C, guardas 3D-B/3D-A/3D-A2-R): 105 passed, 2 skipped; auditoría explícita del diff `python tests/ems_v2/piso3db_guard_policy.py` ⇒ `ok: true`.
+- **E2E en navegador real** (`tools/e2e/run_piso3db.sh`, servidor sin solver, motor y modelos saboteados): **103** (Partitura) + **78** (plataforma: Catálogo, Planta, Caderno con indicadores y comparación A×B, «Rodada» en la barra lateral, Folha en tres columnas con subsecciones, regla, prontitud, cambios falsos × reales, tema oscuro, 400 px) verificaciones; registro del motor VACÍO en la consulta (incluida la comparación) y solo derivaciones del preflight en las páginas de preparación.
+- **E2E de los pisos anteriores** (navegación clásica, en secuencia, sin otras cargas): `run_piso3da.sh` **106** (operar 65 + reinicio 14 + tablet 8 + importar 19), `run_piso3da2r.sh` **43**, `run_piso3da2h.sh` **60**; registros vacíos; árbol de trabajo sin `.pyc` regenerados (corrección del guion).
+- Evidencias: `docs/seeds2/evidencia_3db/capturas/fin_0*.jpg`, `e2e_partitura_fin.log`, `e2e_plataforma_fin.log`.
+
+### 6. Diferencias restantes y problemas conocidos
+
+| Problema | Severidad |
+|---|---|
+| Series climáticas por intervalo en los paneles solar/eólico; V(E) con dos bancos en 2D | baja (pendiente del prototipo) |
+| Folha V1.6 sin subsecciones (formulario corto) | baja |
+| Caderno no compara estudios archivados (solo rodadas locales) | baja |
+| La sección 04 V2 sigue mostrando, en la ventana de la misión, «Passo 60 s (fixo no runtime V1.6)» y «Horizonte móvel N — (etapa 03)» (texto de la etapa común, anterior a esta misión) | baja (cosmético; no afecta la ejecución) |
+| `kit.css` mantiene el acento verde-azulado en las pantallas V1.6 forzadas en claro | cosmético |
+| E2E manuales de los pisos 1–2D-B no reejecutados (necesitan `SEEDS2_NAV_CLASSICA=1`) | baja |
+| R-1, R-2, R-3 | pendientes, fuera de alcance (no corregidos) |
+
+### 7. Recomendación
+
+Sin defectos bloqueantes conocidos. La interfaz cubre ahora el recorrido completo aprobado (Catálogo → microrred → Planta → escenario → Folha en tres columnas → prontitud → ejecución → rodada Partitura → recursos → Caderno → comparación → Arquivo Científico). Recomendación: **apto para revisión e integración tras la aprobación del responsable y la CI verde del HEAD final**; **sin merge** hasta autorización expresa.

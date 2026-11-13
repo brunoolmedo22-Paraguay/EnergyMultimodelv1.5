@@ -229,7 +229,8 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
 | B2-A — barra lateral, navegação responsiva, identidade | concluído (§8.3) |
 | B2-B — Catálogo e Planta | concluído (§8.4, §8.5) |
 | B2-C — Caderno de Ensaios | concluído (§8.5) |
-| B2-D — Folha de Ensaio | concluído como cabeçalho + índice sobre as etapas existentes (§8.5) |
+| B2-D — Folha de Ensaio | concluído como cabeçalho + índice (§8.5); **finalizado em três colunas, subseções e régua (§8.8)** |
+| Finalização (auditoria independente) — Folha, Caderno (indicadores e comparação), estabilização | concluído (§8.8) |
 
 ### 8.3 B2-A — barra lateral, navegação e identidade (concluído)
 
@@ -304,9 +305,61 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
 
 ### 8.7 Pendências concretas do 3D-B2
 
-1. Folha em três colunas (índice | seção | prontidão) com subseções navegáveis da estratégia V2 e a régua de horizontes.
-2. Comparação de rodadas no Caderno (o protótipo tinha; exige definir elegibilidade — mesmo inventário e previsões).
-3. Restos de verde-azulado fixo no CSS de páginas antigas (`OP_CSS`, `EX_CSS`) e nos selos de estado.
-4. Séries climáticas por intervalo nos painéis solar e eólico; V(E) com dois bancos em gráfico 2D.
+1. ~~Folha em três colunas com subseções navegáveis da estratégia V2 e a régua de horizontes~~ — feito (§8.8).
+2. ~~Comparação de rodadas no Caderno~~ — feito (§8.8; elegibilidade definida em C-3DB-18).
+3. ~~Restos de verde-azulado fixo~~ — feito no que era acento de página (§8.8); continuam, de propósito, os verdes de ESTADO
+   («ok» dos selos) e as cores científicas das tecnologias. O `kit.css` mantém o acento verde-azulado só no modo
+   `sd-light` das telas V1.6 forçadas em claro (aparência V1.6 preservada).
+4. Séries climáticas por intervalo nos painéis solar e eólico; V(E) com dois bancos em gráfico 2D (não feito).
 5. Os roteiros E2E dos pisos 1 a 2D-B (sem `run_*.sh`) precisam de `SEEDS2_NAV_CLASSICA=1` no servidor; não foram
    reexecutados depois do 3D-B2.
+
+### 8.8 Finalização da Partitura V2 (pendências da auditoria independente; autorizada pelo responsável)
+
+* **Folha de Ensaio em três colunas** (`folha_ui.render`, chamado por `operation_center.render` para as quatro etapas):
+  **índice** (identidade, as quatro seções com os MESMOS estados do painel e, na seção 03 com o motor V2, as subseções
+  03.1–03.10 com o número de declarações ausentes de cada uma — as MESMAS de `estrategia.pendencias`), **seção** (a etapa
+  existente, intacta) e **prontidão** (versão salva × alterações não salvas, estado das quatro seções, preflight da versão
+  salva e se a execução está disponível — pelas MESMAS razões que habilitam o botão da seção 04; o botão de executar
+  continua só na seção 04). Acima de 1180 px as colunas laterais ficam fixas ao rolar; entre 641 e 1180 px a prontidão
+  desce para baixo da seção; no celular as três empilham (índice → seção → prontidão) e as subseções viram uma faixa
+  rolável. O cartão de abertura da etapa vira o cabeçalho da seção (os mesmos textos) e «← Centro de Operação», uma trilha
+  discreta (os roteiros dos pisos anteriores continuam a usá-lo).
+* **Subseções da estratégia V2** (`integracao_v2/ui.py`): Motor · Malha temporal e horizontes · Demanda e realização ·
+  Bancos de baterias · Recursos renováveis · PEMFC e hidrogênio · Rede, PCC e objetivo · Planejamento de longo prazo · MPC e
+  solver · Declarações pendentes e políticas fixas (só as que existem no cenário). Cada uma é uma âncora `data-fl-sub` no
+  formulário; o índice ROLA até ela e destaca a visível (sem rerun). Reorganização só de apresentação: mesmas chaves,
+  campos, vocabulários, unidades, procedência e validações (o planejador e o solver, antes num cartão, ficaram em dois).
+* **Régua dos horizontes** (`regua_dados` + `folha.js` parte `regua`): missão K_M = duração/Δ, passo Δ, horizonte curto N,
+  bloco aplicado m, horizonte longo H_L, número de janelas ⌈K_M/m⌉ e as primeiras janelas (planeja N, aplica m; reduzida no
+  fim da missão, política fixa `montagem.FIXOS`). Só com valores declarados: ausente ⇒ N/D e «régua incompleta»; as
+  relações que o preflight V2 verifica (duração múltipla de Δ, K_M ≤ 336, 1 ≤ m ≤ N, H_L > N, H_L ≤ K_M) são EXIBIDAS, não
+  impostas. Aparece na subseção 03.2 (cópia de trabalho) e na seção 04 (versão SALVA, a que será executada).
+* **C-3DB-16 — a Folha é moldura.** Nenhum widget, chave, validação, regra de preflight, condição inicial ou gravação
+  mudou; o índice e a prontidão são desenhados DEPOIS da etapa na mesma execução (refletem as edições dela).
+* **C-3DB-17 — «alterações não salvas» falso.** Causa: os campos numéricos devolvem `float` para valores gravados como
+  `int` (p. ex. 0 → 0.0; `time_limit_s` 60 → 60.0), e a impressão da cópia de trabalho os distinguia — abrir a etapa 01 ou
+  03 já marcava alteração. Correção na camada de edição (`operation_center._fp_edicao`): só a COMPARAÇÃO trata inteiro e
+  real de mesmo valor como o mesmo número; o documento não é alterado nem gravado. Teste negativo (percorrer as quatro
+  seções de cenários V2 e V1.6 não cria alteração; nada é gravado) e positivos (número e texto alterados continuam
+  detectados e bloqueiam a execução).
+* **Caderno — indicadores persistidos por rodada** (`caderno_ui.indicadores`; V2 por `integracao_v2.ui.indicadores_rodada`):
+  malha Δ·N·m·H_L (V1.6: passo e N), PCC, custo rotulado pela NATUREZA (V1.6: função objetivo; V2: custo realizado —
+  só de missão concluída, nunca o parcial), energia importada, H₂, sinal de valor futuro (válidos/degradados/janelas),
+  integridade (auditoria integral registrada + arquivos; a verificação completa continua ao abrir a rodada). Métricas do
+  EMS V2 são «não aplicáveis» ao V1.6 (por evidência do motor); o que o resumo não registra é N/D.
+* **C-3DB-18 — comparação de rodadas** (`caderno_ui.comparar`; só rodadas DESTA microrrede; sem solver nem modelos):
+  diferença absoluta só entre números do mesmo motor e da mesma natureza, relativa só com |A| > 0; motores diferentes ⇒ lado
+  a lado, sem diferença (inclusive a energia: as convenções de integração diferem); condições experimentais (cenário,
+  versão, inventário, janela, malha, PCC, contrato de dados) conferidas e as distintas ADVERTIDAS; comparação temporal
+  (custo acumulado, importação no PCC, demanda) só entre duas rodadas V2 concluídas com instantes de intervalo IDÊNTICOS —
+  nada alinhado, reamostrado nem interpolado; caso contrário, o motivo. «Abrir os resultados completos» de A ou B.
+* **Barra lateral:** destino **Rodada** quando há rodada selecionada que existe na microrrede ativa; a marca SEEDS2
+  continua visível no trilho recolhido (o ícone encolhia até um ponto).
+* **Preflight nas seções 01–03:** a prontidão usa o estado da seção 04, que deriva o potencial renovável pelo preflight V2 da
+  versão salva — uma vez por versão e sessão (cache `op_ex_pf_v2` já existente). Mantido e documentado; os modelos não foram
+  tocados. A coluna de prontidão não recupera rodadas de processos mortos (só lê); isso continua na seção 04.
+* **Verificação (código `068ef9d`):** regressão com solver 2335 passed, 2 skipped; sem solver 1814 passed, 178 skipped; E2E `run_piso3db.sh` 103 + 78; E2E 3D-A 106, 3D-A2-R 43, 3D-A2-H 60 (detalhe: `PARAMIJEFE.md` Entrega 19).
+* **Diferenças restantes em relação ao protótipo:** a Folha da V1.6 não tem subseções (o formulário é curto); séries
+  climáticas nos painéis solar/eólico e V(E) 2D continuam pendentes; o Caderno não compara estudos arquivados (só rodadas
+  locais).

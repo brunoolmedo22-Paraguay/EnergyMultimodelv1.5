@@ -7,8 +7,37 @@
 |---|---|
 | **Branch** | `claude/stoic-meitner-2vs91m` (base `main` `724d235`) |
 | **PR** | Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24) contra `main` — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Último checkpoint publicado** | código final do 3D-B2 em `5cade04` (+ commit de documentação); tabela «Checkpoints do 3D-B2» abaixo |
-| **Missão em curso** | Piso **3D-B2** — integração visual da plataforma: **C0, B2-A, B2-B, B2-C, B2-D e estabilização ENTREGUES**; aguardando revisão do responsável (pendências concretas abaixo) |
+| **Último checkpoint publicado** | Finalização da Partitura V2: F1+F2 `f890f54`, F3 `5293241` (+ commit F4 de documentação/regressões); ver «Finalização da Partitura V2» abaixo |
+| **Missão em curso** | **Finalização da Partitura V2** (pendências da auditoria independente do 3D-B2, autorizada pelo responsável; Claude Opus): F1 Folha, F2 Caderno, F3 estabilização, F4 entrega — **NÃO FAZER MERGE** |
+| **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## Finalização da Partitura V2 (pendências da auditoria independente do 3D-B2)
+
+| # | Unidade | Estado | Commit |
+|---|---|---|---|
+| F1 | Folha de Ensaio em **três colunas** (índice com subseções 03.x da estratégia V2 + prontidão), **régua dos horizontes**, cartão da etapa como cabeçalho de seção, «← Centro de Operação» como trilha discreta | concluído | `f890f54` |
+| F2 | Caderno: **indicadores persistidos** por rodada (N·m·H_L, PCC, custo rotulado pela natureza, importação, H₂, sinal de valor futuro, integridade) e **comparador A×B** (diferenças só válidas, condições conferidas, temporal só com a mesma malha) | concluído | `f890f54` |
+| F3 | «Alterações não salvas» falso corrigido (impressão de edição numérica canônica: 0 ≡ 0.0); destino **Rodada** na barra lateral; marca visível no trilho recolhido; sombra verde-azulada do Catálogo neutralizada; `run_piso3da.sh` com `PYTHONDONTWRITEBYTECODE=1` | concluído | `f890f54` + `5293241` |
+| F4 | Regressão completa com/sem solver, E2E, documentação, PR #24 atualizado | ver «Verificação F4» | commit de documentação |
+
+**O que mudou (arquivos):** `seeds2/ui/folha_ui.py` (`render` em três colunas; `prontidao`; CSS `FOLHA_CSS`), `static/trama/folha.js`
+(partes `indice`/`prontidao`/`regua`; `janelasRegua` pura), `integracao_v2/ui.py` (`SUBSECOES`, `subsecoes_estrategia`, âncoras
+`_sub`, `regua_dados`/`regua` — também na seção 04 sobre a versão SALVA —, malha em 4 colunas, planejador e solver em
+subseções separadas; `indicadores_rodada`, `series_rodada`), `seeds2/ui/operation_center.py` (despacho das 4 etapas via
+`folha_ui.render`; `_fp_edicao`), `seeds2/ui/caderno_ui.py` (`indicadores`, `comparar`), `static/trama/caderno.js`
+(colunas e comparador), `seeds2/ui/shell.py` (`sidebar_items(rodada=…)`, `_rodada_da_sessao`), `sidebar.js`, `trama.css`,
+`gestor.py` (sombra). Testes novos: `tests/test_piso3db_folha.py`, `tests/test_piso3db_caderno.py` (em `TESTES_3DB`).
+
+**Decisões desta missão (novas; ver `docs/seeds2/PARTITURA_3DB.md` §8.8):** C-3DB-16 (Folha = moldura; nenhuma chave,
+validação ou gravação mudou; índice/prontidão desenhados DEPOIS da etapa); C-3DB-17 (alteração falsa = só a comparação de
+edição é canônica, o documento gravado não muda); C-3DB-18 (comparação: diferença só no mesmo motor e mesma natureza;
+temporal só com instantes idênticos; nada interpolado). Restrições mantidas: `main.py` intocado (SHA-256), módulos novos
+de `seeds2` não importam `integracao_v2` (C-3DB-12), `ems_v2/`/modelos/contratos/persistência intocados, R-1/R-2/R-3 não
+corrigidos.
+
+**Lição operacional:** NÃO editar arquivos `.py` enquanto um roteiro E2E roda: o observador do Streamlit recarrega módulos
+e desfaz a sabotagem (`tools/e2e/sabotage_v2`), produzindo falso positivo no registro do motor (aconteceu uma vez; repetido
+sem edições, ver F4).
 
 ## Checkpoints do 3D-B2
 
@@ -60,7 +89,26 @@
 - `run_piso3db.sh` agora confere o registro do motor em dois tempos: **vazio** depois da consulta de rodadas/estudos (fase 2) e, na fase 3, o próprio roteiro confere que Catálogo → Planta → painel por UID → Caderno → rodada → estudo deixam o registro vazio; depois visita as páginas de PREPARAÇÃO (Centro de Operação, Folha, Execução), cujo preflight V2 deriva o potencial renovável (comportamento anterior ao 3D-B2) — no fim só essas derivações são admitidas; nenhuma execução de motor nem importação do solver.
 - Verificado: E2E real `run_piso3db.sh` ⇒ **103 (Partitura) + 60 (plataforma) verificações**, nenhum processo de servidor vivo ao final; testes focalizados e guardas aprovados; auditoria do diff `ok`.
 
+## Verificação F4 (finalização da Partitura V2; código final `068ef9d`)
+
+- Regressão completa **sem solver**: **1814 passed, 178 skipped, 145 subtests (625 s)**.
+- Regressão completa **com solver**: primeira pasada (sobre `5293241`) 2332 passed, 2 skipped, 3 falhas de UMA causa — nome
+  de método de teste com o literal do pacote do motor (guarda 3A; reexecutada por duas guardas eólicas) —, corrigido em
+  `068ef9d` sem tocar na guarda (135 passed nas suítes afetadas). Pasada final sobre `068ef9d`: **2335 passed, 2 skipped, 150 subtests (1194 s)**, 0 falhas.
+- Focalizadas + guardas: 105 passed, 2 skipped; auditoria `python tests/ems_v2/piso3db_guard_policy.py` ⇒ `ok: true`.
+- E2E `run_piso3db.sh`: **103 + 78** verificações (registro vazio na consulta, inclusive a comparação; só derivações do
+  preflight nas páginas de preparação). E2E anteriores com navegação clássica, em sequência: `run_piso3da.sh` **106**,
+  `run_piso3da2r.sh` **43**, `run_piso3da2h.sh` **60**; registros vazios; nenhum `.pyc` regenerado.
+- Evidências: `docs/seeds2/evidencia_3db/capturas/fin_0*.jpg` e `e2e_*_fin.log`; relatório: `PARAMIJEFE.md` Entrega 19.
+
 ## Próxima tarefa exata
+
+**Agora:** revisão do responsável sobre o PR #24 (Draft). **Não fazer merge** sem autorização expressa. Pendências
+restantes (baixa severidade): séries climáticas nos painéis solar/eólico; V(E) 2D com dois bancos; Folha V1.6 sem
+subseções; comparação de estudos arquivados no Caderno; textos V1.6 na janela da missão da seção 04 V2; E2E manuais dos
+pisos 1–2D-B. Histórico da entrega anterior (Fable, 3D-B2) abaixo.
+
+### (histórico) Próxima tarefa do 3D-B2
 
 1. **Regressão completa sobre `5cade04` (código final do 3D-B2; os commits seguintes só mudam documentação):** com solver ⇒ **2314 passed, 2 skipped, 150 subtests (929,9 s)**; sem solver ⇒ **1795 passed, 176 skipped, 145 subtests (520,0 s)**. Repetir só se o código mudar.
 2. Pendências concretas (por ordem de valor): (a) Folha em três colunas com subseções navegáveis da estratégia V2 e a régua de horizontes do protótipo; (b) comparação de rodadas no Caderno; (c) restos de verde-azulado fixo em CSS de páginas antigas (`operation_center.OP_CSS`, `execution_ui.EX_CSS`); (d) séries climáticas nos painéis solar/eólico; (e) V(E) com dois bancos em gráfico 2D.
