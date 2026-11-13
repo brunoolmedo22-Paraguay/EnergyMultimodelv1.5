@@ -145,6 +145,136 @@ class ModalNoNavegadorTest(unittest.TestCase):
             self.assertEqual(r[k]["erros"], [], k)
 
 
+    # ----------------------------------------------------------------- revisão do PR #27: visibilidade COMPUTADA e recusas
+    # Re-montar o componente com novos dados = o ciclo do fragmento (1 s) no Streamlit; a resposta do servidor ao pedido
+    # de cancelamento chega do mesmo jeito (``resposta_cancelamento``). Tudo aqui são dados de TESTE.
+    _JS_UTIL = ("window.__vis = () => ['.mx-fundo', '.mx-faixa'].map((s) => { const e = document.querySelector('.pt.mx ' + s), "
+                "r = e.getBoundingClientRect(); return [e.hidden, getComputedStyle(e).display, r.width > 0 && r.height > 0]; }); "
+                "window.__rem = (mud) => window.__monta({ data: Object.assign({}, window.__D, mud), parentElement: document.getElementById('raiz'), "
+                "setTriggerValue: (k, v) => window.__acoes.push(v) }); "
+                "window.__btns = () => [...document.querySelectorAll('.pt.mx .mx-acoes button')].map((b) => b.textContent + (b.disabled ? ':off' : '')); "
+                "window.__msg = () => { const m = document.querySelector('.pt.mx .mx-msg'); return [m.hidden || getComputedStyle(m).display === 'none' ? '' : m.textContent, m.dataset.recusa || null]; }; true")
+
+    def test_visibilidade_computada_em_todos_os_fluxos(self):
+        """``hidden`` tem de valer na TELA (display e caixa), não só no atributo — inclusive sem a regra geral
+        ``.pt [hidden]`` (a regra explícita do modal basta sozinha)."""
+        d = V2UI.dados_modal(_run(progress={"phase": "missao", "k": 8, "n": 12, "janelas": 8}), vivo=True)
+        canc = V2UI.dados_modal(_run("interrompida", {"phase": "missao", "k": 9, "n": 12},
+                                     {"kind": V2UI.CANCEL_KIND, "message": "Execução CANCELADA pelo usuário após 9 de 12."}), vivo=False)
+        sem_geral = ("(() => { for (const sh of document.styleSheets) for (let i = sh.cssRules.length - 1; i >= 0; i--) "
+                     "if (sh.cssRules[i].selectorText === '.pt [hidden]') sh.deleteRule(i); "
+                     "return [...document.styleSheets].some((sh) => [...sh.cssRules].some((r) => r.selectorText === '.pt [hidden]')); })()")
+        ABERTO, OCULTO = [[False, "grid", True], [True, "none", False]], [[True, "none", False], [False, "flex", True]]
+        for nome, remover in (("com_regra_geral", False), ("so_regra_do_modal", True)):
+            passos = [["avaliar", "u", self._JS_UTIL]] + ([["avaliar", "geral", sem_geral]] if remover else []) + [
+                ["avaliar", "aberto", "window.__vis()"],
+                ["clicar", ".pt.mx .mx-acoes .mx-pri"], ["avaliar", "ocultar", "window.__vis()"],
+                ["avaliar", "ciclo_oculto", "(window.__rem({ k: 9, janelas: 9, fracao: 0.75 }), window.__vis())"],   # fragmento atualiza: segue oculto
+                ["clicar", ".pt.mx .mx-reabrir"], ["avaliar", "reabrir", "window.__vis()"],
+                ["tecla", "Escape"], ["avaliar", "escape", "window.__vis()"],
+                ["clicar", ".pt.mx .mx-reabrir"], ["clicarEm", ".pt.mx .mx-fundo", [0.02, 0.02]], ["avaliar", "fora", "window.__vis()"],
+                ["avaliar", "desfecho", "(window.__rem(" + json.dumps(canc) + "), window.__vis())"],                 # desfecho reabre
+                ["avaliar", "acoes", "window.__acoes.length"]]
+            r = P.bancada({"m": d}, passos=passos, componente="execucao")["m"]
+            self.assertEqual(r["erros"], [], nome)
+            v = r["vistas"]
+            if remover:
+                self.assertFalse(v["geral"], "a regra geral deveria ter sido removida neste cenário")
+            self.assertEqual(v["aberto"], ABERTO, nome)
+            for k in ("ocultar", "ciclo_oculto", "escape", "fora"):
+                self.assertEqual(v[k], OCULTO, f"{nome}: {k}")
+            self.assertEqual(v["reabrir"], ABERTO, nome)
+            self.assertEqual(v["desfecho"], ABERTO, nome)
+            self.assertEqual(v["acoes"], 0, nome)                                 # ocultar/Escape/fora/reabrir: nenhuma ação ao servidor
+
+    def test_pedido_recusado_pelo_servidor_volta_ao_estado_real(self):
+        d = V2UI.dados_modal(_run(progress={"phase": "missao", "k": 8, "n": 12, "janelas": 8}), vivo=True)
+        resp = lambda situ, pedido="window.__acoes.at(-1).t": (  # noqa: E731
+            "(window.__rem({ resposta_cancelamento: { pedido: " + pedido + ", situacao: '" + situ + "', mensagem: 'Motivo do servidor: " + situ + "' } }), "
+            "[window.__btns(), window.__msg()])")
+        tarde = "(window.__rem({ fase: 'auditoria', fase_rotulo: 'Auditoria', determinado: false, fracao: null, cancelavel: false, " \
+                "motivo_cancelamento: 'auditoria e gravação em andamento', resposta_cancelamento: { pedido: window.__acoes.at(-1).t, situacao: 'tarde', " \
+                "mensagem: 'A missão já terminou e a auditoria/gravação atômica está em andamento.' } }), [window.__btns(), window.__msg()])"
+        passos = [["avaliar", "u", self._JS_UTIL],
+                  ["clicar", ".pt.mx .mx-acoes .mx-perigo"],
+                  ["avaliar", "duplo", "(() => { const b = document.querySelector('.pt.mx .mx-acoes .mx-perigo.on'); b.click(); b.click(); "
+                                       "return [window.__acoes.length, window.__btns()]; })()"],                          # um pedido só
+                  ["avaliar", "alheia", resp("tarde", "123")],                                 # resposta de OUTRO pedido: ignorada
+                  ["avaliar", "ciclo", "(window.__rem({ k: 9, janelas: 9 }), window.__btns())"],  # ciclos sem resposta: pendente
+                  ["avaliar", "recusa", resp("outro_processo")],
+                  ["avaliar", "ciclo2", "(window.__rem({ k: 10, janelas: 10 }), [window.__btns(), window.__msg()])"],
+                  # novo pedido, recusado por «tarde» (o servidor também passa a desabilitar o botão)
+                  ["clicar", ".pt.mx .mx-acoes .mx-perigo"], ["avaliar", "limpa", "window.__msg()"],
+                  ["clicar", ".pt.mx .mx-acoes .mx-perigo.on"], ["avaliar", "tarde", tarde],
+                  ["avaliar", "n", "window.__acoes.map((a) => a.type)"]]
+        r = P.bancada({"m": d}, passos=passos, componente="execucao")["m"]
+        self.assertEqual(r["erros"], [])
+        v = r["vistas"]
+        self.assertEqual(v["duplo"], [1, ["OCULTAR PAINEL", "CANCELAMENTO SOLICITADO…:off"]])
+        self.assertEqual(v["alheia"][0], ["OCULTAR PAINEL", "CANCELAMENTO SOLICITADO…:off"])
+        self.assertEqual(v["ciclo"], ["OCULTAR PAINEL", "CANCELAMENTO SOLICITADO…:off"])
+        self.assertEqual(v["recusa"][0], ["OCULTAR PAINEL", "CANCELAR EXECUÇÃO"])        # pendente limpo: nada foi cancelado
+        self.assertEqual(v["recusa"][1], ["Cancelamento NÃO realizado — Motivo do servidor: outro_processo", "outro_processo"])
+        self.assertEqual(v["ciclo2"][1][1], "outro_processo")                           # a justificativa permanece nos ciclos seguintes
+        self.assertEqual(v["limpa"], ["", None])                                         # nova tentativa: confirmação de novo
+        self.assertEqual(v["tarde"][0], ["OCULTAR PAINEL", "CANCELAR EXECUÇÃO:off"])
+        self.assertIn("Cancelamento NÃO realizado — A missão já terminou", v["tarde"][1][0])
+        self.assertEqual(v["n"], ["cancelar", "cancelar"])
+
+    def test_pedido_aceito_e_pedido_sem_resposta(self):
+        d = V2UI.dados_modal(_run(progress={"phase": "missao", "k": 8, "n": 12, "janelas": 8}), vivo=True)
+        canc = V2UI.dados_modal(_run("interrompida", {"phase": "missao", "k": 8, "n": 12},
+                                     {"kind": V2UI.CANCEL_KIND, "message": "Execução CANCELADA pelo usuário após 8 de 12."}), vivo=True)
+        aceito = ("(window.__rem(Object.assign(" + json.dumps(canc) + ", { resposta_cancelamento: { pedido: window.__acoes.at(-1).t, "
+                  "situacao: 'solicitado', mensagem: 'ok' } })), [document.querySelector('.pt.mx .mx-titulo').textContent, window.__btns()])")
+        passos = [["avaliar", "u", self._JS_UTIL],
+                  ["clicar", ".pt.mx .mx-acoes .mx-perigo"], ["clicar", ".pt.mx .mx-acoes .mx-perigo.on"],
+                  ["avaliar", "espera", "new Promise((ok) => setTimeout(() => ok([window.__btns(), window.__msg()]), 21000))"],
+                  ["clicar", ".pt.mx .mx-acoes .mx-perigo"], ["clicar", ".pt.mx .mx-acoes .mx-perigo.on"],
+                  ["avaliar", "aceito", aceito]]
+        r = P.bancada({"m": d}, passos=passos, componente="execucao")["m"]
+        self.assertEqual(r["erros"], [])
+        v = r["vistas"]
+        self.assertEqual(v["espera"][0], ["OCULTAR PAINEL", "CANCELAR EXECUÇÃO"])         # sem resposta: não fica «solicitado» para sempre
+        self.assertEqual(v["espera"][1][1], "sem_resposta")
+        self.assertIn("nada indica que a rodada tenha sido cancelada", v["espera"][1][0])
+        self.assertEqual(v["aceito"][0], "Cancelamento solicitado")                     # aceito: o estado GRAVADO decide
+        self.assertEqual(v["aceito"][1], ["FECHAR", "VER DIAGNÓSTICO:off"])
+
+
+class RespostaDoServidorTest(unittest.TestCase):
+    """``_acao_modal`` grava a resposta REAL de ``cancelar`` vinculada ao pedido do navegador; ``acompanhar`` a entrega."""
+
+    def test_resposta_vinculada_ao_pedido(self):
+        ss = {}
+        acao = {"type": "cancelar", "run": "a" * 32, "t": 1731500000123}
+        with mock.patch.object(V2UI, "_ss", return_value=ss), mock.patch.object(V2UI.shell, "payload", return_value=acao), \
+                mock.patch.object(V2UI, "cancelar", return_value=("tarde", "auditoria em andamento")) as canc:
+            V2UI._acao_modal(object(), lambda uid: None)
+        canc.assert_called_once()
+        self.assertEqual(ss[V2UI.RESPOSTA_CANCEL + "a" * 32],
+                         {"pedido": 1731500000123, "situacao": "tarde", "mensagem": "auditoria em andamento"})
+        self.assertNotIn(V2UI.RERUN_APP, ss)                                      # cancelar não muda a página
+
+    def test_fechar_e_diagnostico_pedem_rerun_da_pagina(self):
+        """``st.rerun`` não tem efeito num callback de componente: FECHAR/VER DIAGNÓSTICO marcam ``RERUN_APP`` e o
+        próximo ciclo do fragmento (``acompanhar``) o executa — como o «OK» da página."""
+        for tipo in ("fechar", "diagnostico"):
+            ss, abertas = {V2UI.SEGUIR: "a" * 32}, []
+            with mock.patch.object(V2UI, "_ss", return_value=ss), \
+                    mock.patch.object(V2UI.shell, "payload", return_value={"type": tipo, "run": "a" * 32, "t": 1}):
+                V2UI._acao_modal(object(), abertas.append)
+            self.assertTrue(ss.get(V2UI.RERUN_APP), tipo)
+            self.assertNotIn(V2UI.SEGUIR, ss, tipo)
+            self.assertEqual(abertas, ["a" * 32] if tipo == "diagnostico" else [], tipo)
+            self.assertEqual(ss.get(f"op_v2_ok_{'a' * 32}"), True if tipo == "fechar" else None, tipo)
+        ss = {V2UI.RERUN_APP: True}
+        with mock.patch.object(V2UI, "_ss", return_value=ss), mock.patch.object(V2UI.st, "rerun", side_effect=RuntimeError("rerun")) as rr:
+            with self.assertRaisesRegex(RuntimeError, "rerun"):
+                V2UI.acompanhar(object(), _run(progress={"phase": "missao", "k": 1, "n": 12}), open_run=lambda u: None, vivo=True)
+        rr.assert_called_once_with(scope="app")
+        self.assertNotIn(V2UI.RERUN_APP, ss)                                      # uma vez só
+
 # =========================================================================================== cancelamento real (HiGHS)
 @unittest.skipUnless(P.SOLVER, "Pyomo/HiGHS não instalados")
 class CancelamentoRealTest(unittest.TestCase):

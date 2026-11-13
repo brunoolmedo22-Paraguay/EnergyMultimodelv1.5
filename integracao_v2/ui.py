@@ -713,6 +713,8 @@ def progresso(run) -> None:
 # CONCLUÍDA no banco. Ocultar o painel é estado do navegador; CANCELAR é uma ação real (``cancelar``).
 SEGUIR = "op_v2_seguir"                          # rodada V2 acompanhada nesta sessão (mostra o desfecho até ser dispensado)
 CANCEL_KIND = "cancelada_pelo_usuario"
+RERUN_APP = "op_v2_rerun_app"                  # ação do modal que muda a página inteira (FECHAR, VER DIAGNÓSTICO)
+RESPOSTA_CANCEL = "op_v2_cancel_resp_"          # + run_uid: última resposta do servidor a um pedido de cancelamento
 FASES_MODAL = ("fila", "montagem", "missao", "auditoria", "gravando")
 
 
@@ -804,13 +806,17 @@ def _acao_modal(store, open_run) -> None:
         return
     ss = _ss()
     if a.get("type") == "cancelar":
-        ss["op_v2_cancel_msg"] = cancelar(store, str(a["run"]))
+        situacao, mensagem = cancelar(store, str(a["run"]))
+        # resposta REAL do servidor, vinculada ao pedido do navegador (``t``): o modal só sai de «solicitado» com ela
+        ss[RESPOSTA_CANCEL + str(a["run"])] = {"pedido": a.get("t"), "situacao": situacao, "mensagem": mensagem}
     elif a.get("type") == "diagnostico":
         ss.pop(SEGUIR, None)
         open_run(str(a["run"]))
+        ss[RERUN_APP] = True          # ``st.rerun`` num callback não tem efeito: o próximo ciclo do fragmento o pede
     elif a.get("type") == "fechar":
         ss.pop(SEGUIR, None)
         ss[f"op_v2_ok_{a['run']}"] = True
+        ss[RERUN_APP] = True          # mesmo efeito do «OK» da página: o desfecho sai da tela inteira, não só o painel
 
 
 def acompanhar(store, run, *, open_run, vivo: bool) -> None:
@@ -820,6 +826,8 @@ def acompanhar(store, run, *, open_run, vivo: bool) -> None:
     from seeds2.ui import trama
 
     ss = _ss()
+    if ss.pop(RERUN_APP, False):
+        st.rerun(scope="app")
     d = dados_modal(run, vivo=vivo)
     if d["situacao"] == "concluida":
         chave = f"op_v2_fim_{run.run_uid}"
@@ -829,9 +837,9 @@ def acompanhar(store, run, *, open_run, vivo: bool) -> None:
             open_run(run.run_uid)
             st.rerun(scope="app")
         ss[chave] = True
-    msg = ss.pop("op_v2_cancel_msg", None)
-    if msg:
-        d["aviso_cancelamento"] = {"situacao": msg[0], "mensagem": msg[1]}
+    resp = ss.get(RESPOSTA_CANCEL + run.run_uid)
+    if resp:
+        d["resposta_cancelamento"] = dict(resp)
     with st.container(border=True):
         if d["situacao"] == "andamento":
             st.html(f'<div class="op-row"><div class="op-t">Execução em andamento · rodada {escape(run.run_uid[:8])}…</div>'

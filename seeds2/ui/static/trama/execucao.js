@@ -21,6 +21,16 @@ function progressoMx(D) {
   return { pct, rotulo, largura: D.situacao === "concluida" ? 100 : pct };
 }
 
+const ESPERA_RESPOSTA_MX = 20000;
+const SEM_RESPOSTA_MX = "O servidor não respondeu ao pedido de cancelamento; nada indica que a rodada tenha sido cancelada. A execução continua.";
+function atualizarMsgMx(root) {
+  // mensagem do desfecho (gravada) OU a recusa/falta de resposta ao pedido de cancelamento (a execução segue)
+  const D = root.__D || {}, msg = root.querySelector(".mx-msg"), r = D.situacao === "andamento" ? root.__recusa : null;
+  const texto = D.mensagem || (r ? "Cancelamento NÃO realizado — " + r.mensagem : "");
+  msg.hidden = !texto; msg.textContent = texto;
+  msg.className = "mx-msg " + (D.situacao === "falha" ? "b" : "w");
+  if (r) msg.dataset.recusa = r.situacao; else delete msg.dataset.recusa;
+}
 function svgMx(G) {
   // mini-diagrama ABSTRATO (decorativo): fontes → barramento → armazenamento/rede, pulsos delicados. Não representa fluxos.
   const no = (x, y, k, cor, ico) => `<g class="mx-no" style="--kc:${cor}" transform="translate(${x - 17} ${y - 17})"><circle cx="17" cy="17" r="17" class="mx-nf"/><g transform="translate(6 6)" class="mx-ni">${(ico || "").replace("<svg ", '<svg width="22" height="22" ')}</g></g>`;
@@ -38,7 +48,7 @@ export default function (component) {
   const { data, parentElement, setTriggerValue } = component, D = data || {};
   const [root] = raizPt(parentElement, "pg mx");
   const G = typeof ICONES_GESTOR !== "undefined" ? ICONES_GESTOR : {};
-  const chave = "seeds2.execucao.oculto." + D.run, ir = (a) => setTriggerValue("action", { ...a, run: D.run, t: Date.now() });
+  const chave = "seeds2.execucao.oculto." + D.run, ir = (a) => setTriggerValue("action", { run: D.run, t: Date.now(), ...a });
   const lerOculto = () => { try { return sessionStorage.getItem(chave); } catch (_) { return null; } };
   const gravarOculto = (v) => { try { if (v == null) sessionStorage.removeItem(chave); else sessionStorage.setItem(chave, v); } catch (_) { /* sem armazenamento */ } };
   const sig = JSON.stringify(D);
@@ -46,7 +56,7 @@ export default function (component) {
   root.__sig = sig;
 
   if (root.__run !== D.run) {                                   // estrutura montada uma vez por rodada
-    root.__run = D.run; root.__confirmar = false; root.__aberto = null;
+    root.__run = D.run; root.__confirmar = false; root.__aberto = null; root.__pedido = null; root.__recusa = null;
     root.innerHTML = `
       <div class="mx-faixa" hidden><span class="mx-faixa-t"><i class="mx-led"></i><span class="mx-faixa-txt"></span></span><button type="button" class="pill on mx-reabrir">ACOMPANHAR EXECUÇÃO</button></div>
       <div class="mx-fundo" hidden><div class="mx-card" role="dialog" aria-modal="true" aria-labelledby="mx-titulo" aria-describedby="mx-desc" tabindex="-1">
@@ -66,8 +76,8 @@ export default function (component) {
           <div class="mx-hor" aria-hidden="true"><span class="mx-hor-feito"></span><span class="mx-hor-jan"></span></div>
           <div class="mx-hor-l dim3"></div>
         </div>
-        <div class="mx-msg" hidden></div>
         <footer class="mx-rod">
+          <div class="mx-msg" role="status" hidden></div>
           <span class="mx-nota dim3"></span>
           <span class="mx-acoes"></span>
         </footer>
@@ -115,25 +125,37 @@ export default function (component) {
     root.querySelector(".mx-hor-feito").style.width = 100 * f + "%"; const jan = root.querySelector(".mx-hor-jan"); jan.style.left = 100 * f + "%"; jan.style.width = 100 * w + "%";
     hl.textContent = D.situacao === "andamento" && D.k < D.n ? `Horizonte MPC: próxima janela de ${Math.min(D.N, D.n - D.k)} intervalo(s) a partir de ${D.k}` : "Horizonte MPC";
   } else { hor.hidden = true; hl.hidden = true; }
-  const msg = root.querySelector(".mx-msg"), av = D.aviso_cancelamento;
-  const texto = D.mensagem || (av && av.situacao !== "solicitado" ? av.mensagem : "");
-  msg.hidden = !texto; msg.textContent = texto; msg.className = "mx-msg " + (D.situacao === "falha" || (av && av.situacao !== "solicitado") ? "b" : "w");
+  // pedido de cancelamento: só a RESPOSTA do servidor ao MESMO pedido (``pedido`` = id enviado) o resolve
+  const R = D.resposta_cancelamento;
+  if (D.situacao !== "andamento") { root.__pedido = null; root.__recusa = null; }
+  else if (root.__pedido && R && R.pedido === root.__pedido && R.situacao !== "solicitado") {
+    root.__pedido = null; root.__recusa = { situacao: R.situacao, mensagem: R.mensagem };      // recusado: nada foi cancelado
+  }
+  root.__D = D;
+  atualizarMsgMx(root);
   root.querySelector(".mx-nota").textContent = D.situacao === "andamento" ? "A execução continua no servidor mesmo que o painel seja ocultado ou a página recarregada."
     : D.situacao === "cancelando" ? "A janela em curso termina no solver e é descartada; nenhum resultado será gravado."
       : D.situacao === "concluida" ? "Abrindo os resultados gravados…" : "Nenhum resultado foi gravado como concluído.";
   // ações (relidas do estado MAIS RECENTE a cada ciclo e a cada clique; a confirmação do cancelamento é local)
-  root.__D = D;
   const renderAcoes = (focar) => {
     const X = root.__D, acoes = root.querySelector(".mx-acoes");
     // só recria os botões quando o CONJUNTO de ações muda (recriar a cada ciclo tiraria o foco do teclado)
-    if (X.situacao !== "andamento") root.__pedido = false;
     const assin = JSON.stringify([X.situacao, X.cancelavel, X.motivo_cancelamento, !!root.__confirmar, !!root.__pedido]);
     if (!focar && acoes.__assin === assin) return;
     acoes.__assin = assin;
     const btn = (t, cls, f, extra = {}) => h("button", { type: "button", class: "pill " + cls, onclick: f, ...extra }, t);
     const lista = [];
     if (X.situacao === "andamento" && root.__confirmar && X.cancelavel) {
-      const sim = btn("SIM, CANCELAR", "mx-perigo on", () => { root.__confirmar = false; root.__pedido = true; ir({ type: "cancelar" }); renderAcoes(true); });
+      const sim = btn("SIM, CANCELAR", "mx-perigo on", () => {
+        if (root.__pedido) return;                                // um pedido por vez (sem cliques duplicados)
+        const id = Date.now(); root.__confirmar = false; root.__pedido = id; root.__recusa = null;
+        ir({ type: "cancelar", t: id }); atualizarMsgMx(root); renderAcoes(true);
+        setTimeout(() => {                                         // sem resposta do servidor ⇒ nada indica cancelamento
+          if (root.__pedido !== id || !root.__D || root.__D.situacao !== "andamento") return;
+          root.__pedido = null; root.__recusa = { situacao: "sem_resposta", mensagem: SEM_RESPOSTA_MX };
+          atualizarMsgMx(root); renderAcoes(true);
+        }, ESPERA_RESPOSTA_MX);
+      });
       lista.push(h("span", { class: "mx-conf" }, "Cancelar esta rodada? A janela em curso termina e é descartada; nada é gravado."),
         btn("VOLTAR", "mx-pri", () => { root.__confirmar = false; renderAcoes(true); }), sim);
       acoes.replaceChildren(...lista); if (focar) setTimeout(() => sim.focus({ preventScroll: true }), 20); return;
@@ -143,7 +165,7 @@ export default function (component) {
       lista.push(btn("OCULTAR PAINEL", "mx-pri", () => root.__ocultar()), btn("CANCELAMENTO SOLICITADO…", "mx-perigo", null, { disabled: true }));
     } else if (X.situacao === "andamento") {
       lista.push(btn("OCULTAR PAINEL", "mx-pri", () => root.__ocultar()),
-        btn("CANCELAR EXECUÇÃO", "mx-perigo", () => { root.__confirmar = true; renderAcoes(true); },
+        btn("CANCELAR EXECUÇÃO", "mx-perigo", () => { root.__confirmar = true; root.__recusa = null; atualizarMsgMx(root); renderAcoes(true); },
           X.cancelavel ? {} : { disabled: true, title: X.motivo_cancelamento || "Cancelamento indisponível para esta execução" }));
       if (!X.cancelavel && X.motivo_cancelamento) lista.push(h("span", { class: "mx-motivo dim3" }, X.motivo_cancelamento));
     } else if (X.situacao === "concluida") {

@@ -27,7 +27,15 @@
 - **Verificação (código `fefb920`):** regressão completa com solver 2350 passed, 2 skipped, 2 failed (só as
   pré-existentes de `requirements.txt`); `test_ui_running01` 9 passed; E2E 3D-A/A2-R/A2-H/3D-B aprovados. Detalhes:
   `PARAMIJEFE.md` Entrega 21.
-- **Próximo passo:** revisão do PR pelo responsável; decidir a exceção de `requirements.txt` nas guardas.
+- **Revisão do PR #27 (corrigida no mesmo PR; `UI_RUNNING_01.md` §5):** (1) regra explícita
+  `.pt.mx .mx-fundo[hidden], .pt.mx .mx-faixa[hidden] { display: none !important }` + testes de visibilidade COMPUTADA
+  (também sem a regra geral `.pt [hidden]`); (2) resposta do servidor vinculada ao pedido (`RESPOSTA_CANCEL`,
+  `resposta_cancelamento`): recusa limpa o pendente e mostra a justificativa; sem resposta em 20 s também; (3) achados
+  na verificação: FECHAR/VER DIAGNÓSTICO do modal agora mudam a página (`RERUN_APP` → `st.rerun(scope="app")` no ciclo
+  seguinte do fragmento) e a mensagem fica no rodapé fixo do cartão (não encolhe mais até sumir).
+- **Guardas de `requirements.txt`:** proposta C-DEPLOY-01 em `docs/seeds2/PROPOSTA_C_DEPLOY_01.md` (exceção nominal
+  por SHA-256 literal do conteúdo de `f523035`; patch verificado num worktree separado; **NÃO aplicada**).
+- **Próximo passo:** revisão do PR pelo responsável; decidir C-DEPLOY-01 (e o ponto §4 dela: solver no deploy).
 
 ---
 

@@ -31,7 +31,7 @@ nova, nenhum rerun extra da página.
 | Ocultar / Escape / clique fora | Só esconde (estado do navegador por rodada, `sessionStorage`); a execução segue no servidor; aparece «ACOMPANHAR EXECUÇÃO» para reabrir. Nunca cancela. |
 | Recarga / outra aba | A rodada ativa é relida do banco (a mesma; nenhuma nova). Na mesma aba, o painel oculto continua oculto (reabre por «ACOMPANHAR EXECUÇÃO»); numa aba nova o modal abre sozinho ao chegar à tela de execução. Uma MUDANÇA de desfecho (concluída, falha, cancelada) reabre o painel. |
 | Conclusão | «Concluída» (100 %) por um ciclo e abertura automática da rodada — o mesmo destino de antes (testes e roteiros dependem dele). |
-| Falha / missão interrompida | «Falha na execução» / «Missão interrompida» com a mensagem REAL gravada pelo runner; o desfecho fica visível (modal e cartão) até o usuário escolher «VER DIAGNÓSTICO» ou «FECHAR/OK». Nunca vira sucesso nem «cancelada». |
+| Falha / missão interrompida | «Falha na execução» / «Missão interrompida» com a mensagem REAL gravada pelo runner; o desfecho fica visível (modal e cartão) até o usuário escolher «VER DIAGNÓSTICO» ou «FECHAR/OK». Nunca vira sucesso nem «cancelada». FECHAR do modal = «OK» da página (o desfecho sai da página inteira); VER DIAGNÓSTICO abre a rodada. |
 
 ## 3. Cancelamento — auditoria e decisão
 
@@ -57,7 +57,9 @@ janelas, só no teste):
 * estado final `interrompida` (estado já existente), `error.kind = cancelada_pelo_usuario`, mensagem com os intervalos
   aplicados; **nenhum dado, resumo ou custo** é gravado; o runner não sobrescreve o desfecho; a microrrede fica livre para
   uma nova rodada; nada é reexecutado automaticamente; outras rodadas não são afetadas.
-* confirmação explícita antes do pedido («Cancelar esta rodada? … SIM, CANCELAR»).
+* confirmação explícita antes do pedido («Cancelar esta rodada? … SIM, CANCELAR»); um pedido por vez (cliques
+  duplicados ignorados);
+* o modal só sai de «CANCELAMENTO SOLICITADO…» com a RESPOSTA do servidor ao MESMO pedido (§5).
 
 Limitação documentada: o cancelamento é por **janela** (o solver não é abortado no meio de uma resolução; o tempo até a
 confirmação é o da janela em curso, limitado pelo `time_limit_s` declarado). Abortar o HiGHS no meio exigiria mexer no
@@ -69,7 +71,8 @@ adaptador do solver (`ems_v2`), o que não foi feito.
   com os ícones e as cores do Gestor (`trama.icones_gestor_js`/`tokens_gestor_css`).
 * Cartão central `min(50vw, 680px)` × no máximo `50dvh` (medido: 42–46 % da altura em 1366×768, 1280×720 e 1440×900),
   overlay translúcido com desfoque leve; celular: `92vw` × até `78dvh` (medido 58 % em 390×844); rolagem interna só se
-  necessária; rodapé sempre visível; sem rolagem horizontal.
+  necessária, só na parte superior: o rodapé (mensagem do desfecho/recusa + ações) fica preso embaixo e sempre visível;
+  sem rolagem horizontal.
 * Marca **SEEDS2 | RUNNING SIMULATION** com o traço da plataforma; animação ORIGINAL em SVG/CSS: mini-diagrama abstrato
   (fontes → barramento → armazenamento/rede, pulsos delicados) — decorativo (`aria-hidden`), não representa fluxos;
   parada fora de «em andamento».
@@ -78,3 +81,32 @@ adaptador do solver (`ems_v2`), o que não foi feito.
   «ACOMPANHAR EXECUÇÃO»; `prefers-reduced-motion` desliga pulsos, brilho e transições.
 * A estrutura do componente é montada uma vez por rodada e só atualizada: a animação não reinicia e o foco do teclado não
   é perdido a cada ciclo.
+
+## 5. Revisão do PR #27 (correções)
+
+1. **Visibilidade REAL do modal e da faixa.** `.pt.mx .mx-fundo { display: grid }` e `.pt.mx .mx-faixa { display: flex }`
+   podiam vencer o atributo `hidden`. Medido em Chromium: a ocultação só funcionava graças à regra geral
+   `.pt [hidden] { display: none !important }`; sem ela o overlay continuava `display: grid` em 1366×768 com
+   `hidden === true` (e interceptava os cliques). Regra EXPLÍCITA acrescentada:
+   `.pt.mx .mx-fundo[hidden], .pt.mx .mx-faixa[hidden] { display: none !important; }`. Os testes medem `getComputedStyle`
+   e a caixa (e, no servidor real, qual elemento recebe o clique no centro da tela) em: abrir, ocultar, ciclos do
+   fragmento com o painel oculto, recarga, reabrir, Escape, clique fora, desfecho (reabre) e FECHAR — também com a regra
+   geral REMOVIDA, provando que a regra do modal basta sozinha.
+2. **Pedidos de cancelamento recusados.** O pedido leva um identificador (`t`); `integracao_v2/ui._acao_modal` grava a
+   resposta REAL de `cancelar` vinculada a ele (`op_v2_cancel_resp_<rodada>`), e o modal a recebe em
+   `resposta_cancelamento`. Só a resposta ao MESMO pedido resolve o pendente: aceito ⇒ o estado gravado decide
+   («Cancelamento solicitado» → «Cancelada»); recusado (`tarde`, `outro_processo`, `finalizada`, `inexistente`) ⇒ o
+   pendente é limpo, o botão volta ao estado real (desabilitado se o servidor também o desabilitou) e o modal mostra
+   «Cancelamento NÃO realizado — <justificativa do servidor>» até uma nova tentativa ou a mudança de estado; SEM resposta
+   em 20 s ⇒ o pendente também é limpo, com «O servidor não respondeu… nada indica que a rodada tenha sido cancelada».
+   Confirmação explícita e bloqueio de cliques duplicados preservados (um só pedido enviado). A recusa só ocorre numa
+   corrida (os estados recusáveis já desabilitam o botão), por isso é exercitada pela bancada + teste do servidor.
+3. **Encontrados na verificação e corrigidos:**
+   * FECHAR/VER DIAGNÓSTICO do modal só escondiam o painel: `st.rerun` num callback de componente não tem efeito, e o
+     cartão do desfecho e a faixa ficavam na página. Agora a ação marca `op_v2_rerun_app` e o ciclo seguinte do
+     fragmento faz `st.rerun(scope="app")` — mesmo efeito do «OK»/«VER DIAGNÓSTICO» da página.
+   * A mensagem (que tem `overflow: auto`) encolhia até sumir dentro do cartão limitado a 50dvh. Agora os filhos do
+     cartão não encolhem e a mensagem fica no rodapé fixo, junto das ações.
+
+O EMS, o runner, os modelos e a persistência continuam intocados (auditoria `ok: true`). Guardas preexistentes de
+`requirements.txt`: proposta separada em `docs/seeds2/PROPOSTA_C_DEPLOY_01.md` (não aplicada).
