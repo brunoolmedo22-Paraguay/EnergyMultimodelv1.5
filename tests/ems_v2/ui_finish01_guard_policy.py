@@ -32,7 +32,9 @@ MODIFICADOS = frozenset({"seeds2/report/dossier.py", "seeds2/ui/report_exports.p
                          "tests/test_piso3da_execucao.py",
                          "tests/ems_v2/ui_running01_guard_policy.py", "tests/ems_v2/piso3db_guard_policy.py"})
 ADICIONADOS = frozenset({"integracao_v2/documentos.py", "tests/test_ui_finish01.py", "tests/ems_v2/ui_finish01_guard_policy.py",
-                         "tests/ems_v2/test_ui_finish01_guardas.py"})
+                         "tests/ems_v2/test_ui_finish01_guardas.py",
+                         "tests/ems_v2/deploy_requirements_guard_policy.py",
+                         "tests/ems_v2/test_deploy_requirements_guardas.py"})
 # linhas que PODEM ter saído dos dois arquivos fora da interface (substituídas pelas versões cientes do motor)
 REMOVIDAS = {
     "seeds2/report/dossier.py": {
@@ -72,9 +74,11 @@ def removidas_fora_da_lista(root: Path, base: str = BASE) -> dict:
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos; os dois arquivos fora da interface só se as remoções forem as listadas."""
     conforme = not removidas_fora_da_lista(root)
-    return [row for row in changes if not (len(row) == 2 and (
+    restantes = [row for row in changes if not (len(row) == 2 and (
         (row[0] == "M" and row[1] in MODIFICADOS and (conforme or row[1] not in REMOVIDAS))
         or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from deploy_requirements_guard_policy import filter_changes as filter_deploy
+    return filter_deploy(root, restantes)
 
 
 def filter_intocados(root: Path, linhas: list[list[str]]) -> list[list[str]]:
@@ -100,6 +104,8 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
 
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base).splitlines() if ln.strip()]
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
+    from deploy_requirements_guard_policy import filter_changes as filter_deploy
+    linhas = filter_deploy(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     fora = removidas_fora_da_lista(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,
