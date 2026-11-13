@@ -26,7 +26,8 @@
 - **E2E ajustados (navegação nova):** `e2e_piso3db_plataforma.js` (grupo Bancadas), `e2e_piso2a_centro_operacao.js`,
   `e2e_stabilization_benches.js`, `e2e_piso3da2h.js` (bancada H₂ pela barra lateral). Os roteiros que acionam
   «ABRIR EXECUÇÃO» etc. continuam válidos (mesmo nome acessível).
-- **Verificação:** ver «Verificação UI-REDESIGN-01» em `PARAMIJEFE.md` Entrega 20.
+- **Verificação (código `ac67b91`):** com solver 2343 passed, 2 skipped; sem solver 1822 passed, 178 skipped; E2E `run_piso3db.sh` 103 + 79, `run_piso3da2h.sh` 60, bancadas (estabilização) 22/21/20/28/19; detalhes em `PARAMIJEFE.md` Entrega 20.
+- **Lição:** `tools/e2e/bancada_piso3db.py` monta DUAS páginas (Partitura e componentes de página); só a segunda recebe os ícones/cores do Gestor.
 
 ---
 

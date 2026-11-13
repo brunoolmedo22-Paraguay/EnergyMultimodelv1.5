@@ -3291,3 +3291,16 @@ Decisiones y lo que NO se removió: `docs/seeds2/UI_REDESIGN_01.md`. Evidencia a
 - La primera ejecución de `run_piso3da2h.sh` falló por temporización (el clic en «ABRIR EXECUÇÃO» esperó 30 s mientras el preflight V2 recalculaba la curva H₂ tras guardar); repetido aislado, pasó entero.
 
 ### 4. Verificación
+
+Código final `ac67b91` (los commits siguientes solo cambian documentación).
+
+- **Regresión completa con solver** (Pyomo 6.10.1 + HiGHS): **2343 passed, 2 skipped, 150 subtests (1326 s), 0 fallos** (`main` `8cbd15c`: 2335 passed). Una pasada intermedia sobre `29b1e90` dio 16 errores con una sola causa — la página de banco del instrumento Partitura (`tools/e2e/bancada_piso3db.py`) usaba los tokens del Gestor sin importarlos — corregida en `ac67b91` (66 passed en los archivos afectados).
+- **Regresión completa sin solver:** **1822 passed, 178 skipped, 145 subtests (692 s), 0 fallos**.
+- **Suites focalizadas** (UI-REDESIGN-01, plataforma, Folha, Caderno, app 3D-B/3D-A/A2-R/A2-H, app 2A–2D-B, app SEEDS2, Gestor, smoke, `tests/ems_v2` sin MILP): 1419 passed, 2 skipped.
+- **E2E en navegador real:** `run_piso3db.sh` **103 + 79** verificaciones (grupo «Bancadas» incluido; registro del motor vacío en la consulta); `run_piso3da2h.sh` **60** (banco H₂ abierto por la barra lateral; 1ª ejecución con falla de temporización, repetida aislada y aprobada); guion de aceptación de las bancadas `e2e_stabilization_benches.js` con las cinco abiertas por la barra lateral: solar 22, eólica 21, térmica 20, batería 28, H₂ 19 verificaciones (incluye «la navegación sigue tras recargar»).
+- **Verificación visual** (capturas en `docs/seeds2/evidencia_ui_redesign01/`): barra lateral expandida, etapas con escenario completo e incompleto (estados reales, «próxima», impedimento), stepper vertical a 400 px, Planta con y sin rodada, selección/realce/panel, 400 px; clic en la superficie de la etapa y Tab + Enter navegan; sin errores de página ni de consola; sin desbordamiento horizontal.
+- Auditoría explícita de la misión: `ok: true`.
+
+### 5. Recomendación
+
+Sin defectos bloqueantes conocidos. Riesgos menores: (a) los roteiros E2E manuales de los pisos 1–2D-B que abrían las bancadas por el bloque antiguo se actualizaron solo en los casos encontrados (2A, estabilización, 3D-A2-H, plataforma); (b) `run_stabilization.py` exige un Chromium del sistema en `/usr/bin/chromium` (dependencia de entorno anterior). Apto para revisión; **sin merge** hasta autorización expresa del responsable.
