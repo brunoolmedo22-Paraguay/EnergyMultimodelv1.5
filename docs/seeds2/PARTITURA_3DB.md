@@ -1,4 +1,4 @@
-# Partitura e motor gráfico Trama — Piso 3D-B (entregas B0, B1 e B3)
+# Partitura e motor gráfico Trama — Piso 3D-B (entregas B0, B1, B3 e B2)
 
 Direção de design aprovada pelo responsável: **Partitura V2** (uma linha do tempo, lentes, inspetor sincronizado e
 explorador de recursos). Este documento descreve o que está **integrado na aplicação Streamlit real**, o que ainda existe só
@@ -286,3 +286,27 @@ imediata») e a tabela abaixo. A referência visual é a Partitura V2 aprovada (
   isso o layout de três colunas do protótipo e a régua de horizontes ficaram de fora desta entrega (pendência declarada).
 * **Barra lateral.** Ganhou Planta, Caderno de ensaios e Folha de ensaio. Depois de um clique de mouse recolhe-se até o
   ponteiro sair; expande com hover ou com o foco do teclado.
+
+### 8.6 Estabilização visual e fluxo de ponta a ponta (concluídos)
+
+* **C-3DB-15 — barra superior compacta.** Com a barra lateral em todas as vistas, a barra superior deixou de repetir a
+  navegação: mostra a marca, a identidade da microrrede, TROCAR MICRORREDE e o estado de salvamento. A navegação clássica
+  completa (os mesmos links, visíveis) continua disponível com `SEEDS2_NAV_CLASSICA=1` no ambiente do servidor — é a
+  alternativa durante a migração e o modo dos roteiros E2E dos pisos anteriores (`tools/e2e/servidor.sh`).
+* **Fluxo de aceitação verificado no navegador** (`tools/e2e/run_piso3db.sh`, servidor sem solver): Gestor/Catálogo →
+  ABRIR MICRORREDE → Planta → equipamento por UID → painel individual na Partitura da rodada → Caderno → Folha (seções
+  01–04, com o preflight e a execução da etapa existente) → rodada → estudo do Arquivo Científico.
+* **Motor e modelos.** Consultar (Catálogo, Planta, painéis, Caderno, rodada, estudo) não chama motor, solver nem modelos
+  — conferido com o registro vazio. As páginas de PREPARAÇÃO (Centro de Operação, Folha, Execução) executam o preflight V2
+  da versão salva, que deriva o potencial renovável pelos modelos físicos (uma vez por versão e sessão): comportamento
+  anterior ao 3D-B2, que a Folha herda ao mostrar o estado da seção 04.
+* **Regressão completa sobre `5cade04`:** com solver 2314 passed, 2 skipped, 150 subtests (929,9 s); sem solver 1795 passed, 176 skipped, 145 subtests (520,0 s).
+
+### 8.7 Pendências concretas do 3D-B2
+
+1. Folha em três colunas (índice | seção | prontidão) com subseções navegáveis da estratégia V2 e a régua de horizontes.
+2. Comparação de rodadas no Caderno (o protótipo tinha; exige definir elegibilidade — mesmo inventário e previsões).
+3. Restos de verde-azulado fixo no CSS de páginas antigas (`OP_CSS`, `EX_CSS`) e nos selos de estado.
+4. Séries climáticas por intervalo nos painéis solar e eólico; V(E) com dois bancos em gráfico 2D.
+5. Os roteiros E2E dos pisos 1 a 2D-B (sem `run_*.sh`) precisam de `SEEDS2_NAV_CLASSICA=1` no servidor; não foram
+   reexecutados depois do 3D-B2.

@@ -7,8 +7,8 @@
 |---|---|
 | **Branch** | `claude/stoic-meitner-2vs91m` (base `main` `724d235`) |
 | **PR** | Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24) contra `main` — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Último checkpoint publicado** | ver `git log -1` da branch; tabela «Checkpoints do 3D-B2» abaixo |
-| **Missão em curso** | Piso **3D-B2** — integração visual da plataforma (autorizado pelo responsável após aprovar o 3D-B3 no HEAD `590b826`, CI verde nos dois ambientes) |
+| **Último checkpoint publicado** | código final do 3D-B2 em `5cade04` (+ commit de documentação); tabela «Checkpoints do 3D-B2» abaixo |
+| **Missão em curso** | Piso **3D-B2** — integração visual da plataforma: **C0, B2-A, B2-B, B2-C, B2-D e estabilização ENTREGUES**; aguardando revisão do responsável (pendências concretas abaixo) |
 
 ## Checkpoints do 3D-B2
 
@@ -62,7 +62,7 @@
 
 ## Próxima tarefa exata
 
-1. Conferir as **regressões completas** (com e sem solver) do HEAD final — resultado na linha «Regressão» abaixo; se faltar, executar (item 5 de «Como retomar»).
+1. **Regressão completa sobre `5cade04` (código final do 3D-B2; os commits seguintes só mudam documentação):** com solver ⇒ **2314 passed, 2 skipped, 150 subtests (929,9 s)**; sem solver ⇒ **1795 passed, 176 skipped, 145 subtests (520,0 s)**. Repetir só se o código mudar.
 2. Pendências concretas (por ordem de valor): (a) Folha em três colunas com subseções navegáveis da estratégia V2 e a régua de horizontes do protótipo; (b) comparação de rodadas no Caderno; (c) restos de verde-azulado fixo em CSS de páginas antigas (`operation_center.OP_CSS`, `execution_ui.EX_CSS`); (d) séries climáticas nos painéis solar/eólico; (e) V(E) com dois bancos em gráfico 2D.
 3. Rodar os E2E dos pisos anteriores com a navegação clássica (`tools/e2e/run_piso3da.sh`, `run_piso3da2r.sh`, `run_piso3da2h.sh`) antes de pedir a integração — **não foram reexecutados depois do 3D-B2** (só o `run_piso3db.sh`).
 
