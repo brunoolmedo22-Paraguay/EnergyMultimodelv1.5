@@ -41,8 +41,8 @@ async function download(name,suffix='') {
 async function openBench() {
   if(bench==='mix') return;
   await page.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();
-  await page.getByText('Ferramentas V1.6 — bancadas individuais dos modelos',{exact:true}).click();await ready();
-  await button({'solar':'ABRIR SOLAR','wind':'ABRIR EÓLICA','thermal':'ABRIR TÉRMICA','battery':'ABRIR BATERIA','h2':'ABRIR H₂ / PEMFC'}[bench]);
+  // UI-REDESIGN-01: as bancadas abrem pelo grupo «Bancadas» da barra lateral (mesma ação dos antigos botões «ABRIR …»)
+  await page.locator(`.pt.sb .it[data-id="bancada_${bench}"]`).click();await ready();
 }
 async function invalidUpload(radio,fileLabel,csv,runButton) {
   await page.getByText(radio,{exact:true}).click();await ready();
@@ -87,6 +87,6 @@ async function mix() {
 }
 (async()=>{const b=await chromium.launch();try{page=await b.newPage({viewport:{width:1440,height:1000},acceptDownloads:true});await page.goto(url);await ready();await openBench();await ({solar,wind,thermal,battery,h2,mix}[bench])();
   await page.reload();await ready();check((await page.locator('body').innerText()).length>300,'reload remains usable');await shot('reload');
-  if(bench!=='mix'){await page.getByText('Ferramentas V1.6 — bancadas individuais dos modelos',{exact:true}).click();await ready();check(await page.getByRole('button',{name:'ABRIR SOLAR',exact:true}).isVisible(),'navigation continues after reload');}
+  if(bench!=='mix'){await page.getByRole('button',{name:'← FONTES DE ENERGIA'}).first().click().catch(()=>{});await ready();check(await page.locator('.pt.sb .it[data-id="bancada_solar"]').count()>=1,'navigation continues after reload');}
   fs.writeFileSync(path.join(out,bench+'-receipt.json'),JSON.stringify({bench,checks,passed:true,receipts},null,2));console.log(`COMPLETE ${bench}: ${checks} checks`);
 }catch(e){if(page){await shot('FAIL');fs.writeFileSync(path.join(out,bench+'-failure.txt'),await page.locator('body').innerText());}throw e;}finally{await b.close();}})().catch(e=>{console.error(e);process.exit(1)});

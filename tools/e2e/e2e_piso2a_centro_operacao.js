@@ -153,10 +153,9 @@ async function operar(b) {
   await q.getByRole("button", { name: "Recarregar versão salva (descarta as alterações desta sessão)" }).click(); await ready(q);
   assert(await cardOf(q, "Banco de baterias 1").getByLabel("SOC inicial (%)", { exact: true }).inputValue() === "30.00", "sessão 2 recarrega a versão salva pela sessão 1");
   await ctx2.close();
-  // ferramentas V1.6 preservadas
+  // bancadas preservadas — desde o UI-REDESIGN-01 no grupo «Bancadas» da barra lateral (no celular, no Centro de Operação)
   await p.getByRole("button", { name: "← Centro de Operação" }).click(); await ready(p);
-  await p.getByText("Ferramentas V1.6 — bancadas individuais dos modelos").click(); await ready(p);
-  assert(await p.getByRole("button", { name: "ABRIR EÓLICA" }).isVisible(), "bancadas V1.6 acessíveis no Centro de Operação");
+  assert(await p.locator('.pt.sb .it[data-id="bancada_wind"]').isVisible(), "bancadas acessíveis pela barra lateral");
   await p.locator(".tb-link", { hasText: "Simulação" }).click(); await ready(p);
   await p.getByText("Configuração aplicada · revisão", { exact: false }).first().waitFor({ timeout: 120000 });
   assert(await p.getByText("Configuração aplicada · revisão", { exact: false }).first().isVisible(), "console V1.6 (Simulação) acessível");

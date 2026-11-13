@@ -48,8 +48,10 @@ class DestinosDaBarraLateralTest(unittest.TestCase):
     def test_microrrede_comissionada_espelha_toda_a_navegacao_existente(self):
         it = shell.sidebar_items(view="operacao", tab=None, is_open=True, commissioned=True)
         destinos = {i["acao"].get("view") for i in it if i["acao"]["type"] == "nav"}
-        # nenhum destino da barra superior desaparece
-        self.assertLessEqual({v for v, _t, _g in shell.NAV_ACTIVE} | {v for v, _t in shell.NAV_DOCS}, destinos)
+        # nenhum destino da barra superior desaparece — EXCETO o console V1.6 (Simulação/Resultados), retirado da navegação
+        # por decisão do responsável no UI-REDESIGN-01 (as vistas continuam existindo; ver tests/test_ui_redesign01.py)
+        self.assertLessEqual({v for v, _t, _g in shell.NAV_ACTIVE} | {v for v, _t in shell.NAV_DOCS}, destinos | {"simulacao", "resultados"})
+        self.assertFalse({"simulacao", "resultados"} & destinos)
         self.assertEqual(it[0]["acao"], {"type": "switch"})
         self.assertEqual([i["id"] for i in it if i["atual"]], ["operacao"])
         at = shell.sidebar_items(view="operacao", tab="planta", is_open=True, commissioned=True)      # B2-B: Planta
@@ -65,7 +67,7 @@ class DestinosDaBarraLateralTest(unittest.TestCase):
         for tab in ("arquivo", "estudo"):                               # o Arquivo vive no Centro de Operação
             at = shell.sidebar_items(view="operacao", tab=tab, is_open=True, commissioned=True)
             self.assertEqual([i["id"] for i in at if i["atual"]], ["arquivo"])
-        for view in ("gestao", "simulacao", "resultados", "alcance"):
+        for view in ("gestao", "alcance"):
             at = shell.sidebar_items(view=view, tab=None, is_open=True, commissioned=True)
             self.assertEqual([i["id"] for i in at if i["atual"]], [view])
         self.assertTrue(all(i["acao"]["view"] in shell.VIEWS for i in it if i["acao"]["type"] == "nav"))
@@ -116,6 +118,8 @@ class EstaticosDaPlataformaTest(unittest.TestCase):
         js = (ESTATICO / "sidebar.js").read_text(encoding="utf-8")
         self.assertNotRegex(js, r"https?://")
         icones = set(re.findall(r"^\s*(\w+): \"M", js, flags=re.M)) | set(re.findall(r", (\w+): \"M", js))
+        from seeds2.ui import trama                                       # UI-REDESIGN-01: bancadas com os ícones do Gestor
+        icones |= {"k:" + k for k in re.findall(r"^\s*(\w+): `<svg", trama.icones_gestor_js(), flags=re.M)}
         for contexto in ((False, False), (True, False), (True, True)):
             for i in shell.sidebar_items(view="operacao", tab=None, is_open=contexto[0], commissioned=contexto[1]):
                 self.assertIn(i["icone"], icones, i["id"])

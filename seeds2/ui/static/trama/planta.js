@@ -2,8 +2,18 @@
 // ou consome abaixo, um nó por equipamento do INVENTÁRIO (identidade por UID). Com uma rodada V2 concluída escolhida, cada nó
 // mostra o valor GRAVADO do intervalo (nada é recalculado). As ligações NÃO representam fluxos: o modelo não calcula ramos.
 // Ações devolvidas ao Python: {type:"rodada", run} | {type:"abrir_rodada", run} | {type:"nav", view, tab}.
-const TP = { fv: { n: "Solar fotovoltaica", c: COR.fv, l: 0 }, wt: { n: "Eólica", c: COR.wt, l: 0 }, fc: { n: "PEMFC / Hidrogênio", c: COR.fc, l: 0 }, term: { n: "Térmica", c: "var(--ink-2)", l: 0 },
-  outro: { n: "Equipamento", c: "var(--ink-3)", l: 0 }, bat: { n: "Bateria", c: COR.bat, l: 1 }, dem: { n: "Carga / Demanda", c: "var(--ink)", l: 1 }, grid: { n: "Rede / PCC", c: COR.grid, l: 1 } };
+// UI-REDESIGN-01: identidade das tecnologias = a do GESTOR (ícones ICONES_GESTOR de static/inventory.js e cores --k-* de
+// static/kit.css, injetados por seeds2/ui/trama.py). Demanda e PCC não existem no Gestor: ícones próprios no mesmo traço.
+// ``cn`` = rótulo curto do tipo no nó (o nome completo ``n`` fica no resumo, no painel e no rótulo acessível).
+const TP = { fv: { n: "Solar fotovoltaica", cn: "Solar", c: "var(--k-pv)", ico: "pv", l: 0 }, wt: { n: "Eólica", cn: "Eólica", c: "var(--k-wind)", ico: "wind", l: 0 },
+  fc: { n: "PEMFC / Hidrogênio", cn: "H₂ / PEMFC", c: "var(--k-pemfc)", ico: "pemfc", l: 0 }, term: { n: "Térmica", cn: "Térmica", c: "var(--k-thermal)", ico: "thermal", l: 0 },
+  outro: { n: "Equipamento", cn: "Equipamento", c: "var(--ink-3)", ico: "outro", l: 0 }, bat: { n: "Bateria", cn: "Bateria", c: "var(--k-battery)", ico: "battery", l: 1 },
+  dem: { n: "Carga / Demanda", cn: "Demanda", c: "var(--k-load)", ico: "dem", l: 1 }, grid: { n: "Rede / PCC", cn: "Rede", c: COR.grid, ico: "grid", l: 1 } };
+const ICO_PL = Object.assign({
+  dem: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15.5L16 6l11 9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13.5V26h16V13.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17.2 14.5l-3.4 5.2h3.6l-2.6 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  grid: `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l-7 26M16 3l7 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 10h16M6.5 16.5h19M10.5 23h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12.5 10l7 6.5M19.5 10l-7 6.5" stroke="currentColor" stroke-width="1.2" opacity=".6"/></svg>`,
+  outro: `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="7" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+}, typeof ICONES_GESTOR !== "undefined" ? ICONES_GESTOR : {});
 const PAINEL = { fv: "fv", wt: "wt", fc: "fc", bat: "bat", dem: "dem", grid: "grid" };
 // Modelo PURO da planta (executado também em Node): nós do inventário + séries gravadas da rodada por UID, com a mesma regra
 // de N/D da Partitura (null = ausente; undefined = o equipamento não participou da rodada / não há rodada).
@@ -77,19 +87,25 @@ export default function (component) {
       h("div", { class: "card" }, h("h3", { html: "Como ler" }), h("p", { class: "note", html: "A microrrede é desenhada como o modelo a enxerga: um <b>barramento equivalente</b>, o que injeta acima, o que armazena ou consome abaixo. As ligações só indicam que o equipamento está no barramento: <b>não há ramos nem fluxos por linha</b>, porque o modelo não os calcula." + (R ? " Com uma rodada, cada nó mostra a potência média GRAVADA do intervalo; ligação apagada = potência gravada nula; tracejada = dado ausente." : "") }))].filter(Boolean)); };
   let upd = () => {};
   const desenhar = () => {
-    const nMax = Math.max(M.cima.length, M.baixo.length, 1), Wd = Math.max(wrap.clientWidth - 28, 300), bw = Math.max(168, Math.min(300, (Wd - 40) / nMax - 16)), W = Math.max(Wd, nMax * (bw + 16) + 40), bh = 98, H = 430, yb = H / 2, ys = [yb - bh - 58, yb + 58];
+    // nó = cartão com o ícone da tecnologia num CÍRCULO claro (identidade do Gestor), nome, tipo, nominal do inventário e o
+    // estado; a ligação desce/sobe até o barramento e termina num ponto de conexão. Sem setas nem fluxos.
+    const nMax = Math.max(M.cima.length, M.baixo.length, 1), Wd = Math.max(wrap.clientWidth - 28, 300), bw = Math.max(236, Math.min(290, (Wd - 40) / nMax - 20)), W = Math.max(Wd, nMax * (bw + 20) + 40), bh = 104, H = 446, yb = H / 2, ys = [yb - bh - 60, yb + 60];
     const s = sv("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "group", "aria-label": "Planta: barramento equivalente único", class: "pl-svg", style: "display:block" });
-    s.append(sv("line", { x1: 24, x2: W - 24, y1: yb, y2: yb, style: "stroke:var(--ink);stroke-width:5", "stroke-linecap": "round" }), sv("text", { x: 30, y: yb - 12, class: "pl-bus" }, "BARRAMENTO EQUIVALENTE"));
-    const curto = (t, n) => (String(t).length > n ? String(t).slice(0, n - 1) + "…" : String(t)), cab = Math.max(14, Math.floor((bw - 36) / 7.4));
-    [M.cima, M.baixo].forEach((fila, row) => fila.forEach((n, j) => { const x = (W * (2 * j + 1)) / (2 * fila.length), y = ys[row], up = !row, c = TP[n.tipo].c;
-      const g = sv("g", { class: "node" + (n.habilitado ? "" : " dis") + (S.sel === n.uid ? " sel" : ""), tabindex: 0, role: "button", "data-uid": n.uid, "data-tipo": n.tipo, "aria-label": `${TP[n.tipo].n} · ${n.nome}: selecionar`, style: `--k:${c}` });
-      const wire = sv("line", { class: "wire", x1: x, x2: x, y1: up ? y + bh : y, y2: yb, style: `stroke:${c};stroke-width:3` }), pw = sv("text", { x: x + bw / 2 - 14, y: y + 32, "text-anchor": "end", class: "pw" }), sb = sv("text", { x: x - bw / 2 + 16, y: y + 84, class: "sb" });
-      g.append(wire, sv("rect", { class: "bx", x: x - bw / 2, y, width: bw, height: bh, rx: 12 }), sv("rect", { x: x - bw / 2, y: y + 16, width: 4, height: bh - 32, rx: 2, style: `fill:${c}` }),
-        sv("text", { x: x - bw / 2 + 16, y: y + 30, class: "nm" }, curto(n.nome, R ? Math.max(8, cab - 9) : cab)), sv("text", { x: x - bw / 2 + 16, y: y + 48, class: "tg" }, curto([n.tag, n.uid].filter(Boolean).join(" · "), cab + 4)),
-        sv("text", { x: x - bw / 2 + 16, y: y + 66, class: "rs" }, curto([TP[n.tipo].n, n.resumo].filter(Boolean).join(" · "), cab + 4)), pw, sb);
+    s.append(sv("line", { x1: 24, x2: W - 24, y1: yb, y2: yb, class: "pl-barra", "stroke-linecap": "round" }), sv("text", { x: 30, y: yb - 14, class: "pl-bus" }, "BARRAMENTO EQUIVALENTE"));
+    const curto = (t, n) => (String(t).length > n ? String(t).slice(0, n - 1) + "…" : String(t)), cab = Math.max(12, Math.floor((bw - 96) / 7.2));
+    [M.cima, M.baixo].forEach((fila, row) => fila.forEach((n, j) => { const x = (W * (2 * j + 1)) / (2 * fila.length), y = ys[row], up = !row, tp = TP[n.tipo], c = tp.c, x0 = x - bw / 2, tx = x0 + 82;
+      const g = sv("g", { class: "node" + (n.habilitado ? "" : " dis") + (S.sel === n.uid ? " sel" : ""), tabindex: 0, role: "button", "data-uid": n.uid, "data-tipo": n.tipo, "aria-label": `${tp.n} · ${n.nome}${n.resumo ? " · " + n.resumo : ""}: selecionar`, style: `--k:${c}` });
+      const yc = up ? y + bh : y, wire = sv("line", { class: "wire", x1: x, x2: x, y1: yc, y2: yb, style: `stroke:${c}` }), pw = sv("text", { x: x0 + bw - 16, y: y + 69, "text-anchor": "end", class: "pw" }), sb = sv("text", { x: tx, y: y + 88, class: "sb" });
+      const ic = sv("g", { class: "ico", transform: `translate(${x0 + 18} ${y + bh / 2 - 23})` });
+      ic.append(sv("circle", { cx: 23, cy: 23, r: 23, class: "ico-fundo" })); const gi = sv("g", { transform: "translate(8 8)" }); gi.innerHTML = ICO_PL[tp.ico] || ICO_PL.outro;
+      const isv = gi.firstElementChild; if (isv) { isv.setAttribute("width", 30); isv.setAttribute("height", 30); } ic.append(gi);
+      g.append(wire, sv("circle", { cx: x, cy: yb, r: 5, class: "pino" }), sv("rect", { class: "bx", x: x0, y, width: bw, height: bh, rx: 16 }), ic,
+        sv("text", { x: tx, y: y + 27, class: "tp" }, curto([tp.cn, n.tag].filter(Boolean).join(" · ").toUpperCase(), cab + 2)),
+        sv("text", { x: tx, y: y + 48, class: "nm" }, curto(n.nome, cab)),
+        sv("text", { x: tx, y: y + 69, class: "rs" }, n.resumo ? curto(n.resumo, R ? Math.max(6, cab - 6) : cab + 6) : n.tipo === "dem" && !R ? "agregada da microrrede" : ""), pw, sb);
       refs[n.uid] = { g, wire, pw, sb, n };
       const on = () => { Object.values(refs).forEach((o) => o.g.classList.toggle("off", o.n.uid !== n.uid)); g.classList.add("on"); const b = g.querySelector("rect.bx").getBoundingClientRect(), pr = wrap.getBoundingClientRect();
-        pop.hidden = false; pop.innerHTML = `<div class="eyebrow" style="color:${c}">${esc(TP[n.tipo].n)}</div><b class="pn">${esc(n.nome)}</b><div class="uid">${esc([n.tag, n.uid].filter(Boolean).join(" · "))}</div><div class="kv" style="margin-top:8px">${kvh((n.detalhes || []).concat(R && n.p !== undefined ? [[`Em ${ivl(S.cur)}`, kwTxt(n, S.cur)]] : []))}</div><p class="note">${esc(estadoTxt(n, S.cur) || (R ? "" : "inventário salvo"))}</p><p class="note" style="color:var(--ink-2)">Clique ou Enter seleciona</p>`;
+        pop.hidden = false; pop.innerHTML = `<div class="eyebrow" style="color:${c}">${esc(tp.n)}</div><b class="pn">${esc(n.nome)}</b><div class="uid">${esc([n.tag, n.uid].filter(Boolean).join(" · "))}</div><div class="kv" style="margin-top:8px">${kvh((n.detalhes || []).concat(R && n.p !== undefined ? [[`Em ${ivl(S.cur)}`, kwTxt(n, S.cur)]] : []))}</div><p class="note">${esc(estadoTxt(n, S.cur) || (R ? "" : "inventário salvo"))}</p><p class="note" style="color:var(--ink-2)">Clique ou Enter seleciona</p>`;
         const lx = b.left - pr.left + wrap.scrollLeft; pop.style.left = Math.max(8, lx + b.width + 12 > wrap.scrollLeft + pr.width - 262 ? lx - 262 : lx + b.width + 12) + "px"; pop.style.top = Math.max(8, Math.min(H - pop.offsetHeight - 8, b.top - pr.top)) + "px"; };
       const off = () => { Object.values(refs).forEach((o) => o.g.classList.remove("off", "on")); pop.hidden = true; };
       const escolher = () => { S.sel = S.sel === n.uid ? null : n.uid; salvar(); Object.values(refs).forEach((o) => o.g.classList.toggle("sel", o.n.uid === S.sel)); cartoes(); };
@@ -98,7 +114,7 @@ export default function (component) {
       s.append(g); }));
     if (!(D.nos || []).length) s.append(sv("text", { x: W / 2, y: ys[0] + bh / 2, "text-anchor": "middle", class: "pl-vazio" }, "Inventário sem equipamentos: nada injeta no barramento."));
     upd = (i) => { Object.values(refs).forEach((o) => { const n = o.n, v = el(n.p, i); o.pw.textContent = R ? kwTxt(n, i) : ""; o.sb.textContent = curto(estadoTxt(n, i), cab + 6);
-      o.wire.style.opacity = !R || n.p === undefined ? (n.habilitado ? .55 : .2) : v == null ? .8 : Math.abs(v) > 1e-6 ? 1 : .22; o.wire.setAttribute("stroke-dasharray", R && n.p !== undefined && v == null ? "4 4" : ""); });
+      o.wire.style.opacity = !R || n.p === undefined ? (n.habilitado ? .6 : .2) : v == null ? .8 : Math.abs(v) > 1e-6 ? 1 : .22; o.wire.setAttribute("stroke-dasharray", R && n.p !== undefined && v == null ? "4 4" : ""); });
       const t = col.querySelector(".pl-inst"); if (t) t.textContent = ivl(i); const sl = col.querySelector(".pl-t"); if (sl && +sl.value !== i) sl.value = i; if (S.sel) { const k = col.querySelector(".card.acc .kv"); if (k && R) cartoes(); } };
     wrap.replaceChildren(s, pop); upd(S.cur);
   };

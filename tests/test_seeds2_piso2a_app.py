@@ -157,7 +157,7 @@ class CentroInicioTest(_Base):
         for b in ("ABRIR PREVISÕES", "ABRIR ESTRATÉGIA EMS", "ABRIR EXECUÇÃO"):
             self.assertIn(b, [x.label for x in app.button])
         self.assertIn("Não executável (v1)", html)                             # preflight da versão salva (sem estratégia)
-        self.assertIn("Simulação</b> (console V1.6) continua independente", html)
+        self.assertIn("As <b>bancadas</b> dos modelos (barra lateral) continuam independentes", html)   # UI-REDESIGN-01
         app = self.inicializacao(app)
         labels = [b.label.upper() for b in app.button]
         self.assertFalse([l for l in labels if any(f in l for f in FAKE)], labels)

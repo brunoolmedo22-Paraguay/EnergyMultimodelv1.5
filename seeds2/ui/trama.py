@@ -39,9 +39,38 @@ def component():
                                       css=_src("trama.css"))
 
 
+# UI-REDESIGN-01 — identidade das tecnologias REUTILIZADA do Gestor (sem cópia nem alteração dele): os ícones são o objeto
+# ``ICONS`` de ``static/inventory.js`` (o mesmo de ``techpicker.js``) e as cores, os tokens ``--k-*`` de ``static/kit.css``.
+# Lidos a cada registro do componente, ficam sempre iguais aos do Gestor.
+def _trecho(texto: str, inicio: str, fim: str, origem: str) -> str:
+    i = texto.find(inicio)
+    j = texto.find(fim, i + len(inicio)) if i >= 0 else -1
+    if i < 0 or j < 0:
+        raise RuntimeError(f"Identidade do Gestor não encontrada em {origem}")
+    return texto[i + len(inicio):j]
+
+
+def icones_gestor_js() -> str:
+    """``const ICONES_GESTOR = {pv, wind, battery, pemfc, thermal}`` — SVG do Gestor (``inventory.js``)."""
+    corpo = _trecho((STATIC.parent / "inventory.js").read_text(encoding="utf-8"), "const ICONS = {", "\n};", "static/inventory.js")
+    return "const ICONES_GESTOR = {" + corpo + "\n};"
+
+
+def tokens_gestor_css() -> str:
+    """Cores das tecnologias do Gestor (``--k-pv`` … ``--k-load`` de ``kit.css``) disponíveis sob ``.pt``."""
+    kit = (STATIC.parent / "kit.css").read_text(encoding="utf-8")
+    linha = "--k-pv:" + _trecho(kit, "--k-pv:", "\n", "static/kit.css")
+    tokens = [t.strip() for t in linha.split(";") if t.strip().startswith("--k-")]
+    if not tokens:
+        raise RuntimeError("Tokens de cor do Gestor não encontrados em static/kit.css")
+    return ".pt { " + " ".join(t + ";" for t in tokens) + " }"
+
+
 def _pagina(nome: str):
-    """Componente v2 de PÁGINA na linguagem Partitura: motor Trama + ``<nome>.js``, estilos de ``trama.css`` (sob ``.pt``)."""
-    return st.components.v2.component(f"seeds_{nome}", js=_src("trama.js") + "\n" + _src(f"{nome}.js"), css=_src("trama.css"))
+    """Componente v2 de PÁGINA na linguagem Partitura: motor Trama + ícones/cores do Gestor + ``<nome>.js``, estilos de
+    ``trama.css`` (sob ``.pt``)."""
+    return st.components.v2.component(f"seeds_{nome}", js=_src("trama.js") + "\n" + icones_gestor_js() + "\n" + _src(f"{nome}.js"),
+                                      css=_src("trama.css") + "\n" + tokens_gestor_css())
 
 
 def sidebar(dados: dict, *, on_action) -> None:
@@ -66,4 +95,4 @@ def partitura(frame: dict, *, key: str, wide: bool = True) -> None:
     component()(key=key, data={"frame": frame})
 
 
-__all__ = ["FRAME_FORMAT", "component", "pagina", "partitura", "sidebar"]
+__all__ = ["FRAME_FORMAT", "component", "icones_gestor_js", "pagina", "partitura", "sidebar", "tokens_gestor_css"]

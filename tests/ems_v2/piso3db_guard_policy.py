@@ -49,9 +49,9 @@ def referencia_autorizada(rel: str) -> bool:
 
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos. Remoção, renomeação ou qualquer outro arquivo continuam visíveis."""
-    _ = root
-    return [row for row in changes if not (len(row) == 2 and (
-        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from ui_redesign01_guard_policy import filter_changes as filter_ui01          # exceção nominal UI-REDESIGN-01
+    return filter_ui01(root, [row for row in changes if not (len(row) == 2 and (
+        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))])
 
 
 # ------------------------------------------------------------------------------------------------ auditoria explícita
