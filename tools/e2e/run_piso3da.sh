@@ -23,7 +23,7 @@ PORTA_A="${PORTA_A:-8611}"; PORTA_B="${PORTA_B:-8612}"; PORTA_C="${PORTA_C:-8613
 source "$RAIZ/tools/e2e/servidor.sh"          # limpeza garantida dos servidores e dos filhos, mesmo se uma fase falhar
 fase() { e2e_fase "$OUT/e2e_$2.log" node tools/e2e/e2e_piso3da_v2.js "http://localhost:$1" "$2" "$CAP"; }
 
-echo "== 1. semente"; "$PY_SOLVER" tools/e2e/seed_piso3da.py "$ORIG"
+echo "== 1. semente"; PYTHONDONTWRITEBYTECODE=1 "$PY_SOLVER" tools/e2e/seed_piso3da.py "$ORIG"   # sem regenerar os .pyc versionados (auditoria do 3D-B2)
 
 echo "== 2. operar (servidor com solver; kill -9 durante a missão longa)"
 e2e_servidor "$PY_SOLVER" "$ORIG" "$PORTA_A" "$OUT/servidor_operar.log"

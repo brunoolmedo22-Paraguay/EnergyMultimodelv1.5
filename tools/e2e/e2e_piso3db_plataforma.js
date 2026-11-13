@@ -39,8 +39,21 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   await p.goto(`${base}/?view=operacao&tab=caderno&mg=${seed.mg}`); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
   await p.locator(`.pt.caderno tr[data-run="${seed.run2}"] .cd-abrir`).click(); await p.locator(".pt.partitura svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
   await p.goto(`${base}/?view=operacao&tab=caderno&mg=${seed.mg}`); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(800);
+  // Finalização: indicadores científicos por rodada e comparação A × B — ainda CONSULTA (registro do motor vazio)
+  const lv2 = (await p.locator(`.pt.caderno tr[data-run="${seed.run}"]`).textContent()).replace(/\s+/g, " ");
+  ok(lv2.includes("Δ 60 min · N 6 · m 2 · H_L 12") && lv2.includes("conectado") && lv2.includes("kWh") && lv2.includes("kg") && lv2.includes("válido(s)") && lv2.includes("auditoria aprovada"), "Caderno: malha N·m·H_L, PCC, importação, H₂, sinal de valor futuro e integridade da rodada V2 (valores gravados)");
+  const s0 = p.locator(".pt.caderno .cd-sel");
+  await s0.nth(0).selectOption(seed.run); await s0.nth(1).selectOption(seed.run2);
+  await p.locator(".pt.caderno .cd-comparar").click(); await p.locator(".pt.caderno .cd-lado").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  const cmpTxt = (await p.locator(".pt.caderno .cd-cmp").textContent()).replace(/\s+/g, " ");
+  ok(cmpTxt.includes("R$ " + brl(seed.custo_R)) && cmpTxt.includes("R$ " + brl(seed.custo2_R)) && await p.locator(".pt.caderno .cd-graf").count() === 3, "Caderno: comparação A × B com os custos gravados e 3 séries temporais na MESMA malha (nada interpolado)");
+  ok(cmpTxt.includes("NÃO equivalentes (Cenário)") && cmpTxt.includes("difere"), "Comparação: cenários distintos ADVERTIDOS (condições experimentais não equivalentes)");
+  await p.locator(".pt.caderno .cd-cmp").scrollIntoViewIfNeeded(); await foto(p, "fin_caderno_comparacao");
+  await p.locator(".pt.caderno .cd-abrir-b").click(); await p.locator(".pt.partitura svg.trama").first().waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
+  ok(p.url().includes(`run=${seed.run2}`), "Comparação → «Abrir os resultados completos» da rodada B (Partitura)");
+  await p.goto(`${base}/?view=operacao&tab=caderno&mg=${seed.mg}`); await p.locator(".pt.caderno .cd-tab").waitFor({ timeout: 120000 }); await p.waitForTimeout(800);
   await p.locator(".pt.caderno .cd-estudo").click(); await p.waitForTimeout(3500);
-  ok(motorVazio(), "consultar Catálogo, Planta, painel por UID, Caderno, rodada e estudo NÃO chama motor, solver nem modelos (registro vazio)");
+  ok(motorVazio(), "consultar Catálogo, Planta, painel por UID, Caderno (indicadores e comparação), rodada e estudo NÃO chama motor, solver nem modelos (registro vazio)");
   await ctx.close();
 
   // ------------------------------------------------------------------ B2-A · sem microrrede aberta (Gestor)
@@ -174,9 +187,41 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   ok(await p.getByRole("button", { name: /EXECUTAR MISSÃO V2/ }).count() === 1 || await p.getByText("solver", { exact: false }).count() >= 1, "Folha · 04: preflight e execução da etapa existente (servidor sem solver: bloqueio explicado)");
   await foto(p, "b2d_02_folha_execucao");
   await ctx.close();
+  // Finalização da Partitura V2: três colunas (índice | seção | prontidão), subseções da estratégia V2, régua, prontidão,
+  // alterações não salvas (falsas × reais) e colunas laterais fixas ao rolar.
+  for (const tema of ["light", "dark"]) {
+    [ctx, p] = await abrir(1440, 900, `${base}/?view=operacao&tab=estrategia&mg=${seed.mg}&sc=${seed.sc}`, tema);
+    await p.mouse.move(700, 600); await p.locator(".pt.folha .fl-pron").waitFor({ timeout: 120000 }); await p.waitForTimeout(2000);
+    const cx = async (k) => p.locator(`.st-key-${k}`).boundingBox();
+    const [bi, bs, bp] = [await cx("fl_col_indice"), await cx("fl_col_secao"), await cx("fl_col_prontidao")];
+    ok(bi.x + bi.width <= bs.x && bs.x + bs.width <= bp.x && Math.abs(bi.y - bs.y) < 40 && Math.abs(bp.y - bs.y) < 40, `Folha (${tema}): três colunas lado a lado (índice | seção | prontidão)`);
+    if (tema === "dark") { ok(await p.locator(".pt.folha.fl-indice").getAttribute("data-theme") === "dark", "Folha: tema escuro seguido pelos componentes"); await foto(p, "fin_folha_escuro"); await ctx.close(); continue; }
+    const subs = await p.locator(".pt.folha .fl-subl").evaluateAll((e) => e.map((x) => x.dataset.sub));
+    const anc = await p.evaluate(() => [...document.querySelectorAll("[data-fl-sub]")].map((e) => e.dataset.flSub));
+    ok(subs.length >= 8 && JSON.stringify(subs) === JSON.stringify(anc) && ["malha", "baterias", "renovaveis", "pemfc", "pcc", "planejador", "solver"].every((x) => subs.includes(x)), `Folha · 03: subseções do índice = âncoras do formulário (${subs.join(", ")})`);
+    const ind0 = (await p.locator(".pt.folha .fl-cab").textContent()), pr0 = (await p.locator(".pt.folha .fl-pron").textContent()).replace(/\s+/g, " ");
+    ok(ind0.includes("versão salva") && !ind0.includes("alterações não salvas") && pr0.includes("Versão salva v"), "Folha: abrir a estratégia V2 NÃO cria «alterações não salvas»");
+    ok(pr0.includes("Execução indisponível") && pr0.includes("preflight"), "Prontidão: execução indisponível pela razão do botão da seção 04 (servidor sem solver)");
+    ok((await p.locator(".pt.folha .fl-regua").getAttribute("data-regua")) === "completa" && (await p.locator(".pt.folha .fl-regua").textContent()).includes("K_M = "), "Régua dos horizontes com os valores declarados do cenário");
+    await p.locator('.pt.folha .fl-subl[data-sub="planejador"]').click(); await p.waitForTimeout(1500);
+    const yt = await p.evaluate(() => Math.round(document.querySelector('[data-fl-sub="planejador"]').getBoundingClientRect().top));
+    const bi2 = await cx("fl_col_indice"), bp2 = await cx("fl_col_prontidao");
+    ok(yt >= 0 && yt < 220 && bi2.y >= 0 && bi2.y < 200 && bp2.y >= 0 && bp2.y < 200, `Subseção 03.8 rolada ao topo (${yt}px) com índice e prontidão fixos na tela`);
+    ok(await p.locator(".pt.folha .fl-subl.on").getAttribute("data-sub") === "planejador", "Índice destaca a subseção visível");
+    await foto(p, "fin_folha_estrategia_subsecao");
+    const ninp = p.getByLabel("Horizonte curto N [intervalos]");
+    await ninp.scrollIntoViewIfNeeded(); await ninp.fill(String(Number(await ninp.inputValue()) + 1)); await ninp.press("Enter"); await p.waitForTimeout(4000);
+    const ind1 = await p.locator(".pt.folha .fl-cab").textContent(), pr1 = (await p.locator(".pt.folha .fl-pron").textContent()).replace(/\s+/g, " ");
+    ok(ind1.includes("alterações não salvas") && pr1.includes("Alterações não salvas") && pr1.includes("há alterações não salvas"), "Edição real ⇒ «alterações não salvas» no índice e na prontidão (execução indisponível)");
+    await p.getByRole("button", { name: "DESCARTAR ALTERAÇÕES" }).click(); await p.waitForTimeout(4000);
+    ok((await p.locator(".pt.folha .fl-cab").textContent()).includes("versão salva"), "Descartar volta à versão salva (nada gravado)");
+    await ctx.close();
+  }
   [ctx, p] = await abrir(400, 850, `${base}/?view=operacao&tab=estrategia&mg=${seed.mg}&sc=${seed.sc}`);
-  await p.locator(".pt.folha .fl-cab").waitFor({ timeout: 120000 }); await p.waitForTimeout(1500);
+  await p.locator(".pt.folha .fl-pron").waitFor({ timeout: 120000 }); await p.waitForTimeout(1500);
   const ovf = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  const [mi, ms, mp] = [await p.locator(".st-key-fl_col_indice").boundingBox(), await p.locator(".st-key-fl_col_secao").boundingBox(), await p.locator(".st-key-fl_col_prontidao").boundingBox()];
+  ok(mi.y < ms.y && ms.y < mp.y && Math.abs(mi.width - ms.width) < 4, "Folha a 400 px: colunas empilhadas (índice → seção → prontidão)");
   ok(ovf <= 1, `Folha a 400 px: sem transbordo horizontal (${ovf}px)`); await foto(p, "b2d_r_400x850_folha"); await ctx.close();
 
   // ------------------------------------------------------------------ B2-A · celular e tablet

@@ -54,6 +54,77 @@ def custo_texto(run) -> str:
     return f"V2 · custo realizado R$ {forms.fmt(m['custo_realizado_total_R'], 2)}"
 
 
+def _real_ou_none(v):
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+
+def indicadores_rodada(run) -> dict:
+    """Indicadores de UMA rodada V2 para o Caderno, lidos SÓ do resumo persistido (``summary.mission`` / ``execution``)
+    e do manifesto. Nada é recalculado nem estimado: ausente ⇒ ``None`` (N/D); só uma rodada CONCLUÍDA tem custo de missão
+    (o custo parcial de uma missão interrompida nunca é custo da missão). ``h2_kg`` é «não aplicável» (``"na"``) só com
+    evidência: missão concluída cujo resumo registra o bloco PEMFC vazio."""
+    man = run.manifest if isinstance(run.manifest, dict) else {}
+    sm = run.summary if isinstance(run.summary, dict) else {}
+    m = sm.get("mission") if isinstance(sm.get("mission"), dict) else {}
+    ex = sm.get("execution") if isinstance(sm.get("execution"), dict) else {}
+    mis = man.get("mission") if isinstance(man.get("mission"), dict) else {}
+    malha = (man.get("strategy") or {}).get("malha") or {}
+    conc = run.state == "concluida" and m.get("missao_completa") is True and not m.get("custo_realizado_parcial")
+    pem = m.get("pemfc")
+    if conc and isinstance(pem, dict) and pem:
+        vals = [_real_ou_none((x or {}).get("massa_h2_kg")) for x in pem.values()]
+        h2 = None if any(v is None for v in vals) else sum(vals)
+    elif conc and isinstance(pem, dict):
+        h2 = "na"
+    else:
+        h2 = None
+    sv = m.get("sinal_valor_futuro") if isinstance(m.get("sinal_valor_futuro"), dict) else None
+    sinal = None
+    if conc and sv is not None:
+        sinal = {"valido": sv.get("valido"), "degradado": (sv.get("degradado_sem_valor_futuro") or 0) + (sv.get("degradado_referencia") or 0),
+                 "sem_coordenacao": sv.get("sem_coordenacao"), "janelas": m.get("janelas")}
+    pcc = ((man.get("strategy") or {}).get("pcc") or {}).get("modo") or m.get("pcc_modo")
+    return {"motor": "V2", "delta_min": _real_ou_none(mis.get("delta_min", malha.get("delta_min"))),
+            "N": mis.get("N", malha.get("N")), "m": mis.get("m", malha.get("m")), "H_L": mis.get("H_L", malha.get("H_L")),
+            "intervalos": mis.get("intervals"), "passo_s": _real_ou_none(mis.get("step_s")),
+            "inicio_utc": mis.get("start_utc"), "duracao_min": _real_ou_none(mis.get("duration_min")),
+            "pcc": pcc, "custo": _real_ou_none(m.get("custo_realizado_total_R")) if conc else None,
+            "custo_natureza": "custo_realizado_v2",
+            "energia_importada_kWh": _real_ou_none(m.get("energia_importada_kWh")) if conc else None,
+            "energia_exportada_kWh": _real_ou_none(m.get("energia_exportada_kWh")) if conc else None,
+            "energia_demanda_kWh": _real_ou_none(m.get("energia_demanda_kWh")) if conc else None,
+            "energia_nao_atendida_kWh": _real_ou_none(m.get("energia_nao_atendida_kWh")) if conc else None,
+            "h2_kg": h2, "sinal": sinal,
+            "auditoria": ex.get("auditoria_integral_aprovada") if conc else None,
+            "aceitacao": ((ex.get("aceitacao") or {}).get("classificacao")) if conc else None,
+            "formulacao": m.get("formulacao") or ((man.get("engine") or {}).get("formulations") or {}).get("hierarquia"),
+            "contrato_dados": (man.get("engine") or {}).get("data_version")}
+
+
+SERIES_COMPARAVEIS = (("custo_realizado_acumulado_R", "Custo realizado acumulado", "R$"),
+                      ("pcc_importacao_realizada_kW", "Importação realizada no PCC", "kW"),
+                      ("demanda_realizada_kW", "Demanda realizada", "kW"))
+
+
+def series_rodada(source, run) -> dict | None:
+    """Séries GRAVADAS de uma rodada V2 concluída (``v2/intervalos.csv``) para a comparação temporal: só leitura, sem
+    reamostrar nem preencher. Coluna ausente (contrato de dados anterior) ⇒ série ausente."""
+    import io
+
+    import pandas as pd
+
+    if run.state != "concluida" or "v2/intervalos.csv" not in (run.data or {}):
+        return None
+    df = pd.read_csv(io.BytesIO(source.run_data(run.run_uid, "v2/intervalos.csv")))
+    if "inicio_utc" not in df.columns:
+        return None
+    out = {"inicio_utc": [str(x) for x in df["inicio_utc"]], "series": {}}
+    for col, _rot, _un in SERIES_COMPARAVEIS:
+        if col in df.columns:
+            out["series"][col] = [None if pd.isna(v) else float(v) for v in df[col]]
+    return out
+
+
 # ======================================================================= widgets de declaração (vazio = não declarado)
 def _sel(rotulo: str, opcoes: dict, atual, chave: str, *, ajuda: str | None = None):
     vals = [None, *opcoes]
@@ -131,6 +202,100 @@ def seletor_motor(doc: dict, tok: int) -> str:
     return novo
 
 
+# Folha de Ensaio (Piso 3D-B2 · finalização): subseções NAVEGÁVEIS da estratégia V2 e régua dos horizontes. Só
+# apresentação: os campos, chaves, validações e a gravação são os do formulário abaixo (nada é acrescentado nem omitido).
+SUBSECOES = (("motor", "Motor de execução"), ("malha", "Malha temporal e horizontes"), ("demanda", "Demanda e realização"),
+             ("baterias", "Bancos de baterias"), ("renovaveis", "Recursos renováveis"), ("pemfc", "PEMFC e hidrogênio"),
+             ("pcc", "Rede, PCC e objetivo"), ("planejador", "Planejamento de longo prazo"), ("solver", "MPC e solver"),
+             ("revisao", "Declarações pendentes e políticas fixas"))
+# Primeiro segmento do caminho de uma pendência/erro do bloco → subseção onde o campo é editado.
+_SUB_DO_CAMPO = {"declarante": "malha", "malha": "malha", "contexto": "malha", "demanda": "demanda", "realizacao": "demanda",
+                 "baterias": "baterias", "clima": "renovaveis", "renovaveis": "renovaveis", "pemfc": "pemfc", "pcc": "pcc",
+                 "objetivo": "pcc", "planejador": "planejador", "solver": "solver"}
+
+
+def _subs_presentes(doc: dict) -> list[str]:
+    b = doc.get(E.CHAVE_BLOCO)
+    if not isinstance(b, dict):
+        return ["motor"]
+    fmt = b.get("format_version", 1)
+    tem = {"baterias": bool(E.baterias_do_cenario(doc)), "renovaveis": bool(E.renovaveis_do_cenario(doc)) and fmt >= 2,
+           "pemfc": bool(E.pemfc_do_cenario(doc)) and fmt >= 3}
+    return [k for k, _t in SUBSECOES if tem.get(k, True)]
+
+
+def subsecoes_estrategia(doc: dict) -> list[dict]:
+    """Subseções da etapa 03 (motor V2) na ordem do formulário, com o número de declarações AUSENTES de cada uma (as
+    MESMAS de ``estrategia.pendencias``; com erro estrutural, as pendências não são calculadas e ficam ``None``)."""
+    pres = _subs_presentes(doc)
+    b = doc.get(E.CHAVE_BLOCO)
+    pend: dict[str, int] | None = None
+    if isinstance(b, dict):
+        try:
+            errs = E.erros_estruturais(b, doc)
+            if not errs:
+                pend = {}
+                for cam, _msg in E.pendencias(b, doc):
+                    sub = _SUB_DO_CAMPO.get(cam.split(".")[0].split("[")[0], "revisao")
+                    pend[sub] = pend.get(sub, 0) + 1
+        except Exception:  # noqa: BLE001 — o índice nunca impede o uso do formulário
+            pend = None
+    titulos = dict(SUBSECOES)
+    return [{"id": k, "n": f"03.{i}", "titulo": titulos[k], "pend": None if pend is None else pend.get(k, 0)}
+            for i, k in enumerate(pres, 1)]
+
+
+def _sub(sid: str, doc: dict) -> None:
+    """Cabeçalho-âncora de uma subseção (alvo da navegação do índice da Folha)."""
+    pres = _subs_presentes(doc)
+    n = f"03.{pres.index(sid) + 1}" if sid in pres else "03"
+    st.html(f'<div class="fl-sub" data-fl-sub="{escape(sid)}"><span class="fl-sub-n">{n}</span>'
+            f'{escape(dict(SUBSECOES)[sid])}</div>')
+
+
+def regua_dados(doc: dict) -> dict:
+    """Dados da régua dos horizontes a partir SÓ do que está declarado (malha da estratégia V2 e janela da missão da
+    etapa 04). Nada é inferido: ausente ⇒ ``None`` e a lista ``faltam``. As relações mostradas são as que o preflight V2
+    verifica (``integracao_v2.preflight``); aqui só são exibidas, nunca impostas."""
+    b = doc.get(E.CHAVE_BLOCO) if isinstance(doc.get(E.CHAVE_BLOCO), dict) else {}
+    m = b.get("malha") or {}
+
+    def inteiro(v):
+        return v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else None
+    delta, N, mm, HL = (inteiro(m.get(k)) for k in ("delta_min", "N", "m", "H_L"))
+    mis = doc.get("mission") if isinstance(doc.get("mission"), dict) else {}
+    dur = inteiro(mis.get("duration_min"))
+    faltam = [r for r, v in (("passo Δ", delta), ("horizonte curto N", N), ("bloco aplicado m", mm),
+                             ("horizonte longo H_L", HL), ("duração da missão (seção 04)", dur)) if v is None]
+    K = dur // delta if dur and delta and dur % delta == 0 else None
+    rel = []
+    if dur and delta:
+        rel.append(["Duração da missão múltipla de Δ", dur % delta == 0, f"{dur} min ÷ {delta} min"])
+    if K is not None:
+        rel.append([f"K_M ≤ {E.LIMITES['intervalos_missao']} intervalos", K <= E.LIMITES["intervalos_missao"], f"K_M = {K}"])
+    if N and mm:
+        rel.append(["1 ≤ m ≤ N", mm <= N, f"m = {mm}, N = {N}"])
+    if N and HL:
+        rel.append(["H_L > N", HL > N, f"H_L = {HL}, N = {N}"])
+    if HL and K is not None:
+        rel.append(["H_L ≤ K_M (sem previsão pós-missão)", HL <= K, f"H_L = {HL}, K_M = {K}"])
+    return {"delta_min": delta, "N": N, "m": mm, "H_L": HL, "duracao_min": dur, "K": K, "faltam": faltam, "relacoes": rel,
+            "terminal": _fixo("politica_terminal_missao"), "cobertura": _fixo("cobertura_fim_missao")}
+
+
+def regua(doc: dict, *, titulo: str | None = None, key: str = "seeds_folha_regua") -> None:
+    """Régua dos horizontes (componente da Folha; desenhada no navegador a partir de ``regua_dados``, sem motor)."""
+    from seeds2.ui import trama
+
+    trama.pagina("folha", {"parte": "regua", "regua": regua_dados(doc), "titulo": titulo}, key=key, wide=False)
+
+
+def _fixo(chave: str) -> str:
+    from . import montagem as MT
+
+    return str(MT.FIXOS.get(chave) or "N/D").replace("_", " ")
+
+
 def render_estrategia(store, cur, oc) -> None:
     doc = oc.work()
     tok = int(_ss().get("op_token") or 0)
@@ -141,6 +306,7 @@ def render_estrategia(store, cur, oc) -> None:
                [("Cenário", f"v{cur.version}" + (" · alterações não salvas" if oc.is_dirty() else "")),
                 ("Estratégia", label + (f" · {detail}" if detail else "")),
                 ("Inventário de referência", f"rev. {doc['inventory_ref']['config_revision']}")])
+    _sub("motor", doc)
     seletor_motor(doc, tok)
     b = doc.get(E.CHAVE_BLOCO)
     if b is None:
@@ -162,22 +328,26 @@ def render_estrategia(store, cur, oc) -> None:
         oc._save_bar(store, cur, I.summarize(S.findings(doc)))
         return
     k = f"opw_sg_{tok}_v2"
-    c1, c2 = st.columns(2, gap="large")
-    with c1, st.container(border=True):
+    _sub("malha", doc)
+    with st.container(border=True):
         st.html('<div class="op-k">Malha temporal (N intervalos · N + 1 fronteiras)</div>')
         m = b["malha"]
-        a1, a2 = st.columns(2)
+        a1, a2, a3, a4 = st.columns(4)
         with a1:
             m["delta_min"] = _num("Passo Δ [min]", m["delta_min"], f"{k}_delta", inteiro=True, minimo=1,
                                   ajuda="Igual ao passo da série de demanda: o motor não reamostra.")
-            m["m"] = _num("Bloco aplicado m [intervalos]", m["m"], f"{k}_m", inteiro=True, minimo=1)
         with a2:
             m["N"] = _num("Horizonte curto N [intervalos]", m["N"], f"{k}_N", inteiro=True, minimo=1)
+        with a3:
+            m["m"] = _num("Bloco aplicado m [intervalos]", m["m"], f"{k}_m", inteiro=True, minimo=1)
+        with a4:
             m["H_L"] = _num("Horizonte longo H_L [intervalos]", m["H_L"], f"{k}_HL", inteiro=True, minimo=2,
                             ajuda="H_L > N e H_L ≤ intervalos da missão (a previsão cobre só a missão).")
+        regua(doc)
         st.html('<div class="op-k" style="margin-top:.5rem">Quem declara as políticas</div>')
         _proc(b["declarante"], f"{k}_decl")
-    with c2, st.container(border=True):
+    _sub("demanda", doc)
+    with st.container(border=True):
         st.html('<div class="op-k">Demanda: previsão disponível ao decidir</div>')
         d = b["demanda"]
         d["nome"] = _txt("Nome da classe de demanda", d["nome"], f"{k}_dn", max_chars=120)
@@ -199,6 +369,8 @@ def render_estrategia(store, cur, oc) -> None:
             r["demanda_kW"] = None
         _proc(r["procedencia"], f"{k}_rp", so_sintetico=True)
     bats = E.baterias_do_cenario(doc)
+    if bats:
+        _sub("baterias", doc)
     for eid, ref in bats.items():
         x = b["baterias"].setdefault(eid, {**{c: None for c in E.CAMPOS_BATERIA}, "hipotese_autodescarga": None,
                                            "procedencia": {"tipo": None, "fonte": ""}})
@@ -217,6 +389,7 @@ def render_estrategia(store, cur, oc) -> None:
         b["baterias"].pop(eid)                        # banco retirado/desabilitado: declaração órfã não é mantida
     _renovaveis_form(b, doc, k)
     _pemfc_form(b, doc, k)
+    _sub("pcc", doc)
     with st.container(border=True):
         st.html('<div class="op-k">PCC, tarifas e objetivo</div>')
         c = b["pcc"]
@@ -251,34 +424,27 @@ def render_estrategia(store, cur, oc) -> None:
         b["objetivo"]["termos"] = st.multiselect("Termos de custo no objetivo", list(E.TERMOS_BASE),
                                                  default=[t for t in b["objetivo"]["termos"] if t in E.TERMOS_BASE],
                                                  format_func=lambda t: E.TERMOS_BASE[t], key=f"{k}_termos")
+    _sub("planejador", doc)
+    g, s = b["planejador"], b["solver"]
     with st.container(border=True):
-        st.html('<div class="op-k">Planejador de longo prazo e solver</div><p class="op-d">Parâmetros numéricos iniciais = '
+        st.html('<div class="op-k">Planejador de longo prazo</div><p class="op-d">Parâmetros numéricos iniciais = '
                 f'{escape(E.ROTULO_REFERENCIA)}. Termo terminal Φ_L e degradação NÃO têm valor inicial.</p>')
-        g, s = b["planejador"], b["solver"]
         a1, a2, a3 = st.columns(3)
         with a1:
             g["tipo_sinal"] = _sel("Sinal de valor futuro", E.TIPOS_SINAL, g["tipo_sinal"], f"{k}_gs")
             g["politica_atualizacao"] = _sel("Atualização do planejador", E.POLITICAS_ATUALIZACAO, g["politica_atualizacao"],
                                              f"{k}_ga")
             g["periodo_janelas"] = _num("Período [janelas]", g["periodo_janelas"], f"{k}_gp", inteiro=True, minimo=1)
-            g["degradacao"] = _sel("Degradação (sinal indisponível)", E.DEGRADACOES, g["degradacao"], f"{k}_gd")
         with a2:
+            g["degradacao"] = _sel("Degradação (sinal indisponível)", E.DEGRADACOES, g["degradacao"], f"{k}_gd")
             g["pontos_iniciais"] = _num("Pontos iniciais por banco", g["pontos_iniciais"], f"{k}_gpi", inteiro=True, minimo=2)
             g["pontos_max"] = _num("Pontos máximos (refino)", g["pontos_max"], f"{k}_gpm", inteiro=True, minimo=2)
+        with a3:
             g["tolerancia_interpolacao_R"] = _num("Tolerância de interpolação [R$]", g["tolerancia_interpolacao_R"],
                                                   f"{k}_gti", minimo=0.0, fmt="%.3g")
             g["tolerancia_dominio_kWh"] = _num("Tolerância do domínio [kWh]", g["tolerancia_dominio_kWh"], f"{k}_gtd",
                                                minimo=0.0, fmt="%.3g")
-        with a3:
             g["max_modos"] = _num("Máximo de modos", g["max_modos"], f"{k}_gmm", inteiro=True, minimo=1)
-            s["time_limit_s"] = _num("Solver · limite de tempo por resolução [s]", s["time_limit_s"], f"{k}_stl", minimo=0.0)
-            s["threads"] = _num("Solver · threads", s["threads"], f"{k}_sth", inteiro=True, minimo=1)
-            s["semente"] = _num("Solver · semente", s["semente"], f"{k}_sse", inteiro=True, minimo=0)
-        a1, a2 = st.columns(2)
-        with a1:
-            s["rel_gap"] = _num("Solver · gap relativo", s["rel_gap"], f"{k}_srg", minimo=0.0, fmt="%.3g")
-        with a2:
-            s["abs_gap"] = _num("Solver · gap absoluto [R$]", s["abs_gap"], f"{k}_sag", minimo=0.0, fmt="%.3g")
         t = g["termo_longo"]
         t["tipo"] = _sel("Termo terminal Φ_L (fim do horizonte longo)", {x: x for x in E.TERMOS_DECLARADOS}, t["tipo"], f"{k}_tt")
         if t["tipo"] in ("valor_linear_declarado", "energia_minima_declarada"):
@@ -290,6 +456,20 @@ def render_estrategia(store, cur, oc) -> None:
             t["valores"] = {}
         t["justificativa"] = _txt("Justificativa do termo terminal Φ_L", t["justificativa"], f"{k}_tj", max_chars=500)
         g["justificativa"] = _txt("Justificativa dos parâmetros do planejador", g["justificativa"], f"{k}_gj", max_chars=500)
+    _sub("solver", doc)
+    with st.container(border=True):
+        st.html('<div class="op-k">MPC · solver de cada resolução (HiGHS)</div><p class="op-d">Limites numéricos de cada '
+                'resolução MILP das janelas MPC e do planejador; a aceitação continua sendo a do auditor independente.</p>')
+        a1, a2, a3 = st.columns(3)
+        with a1:
+            s["time_limit_s"] = _num("Solver · limite de tempo por resolução [s]", s["time_limit_s"], f"{k}_stl", minimo=0.0)
+            s["rel_gap"] = _num("Solver · gap relativo", s["rel_gap"], f"{k}_srg", minimo=0.0, fmt="%.3g")
+        with a2:
+            s["threads"] = _num("Solver · threads", s["threads"], f"{k}_sth", inteiro=True, minimo=1)
+            s["abs_gap"] = _num("Solver · gap absoluto [R$]", s["abs_gap"], f"{k}_sag", minimo=0.0, fmt="%.3g")
+        with a3:
+            s["semente"] = _num("Solver · semente", s["semente"], f"{k}_sse", inteiro=True, minimo=0)
+    _sub("revisao", doc)
     errs = E.erros_estruturais(b, doc)
     for e in errs:
         st.error(e)
@@ -316,6 +496,7 @@ def _renovaveis_form(b: dict, doc: dict, k: str) -> None:
     rens = E.renovaveis_do_cenario(doc)
     if not rens or b.get("format_version", 1) < 2:
         return
+    _sub("renovaveis", doc)
     with st.container(border=True):
         st.html('<div class="op-k">Renováveis: clima previsto e declarações por equipamento</div><p class="op-d">O potencial '
                 'disponível no barramento é calculado pelos MODELOS FÍSICOS do SEEDS2 (FV por arranjo; eólica por registro) '
@@ -357,6 +538,7 @@ def _pemfc_form(b: dict, doc: dict, k: str) -> None:
     regs = E.pemfc_do_cenario(doc)
     if not regs or b.get("format_version", 1) < 3:
         return
+    _sub("pemfc", doc)
     with st.container(border=True):
         st.html('<div class="op-k">PEMFC / H₂: inicialização física e commitment</div><p class="op-d">A curva de consumo '
                 'q(P) é gerada pelo MODELO FÍSICO do SEEDS2 a partir destas condições (uma vez por configuração) e só entra '
@@ -480,6 +662,8 @@ def render_execucao(store, cur, dirty: bool, active, live) -> None:
     except StoreError as exc:
         st.error(shell.md(exc))
         return
+    regua(cur.document, titulo=f"Régua dos horizontes · versão salva v{cur.version} (a que será executada)",
+          key="seeds_folha_regua_04")
     relatorio_preflight(pf.report(), pf.matriz, cur.version)
     st.markdown('<div class="sd-section">Executar (motor V2 experimental)</div>', unsafe_allow_html=True)
     if active is not None:

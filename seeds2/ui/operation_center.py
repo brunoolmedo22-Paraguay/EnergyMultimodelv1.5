@@ -89,7 +89,7 @@ def _adopt(stored) -> None:
     ss["op_work"] = copy.deepcopy(stored.document)
     ss["op_work_uid"] = stored.scenario_uid
     ss["op_base_version"] = stored.version
-    ss["op_base_fp"] = stored.fingerprint
+    ss["op_base_fp"] = _fp_edicao(stored.document)
     for k in ("op_conflict", "op_error", "op_stale", "op_blobs"):
         ss.pop(k, None)                     # op_blobs: dados de previsão pendentes (gravados ou descartados)
     _bump()
@@ -107,9 +107,29 @@ def work() -> dict | None:
     return _ss().get("op_work")
 
 
+def _canon_num(x):
+    """Forma canônica SÓ para a comparação de edição: inteiro e real de mesmo valor são o mesmo número (os campos
+    numéricos devolvem ``float`` para um valor gravado como ``int``, p. ex. 0 → 0.0). O documento NÃO é alterado."""
+    if isinstance(x, bool) or x is None:
+        return x
+    if isinstance(x, int):
+        return float(x)
+    if isinstance(x, dict):
+        return {k: _canon_num(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_canon_num(v) for v in x]
+    return x
+
+
+def _fp_edicao(doc: dict) -> str:
+    """Impressão da cópia de trabalho para «alterações não salvas»: abrir e percorrer as etapas (que apresentam os
+    números do documento em campos reais) não cria alteração; qualquer mudança de valor, texto, opção ou estrutura cria."""
+    return C.fingerprint(_canon_num(doc))
+
+
 def is_dirty() -> bool:
     w = work()
-    return w is not None and C.fingerprint(w) != _ss().get("op_base_fp")
+    return w is not None and _fp_edicao(w) != _ss().get("op_base_fp")
 
 
 def sync(store) -> tuple[list, object | None]:
@@ -621,16 +641,10 @@ def render() -> None:
     if ss.get("op_error"):
         st.error(shell.md(ss.pop("op_error")))
     tab = shell.route().get("tab")
-    if tab in folha_ui.TABS:                            # Piso 3D-B2-D: cabeçalho da Folha de Ensaio acima da etapa (inalterada)
-        folha_ui.cabecalho(store, cur, work(), tab, dirty=is_dirty())
-    if tab == TAB_INIT:
-        _initialization(store, cur)
-    elif tab == TAB_FC:
-        forecasts_ui.render(store, cur)
-    elif tab == TAB_SG:
-        execution_ui.render_strategy(store, cur)
-    elif tab == TAB_EX:
-        execution_ui.render_execution(store, cur)
+    etapas = {TAB_INIT: _initialization, TAB_FC: forecasts_ui.render, TAB_SG: execution_ui.render_strategy,
+              TAB_EX: execution_ui.render_execution}
+    if tab in etapas:                                   # Piso 3D-B2-D: Folha de Ensaio em três colunas em volta da etapa
+        folha_ui.render(store, cur, work, tab, is_dirty=is_dirty, corpo=lambda: etapas[tab](store, cur))
     elif tab == TAB_RUN:
         execution_ui.render_run(store, cur)
     elif tab in (TAB_AR, TAB_STUDY):
