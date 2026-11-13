@@ -82,7 +82,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   for (const [nome, sc, w, h, apto] of [["apta_1440", s.exp, 1440, 900, true], ["apta_1366", s.exp, 1366, 768, true], ["bloqueada_1440", s.bloq, 1440, 900, false], ["apta_390", s.exp, 390, 844, true]]) {
     p = await nova(w, h, w < 500 ? { isMobile: true, hasTouch: true } : {});
     await p.goto(`${base}/?view=operacao&tab=execucao&mg=${s.lab}&sc=${sc}`); await p.locator(".st-key-fl_cta").waitFor({ timeout: 180000 }); await pronto(p); await p.mouse.move(w - 4, h - 4);
-    const g = await p.evaluate(() => { const r = (e) => e && e.getBoundingClientRect(), f = r(document.querySelector(".st-key-fl_col_indice .pt")), c = r(document.querySelector(".st-key-fl_cta")), sc = r(document.querySelector(".st-key-fl_col_secao"));
+    const g = await p.evaluate(() => { const r = (e) => e && e.getBoundingClientRect(), f = r(document.querySelector(".st-key-seeds_folha")), c = r(document.querySelector(".st-key-fl_cta")), sc = r(document.querySelector(".st-key-fl_col_secao"));
       return { fy: f.y + f.height, cy: c.y, cx: c.x, fx: f.x, sy: sc.y, sx: sc.x, estado: document.querySelector('[data-rc="estado"]').innerText.replace(/\s+/g, " "),
         bloq: (document.querySelector('[data-pf="bloqueios"]') || {}).innerText || "", resumo: (document.querySelector('[data-pf="resumo"]') || {}).innerText.replace(/\s+/g, " ") }; });
     const run = p.getByRole("button", { name: /EXECUTAR MISSÃO V2/ });
