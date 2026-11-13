@@ -361,6 +361,9 @@ def _live(store, run_uid: str) -> None:
         run = store.get_run(run_uid)
     except StoreError:
         return
+    if _is_v2_run(run):                               # UI-RUNNING-01: cartão + modal de acompanhamento (mesmo progresso)
+        _v2().acompanhar(store, run, open_run=open_run, vivo=runner.is_running_here(run.run_uid))
+        return
     if run.final:
         _ss()["op_flash"] = ({"concluida": "ok"}.get(run.state, "warn"),
                              f"Rodada {run.run_uid[:8]}… {contracts.RUN_STATE_LABELS[run.state].lower()}.")

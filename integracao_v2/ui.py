@@ -667,7 +667,13 @@ def render_execucao(store, cur, dirty: bool, active, live) -> None:
     relatorio_preflight(pf.report(), pf.matriz, cur.version)
     st.markdown('<div class="sd-section">Executar (motor V2 experimental)</div>', unsafe_allow_html=True)
     if active is not None:
+        if e_v2(active):
+            _ss()[SEGUIR] = active.run_uid                # UI-RUNNING-01: o desfecho desta rodada será mostrado
         live(store, active.run_uid)
+    else:
+        fim = seguir_desfecho(store, cur)                 # rodada acompanhada que terminou: desfecho até ser dispensado
+        if fim is not None:
+            live(store, fim.run_uid)
     req_key = f"op_ex_req_v2_{cur.scenario_uid}_{cur.version}"
     req = _ss().setdefault(req_key, X.new_request_id())
     reason = ("há alterações não salvas" if dirty else "o preflight V2 tem bloqueios" if not pf.ok else
@@ -698,6 +704,186 @@ def progresso(run) -> None:
         st.progress(min(k / n, 1.0), text=f"{FASES['missao']} · intervalo {k} de {n} · {int(p.get('janelas', 0))} janela(s)")
     else:
         st.caption("⏳ " + FASES.get(fase, fase))
+
+
+# ======================================================================= UI-RUNNING-01: modal de acompanhamento
+# O modal SÓ LÊ o que o runner já grava (``run.progress``: fase, k de n intervalos, janelas — o mesmo mecanismo do cartão
+# «Execução em andamento») e é redesenhado pelo fragmento existente (``execution_ui._live``, 1 s). Nenhum progresso é
+# estimado: porcentagem só na fase «missao» com k < n; nas demais fases a barra é indeterminada; 100 % só com a rodada
+# CONCLUÍDA no banco. Ocultar o painel é estado do navegador; CANCELAR é uma ação real (``cancelar``).
+SEGUIR = "op_v2_seguir"                          # rodada V2 acompanhada nesta sessão (mostra o desfecho até ser dispensado)
+CANCEL_KIND = "cancelada_pelo_usuario"
+RERUN_APP = "op_v2_rerun_app"                  # ação do modal que muda a página inteira (FECHAR, VER DIAGNÓSTICO)
+RESPOSTA_CANCEL = "op_v2_cancel_resp_"          # + run_uid: última resposta do servidor a um pedido de cancelamento
+FASES_MODAL = ("fila", "montagem", "missao", "auditoria", "gravando")
+
+
+def _cancelada(run) -> bool:
+    return run.state == "interrompida" and (run.error or {}).get("kind") == CANCEL_KIND
+
+
+def cancelar(store, run_uid: str) -> tuple[str, str]:
+    """Cancelamento COOPERATIVO de uma rodada V2 em execução NESTE processo, pela API existente do armazenamento:
+    ``fail_run(estado = 'interrompida')`` — transação condicionada a «em execução por este dono». O runner percebe no
+    próximo ``beat`` (entre janelas, antes da auditoria ou da gravação: ``RunStateError``) e termina SEM gravar nada; a
+    janela em curso não é interrompida no meio do solver (termina e é descartada). Nenhum resultado parcial vira
+    resultado; nenhuma outra rodada é afetada. Devolve (situação, mensagem)."""
+    from datetime import datetime, timezone
+
+    from seeds2.microgrid.store import RunNotFound, RunStateError
+
+    from . import execucao as X
+
+    try:
+        run = store.get_run(run_uid)
+    except RunNotFound:
+        return "inexistente", "A rodada não existe nesta microrrede."
+    if run.state != "em_execucao":
+        return "finalizada", f"A rodada já terminou ({run.state}); nada foi cancelado."
+    if not X.is_running_here(run_uid):
+        return "outro_processo", ("A rodada é executada por outro processo do servidor: o cancelamento só é possível no "
+                                  "processo que a executa. Nada foi alterado.")
+    p = run.progress or {}
+    if p.get("phase") in ("auditoria", "gravando"):
+        return "tarde", ("A missão já terminou e a auditoria/gravação atômica está em andamento: não é possível cancelar "
+                         "agora. Nada foi alterado.")
+    agora = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    k, n = p.get("k"), p.get("n")
+    msg = ("Execução CANCELADA pelo usuário" + (f" após {k} de {n} intervalo(s) aplicado(s)" if k is not None and n else "")
+           + ". A janela em curso foi descartada; nenhum resultado foi gravado (o custo parcial não é o custo da missão).")
+    try:
+        store.fail_run(run_uid, X.OWNER, {"kind": CANCEL_KIND, "message": msg, "requested_utc": agora,
+                                         "progress_at_request": dict(p)},
+                       state="interrompida",
+                       outcome={"engine": {"id": E.MOTOR_V2}, "mission": None,
+                                "cancelamento": {"solicitado_utc": agora, "progresso_no_pedido": dict(p)}})
+    except RunStateError:
+        return "finalizada", "A rodada terminou antes do pedido de cancelamento; nada foi cancelado."
+    return "solicitado", msg
+
+
+def dados_modal(run, *, vivo: bool) -> dict:
+    """Estado do modal a partir SÓ da rodada gravada (sem estimativas). ``vivo`` = a thread do runner ainda roda aqui."""
+    man = run.manifest if isinstance(run.manifest, dict) else {}
+    mis = man.get("mission") if isinstance(man.get("mission"), dict) else {}
+    p = run.progress if isinstance(run.progress, dict) else {}
+    fase = p.get("phase") or "preparando"
+    k = p.get("k") if isinstance(p.get("k"), int) else None
+    n = p.get("n") if isinstance(p.get("n"), int) and p.get("n") > 0 else None
+    err = run.error or {}
+    if run.state == "em_execucao":
+        situacao = "andamento"
+    elif run.state == "concluida":
+        situacao = "concluida"
+    elif _cancelada(run):
+        situacao = "cancelando" if vivo else "cancelada"
+    else:
+        situacao = "falha"
+    determinado = situacao == "andamento" and fase == "missao" and k is not None and n is not None and k < n
+    cancelavel, motivo = False, None
+    if situacao == "andamento":
+        if not vivo:
+            motivo = "A rodada é executada por outro processo do servidor: o cancelamento só é possível nele."
+        elif fase in ("auditoria", "gravando"):
+            motivo = "A missão terminou; auditoria e gravação em andamento — não é possível cancelar agora."
+        else:
+            cancelavel = True
+    return {"run": run.run_uid, "curto": run.run_uid[:8], "estado": run.state, "situacao": situacao, "fase": fase,
+            "fase_rotulo": FASES.get(fase, fase), "fases": list(FASES_MODAL),
+            "k": k, "n": n, "janelas": p.get("janelas") if isinstance(p.get("janelas"), int) else None,
+            "determinado": determinado, "fracao": (k / n) if determinado else (1.0 if situacao == "concluida" else None),
+            "N": mis.get("N"), "m": mis.get("m"), "H_L": mis.get("H_L"), "delta_min": mis.get("delta_min"),
+            "cenario": (man.get("scenario") or {}).get("name") or "cenário", "versao": run.scenario_version,
+            "motor": "EMS V2 · MILP–MPC hierárquico (experimental)", "inicio": shell.fmt_time(run.created_at),
+            "cancelavel": cancelavel, "motivo_cancelamento": motivo,
+            "mensagem": (err.get("message") or "")[:900] if situacao in ("falha", "cancelando", "cancelada") else "",
+            "titulo_falha": "Missão interrompida" if run.state == "interrompida" else "Falha na execução"}
+
+
+def _acao_modal(store, open_run) -> None:
+    a = shell.payload("seeds_execucao")
+    if not a or not a.get("run"):
+        return
+    ss = _ss()
+    if a.get("type") == "cancelar":
+        situacao, mensagem = cancelar(store, str(a["run"]))
+        # resposta REAL do servidor, vinculada ao pedido do navegador (``t``): o modal só sai de «solicitado» com ela
+        ss[RESPOSTA_CANCEL + str(a["run"])] = {"pedido": a.get("t"), "situacao": situacao, "mensagem": mensagem}
+    elif a.get("type") == "diagnostico":
+        ss.pop(SEGUIR, None)
+        open_run(str(a["run"]))
+        ss[RERUN_APP] = True          # ``st.rerun`` num callback não tem efeito: o próximo ciclo do fragmento o pede
+    elif a.get("type") == "fechar":
+        ss.pop(SEGUIR, None)
+        ss[f"op_v2_ok_{a['run']}"] = True
+        ss[RERUN_APP] = True          # mesmo efeito do «OK» da página: o desfecho sai da tela inteira, não só o painel
+
+
+def acompanhar(store, run, *, open_run, vivo: bool) -> None:
+    """Corpo do fragmento de acompanhamento para uma rodada V2 (chamado por ``execution_ui._live`` a cada 1 s): cartão
+    de estado da página (fallback sempre visível) + modal. Concluída ⇒ «Concluída» por um ciclo e abertura da rodada
+    (comportamento anterior); falha/interrupção/cancelamento ⇒ o desfecho fica visível até o usuário dispensar."""
+    from seeds2.ui import trama
+
+    ss = _ss()
+    if ss.pop(RERUN_APP, False):
+        st.rerun(scope="app")
+    d = dados_modal(run, vivo=vivo)
+    if d["situacao"] == "concluida":
+        chave = f"op_v2_fim_{run.run_uid}"
+        if ss.get(chave):
+            ss.pop(SEGUIR, None)
+            ss["op_flash"] = ("ok", f"Rodada {run.run_uid[:8]}… concluída.")
+            open_run(run.run_uid)
+            st.rerun(scope="app")
+        ss[chave] = True
+    resp = ss.get(RESPOSTA_CANCEL + run.run_uid)
+    if resp:
+        d["resposta_cancelamento"] = dict(resp)
+    with st.container(border=True):
+        if d["situacao"] == "andamento":
+            st.html(f'<div class="op-row"><div class="op-t">Execução em andamento · rodada {escape(run.run_uid[:8])}…</div>'
+                    '<span class="op-pill info">Em execução</span></div><p class="op-d">Cenário v'
+                    f'{run.scenario_version} · iniciada {escape(shell.fmt_time(run.created_at))}. A execução continua no '
+                    'servidor mesmo que esta página seja recarregada ou fechada.</p>')
+            progresso(run)
+        else:
+            tom = {"concluida": "ok", "cancelando": "warn", "cancelada": "warn"}.get(d["situacao"], "bad")
+            rot = {"concluida": "Concluída", "cancelando": "Cancelamento solicitado", "cancelada": "Cancelada"}.get(
+                d["situacao"], d["titulo_falha"])
+            st.html(f'<div class="op-row"><div class="op-t">{escape(rot)} · rodada {escape(run.run_uid[:8])}…</div>'
+                    f'<span class="op-pill {tom}">{escape(rot)}</span></div>'
+                    + (f'<p class="op-d">{escape(d["mensagem"])}</p>' if d["mensagem"] else ""))
+            if d["situacao"] != "concluida":
+                c1, c2, _ = st.columns([1.2, 1, 3])
+                if c1.button("VER DIAGNÓSTICO", key=f"op_v2_diag_{run.run_uid}", width="stretch"):
+                    ss.pop(SEGUIR, None)
+                    open_run(run.run_uid)
+                    st.rerun(scope="app")
+                if c2.button("OK", key=f"op_v2_ok_btn_{run.run_uid}", width="stretch",
+                             disabled=d["situacao"] == "cancelando"):
+                    ss.pop(SEGUIR, None)
+                    ss[f"op_v2_ok_{run.run_uid}"] = True
+                    st.rerun(scope="app")
+        trama.pagina("execucao", d, key="seeds_execucao", on_action=lambda: _acao_modal(store, open_run), wide=False)
+
+
+def seguir_desfecho(store, cur):
+    """Rodada V2 acompanhada nesta sessão que JÁ terminou e cujo desfecho ainda não foi dispensado (ou ``None``)."""
+    uid = _ss().get(SEGUIR)
+    if not uid:
+        return None
+    try:
+        r = store.get_run(uid)
+    except StoreError:
+        _ss().pop(SEGUIR, None)
+        return None
+    if r.state == "em_execucao":
+        return None                                   # ainda ativa: o fluxo normal (rodada ativa) a acompanha
+    if r.scenario_uid != cur.scenario_uid or _ss().get(f"op_v2_ok_{uid}"):
+        _ss().pop(SEGUIR, None)
+        return None
+    return r
 
 
 # ======================================================================= rodada V2 (somente leitura)

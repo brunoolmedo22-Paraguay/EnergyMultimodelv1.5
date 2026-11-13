@@ -21,9 +21,9 @@ ADICIONADOS = frozenset({"tests/test_ui_redesign01.py", "tests/ems_v2/ui_redesig
 
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos. Remoção, renomeação ou qualquer outro arquivo continuam visíveis."""
-    _ = root
-    return [row for row in changes if not (len(row) == 2 and (
-        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from ui_running01_guard_policy import filter_changes as filter_running01      # exceção nominal UI-RUNNING-01
+    return filter_running01(root, [row for row in changes if not (len(row) == 2 and (
+        (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))])
 
 
 INTOCADOS = ("ems_v2", "models", "h2_pemfc", "simulation", "config", "ems_integration", "reference_models", "visualization",
