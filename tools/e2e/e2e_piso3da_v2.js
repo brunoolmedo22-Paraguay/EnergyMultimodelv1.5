@@ -23,6 +23,7 @@
 //   tablet   — rodada V2 em tablet (retrato) sem rolagem horizontal da página.
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 // Piso 3D-B3: com a Partitura desenhada, a vista clássica da rodada V2 fica RECOLHIDA num expansor identificado. Este
 // roteiro continua verificando a vista clássica: apenas a abre antes (navegação) — nenhuma verificação foi alterada.
 const abrirClassica = async (p) => {
@@ -55,6 +56,7 @@ async function visible(p, text) { return (await p.getByText(text, { exact: false
 async function btn(p, name) { await p.getByRole("button", { name }).first().click(); await ready(p); }
 async function abrirMicrorrede(p, nome) {
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
+  await expandirCartoes(p);
   await p.getByText(nome, { exact: true }).first().waitFor({ timeout: 60000 });
   // cartão = contêiner MAIS INTERNO que tem o nome exato da microrrede e um botão ABRIR MICRORREDE
   const cartao = p.locator('[data-testid="stVerticalBlock"]')
@@ -62,7 +64,7 @@ async function abrirMicrorrede(p, nome) {
     .filter({ has: p.getByRole("button", { name: "ABRIR MICRORREDE" }) }).last();
   await cartao.waitFor({ timeout: 60000 });       // os cartões são desenhados depois do cabeçalho
   assert(await cartao.count() === 1, `microrrede '${nome}' listada no Gestor`);
-  await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+  await expandirCartoes(cartao); await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
   assert(await visible(p, nome), `microrrede aberta: ${nome}`);
 }
@@ -246,7 +248,7 @@ async function operar(b) {
   const ene = await chart(p, "Energia armazenada nas fronteiras");
   assert(ene && ene.traces[0].n === 13, "gráfico: energia em 13 fronteiras (N + 1)");
   assert(p.url().includes("run="), "URL identifica a rodada (?run=)");
-  assert(await p.getByRole("button", { name: "Baixar" }).count() === 10, "10 dados gravados disponíveis para download");
+  assert(await p.getByRole("button", { name: "Baixar", exact: true }).count() === 10, "10 dados gravados disponíveis para download");
   const runUid = new URL(p.url()).searchParams.get("run");
   fs.writeFileSync(runFile, JSON.stringify({ run: runUid, custo: CUSTO, link: p.url() }));
   await shot(p, "p3da_06_rodada_v2.png");

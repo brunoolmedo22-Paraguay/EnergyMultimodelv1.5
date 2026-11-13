@@ -104,8 +104,11 @@ class GestorPaginaTest(_Base):
         self.assertIn("Selecione, registre e gerencie suas instalações energéticas.", body)
         self.assertIn("Nenhuma microrrede registrada", body)
         # Piso 2D-A: ARQUIVO CIENTÍFICO acessível sem microrrede (importar/consultar estudos numa instalação vazia)
-        self.assertEqual([b.label for b in app.button], ["＋ NOVA MICRORREDE", "IMPORTAR MICRORREDE (ZIP)",
-                                                         "ARQUIVO CIENTÍFICO"])
+        self.assertEqual([b.label for b in app.button if not b.key.startswith("home_bench_")],
+                         ["＋ NOVA MICRORREDE", "IMPORTAR MICRORREDE (ZIP)", "ARQUIVO CIENTÍFICO"])
+        # UI-FINISH-01: as bancadas (bloco do celular; no desktop estão na barra lateral) — as MESMAS do Centro de Operação
+        self.assertEqual([b.label for b in app.button if b.key.startswith("home_bench_")],
+                         ["ABRIR SOLAR", "ABRIR EÓLICA", "ABRIR BATERIA", "ABRIR H₂ / PEMFC", "ABRIR TÉRMICA"])
         self.assertEqual(self.reg().entries(), [])
 
     def test_criar_varias_pelo_gestor_e_retomar_comissionamento(self):  # requisitos 2, 3, 11

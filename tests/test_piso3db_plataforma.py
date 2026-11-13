@@ -33,7 +33,9 @@ def _ids(itens):
 class DestinosDaBarraLateralTest(unittest.TestCase):
     def test_sem_microrrede_so_catalogo_arquivo_e_documentacao(self):
         it = shell.sidebar_items(view="gestor", tab=None, is_open=False, commissioned=False)
-        self.assertEqual(_ids(it), ["catalogo", "arquivo", "alcance"])
+        # UI-FINISH-01: as cinco bancadas também sem microrrede aberta (não dependem da microrrede)
+        self.assertEqual(_ids(it), ["catalogo", "arquivo", "bancada_solar", "bancada_wind", "bancada_battery", "bancada_h2",
+                                    "bancada_thermal", "alcance"])
         self.assertEqual([i["id"] for i in it if i["atual"]], ["catalogo"])
         self.assertEqual(it[0]["acao"], {"type": "nav", "view": "gestor", "tab": None})
         it = shell.sidebar_items(view="arquivo", tab=None, is_open=False, commissioned=False)
@@ -41,7 +43,8 @@ class DestinosDaBarraLateralTest(unittest.TestCase):
 
     def test_em_comissionamento_o_catalogo_troca_de_microrrede(self):
         it = shell.sidebar_items(view="comissionamento", tab=None, is_open=True, commissioned=False)
-        self.assertEqual(_ids(it), ["catalogo", "comissionamento", "alcance"])
+        self.assertEqual(_ids(it), ["catalogo", "comissionamento", "bancada_solar", "bancada_wind", "bancada_battery",
+                                    "bancada_h2", "bancada_thermal", "alcance"])             # UI-FINISH-01: bancadas
         self.assertEqual(it[0]["acao"], {"type": "switch"})           # nunca navega para o Gestor com a microrrede aberta
         self.assertEqual([i["id"] for i in it if i["atual"]], ["comissionamento"])
 

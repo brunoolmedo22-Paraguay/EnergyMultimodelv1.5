@@ -12,6 +12,7 @@
 //   importar — instalação LIMPA, SEM solver, com motores e MODELOS FÍSICOS sabotados: estudo importado e consultado.
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 // Piso 3D-B3: com a Partitura desenhada, a vista clássica da rodada V2 fica RECOLHIDA num expansor identificado. Este
 // roteiro continua verificando a vista clássica: apenas a abre antes (navegação) — nenhuma verificação foi alterada.
 const abrirClassica = async (p) => {
@@ -42,12 +43,13 @@ async function visible(p, text) { return (await p.getByText(text, { exact: false
 async function btn(p, name) { await p.getByRole("button", { name }).first().click(); await ready(p); }
 async function abrirMicrorrede(p, nome) {
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
+  await expandirCartoes(p);
   await p.getByText(nome, { exact: true }).first().waitFor({ timeout: 60000 });
   const cartao = p.locator('[data-testid="stVerticalBlock"]')
     .filter({ has: p.getByText(nome, { exact: true }) })
     .filter({ has: p.getByRole("button", { name: "ABRIR MICRORREDE" }) }).last();
   await cartao.waitFor({ timeout: 60000 });
-  await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
+  await expandirCartoes(cartao); await cartao.getByRole("button", { name: "ABRIR MICRORREDE" }).first().click(); await ready(p);
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
   assert(await visible(p, nome), `microrrede aberta: ${nome}`);
 }
@@ -105,7 +107,7 @@ async function operar(b) {
   await p.getByRole("button", { name: /EXECUTAR MISSÃO V2/ }).click();
   await waitRun(p); await ready(p);
   const custo = await conferirRodada(p, "rodada", null);
-  assert(await p.getByRole("button", { name: "Baixar" }).count() === 11, "11 dados gravados (inclui v2/renovaveis.json)");
+  assert(await p.getByRole("button", { name: "Baixar", exact: true }).count() === 11, "11 dados gravados (inclui v2/renovaveis.json)");
   assert(await visible(p, "v2/renovaveis.json"), "derivação renovável gravada com a rodada");
   fs.writeFileSync(runFile, JSON.stringify({ custo, link: p.url() }));
   await shot(p, "p3da2r_02_rodada.png");

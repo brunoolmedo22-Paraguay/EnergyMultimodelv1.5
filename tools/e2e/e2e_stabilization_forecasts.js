@@ -1,6 +1,7 @@
 // Separate operational acceptance. The legacy pixel-exact autorange assertion
 // remains unchanged in e2e_piso2b_previsoes.js and is reported independently.
 const{chromium}=require('playwright'),fs=require('fs'),path=require('path');
+const { expandirCartoes } = require("./catalogo_util");
 const[url,csv,out,phase='operar']=process.argv.slice(2);fs.mkdirSync(out,{recursive:true});
 let p,n=0;function check(x,m){if(!x)throw Error(m);n++;console.log('PASS '+m)}
 async function ready(){await p.waitForLoadState('networkidle');await p.waitForTimeout(1000);check(!await p.locator('[data-testid="stException"]').count(),'no Python exception')}
@@ -12,10 +13,10 @@ async function upload(name){await panel().locator('input[type="file"]').setInput
 async function data(title){for(const c of await panel().locator('[data-testid="stPlotlyChart"]').all()){await c.scrollIntoViewIfNeeded();await p.waitForTimeout(400)}
  await p.waitForFunction(t=>[...document.querySelectorAll('.js-plotly-plot')].some(g=>g._fullData&&g.layout?.title?.text?.includes(t)),title,{timeout:60000});
  return p.evaluate(t=>{const g=[...document.querySelectorAll('.js-plotly-plot')].find(g=>g._fullData&&g.layout?.title?.text?.includes(t));return g._fullData.map(d=>({name:d.name,x:Array.from(d.x||[]),y:Array.from(d.y||[])}))},title)}
-async function reopen(){await p.goto(url);await ready();await p.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();await btn('ABRIR PREVISÕES')}
+async function reopen(){await p.goto(url);await ready();await expandirCartoes(p); await p.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();await btn('ABRIR PREVISÕES')}
 (async()=>{const b=await chromium.launch();try{p=await b.newPage({viewport:{width:1440,height:900}});
  if(phase==='operar'){
-  await p.goto(url);await ready();await p.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();await btn('＋ NOVO CENÁRIO');await p.getByLabel('Nome do cenário *').fill('Aceitação integral de previsões');await btn('Criar cenário');await btn('ABRIR PREVISÕES');
+  await p.goto(url);await ready();await expandirCartoes(p); await p.getByRole('button',{name:'ABRIR MICRORREDE',exact:true}).first().click();await ready();await btn('＋ NOVO CENÁRIO');await p.getByLabel('Nome do cenário *').fill('Aceitação integral de previsões');await btn('Criar cenário');await btn('ABRIR PREVISÕES');
   await panel().getByText('Importar CSV',{exact:true}).click();await ready();await upload('malformado_e2e.csv');check(await p.getByText('Arquivo recusado',{exact:false}).first().isVisible(),'corrupt input rejected');check(await panel().getByRole('button',{name:'INCORPORAR AO CENÁRIO',exact:true}).isDisabled(),'corrupt input cannot be incorporated');
   await upload('demanda_e2e.csv');const demand=await data('PRÉ-VISUALIZAÇÃO');check(demand[0].y.length===121,'121 demand samples rendered');await btn('INCORPORAR AO CENÁRIO');
   await tab(/Clima/);await panel().getByText('Importar CSV',{exact:true}).click();await ready();await upload('clima_e2e.csv');

@@ -18,6 +18,7 @@
 //   tablet   — estudo em tablet retrato/paisagem (sem rolagem horizontal, gráfico dentro da tela) e tema escuro.
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const path = require("path");
 const fs = require("fs");
 
@@ -80,7 +81,7 @@ async function exportar(b) {
   const errs = []; p.on("pageerror", (e) => errs.push(String(e)));
   await p.goto(url); await ready(p);
   await p.getByText("GESTOR DE MICRORREDES").first().waitFor({ timeout: 120000 });
-  await btn(p, "ABRIR MICRORREDE");
+  await expandirCartoes(p); await btn(p, "ABRIR MICRORREDE");
   await p.getByText("Espaço de trabalho cotidiano da microrrede ativa", { exact: false }).waitFor({ timeout: 60000 });
   assert(await visible(p, "Exportar, importar e consultar estudos"), "Centro de Operação: cartão do Arquivo Científico");
   assert(await p.getByRole("button", { name: "ABRIR EXECUÇÃO" }).count() === 1, "etapas 01–04 preservadas no painel");

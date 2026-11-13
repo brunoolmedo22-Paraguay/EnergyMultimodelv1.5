@@ -5,10 +5,31 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `claude/friendly-mccarthy-zrel1q` (reiniciada de `main` `9d2bcf0` = merge do PR #26) |
-| **PR** | ver «UI-RUNNING-01» abaixo — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **UI-RUNNING-01** — modal de acompanhamento da execução V2 (SEEDS2 · RUNNING SIMULATION) + cancelamento cooperativo pela API existente do armazenamento. |
+| **Branch** | `claude/friendly-mccarthy-zrel1q` (reiniciada de `main` `c29e600` = merge do PR #27) |
+| **PR** | ver «UI-FINISH-01» abaixo — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **UI-FINISH-01** — bancadas sem microrrede, catálogo recolhido, preflight compacto + cartão de rodada, overlay do modal estável, exportação de cada gráfico (PNG/SVG claro/escuro) e PDF/ZIP/Excel da rodada V2. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## UI-FINISH-01 (pedido do responsável; pacote `SEEDS2_OPUS_UI_FINISH_2026-11-13`)
+
+- **Detalhes, decisões e matriz pedido → alteração → teste → evidência:** `docs/seeds2/UI_FINISH_01.md`.
+- **Achado principal (ponto 6):** os geradores 2D-B (`run_pdf`/`xlsx`/`figures`) RECUSAVAM rodadas V2 (contrato V1.6).
+  Preenchido sem novo motor documental: dossiê ciente do motor (`seeds2/report/dossier.py`: `REQUIRED_CONCLUDED_V2`,
+  `require_complete(d, engine=…)`) + `integracao_v2/documentos.py` sobre a infraestrutura do 2D-B + o MESMO painel
+  `report_exports.render` (gerador/rótulos opcionais), visível na página da rodada V2 (local e estudo).
+- **Causa do piscar (ponto 4):** transição de opacidade «stale» do Streamlit no contêiner `st-key-seeds_execucao` ⇒ nova
+  raiz de fundo do `backdrop-filter`. Correção: `integracao_v2/ui.MODAL_ESTAVEL_CSS`.
+- **Executar (ponto 3):** o ÚNICO botão `op_ex_run_v2` (mesmas guardas e `X.submit` idempotente) agora vive no cartão
+  `integracao_v2/ui.cartao_rodada`, entregue à Folha por `CTA_SLOT` (a Folha desenha sob o índice).
+- **Guardas:** exceção nominal `tests/ems_v2/ui_finish01_guard_policy.py` (lista explícita de linhas REMOVIDAS de
+  `dossier.py`/`report_exports.py`); C-DEPLOY-01 NÃO aplicada (2 guardas de `requirements.txt` falham como no `main`).
+- **Verificação:** testes da missão 21 + 2 passed; regressão com solver só com as 2 falhas pré-existentes de `requirements.txt`
+  (após `41fab35`); E2E `run_ui_finish.sh` 76 verificações (exportações com motor sabotado: registro VAZIO) e as quatro suítes
+  3D aprovadas. Detalhes: `PARAMIJEFE.md` Entrega 22.
+- **Pendente:** roteiros E2E dos pisos 1–2D-B/estabilização adaptados (`tools/e2e/catalogo_util.js`) mas não reexecutados.
+- **Próximo passo:** revisão do PR pelo responsável; decisão sobre C-DEPLOY-01.
+
+---
 
 ## UI-RUNNING-01 (pedido do responsável; pacote `SEEDS2_OPUS_RUNNING_SIMULATION_MODAL_2026-11-13`)
 

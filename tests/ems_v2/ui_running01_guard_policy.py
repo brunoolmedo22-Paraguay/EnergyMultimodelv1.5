@@ -21,9 +21,10 @@ ADICIONADOS = frozenset({"seeds2/ui/static/trama/execucao.js", "tests/test_ui_ru
 
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos. Remoção, renomeação ou qualquer outro arquivo continuam visíveis."""
-    _ = root
-    return [row for row in changes if not (len(row) == 2 and (
+    restantes = [row for row in changes if not (len(row) == 2 and (
         (row[0] == "M" and row[1] in MODIFICADOS) or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from ui_finish01_guard_policy import filter_changes as filter_finish01          # exceção nominal UI-FINISH-01
+    return filter_finish01(root, restantes)
 
 
 INTOCADOS = ("ems_v2", "models", "h2_pemfc", "simulation", "config", "ems_integration", "reference_models", "visualization",

@@ -606,17 +606,6 @@ def stage_state(store, cur) -> tuple[str, str, str]:
     return "ok", "Pronto para executar (V2)", f"versão salva v{cur.version}{hist}"
 
 
-def _itens_html(items: list[dict]) -> str:
-    ordem = {PF.ERROR: 0, PF.WARNING: 1, PF.OK: 2, PF.INFO: 3}
-    rows = []
-    for it in sorted(items, key=lambda i: ordem.get(i["level"], 9)):
-        lv = it["level"]
-        rows.append(f'<div class="op-f"><i class="{TONS.get(lv, "off")}">{GLIFOS.get(lv, "·")}</i><span><b>'
-                    f'{escape(PF.AREA_LABELS.get(it.get("area"), it.get("area") or ""))}:</b> {escape(it["message"])}'
-                    '</span></div>')
-    return "".join(rows)
-
-
 def _matriz_html(linhas: list[dict]) -> str:
     cab = ("Dado", "UID", "Valor", "Fonte / procedência", "Transformação", "Validação", "Registro", "Vista")
     corpo = "".join(
@@ -626,12 +615,72 @@ def _matriz_html(linhas: list[dict]) -> str:
     return '<table class="op-tbl"><tr>' + "".join(f"<th>{c}</th>" for c in cab) + "</tr>" + corpo + "</table>"
 
 
-def relatorio_preflight(rep: dict, matriz: list[dict], versao) -> None:
+# UI-FINISH-01 (ponto 3A): hierarquia COMPACTA do relatório do preflight — só apresentação. Os itens, níveis, contagens,
+# critérios e a capacidade de executar são os MESMOS objetos do preflight V2 (``PF.PreflightV2.report()``); nada é
+# reclassificado. Bloqueios sempre visíveis com o texto inteiro; advertências resumidas por área (texto completo a um
+# clique); informações visíveis em letra menor; verificações aprovadas recolhidas, agrupadas por área.
+# «Onde revisar» é ORIENTAÇÃO de navegação por área, só onde a seção é inequívoca — não é diagnóstico novo.
+ONDE_REVISAR = {"estrategia": "03 · Motor e estratégia", "parametros": "03 · Motor e estratégia", "contrato": "03 · Motor e estratégia",
+                "motor": "03 · Motor e estratégia", "pcc": "03 · Motor e estratégia (PCC e tarifas)",
+                "pemfc": "03 · Motor e estratégia (PEMFC / H₂)", "previsoes": "02 · Previsões",
+                "solver": "ambiente do servidor (dependências do motor V2: requirements-ems_v2.txt)",
+                "inventario": "Gestão da microrrede (inventário) e a referência do cenário"}
+PF_CSS = """<style>
+.pf-res { display: flex; flex-wrap: wrap; gap: .4rem .5rem; margin: .1rem 0 .6rem 0; }
+.pf-c { display: inline-flex; align-items: baseline; gap: .35rem; padding: .22rem .65rem; border-radius: 999px; font-size: .8rem;
+  border: 1px solid rgba(128,128,128,.28); font-variant-numeric: tabular-nums; }
+.pf-c b { font-size: .95rem; } .pf-c.b { border-color: #C2364A; color: #C2364A; } .pf-c.w { border-color: #C77700; color: #A35F00; }
+.pf-c.ok { border-color: color-mix(in srgb, #2E8B57 60%, transparent); color: #2E8B57; } .pf-c.z { opacity: .55; }
+.pf-k { font-size: .7rem; font-weight: 760; letter-spacing: .1em; text-transform: uppercase; opacity: .62; margin: .8rem 0 .35rem 0; }
+.pf-it { display: grid; grid-template-columns: 1.3rem minmax(0, 1fr); gap: .1rem .5rem; padding: .5rem .2rem; border-top: 1px solid rgba(128,128,128,.16); }
+.pf-it:first-of-type { border-top: 0; }
+.pf-it > i { font-style: normal; font-weight: 800; text-align: center; line-height: 1.35; }
+.pf-it .t { font-weight: 700; font-size: .9rem; line-height: 1.3; }
+.pf-it .d { grid-column: 2; font-size: .82rem; line-height: 1.45; opacity: .82; overflow-wrap: anywhere; }
+.pf-it .o { grid-column: 2; font-size: .76rem; margin-top: .15rem; opacity: .9; }
+.pf-it.b > i { color: #C2364A; } .pf-it.w > i { color: #C77700; } .pf-it.ok > i { color: #2E8B57; } .pf-it.i > i { opacity: .55; }
+.pf-blq { border: 1px solid color-mix(in srgb, #C2364A 45%, transparent); border-left: 4px solid #C2364A; border-radius: 12px;
+  padding: .35rem .8rem; margin: .2rem 0 .5rem 0; background: color-mix(in srgb, #C2364A 5%, transparent); }
+.pf-adv { display: flex; flex-wrap: wrap; gap: .35rem; margin: .1rem 0 .3rem 0; }
+.pf-adv span { font-size: .78rem; padding: .15rem .55rem; border-radius: 8px; background: color-mix(in srgb, #C77700 10%, transparent); }
+.pf-info .pf-it .t { font-size: .82rem; } .pf-info .pf-it .d { font-size: .78rem; }
+.pf-grp { font-size: .74rem; font-weight: 760; letter-spacing: .06em; text-transform: uppercase; opacity: .6; margin: .7rem 0 .1rem 0; }
+</style>"""
+
+
+def _area(it: dict) -> str:
+    return PF.AREA_LABELS.get(it.get("area"), it.get("area") or "")
+
+
+def _item_html(it: dict, *, onde: bool = False) -> str:
+    lv = it["level"]
+    cls = {PF.ERROR: "b", PF.WARNING: "w", PF.OK: "ok", PF.INFO: "i"}.get(lv, "")
+    o = ONDE_REVISAR.get(it.get("area")) if onde else None
+    return (f'<div class="pf-it {cls}"><i aria-hidden="true">{GLIFOS.get(lv, "·")}</i><span class="t">{escape(_area(it))}</span>'
+            f'<span class="d">{escape(it["message"])}</span>'
+            + (f'<span class="o">Onde revisar (orientação): <b>{escape(o)}</b></span>' if o else "") + "</div>")
+
+
+def _agrupado(items: list[dict]) -> str:
+    grupos: dict[str, list[dict]] = {}
+    for it in items:
+        grupos.setdefault(_area(it), []).append(it)
+    return "".join(f'<div class="pf-grp">{escape(g)} · {len(v)}</div>' + "".join(_item_html(x) for x in v) for g, v in grupos.items())
+
+
+def resumo_preflight(rep: dict) -> dict:
+    """Contagens e bloqueios DO preflight (os mesmos números do relatório e do cartão de rodada)."""
     c = rep["counts"]
+    return {"ok": bool(rep["ok"]), "aprovadas": int(c[PF.OK]), "avisos": int(c[PF.WARNING]), "bloqueios": int(c[PF.ERROR]),
+            "info": int(c[PF.INFO]), "excluidos": len(rep["excluded"]),
+            "areas_bloqueio": list(dict.fromkeys(_area(i) for i in rep["items"] if i["level"] == PF.ERROR))}
+
+
+def relatorio_preflight(rep: dict, matriz: list[dict], versao) -> None:
+    r = resumo_preflight(rep)
+    por = {lv: [i for i in rep["items"] if i["level"] == lv] for lv in (PF.ERROR, PF.WARNING, PF.INFO, PF.OK)}
+    st.html(PF_CSS)
     st.markdown(f'<div class="sd-section">Preflight V2 · versão salva v{versao}</div>', unsafe_allow_html=True)
-    shell.kpis([("Bloqueios", str(c[PF.ERROR]), "impedem a execução"), ("Advertências", str(c[PF.WARNING]), "não bloqueiam"),
-                ("Verificações", str(c[PF.OK]), "aprovadas"),
-                ("Excluídos", str(len(rep["excluded"])), "indisponíveis no cenário")])
     if not rep["ok"]:
         shell.callout("<b>Este cenário NÃO pode ser executado pelo motor V2.</b> Cada bloqueio abaixo explica o que falta ou "
                       "o que não é representável; nada é preenchido automaticamente e o motor V1.6 não é usado como "
@@ -639,11 +688,31 @@ def relatorio_preflight(rep: dict, matriz: list[dict], versao) -> None:
     else:
         shell.callout("<b>Apto para o motor V2.</b> Parâmetros e séries suficientes, contratos 3C-0…3C-4 aceitos e solver "
                       "disponível.", "ok")
-    st.html(_itens_html(rep["items"]))
+    chip = lambda n, rot, cls: f'<span class="pf-c {cls if n else "z"}"><b>{n}</b> {rot}</span>'  # noqa: E731
+    st.html('<div class="pf-res" data-pf="resumo">' + chip(r["bloqueios"], "bloqueio(s) — impedem a execução", "b")
+            + chip(r["avisos"], "advertência(s) — não bloqueiam", "w") + chip(r["aprovadas"], "verificação(ões) aprovada(s)", "ok")
+            + chip(r["info"], "informação(ões)", "") + chip(r["excluidos"], "excluído(s) no cenário", "") + "</div>")
+    if por[PF.ERROR]:
+        st.html('<div class="pf-k">Bloqueios — impedem a execução</div><div class="pf-blq" data-pf="bloqueios">'
+                + "".join(_item_html(i, onde=True) for i in por[PF.ERROR]) + "</div>")
+    if por[PF.WARNING]:
+        cont: dict[str, int] = {}
+        for i in por[PF.WARNING]:
+            cont[_area(i)] = cont.get(_area(i), 0) + 1
+        st.html('<div class="pf-k">Advertências — não bloqueiam</div><div class="pf-adv" data-pf="avisos">'
+                + "".join(f"<span>{escape(a)} · {n}</span>" for a, n in cont.items()) + "</div>")
+        with st.expander(f"Ver as {len(por[PF.WARNING])} advertência(s) (texto completo)"):
+            st.html(_agrupado(por[PF.WARNING]))
+    if por[PF.INFO]:
+        st.html('<div class="pf-info" data-pf="info">' + "".join(_item_html(i) for i in por[PF.INFO]) + "</div>")
     if rep["excluded"]:
         st.html("<div class='op-k' style='margin-top:.5rem'>Excluídos desta missão (inventário inalterado)</div>"
                 '<table class="op-tbl">' + "".join(f"<tr><td>{escape(e['name'])}</td><td>{escape(e['reason'])}</td></tr>"
                                                     for e in rep["excluded"]) + "</table>")
+    if por[PF.OK]:
+        with st.expander(f"Ver {len(por[PF.OK])} verificações aprovadas (por classe; procedência, horários, séries e "
+                         "critérios 3C-0…3C-4 em texto completo)"):
+            st.html(_agrupado(por[PF.OK]))
     if matriz:
         with st.expander("Matriz fonte → transformação → validação → registro → vista (o que chega ao motor)"):
             st.html(_matriz_html(matriz))
@@ -653,10 +722,94 @@ def relatorio_preflight(rep: dict, matriz: list[dict], versao) -> None:
             st.caption(f"SHA-256 do relatório: {rep['bridge']['sha256']}")
 
 
-def render_execucao(store, cur, dirty: bool, active, live) -> None:
-    """Corpo da etapa 04 para o motor V2 (janela da missão, barra de salvar e histórico ficam com a página comum)."""
+CTA_SLOT = "fl_cta_slot"          # UI-FINISH-01: a Folha de Ensaio desenha o cartão de rodada na coluna esquerda
+ABRIR_MODAL = "op_v2_abrir_modal"  # pedido de reabrir o modal de acompanhamento (vem do cartão de rodada)
+CTA_CSS = """<style>
+.st-key-fl_cta { border-radius: 16px !important; border: 1.5px solid color-mix(in srgb, var(--primary-color, #0E7C86) 45%, rgba(128,128,128,.3)) !important;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--primary-color, #0E7C86) 9%, transparent), transparent 70%); margin-top: .7rem; }
+.st-key-fl_cta { gap: .55rem !important; }
+.st-key-fl_cta button[kind="primary"] { min-height: 2.7rem; font-weight: 760; letter-spacing: .04em; font-size: .9rem;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-color, #0E7C86) 28%, transparent); }
+.st-key-fl_cta button[kind="primary"]:disabled { box-shadow: none; }
+.rc-ey { font-size: .66rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .62; display: flex; align-items: center; gap: .45rem; }
+.rc-ey i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
+.rc-ey.ok { color: #2E8B57; opacity: 1; } .rc-ey.b { color: #C2364A; opacity: 1; } .rc-ey.w { color: #C77700; opacity: 1; } .rc-ey.run { color: #2F6FED; opacity: 1; }
+.rc-ey.run i { animation: rcled 1.4s ease-in-out infinite; } @keyframes rcled { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .rc-ey.run i { animation: none; } }
+.rc-t { font-size: .98rem; font-weight: 760; line-height: 1.25; margin: .3rem 0 .1rem 0; }
+.rc-s { font-size: .76rem; opacity: .75; line-height: 1.35; }
+.rc-n { display: flex; flex-wrap: wrap; gap: .25rem .3rem; margin: .45rem 0 .1rem 0; }
+.rc-n span { display: inline-flex; align-items: baseline; gap: .25rem; border-radius: 999px; padding: .12rem .5rem; font-size: .72rem;
+  background: rgba(128,128,128,.1); font-variant-numeric: tabular-nums; }
+.rc-n b { font-size: .86rem; } .rc-n .b b { color: #C2364A; } .rc-n .w b { color: #C77700; } .rc-n .ok b { color: #2E8B57; } .rc-n .z { opacity: .55; }
+.rc-r { font-size: .76rem; line-height: 1.4; margin: .4rem 0 0 0; padding: .35rem .5rem; border-radius: 9px;
+  background: color-mix(in srgb, #C2364A 8%, transparent); border-left: 3px solid #C2364A; }
+.rc-r.w { background: color-mix(in srgb, #C77700 8%, transparent); border-left-color: #C77700; }
+.rc-r.run { background: color-mix(in srgb, #2F6FED 8%, transparent); border-left-color: #2F6FED; }
+</style>"""
+
+
+def cartao_rodada(store, cur, dirty: bool, active, pf) -> None:
+    """Cartão «Rodada · execução V2» (UI-FINISH-01, ponto 3B): o ÚNICO lugar do botão de executar da etapa 04 V2.
+    Mesmo botão (chave, rótulo, ajuda), mesmas razões de bloqueio e a MESMA chamada ``X.submit`` com o ``request_id``
+    idempotente de sempre; estado = contagens do preflight V2 da versão SALVA (nenhum número estimado)."""
     from . import execucao as X
 
+    r = resumo_preflight(pf.report())
+    req_key = f"op_ex_req_v2_{cur.scenario_uid}_{cur.version}"
+    req = _ss().setdefault(req_key, X.new_request_id())
+    reason = ("há alterações não salvas" if dirty else "o preflight V2 tem bloqueios" if not pf.ok else
+              "outra rodada está em execução nesta microrrede" if active is not None else "")
+    if active is not None:
+        tom, titulo = "run", "Em execução"
+        sub = (f"Rodada {active.run_uid[:8]}… · versão v{active.scenario_version}"
+               + ("" if active.scenario_uid == cur.scenario_uid else " de OUTRO cenário desta microrrede"))
+    elif dirty:
+        tom, titulo, sub = "w", "Alterações não salvas", f"Salve o cenário: a execução usa sempre a versão salva v{cur.version}."
+    elif not pf.ok:
+        tom, titulo, sub = "b", "Execução bloqueada", f"Versão salva v{cur.version} · {r['bloqueios']} bloqueio(s) no preflight V2."
+    else:
+        tom, titulo, sub = "ok", f"Pronto para executar a versão salva v{cur.version}", ""
+    n = lambda v, rot, cls: f'<span class="{cls if v else "z"}"><b>{v}</b>{rot}</span>'  # noqa: E731
+    revisar = ""
+    if r["areas_bloqueio"]:
+        revisar = ('<div class="rc-r" data-rc="bloqueios"><b>Revisar:</b> ' + escape("; ".join(r["areas_bloqueio"]))
+                   + ". Detalhes na seção ao lado.</div>")
+    elif tom == "run":
+        revisar = '<div class="rc-r run">A execução continua no servidor; o painel de acompanhamento mostra o progresso real.</div>'
+    elif dirty:
+        revisar = '<div class="rc-r w">Há alterações não salvas: salve para executá-las.</div>'
+    st.html(CTA_CSS)
+    with st.container(border=True, key="fl_cta"):
+        st.html(f'<div data-rc="estado" data-tom="{tom}"><div class="rc-ey {tom}"><i></i>Rodada · execução V2</div>'
+                f'<div class="rc-t">{escape(titulo)}</div>' + (f'<div class="rc-s">{escape(sub)}</div>' if sub else "") +
+                f'<div class="rc-n" data-rc="contagens">{n(r["aprovadas"], "aprovadas", "ok")}{n(r["avisos"], "advertências", "w")}'
+                f'{n(r["bloqueios"], "bloqueios", "b")}</div>{revisar}</div>')
+        if st.button(f"▶ EXECUTAR MISSÃO V2 · VERSÃO {cur.version}", key="op_ex_run_v2", type="primary", disabled=bool(reason),
+                     width="stretch",
+                     help=f"Indisponível: {reason}." if reason else "Executa o EMS hierárquico MILP–MPC (HiGHS) sobre a versão salva."):
+            try:
+                run = X.submit(store, cur.scenario_uid, cur.version, req, background=True)
+            except X.PreflightV2Error as exc:
+                _ss().pop("op_ex_pf_v2", None)
+                st.error(shell.md(exc))
+                return
+            except (RunBusyError, StoreError) as exc:
+                st.error(shell.md(exc))
+                return
+            _ss().pop(req_key, None)                      # pedido consumido: o mesmo clique nunca executa duas vezes
+            _ss()["op_flash"] = ("info", f"Rodada V2 {run.run_uid[:8]}… iniciada sobre a versão {cur.version}.")
+            st.rerun()
+        if reason:
+            st.caption(f"Execução indisponível: {reason}.")
+        if active is not None and st.button("VER PROGRESSO DA RODADA", key="op_ex_ver_v2", width="stretch",
+                                             help="Reabre o painel de acompanhamento (não executa nada)."):
+            _ss()[ABRIR_MODAL] = active.run_uid
+            st.rerun()
+
+
+def render_execucao(store, cur, dirty: bool, active, live) -> None:
+    """Corpo da etapa 04 para o motor V2 (janela da missão, barra de salvar e histórico ficam com a página comum)."""
     try:
         pf = preflight(store, cur)
     except StoreError as exc:
@@ -674,26 +827,16 @@ def render_execucao(store, cur, dirty: bool, active, live) -> None:
         fim = seguir_desfecho(store, cur)                 # rodada acompanhada que terminou: desfecho até ser dispensado
         if fim is not None:
             live(store, fim.run_uid)
-    req_key = f"op_ex_req_v2_{cur.scenario_uid}_{cur.version}"
-    req = _ss().setdefault(req_key, X.new_request_id())
-    reason = ("há alterações não salvas" if dirty else "o preflight V2 tem bloqueios" if not pf.ok else
-              "outra rodada está em execução nesta microrrede" if active is not None else "")
-    if st.button(f"▶ EXECUTAR MISSÃO V2 · VERSÃO {cur.version}", key="op_ex_run_v2", type="primary", disabled=bool(reason),
-                 help=f"Indisponível: {reason}." if reason else "Executa o EMS hierárquico MILP–MPC (HiGHS) sobre a versão salva."):
-        try:
-            run = X.submit(store, cur.scenario_uid, cur.version, req, background=True)
-        except X.PreflightV2Error as exc:
-            _ss().pop("op_ex_pf_v2", None)
-            st.error(shell.md(exc))
-            return
-        except (RunBusyError, StoreError) as exc:
-            st.error(shell.md(exc))
-            return
-        _ss().pop(req_key, None)                      # pedido consumido: o mesmo clique nunca executa duas vezes
-        _ss()["op_flash"] = ("info", f"Rodada V2 {run.run_uid[:8]}… iniciada sobre a versão {cur.version}.")
-        st.rerun()
-    if reason:
-        st.caption(f"Execução indisponível: {reason}.")
+    # UI-FINISH-01: o botão de executar fica UM só, no cartão de rodada sob a Folha de Ensaio (coluna esquerda). A Folha
+    # abre o «slot» antes da etapa e desenha o cartão depois do índice; fora da Folha o cartão é desenhado aqui mesmo.
+    cta = lambda: cartao_rodada(store, cur, dirty, active, pf)  # noqa: E731
+    slot = _ss().get(CTA_SLOT)
+    if isinstance(slot, list):
+        slot.append(cta)
+        st.html('<div class="op-d" data-rc="aponta">O botão <b>EXECUTAR MISSÃO V2</b> está no cartão <b>Rodada · execução '
+                'V2</b>, logo abaixo da Folha de Ensaio, com o resumo da prontidão desta versão salva.</div>')
+    else:
+        cta()
 
 
 def progresso(run) -> None:
@@ -715,6 +858,13 @@ SEGUIR = "op_v2_seguir"                          # rodada V2 acompanhada nesta s
 CANCEL_KIND = "cancelada_pelo_usuario"
 RERUN_APP = "op_v2_rerun_app"                  # ação do modal que muda a página inteira (FECHAR, VER DIAGNÓSTICO)
 RESPOSTA_CANCEL = "op_v2_cancel_resp_"          # + run_uid: última resposta do servidor a um pedido de cancelamento
+# UI-FINISH-01 (ponto 4): a cada ciclo do fragmento (1 s) o Streamlit marca o contêiner do componente como «stale» e lhe dá
+# ``transition: opacity 1s ease-in 0.5s``. Medido em Chromium: enquanto essa transição está pendente o contêiner vira uma
+# nova RAIZ DE FUNDO (backdrop root) e o ``backdrop-filter`` do overlay só desfoca o que está DENTRO dele — o resto da
+# página aparece nítido por alguns quadros (o «piscar»). O modal nunca deve esmaecer como conteúdo desatualizado: só o
+# contêiner dele fica fora desse efeito (os demais elementos da página continuam com o comportamento do Streamlit).
+MODAL_ESTAVEL_CSS = ("<style>.st-key-seeds_execucao, .st-key-seeds_execucao[data-stale=\"true\"] "
+                     "{ transition: none !important; opacity: 1 !important; }</style>")
 FASES_MODAL = ("fila", "montagem", "missao", "auditoria", "gravando")
 
 
@@ -840,6 +990,10 @@ def acompanhar(store, run, *, open_run, vivo: bool) -> None:
     resp = ss.get(RESPOSTA_CANCEL + run.run_uid)
     if resp:
         d["resposta_cancelamento"] = dict(resp)
+    if ss.get(ABRIR_MODAL) == run.run_uid:            # UI-FINISH-01: «VER PROGRESSO DA RODADA» do cartão de rodada
+        ss.pop(ABRIR_MODAL, None)
+        ss["op_v2_abrir_n"] = int(ss.get("op_v2_abrir_n", 0)) + 1
+        d["abrir"] = ss["op_v2_abrir_n"]
     with st.container(border=True):
         if d["situacao"] == "andamento":
             st.html(f'<div class="op-row"><div class="op-t">Execução em andamento · rodada {escape(run.run_uid[:8])}…</div>'
@@ -865,6 +1019,7 @@ def acompanhar(store, run, *, open_run, vivo: bool) -> None:
                     ss.pop(SEGUIR, None)
                     ss[f"op_v2_ok_{run.run_uid}"] = True
                     st.rerun(scope="app")
+        st.html(MODAL_ESTAVEL_CSS)
         trama.pagina("execucao", d, key="seeds_execucao", on_action=lambda: _acao_modal(store, open_run), wide=False)
 
 
@@ -1075,6 +1230,7 @@ def run_results(source, run, *, key: str) -> None:
     desenhada = run.state == "concluida" and _partitura(source, run, v, key)      # Piso 3D-B: instrumento Partitura
     shell.callout(f"<b>Motor V2 experimental (MILP–MPC hierárquico).</b> {escape(m.get('scope') or PF.ESCOPO)} Dados "
                   "sintéticos/declarados estão rotulados na procedência.", "warn")
+    exportacoes(source, run, key)                 # UI-FINISH-01: área de exportações VISÍVEL (não dentro da vista clássica)
     if not desenhada:                         # rodada falha/interrompida, evidência com problemas ou marco indisponível
         _vista_classica(source, run, v, key)
         return
@@ -1084,6 +1240,20 @@ def run_results(source, run, *, key: str) -> None:
         st.caption("Vista anterior ao Piso 3D-B, mantida inteira durante a migração para a Partitura. Os números são os "
                    "mesmos: as duas vistas leem os dados gravados da rodada.")
         _vista_classica(source, run, v, key)
+
+
+def exportacoes(source, run, key: str) -> None:
+    """Exportações científicas da rodada V2 (UI-FINISH-01, ponto 6): o MESMO painel do Piso 2D-B
+    (``seeds2.ui.report_exports.render``: geração sob demanda, progresso real, cache por rodada, erros sem perder a
+    página) com os geradores V2 de ``documentos`` (dossiê, figuras e escritores do 2D-B sobre o contrato ``v2/…``)."""
+    from seeds2.ui import report_exports as RX
+
+    from . import documentos as DOC
+
+    done = run.state == "concluida"
+    with st.container(key=f"{key}_exportacoes_v2"):
+        RX.render(source, run, key=f"{key}_v2", gerador=DOC.gerar, rotulos=DOC.ROTULOS if done else DOC.ROTULOS_DIAG,
+                  ajudas=DOC.AJUDAS)
 
 
 def _vista_classica(source, run, v, key: str) -> None:

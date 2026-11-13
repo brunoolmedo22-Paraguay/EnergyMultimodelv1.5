@@ -75,8 +75,12 @@ def generate(source, run_uid: str, kind: str, progress=None) -> tuple[str, bytes
     raise ValueError(kind)
 
 
-def render(source, run, *, key: str) -> None:
-    """Painel EXPORTAR (PDF / Excel / figuras) da rodada ``run`` lida de ``source``."""
+def render(source, run, *, key: str, gerador=None, rotulos: dict | None = None, ajudas: dict | None = None) -> None:
+    """Painel EXPORTAR (PDF / Excel / figuras) da rodada ``run`` lida de ``source``.
+
+    UI-FINISH-01: o MESMO painel serve as rodadas do motor V2 — ``gerador`` (mesmo contrato de ``generate``),
+    ``rotulos`` e ``ajudas`` vêm do chamador (``integracao_v2/ui.run_results``); sem eles, o comportamento V1.6 é o de
+    sempre. O gerador nunca executa modelos nem o motor."""
     ss = st.session_state
     _forget_other_runs(run.run_uid)
     st.html(CSS)
@@ -89,17 +93,19 @@ def render(source, run, *, key: str) -> None:
             + ("" if done else " Rodada não concluída: somente documentos de <b>diagnóstico</b> (sem resultados).")
             + "</div>")
     cols = st.columns(3)
-    labels = {"pdf": "EXPORTAR RELATÓRIO PDF" if done else "EXPORTAR DIAGNÓSTICO PDF",
-              "xlsx": "EXPORTAR DADOS EXCEL" if done else "EXPORTAR DIAGNÓSTICO EXCEL",
-              "fig": "EXPORTAR FIGURAS"}
+    labels = rotulos or {"pdf": "EXPORTAR RELATÓRIO PDF" if done else "EXPORTAR DIAGNÓSTICO PDF",
+                         "xlsx": "EXPORTAR DADOS EXCEL" if done else "EXPORTAR DIAGNÓSTICO EXCEL",
+                         "fig": "EXPORTAR FIGURAS"}
     helps = {"pdf": "Relatório técnico-científico (capa, resumo, configuração, condições iniciais, previsões, metodologia, "
                     "resultados, armazenamento/H₂, discussão factual, procedência e limitações).",
              "xlsx": "Planilha .xlsx com todas as colunas das entradas, do despacho e dos modelos, indicadores persistidos, "
                      "configuração, procedência e dicionário de dados. Números serializados com precisão de double (17 "
                      "algarismos); o Microsoft Excel garante 15 — reprodução exata: CSVs / .seeds2study.zip.",
              "fig": "ZIP com as figuras em PNG (300 dpi) e SVG vetorial + manifest.json com SHA-256 de cada arquivo."}
+    helps = {**helps, **(ajudas or {})}
     clicked = None
-    for col, kind in zip(cols, ("pdf", "xlsx", "fig")):
+    ordem = ("pdf", "fig", "xlsx") if rotulos else ("pdf", "xlsx", "fig")
+    for col, kind in zip(cols, ordem):
         with col:
             disabled = kind == "fig" and not done
             if st.button(labels[kind], key=f"{key}_rx_{kind}", width="stretch", disabled=disabled, help=helps[kind]
@@ -108,7 +114,7 @@ def render(source, run, *, key: str) -> None:
     if clicked:
         with st.status(f"Gerando {KINDS[clicked][0].lower()}…", expanded=True) as box:
             try:
-                ss[_key(run.run_uid, clicked)] = generate(source, run.run_uid, clicked, progress=box.write)
+                ss[_key(run.run_uid, clicked)] = (gerador or generate)(source, run.run_uid, clicked, progress=box.write)
                 box.update(label=f"{KINDS[clicked][0]} pronto para download.", state="complete", expanded=False)
             except D.DossierIntegrityError as exc:
                 ss.pop(_key(run.run_uid, clicked), None)

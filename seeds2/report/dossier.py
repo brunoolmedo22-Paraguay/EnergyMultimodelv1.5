@@ -47,6 +47,14 @@ CSV_INPUTS, CSV_OUTPUTS, EMS_REPORT, EXCHANGE = ("entradas/missao.csv", "saidas/
 # C-04.1 — recursos ESSENCIAIS de uma rodada concluída (gravados pelo runner do 2C na mesma transação da conclusão).
 # Modelos físicos (``modelos/*.csv``) NÃO entram: dependem das tecnologias que participaram da rodada.
 REQUIRED_CONCLUDED = (CSV_INPUTS, CSV_OUTPUTS, EMS_REPORT)
+# UI-FINISH-01 — rodadas do motor V2 (``milp_mpc_v1``) gravam OUTRO conjunto de recursos (contrato de dados ``v2/…``); a
+# lista é a MESMA de ``integracao_v2.registro.OBRIGATORIOS`` (igualdade verificada por teste — este pacote não importa
+# o motor). Os documentos V1.6 (``run_pdf``/``xlsx``/``figures``) continuam recusando rodadas V2 (``require_complete``),
+# e os documentos V2 (``integracao_v2/documentos.py``) recusam rodadas V1.6.
+ENGINE_V16, ENGINE_V2 = "legacy_v16", "milp_mpc_v1"
+REQUIRED_CONCLUDED_V2 = ("v2/indice.json", "v2/registros_selados.zip", "v2/modelo.json", "v2/intervalos.csv",
+                         "v2/fronteiras.csv", "v2/janelas.csv", "v2/planos.csv", "v2/coordenacoes.json",
+                         "v2/auditoria.json", "v2/preflight.json")
 DERIVED_NOTE = ("Documento DERIVADO: representação dos dados persistidos de uma rodada já executada. A geração deste "
                 "documento não executa modelos nem o EMS e não altera rodadas, cenários, inventário ou estudos. "
                 "A fonte portátil integral do experimento é o pacote .seeds2study.zip (Arquivo Científico).")
@@ -415,15 +423,29 @@ def _check_run(run: StoredRun) -> None:
                            f"relatórios ({MAX_DOSSIER_BYTES / 2**20:.0f} MiB).")
 
 
+def engine_id(run: StoredRun) -> str:
+    """Motor da rodada registrado no manifesto (ausente = V1.6, como no restante da aplicação)."""
+    return str(((run.manifest or {}).get("engine") or {}).get("id") or ENGINE_V16)
+
+
 def missing_required(run: StoredRun) -> list[str]:
-    """Recursos essenciais ausentes do índice ORIGINAL de uma rodada concluída (falha/interrupção: nenhum exigido)."""
+    """Recursos essenciais ausentes do índice ORIGINAL de uma rodada concluída (falha/interrupção: nenhum exigido) —
+    os do contrato de dados do MOTOR da rodada."""
     if run.state != "concluida":
         return []
-    return [n for n in REQUIRED_CONCLUDED if n not in (run.data or {})]
+    req = REQUIRED_CONCLUDED_V2 if engine_id(run) == ENGINE_V2 else REQUIRED_CONCLUDED
+    return [n for n in req if n not in (run.data or {})]
 
 
-def require_complete(d: RunDossier) -> None:
-    """Barreira dos geradores (PDF, Excel, figuras): rodada concluída sem um recurso essencial → recusa explícita."""
+def require_complete(d: RunDossier, engine: str = ENGINE_V16) -> None:
+    """Barreira dos geradores (PDF, Excel, figuras): o gerador é do motor ``engine`` (V1.6 por omissão) — rodada de
+    outro motor → recusa explícita; rodada concluída sem um recurso essencial → recusa explícita."""
+    if engine_id(d.run) != engine:
+        raise DossierError(
+            "Esta rodada foi executada pelo motor " + ("V2 (MILP–MPC hierárquico)" if engine_id(d.run) == ENGINE_V2 else
+                                                        engine_id(d.run))
+            + ": os documentos deste gerador são do outro motor e não a representam. Use as exportações da página da "
+              "rodada (documentos do motor correspondente). Nenhum documento é gerado.")
     missing = missing_required(d.run)
     if missing:
         raise DossierIntegrityError("Rodada concluída incompleta: recurso(s) essencial(is) ausente(s) do índice original "
@@ -546,7 +568,8 @@ def safe_stem(d: RunDossier, kind: str) -> str:
     return f"seeds2_{kind}_{name}_v{int(d.run.scenario_version)}_{uid}"
 
 
-__all__ = ["ARCHIVED", "DERIVED_NOTE", "DossierError", "DossierIntegrityError", "Indicator", "LOCAL",
-           "ORIGIN_LABELS", "REQUIRED_CONCLUDED", "RunDossier", "generator_info", "identity_for_manifest",
+__all__ = ["ARCHIVED", "DERIVED_NOTE", "DossierError", "DossierIntegrityError", "ENGINE_V16", "ENGINE_V2", "Indicator", "LOCAL",
+           "ORIGIN_LABELS", "REQUIRED_CONCLUDED", "REQUIRED_CONCLUDED_V2", "RunDossier", "engine_id", "generator_info",
+           "identity_for_manifest",
            "indicators", "integration_convention", "is_number", "load", "load_archived", "load_local",
            "missing_required", "require_complete", "safe_stem", "source_label", "utc_now"]

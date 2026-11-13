@@ -51,11 +51,12 @@ class BarraLateralBancadasTest(unittest.TestCase):
         # o mesmo conjunto dos botões das bancadas (home.BENCHES), na mesma ordem
         from seeds2.ui import home
         self.assertEqual([(f, r) for f, r, _k in shell.BANCADAS], list(home.BENCHES))
-        # sem microrrede e no comissionamento nada muda
+        # UI-FINISH-01 (pedido do responsável): as MESMAS cinco bancadas também sem microrrede e no comissionamento
+        banc = ["bancada_solar", "bancada_wind", "bancada_battery", "bancada_h2", "bancada_thermal"]
         self.assertEqual([i["id"] for i in shell.sidebar_items(view="gestor", tab=None, is_open=False, commissioned=False)],
-                         ["catalogo", "arquivo", "alcance"])
+                         ["catalogo", "arquivo", *banc, "alcance"])
         self.assertEqual([i["id"] for i in shell.sidebar_items(view="comissionamento", tab=None, is_open=True, commissioned=False)],
-                         ["catalogo", "comissionamento", "alcance"])
+                         ["catalogo", "comissionamento", *banc, "alcance"])
         # as vistas antigas continuam roteáveis (compatibilidade de URL e da navegação clássica), só não estão na navegação
         self.assertIn("simulacao", shell.VIEWS)
         self.assertIn("resultados", shell.VIEWS)

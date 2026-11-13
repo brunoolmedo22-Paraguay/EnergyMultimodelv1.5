@@ -35,9 +35,9 @@ GESTOR_CSS = """
 .gs-hero p { margin: 0; font-size: 1.04rem; opacity: .8; max-width: 760px; }
 .gs-hero .facts { display: flex; flex-wrap: wrap; gap: .4rem .5rem; margin-top: .8rem; }
 .st-key-gestor_actions button { min-height: 2.75rem; padding-left: 1.3rem; padding-right: 1.3rem; font-weight: 650; letter-spacing: .03em; }
-.st-key-gestor_grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem !important; align-items: stretch; }
+.st-key-gestor_grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem !important; align-items: start; }
 .st-key-gestor_grid > div { width: auto !important; min-width: 0; }
-[class*="st-key-mgc_"] { border-radius: 16px !important; height: 100%; transition: box-shadow .18s, transform .18s; animation: sdfade .28s ease both;
+[class*="st-key-mgc_"] { border-radius: 16px !important; transition: box-shadow .18s, transform .18s; animation: sdfade .28s ease both;
   border-color: color-mix(in srgb, var(--primary-color, #0E7C86) 18%, rgba(128,128,128,.28)) !important; }
 [class*="st-key-mgc_"]:hover { box-shadow: 0 10px 28px rgba(20,24,28,.10); transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) { [class*="st-key-mgc_"], .gs-hero { animation: none; transition: none; } }
@@ -88,6 +88,35 @@ GESTOR_CSS = """
 .gs-sum { border: 1px solid rgba(128,128,128,.25); border-radius: 12px; padding: .7rem .85rem; margin: .3rem 0 .6rem 0; }
 .gs-sum table { border-collapse: collapse; font-size: .86rem; } .gs-sum td { padding: .1rem .9rem .1rem 0; vertical-align: top; }
 @media (max-width: 720px) { .gc-facts { grid-template-columns: 1fr 1fr; } .gs-hero { padding: 1.1rem 1.1rem 1rem; } }
+/* UI-FINISH-01 (ponto 2): cartões recolhidos por padrão */
+.gc-res { font-size: .82rem; opacity: .78; margin: .35rem 0 0 0; line-height: 1.4; overflow-wrap: anywhere; }
+.gc-x { margin: .6rem 0 0 0; }
+.gc-x > summary { list-style: none; } .gc-x > summary::-webkit-details-marker { display: none; }
+.gc-tg { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .42rem .7rem; border-radius: 10px;
+  font-size: .76rem; font-weight: 650; letter-spacing: .02em; cursor: pointer; user-select: none; opacity: .72;
+  border: 1px dashed color-mix(in srgb, var(--primary-color, #0E7C86) 30%, rgba(128,128,128,.35)); transition: opacity .15s, border-color .15s; }
+.gc-tg:hover { opacity: 1; border-style: solid; }
+.gc-tg:focus-visible { outline: 2px solid var(--primary-color, #0E7C86); outline-offset: 2px; opacity: 1; }
+.gc-tg-i { flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg); transition: transform .18s; }
+.gc-tg-h, .gc-tg-f { display: none; }
+.gc-x[open] .gc-tg-a, .gc-x[open] .gc-tg-h { display: none; } .gc-x[open] .gc-tg-f { display: inline; }
+.gc-x[open] .gc-tg-i { transform: translateY(2px) rotate(-135deg); }
+/* recolhido: detalhe e ações fora da tela, do Tab e da árvore de acessibilidade (display: none) */
+@media (hover: none) {
+  [class*="st-key-mgc_"]:not(:has(.gc-x[open])):not(:has([class*="st-key-mgca_"] :focus)) .gc-det,
+  [class*="st-key-mgc_"]:not(:has(.gc-x[open])):not(:has([class*="st-key-mgca_"] :focus)) [class*="st-key-mgca_"] { display: none !important; }
+}
+@media (hover: hover) {
+  [class*="st-key-mgc_"]:not(:hover):not(:has(.gc-x[open])):not(:has([class*="st-key-mgca_"] :focus)) .gc-det,
+  [class*="st-key-mgc_"]:not(:hover):not(:has(.gc-x[open])):not(:has([class*="st-key-mgca_"] :focus)) [class*="st-key-mgca_"] { display: none !important; }
+  [class*="st-key-mgc_"]:hover .gc-x:not([open]) .gc-tg-a { display: none; }
+  [class*="st-key-mgc_"]:hover .gc-x:not([open]) .gc-tg-h { display: inline; }
+  [class*="st-key-mgc_"]:hover .gc-x:not([open]) .gc-tg-i { transform: translateY(2px) rotate(-135deg); }
+}
+.gc-det { animation: gcdet .18s ease both; }
+@keyframes gcdet { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .gc-det, .gc-tg, .gc-tg-i { animation: none; transition: none; } }
 </style>
 """
 EMPTY_SVG = """<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="8" y="14" width="80" height="68" rx="16" fill="currentColor" opacity=".08"/>
@@ -152,13 +181,44 @@ def _card_html(entry, s: dict) -> str:
             f'<span class="gc-chip e-{escape(ems_key)}" title="{escape(ems_detail)}">{escape(EMS_LABELS[ems_key])}</span></div>'
             f'<div class="gc-name">{escape(s["name"] or "Sem nome")}</div>'
             f'<div class="gc-uid" title="Identificador interno imutável">ID {escape(entry.uid)}</div>'
+            f'<div class="gc-res">{escape(_resumo_curto(s))}</div>{_alternador(entry.uid)}'
+            f'<div class="gc-det" id="gcd-{escape(entry.uid)}">'
             f'<div class="gc-desc">{escape(s["description"] or "Sem descrição.")}</div>{_assinatura(s)}'
             f'<div class="gc-facts">{facts}</div><div class="gc-techs">{techs}</div><div class="gc-kpis">{kpis}</div>'
             f'<div class="gc-foot">{escape(comm)} · alterada {escape(shell.fmt_time(s["saved_at"]))} · rev. {s["revision"]} · '
             f'{escape(origin_txt)}</div>'
             f'<div class="gc-foot">EMS: {escape(ems_detail if len(ems_detail) <= 150 else ems_detail[:149].rstrip() + "…")}</div>'
             f'<div class="gc-foot gc-ens">{escape(_ensaios_txt(s.get("ensaios")))}</div>'
-            f'{warn}</div>')
+            f'{warn}</div></div>')
+
+
+# ---- UI-FINISH-01 (ponto 2): cartão RECOLHIDO por padrão. Recolhido = identidade, estado e um resumo de uma linha + o
+# convite para expandir; o detalhe e TODAS as ações ficam com ``display: none`` (fora da tela, do Tab e da leitura) até o
+# cartão ser expandido. Só HTML/CSS nativos (``CATALOGO_CSS``): ``<details>/<summary>`` (foco, Enter/Espaço e o estado
+# expandido/recolhido anunciado pelo próprio navegador; clique/toque fixa aberto ou recolhe) + hover SÓ em dispositivos com
+# mouse (``@media (hover: hover)``) + o cartão continua aberto enquanto o foco está numa das ações. A expansão é só
+# apresentação: não lê nem grava nada e não dispara rerun.
+CONVITE = "Passe o mouse ou clique para expandir"
+
+
+def _alternador(uid: str) -> str:
+    _ = uid
+    return ('<details class="gc-x"><summary class="gc-tg"><span class="gc-tg-a">' + CONVITE + '</span>'
+            '<span class="gc-tg-h">Clique para manter aberto</span><span class="gc-tg-f">Clique para recolher</span>'
+            '<i class="gc-tg-i" aria-hidden="true"></i></summary></details>')
+
+
+def _resumo_curto(s: dict) -> str:
+    """Uma linha com contagens JÁ calculadas pelo resumo do cartão (nada é estimado)."""
+    n = s["n_equipment"]
+    partes = [f"{n} equipamento(s)" if n else "nenhum equipamento"]
+    if s["technologies"]:
+        partes.append(", ".join(s["technologies"][:3]) + ("…" if len(s["technologies"]) > 3 else ""))
+    e = s.get("ensaios") or {}
+    if e.get("cenarios") is not None:
+        conc = (e.get("rodadas") or {}).get("concluida", 0)
+        partes.append(f"{e['cenarios']} cenário(s) · {conc} rodada(s) concluída(s)")
+    return " · ".join(partes)
 
 
 # ---- Catálogo (Piso 3D-B2-B): assinatura do barramento e ensaios de cada microrrede — só leitura do que está salvo
@@ -245,48 +305,57 @@ def _card(reg, entry, s: dict | None, error: str | None) -> None:
     with st.container(border=True, key=f"mgc_{uid}"):
         if s is None:
             st.html(f'<div class="gc"><div class="gc-top"><span class="gc-chip s-erro">Armazenamento indisponível</span></div>'
-                    f'<div class="gc-uid">ID {escape(uid)}</div><div class="gc-desc">{escape(error or "")}</div></div>')
-            if st.button("EXCLUIR MICRORREDE", key=f"g_del_{uid}", icon=":material/delete:", width="stretch"):
-                _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}
-                st.rerun()
+                    f'<div class="gc-uid">ID {escape(uid)}</div>{_alternador(uid)}'
+                    f'<div class="gc-det" id="gcd-{escape(uid)}"><div class="gc-desc">{escape(error or "")}</div></div></div>')
+            with st.container(key=f"mgca_{uid}"):
+                if st.button("EXCLUIR MICRORREDE", key=f"g_del_{uid}", icon=":material/delete:", width="stretch"):
+                    _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}
+                    st.rerun()
             return
         st.html(_card_html(entry, s))
-        if st.button("ABRIR MICRORREDE", key=f"g_open_{uid}", type="primary", width="stretch",
-                     icon=":material/arrow_forward:"):
-            try:
-                commissioned = session.open_microgrid(uid)
-            except MicrogridNotFound as exc:
-                _ss()["mg_flash"] = ("warn", str(exc))
-            else:
-                shell.go("operacao" if commissioned else "comissionamento")
-            st.rerun()
-        c1, c2, c3 = st.columns(3)
-        if c1.button("ZIP", key=f"g_zip_{uid}", icon=":material/download:", width="stretch",
-                     help="EXPORTAR ZIP — backup .seeds2backup.zip desta microrrede (somente os dados dela; NÃO inclui "
-                          "os cenários operativos nem as rodadas científicas do Centro de Operação)"):
-            try:
-                with st.spinner("Preparando ZIP…"):
-                    _prepare_zip(reg, uid)
-            except StoreError as exc:
-                st.error(shell.md(exc))
-        if c2.button("PDF", key=f"g_pdf_{uid}", icon=":material/picture_as_pdf:", width="stretch",
-                     help="GERAR RELATÓRIO PDF — relatório técnico da configuração salva (PRELIMINAR se não ativada)"):
-            try:
-                with st.spinner("Gerando relatório técnico…"):
-                    _prepare_pdf(reg, uid)
-            except StoreError as exc:
-                st.error(shell.md(exc))
-        if c3.button("Excluir", key=f"g_del_{uid}", icon=":material/delete:", width="stretch",
-                     help="EXCLUIR MICRORREDE — exclusão definitiva com confirmação"):
-            _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}   # H-02: vínculo
-            st.rerun()
-        for kind, label, mime in (("zip", "⬇ Baixar ZIP", "application/zip"), ("pdf", "⬇ Baixar relatório PDF", "application/pdf")):
-            ready = _ss().get(f"gestor_{kind}", {}).get(uid)
-            if ready and ready[0] == s["fingerprint"]:
-                st.download_button(label, ready[2], file_name=ready[1], mime=mime, key=f"g_{kind}dl_{uid}",
-                                   width="stretch", type="secondary")
-                st.caption(f"{shell.md(ready[1])} · revisão {s['revision']}"
-                           + (" · não inclui cenários nem rodadas científicas" if kind == "zip" else ""))
+        with st.container(key=f"mgca_{uid}"):
+            _acoes(reg, entry, s)
+
+
+def _acoes(reg, entry, s: dict) -> None:
+    """Ações do cartão (as MESMAS de antes: chaves, rótulos, validações e downloads)."""
+    uid = entry.uid
+    if st.button("ABRIR MICRORREDE", key=f"g_open_{uid}", type="primary", width="stretch",
+                 icon=":material/arrow_forward:"):
+        try:
+            commissioned = session.open_microgrid(uid)
+        except MicrogridNotFound as exc:
+            _ss()["mg_flash"] = ("warn", str(exc))
+        else:
+            shell.go("operacao" if commissioned else "comissionamento")
+        st.rerun()
+    c1, c2, c3 = st.columns(3)
+    if c1.button("ZIP", key=f"g_zip_{uid}", icon=":material/download:", width="stretch",
+                 help="EXPORTAR ZIP — backup .seeds2backup.zip desta microrrede (somente os dados dela; NÃO inclui "
+                      "os cenários operativos nem as rodadas científicas do Centro de Operação)"):
+        try:
+            with st.spinner("Preparando ZIP…"):
+                _prepare_zip(reg, uid)
+        except StoreError as exc:
+            st.error(shell.md(exc))
+    if c2.button("PDF", key=f"g_pdf_{uid}", icon=":material/picture_as_pdf:", width="stretch",
+                 help="GERAR RELATÓRIO PDF — relatório técnico da configuração salva (PRELIMINAR se não ativada)"):
+        try:
+            with st.spinner("Gerando relatório técnico…"):
+                _prepare_pdf(reg, uid)
+        except StoreError as exc:
+            st.error(shell.md(exc))
+    if c3.button("Excluir", key=f"g_del_{uid}", icon=":material/delete:", width="stretch",
+                 help="EXCLUIR MICRORREDE — exclusão definitiva com confirmação"):
+        _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}   # H-02: vínculo
+        st.rerun()
+    for kind, label, mime in (("zip", "⬇ Baixar ZIP", "application/zip"), ("pdf", "⬇ Baixar relatório PDF", "application/pdf")):
+        ready = _ss().get(f"gestor_{kind}", {}).get(uid)
+        if ready and ready[0] == s["fingerprint"]:
+            st.download_button(label, ready[2], file_name=ready[1], mime=mime, key=f"g_{kind}dl_{uid}",
+                               width="stretch", type="secondary")
+            st.caption(f"{shell.md(ready[1])} · revisão {s['revision']}"
+                       + (" · não inclui cenários nem rodadas científicas" if kind == "zip" else ""))
 
 
 # --------------------------------------------------------------------------- diálogos
@@ -576,6 +645,15 @@ def render() -> None:
             for entry, s, err in items:
                 _card(reg, entry, s, err)
     _estudos(reg)
+    # UI-FINISH-01: no desktop as bancadas estão na barra lateral (também sem microrrede aberta); a barra INFERIOR do
+    # celular só comporta os destinos essenciais, então ali elas aparecem aqui — as MESMAS do Centro de Operação
+    # (``home.benches``), nunca as duas formas ao mesmo tempo (CSS).
+    from .operation_center import BANCADAS_CSS
+    from . import home
+    st.html(BANCADAS_CSS.replace("op_bancadas_movel", "gestor_bancadas_movel"))
+    with st.container(key="gestor_bancadas_movel"):
+        st.html('<div class="sd-section">Bancadas dos modelos</div>')
+        home.benches()
     legacy = reg.meta("legacy_adoption")
     if legacy:
         try:

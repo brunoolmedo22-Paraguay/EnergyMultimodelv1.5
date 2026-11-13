@@ -5,6 +5,7 @@
 // celular, estabilidade em reruns) com a barra superior anterior intacta. B2-B: Planta (nós por UID, hover, foco, seleção,
 // cursor de instante, painel individual por UID na Partitura, só inventário, microrrede sem rodada V2/isolada, celular).
 const { chromium } = require("playwright");
+const { expandirCartoes } = require("./catalogo_util");
 const fs = require("fs");
 const path = require("path");
 const [base, seedFile, out, logMotor] = process.argv.slice(2);
@@ -32,7 +33,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   // ------------------------------------------------------------------ CONSULTA sem motor, solver nem modelos
   // Antes de qualquer página de preparação: Catálogo → Planta com rodada → painel por UID → Caderno → rodada → estudo.
   let [ctx, p] = await abrir(1500, 950, `${base}/`);
-  await p.locator(".gc-sig .gs-bus").first().waitFor({ timeout: 120000 });
+  await expandirCartoes(p); await p.locator(".gc-sig .gs-bus").first().waitFor({ timeout: 120000 });
   await p.goto(`${base}/?view=operacao&tab=planta&mg=${seed.mg}`); await p.locator(".pt.planta svg.pl-svg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1200);
   await p.locator('.pt.planta .node[data-tipo="wt"]').click(); await p.waitForTimeout(300);
   await p.locator(".pt.planta .pl-abrir").click(); await p.locator(".pt.partitura .dlg").waitFor({ timeout: 120000 }); await p.waitForTimeout(1000);
@@ -58,7 +59,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
 
   // ------------------------------------------------------------------ B2-A · sem microrrede aberta (Gestor)
   [ctx, p] = await abrir(1500, 900, `${base}/`);
-  ok(JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "sem microrrede: barra lateral com Catálogo, Arquivo Científico e Alcance");
+  ok(JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "bancada_solar", "bancada_wind", "bancada_battery", "bancada_h2", "bancada_thermal", "alcance"]), "sem microrrede: barra lateral com Catálogo, Arquivo Científico, as cinco bancadas (UI-FINISH-01) e Alcance");
   ok(JSON.stringify(await atual(p)) === JSON.stringify(["catalogo"]), "Gestor de microrredes = Catálogo (destino atual marcado)");
   ok(await largura(p) === 56, "trilho compacto de 56 px");
   ok(await p.locator(".tb.tb-compacta").count() === 1 && await p.locator(".tb .tb-link").count() >= 2 && !(await p.locator(".tb .tb-link").first().isVisible()) && await p.locator(".tb .tb-brand").isVisible(), "barra superior compacta: marca e identidade; a navegação fica só na barra lateral (sem duplicar)");
@@ -97,7 +98,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   const inst = await p.locator(".pt.partitura").first().evaluate((e) => e.getBoundingClientRect().left);
   ok(inst >= 56, `rodada: a Partitura começa depois do trilho (${Math.round(inst)} px)`); await foto(p, "b2a_03_rodada_com_barra");
   await p.locator('.pt.sb .it[data-id="catalogo"]').click(); await p.waitForTimeout(3500);
-  ok(p.url().includes("view=gestor") && !p.url().includes("mg=") && JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "alcance"]), "Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)");
+  ok(p.url().includes("view=gestor") && !p.url().includes("mg=") && JSON.stringify(await itens(p)) === JSON.stringify(["catalogo", "arquivo", "bancada_solar", "bancada_wind", "bancada_battery", "bancada_h2", "bancada_thermal", "alcance"]), "Catálogo com microrrede aberta = trocar de microrrede (volta ao Gestor)");
   await ctx.close();
 
   // ------------------------------------------------------------------ B2-B · Planta (barramento equivalente por UID)
@@ -139,6 +140,7 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
 
   // ------------------------------------------------------------------ B2-B · Catálogo (Gestor) → microrrede → Planta
   [ctx, p] = await abrir(1500, 950, `${base}/`);
+  await expandirCartoes(p);
   const cartoes = p.locator('[class*="st-key-mgc_"]');
   ok(await cartoes.count() === 2 && await p.locator(".gc-sig .gs-bus").count() === 2, "Catálogo: cada microrrede com a assinatura do barramento (inventário real)");
   const cv2 = p.locator(`.st-key-mgc_${seed.mg}`), tv2 = (await cv2.textContent()).replace(/\s+/g, " ");

@@ -54,7 +54,9 @@ function folhaProntidao(D, ir) {
     : `<b>Execução indisponível</b><small>${esc(D.motivo || "")}.</small>` });
   const acoes = [];
   if (D.tab !== "execucao") acoes.push(h("button", { class: "pill on fl-ir04", onclick: () => ir({ type: "nav", view: "operacao", tab: "execucao" }) }, "Preflight e execução (04)"));
-  else acoes.push(h("div", { class: "sub fl-aqui" }, "O preflight completo e o botão de execução estão nesta seção."));
+  else acoes.push(h("div", { class: "sub fl-aqui" }, D.cta_lateral
+    ? "O preflight completo está nesta seção; o botão de execução, no cartão «Rodada» abaixo da Folha de Ensaio."
+    : "O preflight completo e o botão de execução estão nesta seção."));
   if (D.ativa) acoes.push(h("button", { class: "pill fl-ativa", onclick: () => ir({ type: "abrir_rodada", run: D.ativa }) }, "Acompanhar a rodada em execução"));
   else if (D.ultima) acoes.push(h("button", { class: "pill fl-ult", onclick: () => ir({ type: "abrir_rodada", run: D.ultima.uid }), title: D.ultima.uid }, `Última rodada · v${D.ultima.versao} · ${D.ultima.estado}`));
   return h("div", { class: "panel fl-pron" }, h("div", { class: "eyebrow" }, "Prontidão do ensaio"), ver, h("div", { class: "fl-chks" }, ...sec.map(linha)), pend, veredito,

@@ -383,10 +383,17 @@ def test_cenario_v16_nao_e_afetado_pela_camada_v2(tmp_path):
 
 @requer_solver
 def test_relatorios_do_piso_2db_recusam_a_rodada_v2_em_vez_de_reinterpreta_la(missao):
-    """O dossiê 2D-B é específico do V1.6: uma rodada V2 não tem os recursos V1.6 e é RECUSADA nomeando o recurso —
-    nunca lida como se fosse um despacho V1.6 (os dados V2 ficam em ``v2/…``)."""
+    """Os GERADORES 2D-B (PDF/Excel/figuras V1.6) recusam a rodada V2 — nunca a leem como se fosse um despacho V1.6.
+    UI-FINISH-01 (pedido do responsável): o dossiê passou a conhecer o motor da rodada (contrato ``v2/…`` para rodadas
+    V2, com a mesma conferência de identidade e SHA-256) e a recusa dos geradores V1.6 nomeia o motor; os documentos V2
+    vivem em ``integracao_v2/documentos.py``."""
     from seeds2.report import dossier as D
-    assert D.missing_required(missao["run"]) == list(D.REQUIRED_CONCLUDED)
-    with pytest.raises(D.DossierIntegrityError) as exc:
-        D.load(missao["store"], missao["run"].run_uid)
-    assert "entradas/missao.csv" in str(exc.value) and "Nenhum documento é gerado" in str(exc.value)
+    from seeds2.ui import report_exports as RX
+    assert D.missing_required(missao["run"]) == []                      # contrato v2/… completo
+    d = D.load(missao["store"], missao["run"].run_uid)
+    with pytest.raises(D.DossierError) as exc:
+        D.require_complete(d)                                           # barreira dos geradores V1.6
+    assert "motor V2" in str(exc.value) and "Nenhum documento é gerado" in str(exc.value)
+    for kind in ("pdf", "xlsx", "fig"):
+        with pytest.raises(D.DossierError):
+            RX.generate(missao["store"], missao["run"].run_uid, kind)
