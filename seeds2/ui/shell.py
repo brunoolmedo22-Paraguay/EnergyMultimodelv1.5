@@ -1,6 +1,7 @@
 """Camada de apresentação comum: componentes v2 locais, CSS global, roteamento e barra superior."""
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime
 from html import escape
@@ -76,6 +77,8 @@ def payload(key: str, field: str = "action"):
 
 GLOBAL_CSS = """
 <style>
+/* Piso 3D-B2-A: os acentos das páginas SEEDS2 seguem a tinta do tema (paleta neutra da Partitura), não mais o verde fixo. */
+.stApp { --primary-color: var(--st-primary-color, currentColor); }
 .block-container { padding-top: calc(3.75rem + 0.6rem) !important; padding-bottom: 5rem !important; max-width: 1360px; }
 h1, h2, h3 { letter-spacing: -0.012em; }
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
@@ -198,6 +201,84 @@ def _on_topbar() -> None:
         st.session_state[SWITCH_KEY] = True
 
 
+def nav_classica() -> bool:
+    """Navegação CLÁSSICA (links na barra superior, como antes do Piso 3D-B2) pedida pela instalação com
+    ``SEEDS2_NAV_CLASSICA=1``. Por omissão a barra superior é compacta: os mesmos destinos estão na barra lateral."""
+    return os.environ.get("SEEDS2_NAV_CLASSICA", "").strip() == "1"
+
+
+def _on_sidebar() -> None:
+    a = payload("seeds_sidebar")
+    if a and a.get("type") == "nav":
+        go(a["view"], a.get("tab"))
+    elif a and a.get("type") == "switch":               # Catálogo com microrrede aberta = TROCAR MICRORREDE
+        st.session_state[SWITCH_KEY] = True
+
+
+def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bool, rodada: str | None = None) -> list[dict]:
+    """Destinos da barra lateral (Piso 3D-B2-A). Espelha a navegação existente — nada é retirado da barra superior —
+    e dá nome aos lugares da experiência Partitura: Catálogo, (Planta, Caderno, Folha quando integrados), Arquivo."""
+    def it(ident, rotulo, icone, grupo, alvo_view, alvo_tab=None, *, atual=False, curto=None, movel=False, dica=None, troca=False):
+        return {"id": ident, "rotulo": rotulo, "curto": curto or rotulo, "icone": icone, "grupo": grupo, "atual": bool(atual),
+                "movel": movel, "dica": dica or rotulo,
+                "acao": {"type": "switch"} if troca else {"type": "nav", "view": alvo_view, "tab": alvo_tab}}
+    doc = it("alcance", "Alcance e limitações", "alcance", "Documentação", "alcance", atual=view == "alcance", curto="Alcance")
+    if not is_open:
+        return [it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", atual=view == "gestor", curto="Catálogo", movel=True),
+                it("arquivo", "Arquivo Científico", "arquivo", None, "arquivo", atual=view == "arquivo", curto="Arquivo", movel=True), doc]
+    cat = it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", curto="Catálogo", movel=True, troca=True,
+             dica="Voltar ao Catálogo (trocar de microrrede; os dados não são alterados)")
+    if not commissioned:
+        return [cat, it("comissionamento", "Comissionamento", "comissionamento", "Microrrede", "comissionamento",
+                        atual=view == "comissionamento", movel=True), doc]
+    arq = view == "operacao" and tab in ("arquivo", "estudo")
+    planta = view == "operacao" and tab == "planta"
+    caderno = view == "operacao" and tab == "caderno"
+    folha = view == "operacao" and tab in ("inicializacao", "previsoes", "estrategia", "execucao")
+    # Rodada: só quando há uma rodada selecionada DESTA microrrede (``rodada`` já conferido pelo chamador).
+    na_rodada = bool(rodada) and view == "operacao" and tab == "rodada"
+    rod = [it("rodada", f"Rodada · {rodada[:8]}", "rodada", "Microrrede", "operacao", "rodada", atual=na_rodada, curto="Rodada",
+              dica="Rodada aberta (resultados gravados; abrir não executa nada)")] if rodada else []
+    return [cat,
+            it("planta", "Planta", "planta", "Microrrede", "operacao", "planta", atual=planta, movel=True,
+               dica="Planta: barramento equivalente e equipamentos do inventário"),
+            it("caderno", "Caderno de ensaios", "ensaios", "Microrrede", "operacao", "caderno", atual=caderno, curto="Ensaios",
+               movel=True, dica="Caderno de ensaios: cenários, versões e rodadas (V1.6 e V2)"),
+            it("folha", "Folha de ensaio", "folha", "Microrrede", "operacao", "inicializacao", atual=folha, curto="Folha",
+               dica="Folha de ensaio do cenário selecionado: estado inicial, previsões, estratégia e execução"),
+            *rod,
+            it("operacao", "Centro de Operação", "operacao", "Microrrede", "operacao",
+               atual=view == "operacao" and not arq and not planta and not caderno and not folha and not na_rodada,
+               curto="Operação", movel=True),
+            it("gestao", "Gestão da Microrrede", "gestao", "Microrrede", "gestao", atual=view == "gestao", curto="Gestão", movel=True),
+            it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
+            it("simulacao", "Simulação V1.6", "simulacao", "Console V1.6", "simulacao", atual=view == "simulacao", curto="Simulação"),
+            it("resultados", "Resultados V1.6", "resultados", "Console V1.6", "resultados", atual=view == "resultados",
+               curto="Resultados"), doc]
+
+
+def _rodada_da_sessao() -> str | None:
+    """Rodada aberta nesta sessão (``op_run_uid`` ou ``?run=``), SÓ se existir no banco da microrrede ativa."""
+    uid = st.session_state.get("op_run_uid") or st.query_params.get("run")
+    if not uid or not st.session_state.get("mg_active_uid"):
+        return None
+    try:
+        from . import session
+
+        return session.store().get_run(str(uid)).run_uid
+    except Exception:  # noqa: BLE001 — rodada inexistente, de outra microrrede ou banco indisponível: sem destino
+        return None
+
+
+def sidebar(*, view: str, tab: str | None, is_open: bool, commissioned: bool, contexto: str = "") -> None:
+    from . import trama
+
+    rodada = _rodada_da_sessao() if is_open and commissioned else None
+    trama.sidebar({"versao": APP_VERSION, "contexto": contexto,
+                   "itens": sidebar_items(view=view, tab=tab, is_open=is_open, commissioned=commissioned, rodada=rodada)},
+                  on_action=_on_sidebar)
+
+
 def fmt_time(iso: str | None) -> str:
     if not iso:
         return ""
@@ -214,4 +295,8 @@ def topbar(*, view: str, items: list[tuple], site: str, site_title: str, save: d
                         data={"version": APP_VERSION, "view": view, "items": [list(i) for i in items], "site": site,
                               "site_title": site_title, "site_sub": site_sub, "mg_name": mg_name, "save": save,
                               "force_light": force_light, "home": home, "switch": switch,
-                              "aux": [list(a) for a in (NAV_DOCS if aux is None else aux)]})
+                              "aux": [list(a) for a in (NAV_DOCS if aux is None else aux)], "compacta": not nav_classica()})
+    # Piso 3D-B2-A: a barra lateral acompanha SEMPRE a barra superior (mesmo contexto; a superior continua completa).
+    # ``items`` distingue os três contextos do shell: Gestor (sem microrrede), comissionamento e microrrede ativa.
+    sidebar(view=view, tab=route().get("tab"), is_open=bool(switch), commissioned=items is NAV_ACTIVE,
+            contexto=mg_name if switch else "Nenhuma microrrede aberta")

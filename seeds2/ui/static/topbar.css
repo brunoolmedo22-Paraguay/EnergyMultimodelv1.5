@@ -45,3 +45,13 @@
 .tb-switch[hidden] { display: none; }
 @media (max-width: 760px) { .tb-right { margin-left: 0; width: 100%; justify-content: space-between; } }
 .tb-save[hidden] { display: none; }
+/* Piso 3D-B2 — barra superior COMPACTA: com a barra lateral na página, a navegação e o link de documentação ficam só lá
+   (sem duplicar); aqui ficam a marca, a identidade da microrrede, TROCAR MICRORREDE e o estado de salvamento. A navegação
+   clássica completa volta com SEEDS2_NAV_CLASSICA=1 no servidor. */
+.tb.tb-compacta .tb-nav, .tb.tb-compacta .tb-aux { display: none; }
+.tb.tb-compacta { gap: 12px; padding-bottom: 8px; }
+@media (max-width: 760px) {
+  .tb.tb-compacta .tb-name b { font-size: 14px; } .tb.tb-compacta .tb-sub, .tb.tb-compacta .tb-switch span { display: none; }
+  .tb.tb-compacta .tb-right { gap: 8px; } .tb.tb-compacta .tb-switch { padding: 8px; margin-left: 4px; }
+  .tb.tb-compacta .tb-save { font-size: 11.5px; white-space: normal; }
+}

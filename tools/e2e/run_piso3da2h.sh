@@ -20,23 +20,10 @@ export NODE_PATH="${NODE_PATH:-/opt/node-tools/node_modules}"
 PORTA="${PORTA:-8631}"; CAP="$OUT/capturas"; LOGM="$OUT/chamadas_ao_motor.log"; DADOS="$OUT/dados"
 SEED="$OUT/seed_piso3da2h.json"
 mkdir -p "$CAP"
-PID=""
-trap '[ -n "$PID" ] && kill "$PID" 2>/dev/null || true' EXIT
-livre() { ! curl -sf "http://localhost:$PORTA/_stcore/health" >/dev/null 2>&1; }
-servidor() {   # <python> <log> [VAR=valor…]
-  local py="$1" log="$2"; shift 2
-  livre || { echo "porta $PORTA ocupada (servidor antigo?)" >&2; exit 2; }
-  env PYTHONDONTWRITEBYTECODE=1 SEEDS2_DATA_DIR="$DADOS" "$@" "$py" -m streamlit run app.py --server.headless true \
-      --server.port "$PORTA" --browser.gatherUsageStats false >"$log" 2>&1 &
-  PID=$!
-  for _ in $(seq 1 120); do curl -sf "http://localhost:$PORTA/_stcore/health" >/dev/null 2>&1 && return 0; sleep 1; done
-  echo "servidor não respondeu" >&2; exit 1
-}
-parar() { kill "$PID" 2>/dev/null || true; wait "$PID" 2>/dev/null || true; PID=""; sleep 1; }
-fase() {   # <fase>
-  node tools/e2e/e2e_piso3da2h.js "http://localhost:$PORTA" "$1" "$CAP" "$SEED" | tee "$OUT/e2e_$1.log"
-  [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
-}
+source "$RAIZ/tools/e2e/servidor.sh"          # limpeza garantida do servidor e dos filhos, mesmo se uma fase falhar
+servidor() { local py="$1" log="$2"; shift 2; e2e_servidor "$py" "$DADOS" "$PORTA" "$log" "$@"; }   # <python> <log> [VAR=valor…]
+parar() { e2e_parar "$PORTA"; }
+fase() { e2e_fase "$OUT/e2e_$1.log" node tools/e2e/e2e_piso3da2h.js "http://localhost:$PORTA" "$1" "$CAP" "$SEED"; }
 
 echo "== 1. semente (python com solver: as rodadas legadas são executadas aqui)"
 PYTHONDONTWRITEBYTECODE=1 "$PY" tools/e2e/seed_piso3da2h.py "$DADOS"

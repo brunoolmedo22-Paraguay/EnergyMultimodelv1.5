@@ -23,6 +23,13 @@
 //   tablet   — rodada V2 em tablet (retrato) sem rolagem horizontal da página.
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+// Piso 3D-B3: com a Partitura desenhada, a vista clássica da rodada V2 fica RECOLHIDA num expansor identificado. Este
+// roteiro continua verificando a vista clássica: apenas a abre antes (navegação) — nenhuma verificação foi alterada.
+const abrirClassica = async (p) => {
+  const s = p.locator('[data-testid="stExpander"] summary', { hasText: "Vista clássica" }).first();
+  try { await s.waitFor({ timeout: 120000 }); } catch (_) { return; }       // sem Partitura a vista clássica já está aberta
+  if (!(await s.evaluate((e) => e.parentElement.open))) { await s.click(); await p.waitForTimeout(800); }
+};
 const path = require("path");
 const fs = require("fs");
 
@@ -126,7 +133,7 @@ async function waitRun(p, seconds = 180) {
 }
 async function conferirRodada(p, tag, custo) {
   // a leitura inclui a VERIFICAÇÃO da evidência (hashes + reauditoria): esperar os indicadores serem desenhados
-  await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 90000 }); await ready(p);
+  await abrirClassica(p); await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 90000 }); await ready(p);
   assert((await kpi(p, "Custo REALIZADO")) === custo, `${tag}: custo REALIZADO ${custo}`);
   assert(await visible(p, "sem valor futuro"), `${tag}: custo rotulado sem valor futuro`);
   assert(await visible(p, "Motor V2 experimental"), `${tag}: rodada identificada como motor V2 experimental`);
@@ -201,7 +208,7 @@ async function operar(b) {
   await txt(p, "Justificativa da declaração do PCC", "PCC sintético do E2E: limite e tarifa declarados para o ensaio");
   await sel(p, "Procedência (tipo)", "sintetico", 2);
   await txt(p, "Fonte (documento, pessoa ou 'sintético de ensaio')", "Declaração SINTÉTICA do E2E 3D-A (PCC)", 3);
-  await p.getByLabel("Termos de custo das baterias no objetivo", { exact: true }).first().click();
+  await p.getByLabel("Termos de custo no objetivo", { exact: true }).first().click();
   await p.getByRole("option", { name: /throughput/ }).first().click(); await ready(p);
   await p.keyboard.press("Escape");
   await sel(p, "Degradação (sinal indisponível)", "sem_valor_futuro_rotulado");

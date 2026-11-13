@@ -39,7 +39,7 @@ GESTOR_CSS = """
 .st-key-gestor_grid > div { width: auto !important; min-width: 0; }
 [class*="st-key-mgc_"] { border-radius: 16px !important; height: 100%; transition: box-shadow .18s, transform .18s; animation: sdfade .28s ease both;
   border-color: color-mix(in srgb, var(--primary-color, #0E7C86) 18%, rgba(128,128,128,.28)) !important; }
-[class*="st-key-mgc_"]:hover { box-shadow: 0 10px 28px rgba(14,124,134,.10); transform: translateY(-1px); }
+[class*="st-key-mgc_"]:hover { box-shadow: 0 10px 28px rgba(20,24,28,.10); transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) { [class*="st-key-mgc_"], .gs-hero { animation: none; transition: none; } }
 .gc-top { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-bottom: .45rem; }
 .gc-chip { display: inline-flex; align-items: center; gap: .35rem; font-size: .7rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase;
@@ -61,6 +61,20 @@ GESTOR_CSS = """
 .gc-kpi b { display: block; font-size: 1.08rem; font-weight: 760; font-variant-numeric: tabular-nums; margin: .1rem 0 0 0; }
 .gc-kpi span { font-size: .7rem; opacity: .68; }
 .gc-foot { font-size: .76rem; opacity: .7; margin-top: .2rem; }
+.gc-sig { display: flex; flex-direction: column; justify-content: center; gap: 4px; height: 72px; margin: .4rem 0 .25rem 0; padding: 6px 14px; border-radius: 10px; background: rgba(128,128,128,.08); }
+.gs-up, .gs-dn { display: flex; align-items: center; gap: 22px; height: 26px; padding: 0 8px; } .gs-up { align-items: flex-end; } .gs-dn { align-items: flex-start; }
+.gs-bus { height: 3px; border-radius: 2px; background: currentColor; opacity: .85; }
+.gs-m { display: inline-block; width: var(--d); height: var(--d); border-radius: 50%; background: var(--c); }
+.gs-b { display: inline-block; width: var(--w); height: 12px; border-radius: 3px; background: var(--c); }
+.gs-dem { display: inline-block; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 11px solid currentColor; opacity: .85; }
+.gs-pcc { display: inline-block; width: 6px; height: 22px; border-radius: 3px; background: var(--c); } .gs-sp { flex: 1; } .gs-iso { font-size: .7rem; opacity: .6; }
+.gc-ens { opacity: .86; font-weight: 600; }
+.gs-sec { font-size: .72rem; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; opacity: .62; margin: 1.3rem 0 .5rem 0; }
+.st-key-gestor_estudos { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem !important; }
+.st-key-gestor_estudos > div { width: auto !important; min-width: 0; }
+.ge-name { font-size: 1.02rem; font-weight: 720; line-height: 1.25; overflow-wrap: anywhere; }
+.ge-meta { font-size: .8rem; opacity: .78; margin-top: .25rem; }
+.ge-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .72rem; opacity: .6; margin-top: .25rem; }
 .gc-warn { font-size: .78rem; color: #A35F00; margin-top: .3rem; }
 .gs-empty { text-align: center; padding: 2.4rem 1.2rem 2rem; border-radius: 18px; border: 1.5px dashed color-mix(in srgb, var(--primary-color, #0E7C86) 35%, transparent);
   background: color-mix(in srgb, var(--primary-color, #0E7C86) 4%, transparent); animation: sdfade .3s ease both; }
@@ -138,20 +152,74 @@ def _card_html(entry, s: dict) -> str:
             f'<span class="gc-chip e-{escape(ems_key)}" title="{escape(ems_detail)}">{escape(EMS_LABELS[ems_key])}</span></div>'
             f'<div class="gc-name">{escape(s["name"] or "Sem nome")}</div>'
             f'<div class="gc-uid" title="Identificador interno imutável">ID {escape(entry.uid)}</div>'
-            f'<div class="gc-desc">{escape(s["description"] or "Sem descrição.")}</div>'
+            f'<div class="gc-desc">{escape(s["description"] or "Sem descrição.")}</div>{_assinatura(s)}'
             f'<div class="gc-facts">{facts}</div><div class="gc-techs">{techs}</div><div class="gc-kpis">{kpis}</div>'
             f'<div class="gc-foot">{escape(comm)} · alterada {escape(shell.fmt_time(s["saved_at"]))} · rev. {s["revision"]} · '
             f'{escape(origin_txt)}</div>'
             f'<div class="gc-foot">EMS: {escape(ems_detail if len(ems_detail) <= 150 else ems_detail[:149].rstrip() + "…")}</div>'
+            f'<div class="gc-foot gc-ens">{escape(_ensaios_txt(s.get("ensaios")))}</div>'
             f'{warn}</div>')
+
+
+# ---- Catálogo (Piso 3D-B2-B): assinatura do barramento e ensaios de cada microrrede — só leitura do que está salvo
+SIG = {"fv": "#c98a00", "wt": "#2a8fc4", "fc": "#1f9e8f", "bat": "#7a63e0", "grid": "#d9534a"}      # cores das séries da Partitura
+RUN_LABELS = (("concluida", "concluída(s)"), ("interrompida", "interrompida(s)"), ("falhou", "falha(s)"), ("em_execucao", "em execução"))
+
+
+def _ensaios(store, cfg: dict) -> dict:
+    """Cenários e rodadas por estado (contagens do armazenamento), potência PEMFC instalada e conexão — nada é inventado:
+    o que não puder ser lido fica ``None``."""
+    out = {"cenarios": None, "rodadas": None, "pemfc_kW": None,
+           "conectada": (cfg.get("energy_balance") or {}).get("grid_connection") == "conectada"}
+    try:
+        out["cenarios"] = len(store.list_scenarios())
+        por: dict[str, int] = {}
+        for r in store.list_runs(limit=5000):
+            por[r.state] = por.get(r.state, 0) + 1
+        out["rodadas"] = por
+    except StoreError:
+        pass
+    kw = [C.installed_power_kW(e) for e in cfg.get("equipment") or [] if e.get("kind") == "pemfc"]
+    out["pemfc_kW"] = sum(k for k in kw if k) if any(kw) else None
+    return out
+
+
+def _assinatura(s: dict) -> str:
+    """«Assinatura» da microrrede: o barramento equivalente com um marcador por tecnologia PRESENTE no inventário, de
+    tamanho crescente com o nominal instalado (kWp, kW, kWh). Ilustra o inventário; não é diagrama elétrico nem fluxo.
+    (HTML/CSS puro: o ``st.html`` remove SVG.)"""
+    e = s.get("ensaios") or {}
+    nomes = {"fv": ("Solar", "kWp"), "wt": ("Eólica", "kW"), "fc": ("PEMFC", "kW")}
+    cima = "".join(f'<i class="gs-m" style="--c:{SIG[k]};--d:{10 + min(18.0, (float(v) ** 0.5) * 1.5):.0f}px" '
+                   f'title="{nomes[k][0]}: {escape(forms.fmt(v, 1, nomes[k][1]))}"></i>'
+                   for k, v in (("fv", s.get("pv_kWp")), ("wt", s.get("wind_kW")), ("fc", e.get("pemfc_kW"))) if v)
+    bat = (f'<i class="gs-b" style="--c:{SIG["bat"]};--w:{14 + 2 * min(14.0, float(s["storage_kWh"]) ** 0.5):.0f}px" '
+           f'title="Bateria: {escape(forms.fmt(s["storage_kWh"], 1, "kWh"))}"></i>') if s.get("storage_kWh") else ""
+    rede = (f'<i class="gs-pcc" style="--c:{SIG["grid"]}" title="Conectada à rede (PCC)"></i>' if e.get("conectada")
+            else '<span class="gs-iso">isolada</span>')
+    return ('<div class="gc-sig" role="img" aria-label="Assinatura do inventário: barramento equivalente">'
+            f'<div class="gs-up">{cima or "<span class=gs-iso>sem geração registrada</span>"}</div><div class="gs-bus"></div>'
+            f'<div class="gs-dn">{bat}<i class="gs-dem" title="Demanda agregada"></i><span class="gs-sp"></span>{rede}</div></div>')
+
+
+def _ensaios_txt(e: dict | None) -> str:
+    if not e or e.get("cenarios") is None:
+        return "Ensaios: não disponível"
+    rod = e.get("rodadas") or {}
+    partes = [f"{rod[k]} {t}" for k, t in RUN_LABELS if rod.get(k)]
+    return (f"Ensaios: {e['cenarios']} cenário(s) · " + (" · ".join(partes) if partes else "nenhuma rodada"))
 
 
 def _summaries(reg) -> list[tuple]:
     out = []
     for e in reg.entries():
         try:
-            stored = reg.open(e.uid).load()
-            out.append((e, card_summary(stored), None))
+            store = reg.open(e.uid)
+            stored = store.load()
+            s = card_summary(stored)
+            if not s.get("empty"):
+                s["ensaios"] = _ensaios(store, stored.config)
+            out.append((e, s, None))
         except (MicrogridNotFound, StoreError) as exc:
             out.append((e, None, str(exc)))
     out.sort(key=lambda t: (t[1] or {}).get("saved_at") or "", reverse=True)
@@ -445,6 +513,36 @@ def _import_dialog() -> None:
 
 
 # --------------------------------------------------------------------------- página
+def _estudos(reg) -> None:
+    """Prateleira do Arquivo Científico no Catálogo (Piso 3D-B2-B): estudos desta instalação, somente leitura; «ABRIR
+    ESTUDO» usa o fluxo existente do Arquivo. O banco do Arquivo NÃO é criado por esta consulta."""
+    from pathlib import Path
+
+    if not (Path(reg.root) / "scientific_archive" / "archive.db").is_file():
+        return
+    try:
+        estudos = list(reversed(session.archive().list_studies()))
+    except StoreError:
+        return
+    if not estudos:
+        return
+    from . import archive_ui
+
+    st.html(f'<div class="gs-sec">Arquivo Científico · {len(estudos)} estudo(s) · somente leitura</div>')
+    with st.container(key="gestor_estudos"):
+        for e in estudos[:12]:
+            with st.container(border=True, key=f"mge_{e.archive_uid}"):
+                st.html(f'<div class="ge-name">{escape(e.scenario_name)}</div>'
+                        f'<div class="ge-meta">Origem: {escape(e.origin_microgrid_name or "—")} · {e.n_versions} versão(ões) · '
+                        f'{e.n_runs} rodada(s) · {"verificado na importação" if (e.verification or {}).get("ok") else "não verificado"}</div>'
+                        f'<div class="ge-id">content_id {escape(e.content_id[:16])}… · ID local {escape(e.archive_uid[:8])}…</div>')
+                if st.button("ABRIR ESTUDO", key=f"g_est_{e.archive_uid}", width="stretch"):
+                    archive_ui.open_study(e.archive_uid, "arquivo")
+                    st.rerun()
+    if len(estudos) > 12:
+        st.caption(f"Mostrando 12 de {len(estudos)} estudos; a lista completa está em ARQUIVO CIENTÍFICO.")
+
+
 def render() -> None:
     st.html(GESTOR_CSS)
     reg = session.registry()
@@ -477,6 +575,7 @@ def render() -> None:
         with st.container(key="gestor_grid"):
             for entry, s, err in items:
                 _card(reg, entry, s, err)
+    _estudos(reg)
     legacy = reg.meta("legacy_adoption")
     if legacy:
         try:

@@ -12,6 +12,13 @@
 //   importar — instalação LIMPA, SEM solver, com motores e MODELOS FÍSICOS sabotados: estudo importado e consultado.
 // Nenhum serviço externo é consultado.
 const { chromium } = require("playwright");
+// Piso 3D-B3: com a Partitura desenhada, a vista clássica da rodada V2 fica RECOLHIDA num expansor identificado. Este
+// roteiro continua verificando a vista clássica: apenas a abre antes (navegação) — nenhuma verificação foi alterada.
+const abrirClassica = async (p) => {
+  const s = p.locator('[data-testid="stExpander"] summary', { hasText: "Vista clássica" }).first();
+  try { await s.waitFor({ timeout: 120000 }); } catch (_) { return; }       // sem Partitura a vista clássica já está aberta
+  if (!(await s.evaluate((e) => e.parentElement.open))) { await s.click(); await p.waitForTimeout(800); }
+};
 const path = require("path");
 const fs = require("fs");
 
@@ -67,7 +74,7 @@ async function waitRun(p, seconds = 240) {
   throw new Error(`FALHA: a rodada V2 não terminou em ${seconds} s`);
 }
 async function conferirRodada(p, tag, custo) {
-  await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 90000 }); await ready(p);
+  await abrirClassica(p); await p.getByText("Custo REALIZADO").first().waitFor({ timeout: 90000 }); await ready(p);
   const c = await kpi(p, "Custo REALIZADO");
   if (custo) { assert(c === custo, `${tag}: custo REALIZADO ${custo}`); } else { assert(/^R\$ [\d.,]+$/.test(c || ""), `${tag}: custo REALIZADO ${c}`); }
   assert(await visible(p, "✓ Evidência verificada"), `${tag}: evidência verificada na reabertura (sem otimizador nem modelos)`);

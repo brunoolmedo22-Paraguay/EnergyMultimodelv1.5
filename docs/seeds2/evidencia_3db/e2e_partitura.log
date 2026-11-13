@@ -1,0 +1,41 @@
+[3db] ok — Partitura montada na página real da rodada V2
+[3db] ok — título = nome do cenário gravado
+[3db] ok — custo realizado do resumo selado: R$ 277,53
+[3db] ok — barra de estado: evidência verificada sem solver
+[3db] ok — aceitações separadas: algébrico aprovado · físico não validado
+[3db] ok — cursor sobre o intervalo 18: inspetor mostra 18h–19h
+[3db] ok — inspetor: demanda realizada 74 kW às 18h (valor gravado)
+[3db] ok — foco por recurso: as outras séries recuam
+[3db] ok — clique fixa o instante
+[3db] ok — painel do recurso cobre a janela (1748×833)
+[3db] ok — painel aberto no instante fixado
+[3db] ok — painel identifica o equipamento por nome, TAG e UID
+[3db] ok — B04 apresentada como certificação matemática, não validação experimental
+[3db] ok — curva q(P) e erro da PWL desenhados
+[3db] ok — verificação dinâmica: coerência não é validação física
+[3db] ok — painel Bateria: gráfico e cartões
+[3db] ok — painel Solar: gráfico e cartões
+[3db] ok — painel Eólica: gráfico e cartões
+[3db] ok — painel Rede: gráfico e cartões
+[3db] ok — painel Carga: gráfico e cartões
+[3db] ok — painel Custos: gráfico e cartões
+[3db] ok — instante trocado dentro do painel (20h–21h)
+[3db] ok — Esc fecha o painel
+[3db] ok — contexto conservado ao fechar: 20h–21h
+[3db] ok — rerun do Streamlit conserva o instante
+[3db] ok — recarga da página conserva o instante
+[3db] ok — vista clássica continua na página
+[3db] ok — 1768×853: sem transbordo horizontal (0px)
+[3db] ok — 1768×853: tema dark detectado a partir do tema do Streamlit
+[3db] ok — 1366×768: sem transbordo horizontal (0px)
+[3db] ok — 1366×768: tema light detectado a partir do tema do Streamlit
+[3db] ok — botão de tema alterna claro → escuro sem rerun
+[3db] ok — 2560×1440: sem transbordo horizontal (0px)
+[3db] ok — 2560×1440: tema light detectado a partir do tema do Streamlit
+[3db] ok — 400×850: sem transbordo horizontal (0px)
+[3db] ok — 400×850: tema light detectado a partir do tema do Streamlit
+[3db] ok — 820×1100: sem transbordo horizontal (0px)
+[3db] ok — 820×1100: tema dark detectado a partir do tema do Streamlit
+[3db] ok — rodada V1.6: página anterior intacta (gráficos Plotly, sem Partitura)
+[3db] ok — Arquivo Científico: a rodada do estudo arquivado abre na Partitura com o mesmo custo
+[3db] CONCLUÍDO — 40 verificações aprovadas, sem erros de página nem de console
