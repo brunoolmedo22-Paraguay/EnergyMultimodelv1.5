@@ -23,7 +23,7 @@ def pagina(frame: dict, outros: dict | None = None) -> str:
     dados = json.dumps(frame, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
     mais = json.dumps(outros or {}, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
     return ("<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><title>Bancada Partitura</title><style>"
-            "html,body{margin:0;background:#f4f4f2}" + (ESTATICO / "trama.css").read_text("utf-8") + tokens_gestor_css() + "</style></head><body>"
+            "html,body{margin:0;background:#f4f4f2}" + (ESTATICO / "trama.css").read_text("utf-8") + "</style></head><body>"
             "<div id=\"raiz\" style=\"padding:10px\"></div>"
             f"<script>window.__F = {dados}; window.__OUTROS = {mais};</script><script>{js}\n"
             "window.__trocar = (n) => window.__monta({ data: { frame: n ? window.__OUTROS[n] : window.__F }, "

@@ -1,15 +1,34 @@
 # CONTINUAÇÃO IMEDIATA — INSTRUÇÕES PARA O PRÓXIMO AGENTE
 
-> Seção viva: atualizada a CADA checkpoint publicado do Piso 3D-B2. Se a sessão anterior foi interrompida, este bloco e o
-> último commit publicado bastam para continuar. Histórico das entregas anteriores: logo abaixo e em `PARAMIJEFE.md`.
+> Seção viva: atualizada a cada checkpoint publicado. Se a sessão anterior foi interrompida, este bloco e o último commit
+> publicado bastam para continuar. Histórico das entregas anteriores: logo abaixo e em `PARAMIJEFE.md`.
 
 | Item | Estado |
 |---|---|
-| **Branch** | `claude/stoic-meitner-2vs91m` (base `main` `724d235`) |
-| **PR** | Draft [#24](https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24) contra `main` — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Último checkpoint publicado** | Finalização da Partitura V2: F1+F2 `f890f54`, F3 `5293241` (+ commit F4 de documentação/regressões); ver «Finalização da Partitura V2» abaixo |
-| **Missão em curso** | **Finalização da Partitura V2** (pendências da auditoria independente do 3D-B2, autorizada pelo responsável; Claude Opus): F1 Folha, F2 Caderno, F3 estabilização, F4 entrega — **NÃO FAZER MERGE** |
+| **Branch** | `claude/friendly-mccarthy-zrel1q` (base `main` `8cbd15c` = merge do PR #24) |
+| **PR** | ver «UI-REDESIGN-01» abaixo — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **UI-REDESIGN-01** — navegação (Bancadas no lugar do console V1.6), etapas do experimento como fluxo contínuo, Planta com a identidade do Gestor. Só interface. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## UI-REDESIGN-01 (pedido do responsável; pacote `SEEDS2_OPUS_UI_REDESIGN_2026-11-13`)
+
+- **Entregue (commit `29b1e90` + documentação):** (1) grupo «Bancadas» na barra lateral (`shell.BANCADAS`, ação
+  `{type:"bancada"}` → `shell.abrir_bancada` = mesma ação dos botões «ABRIR …»); Simulação/Resultados V1.6 fora da
+  navegação (vistas ainda roteáveis); bloco «Ferramentas V1.6» só no celular. (2) `operation_center._stages`: fluxo
+  01→04 com trilho, estados de antes, «próxima», etapa inteira = botão existente (chaves `op_open_*`). (3) Planta com os
+  ícones/cores do Gestor lidos de `static/inventory.js`/`kit.css` por `trama.icones_gestor_js`/`tokens_gestor_css`.
+- **Detalhes, decisões e o que NÃO foi removido:** `docs/seeds2/UI_REDESIGN_01.md`; evidência antes × depois:
+  `docs/seeds2/evidencia_ui_redesign01/`; relatório: `PARAMIJEFE.md` Entrega 20.
+- **Guardas:** exceção nominal `tests/ems_v2/ui_redesign01_guard_policy.py` (encadeada no fim da política do 3D-B; teste
+  novo `tests/test_ui_redesign01.py` + UMA asserção antiga adaptada em `tests/test_seeds2_piso2a_app.py`); auditoria
+  explícita `python tests/ems_v2/ui_redesign01_guard_policy.py` ⇒ `ok: true`. O componente Trama (`trama.py`) só pode
+  importar `pathlib`/`streamlit` (guarda 3D-B): a extração usa `str.find`, não `re`.
+- **E2E ajustados (navegação nova):** `e2e_piso3db_plataforma.js` (grupo Bancadas), `e2e_piso2a_centro_operacao.js`,
+  `e2e_stabilization_benches.js`, `e2e_piso3da2h.js` (bancada H₂ pela barra lateral). Os roteiros que acionam
+  «ABRIR EXECUÇÃO» etc. continuam válidos (mesmo nome acessível).
+- **Verificação:** ver «Verificação UI-REDESIGN-01» em `PARAMIJEFE.md` Entrega 20.
+
+---
 
 ## Finalização da Partitura V2 (pendências da auditoria independente do 3D-B2)
 
