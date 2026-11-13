@@ -5,10 +5,28 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `claude/friendly-mccarthy-zrel1q` (base `main` `8cbd15c` = merge do PR #24) |
-| **PR** | ver «UI-REDESIGN-01» abaixo — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **UI-REDESIGN-01** — navegação (Bancadas no lugar do console V1.6), etapas do experimento como fluxo contínuo, Planta com a identidade do Gestor. Só interface. |
+| **Branch** | `claude/friendly-mccarthy-zrel1q` (reiniciada de `main` `9d2bcf0` = merge do PR #26) |
+| **PR** | ver «UI-RUNNING-01» abaixo — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **UI-RUNNING-01** — modal de acompanhamento da execução V2 (SEEDS2 · RUNNING SIMULATION) + cancelamento cooperativo pela API existente do armazenamento. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## UI-RUNNING-01 (pedido do responsável; pacote `SEEDS2_OPUS_RUNNING_SIMULATION_MODAL_2026-11-13`)
+
+- **Entregue:** `seeds2/ui/static/trama/execucao.js` (modal; estilos `.pt.mx` em `trama.css`), `integracao_v2/ui.py`
+  (`dados_modal`, `cancelar`, `acompanhar`, `seguir_desfecho`, `SEGUIR`), `seeds2/ui/execution_ui._live` (o fragmento
+  existente delega as rodadas V2 a `acompanhar`). Detalhes e decisões: `docs/seeds2/UI_RUNNING_01.md`.
+- **Fonte do progresso:** `run.progress` gravado pelo runner (`heartbeat_run`), lido pelo fragmento existente (1 s). Sem
+  porcentagem fora de `missao` com k < n; 100 % só com `concluida` no banco.
+- **Cancelamento:** cooperativo e real — `store.fail_run(…, state="interrompida")` com `runner.OWNER` (transação
+  condicionada a «em execução por este dono»); o runner (INALTERADO) sai no próximo `beat` sem gravar nada; a janela em
+  curso termina e é descartada. Desabilitado (com motivo) em auditoria/gravação e para rodadas de outro processo.
+- **Guardas:** exceção nominal `tests/ems_v2/ui_running01_guard_policy.py` (encadeada no fim da do UI-REDESIGN-01).
+  **Pré-existente no `main` (não causado por esta missão):** o commit `f523035` (requirements.txt com o solver, para o
+  Streamlit Cloud) faz falhar `test_ems_v2_3c4_isolamento::…pr16` e `test_piso3db_guardas::test_auditoria_explicita…`
+  (requirements.txt protegido). Corrigir exige decisão do responsável (exceção nominal para `requirements.txt`).
+- **Verificação:** ver `PARAMIJEFE.md` Entrega 21.
+
+---
 
 ## UI-REDESIGN-01 (pedido do responsável; pacote `SEEDS2_OPUS_UI_REDESIGN_2026-11-13`)
 
