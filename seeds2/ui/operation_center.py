@@ -70,6 +70,13 @@ OP_CSS = """
 """
 
 
+BANCADAS_CSS = """<style>
+@media (min-width: 761px) { .st-key-op_bancadas_movel { display: none !important; } }
+.st-key-op_bancadas_movel [data-testid="stHorizontalBlock"] { flex-wrap: wrap; gap: .5rem; }
+.st-key-op_bancadas_movel [data-testid="stColumn"] { flex: 1 1 calc(50% - .5rem) !important; min-width: calc(50% - .5rem) !important; }
+</style>"""
+
+
 # ======================================================================= estado do cenário na sessão
 def _ss():
     return st.session_state
@@ -396,42 +403,112 @@ def _rebase(store, cur) -> None:
     st.rerun()
 
 
+# UI-REDESIGN-01 — «Etapas do experimento» como UM fluxo contínuo (processo): 01 → 02 → 03 → 04 ligados por um trilho.
+# Cada etapa INTEIRA é o alvo de navegação: o botão que já existia (mesma chave e mesmo rótulo acessível, p. ex.
+# «ABRIR EXECUÇÃO») cobre a superfície da etapa e é invisível como botão — não há mais um botão preto dentro de um cartão.
+# Os estados são os MESMOS de antes (S.readiness, S.strategy_status, execution_ui.stage_state); nada novo é decidido aqui.
+ETAPAS = (("inicializacao", TAB_INIT, "op_open_init", "ABRIR INICIALIZAÇÃO"), ("previsoes", TAB_FC, "op_open_fc", "ABRIR PREVISÕES"),
+          ("estrategia", TAB_SG, "op_open_sg", "ABRIR ESTRATÉGIA EMS"), ("execucao", TAB_EX, "op_open_ex", "ABRIR EXECUÇÃO"))
+ETAPAS_CSS = """<style>
+.st-key-op_etapas { --et-ok: #1f7a4c; --et-warn: #a35c00; --et-bad: #b02a3e; --et-info: #2f5fcc; --et-line: rgba(128,128,128,.32);
+  border: 1px solid rgba(128,128,128,.22); border-radius: 18px; padding: .9rem 1rem .8rem; gap: .35rem;
+  background: color-mix(in srgb, currentColor 2.5%, transparent); }
+.st-key-op_etapas [data-testid="stHorizontalBlock"] { gap: 0 !important; }
+.st-key-op_etapas [data-testid="stColumn"] { min-width: 0; }
+[class*="st-key-op_etapa_"] { position: relative; height: 100%; gap: 0; }
+[class*="st-key-op_etapa_"] .stElementContainer:has(> .stButton) { position: absolute; inset: 0; z-index: 2; margin: 0; }
+[class*="st-key-op_etapa_"] .stButton, [class*="st-key-op_etapa_"] .stButton > div, [class*="st-key-op_etapa_"] .stButton button {
+  width: 100%; height: 100%; }
+[class*="st-key-op_etapa_"] .stButton button { background: transparent !important; border: 0 !important; box-shadow: none !important;
+  color: transparent !important; border-radius: 14px; cursor: pointer; min-height: 0; padding: 0; }
+[class*="st-key-op_etapa_"] .stButton button * { color: transparent !important; }
+[class*="st-key-op_etapa_"] .stButton button:focus-visible { outline: 2px solid currentColor; outline-color: var(--text-color, #171717);
+  outline-offset: -3px; }
+[class*="st-key-op_etapa_"] .stButton button:disabled { cursor: not-allowed; }
+.et { position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; gap: .45rem;
+  padding: .55rem .8rem .75rem; border-radius: 14px; transition: background .14s ease; }
+[class*="st-key-op_etapa_"]:has(button:hover:not(:disabled)) .et,
+[class*="st-key-op_etapa_"]:has(button:focus-visible) .et { background: color-mix(in srgb, currentColor 6%, transparent); }
+.et-trilho { display: flex; align-items: center; gap: .55rem; align-self: stretch; margin: 0 -.8rem .15rem; }
+.et-m { flex: none; width: 2.15rem; height: 2.15rem; border-radius: 50%; display: grid; place-items: center; font-size: .8rem;
+  font-weight: 800; font-variant-numeric: tabular-nums; border: 2px solid var(--et-line); background: var(--background-color, #fff); }
+.et-l { flex: 1; height: 2px; background: var(--et-line); border-radius: 2px; }
+.et-l.ok { background: currentColor; opacity: .55; } .et-l.fim { visibility: hidden; }
+.et[data-tom="ok"] .et-m { background: var(--text-color, #171717); border-color: var(--text-color, #171717); color: var(--background-color, #fff); }
+.et[data-tom="warn"] .et-m { border-color: var(--et-warn); color: var(--et-warn); }
+.et[data-tom="bad"] .et-m { border-color: var(--et-bad); color: var(--et-bad); }
+.et[data-tom="info"] .et-m { border-color: var(--et-info); color: var(--et-info); }
+.et[data-prox="1"] .et-m { box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent); }
+.et-k { font-size: .66rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .55; }
+.et-t { font-size: 1.04rem; font-weight: 720; letter-spacing: -.01em; line-height: 1.2; margin-top: .05rem; }
+.et-d { font-size: .82rem; line-height: 1.42; opacity: .74; margin: 0; min-height: 5.68em; display: -webkit-box; -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical; overflow: hidden; }
+.et-s { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: .1rem; font-size: .78rem; line-height: 1.35; }
+.et-s b { display: inline-flex; align-items: center; gap: .35rem; font-weight: 700; }
+.et-s b::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: var(--et-line); }
+.et[data-tom="ok"] .et-s b { color: var(--et-ok); } .et[data-tom="ok"] .et-s b::before { background: var(--et-ok); }
+.et[data-tom="warn"] .et-s b { color: var(--et-warn); } .et[data-tom="warn"] .et-s b::before { background: var(--et-warn); }
+.et[data-tom="bad"] .et-s b { color: var(--et-bad); } .et[data-tom="bad"] .et-s b::before { background: var(--et-bad); }
+.et[data-tom="info"] .et-s b { color: var(--et-info); } .et[data-tom="info"] .et-s b::before { background: var(--et-info); }
+.et-s span { opacity: .7; }
+.et-ir { font-size: .76rem; font-weight: 700; opacity: 0; transition: opacity .14s ease; }
+[class*="st-key-op_etapa_"]:has(button:hover:not(:disabled)) .et-ir, [class*="st-key-op_etapa_"]:has(button:focus-visible) .et-ir,
+.et[data-prox="1"] .et-ir { opacity: .8; }
+.et[data-tom="off"] { opacity: .55; }
+.et-prox { font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: .08rem .45rem; border-radius: 999px;
+  border: 1px solid currentColor; opacity: .7; margin-left: .2rem; }
+@media (max-width: 900px) {
+  .st-key-op_etapas [data-testid="stHorizontalBlock"] { flex-direction: column; }
+  .st-key-op_etapas [data-testid="stColumn"] { width: 100% !important; flex: 1 1 auto !important; }
+  .et { display: grid; grid-template-columns: 2.15rem minmax(0, 1fr); column-gap: .8rem; row-gap: .25rem; padding: .45rem .7rem .6rem .45rem;
+    text-align: left; align-items: start; }
+  .et-s { align-items: flex-start; } .et-d { min-height: 0; -webkit-line-clamp: unset; }
+  .et-trilho { grid-row: 1 / span 6; flex-direction: column; align-items: center; margin: 0 0 -1.1rem 0; height: calc(100% + 1.1rem); }
+  .et-l { width: 2px; height: auto; flex: 1; } .et-l.ini { display: none; } .et-l.fim { display: none; }
+  .et-s { margin-top: .25rem; }
+}
+</style>"""
+
+
+def _stage_state(store, cur, doc, fs, key: str) -> tuple[str, str, str]:
+    """(tom, rótulo, detalhe) de uma etapa — as MESMAS funções de estado usadas antes desta apresentação."""
+    if doc is None:
+        return "off", "Sem cenário", "selecione ou crie um cenário"
+    if key in ("inicializacao", "previsoes"):
+        return S.readiness(doc, fs, None)["stages"][key]
+    if key == "estrategia":
+        return S.strategy_status(doc)
+    return execution_ui.stage_state(store, cur) if cur is not None else ("off", "Sem cenário", "")
+
+
 def _stages(store, cur) -> None:
     st.markdown('<div class="sd-section">Etapas do experimento</div>', unsafe_allow_html=True)
-    doc = work()
+    st.html(ETAPAS_CSS)
+    doc = work() if cur is not None else None
     fs = S.findings(doc) if doc else []
-    cols = st.columns(4, gap="small")
-    for i, (col, (key, title, sub)) in enumerate(zip(cols, S.STAGES)):
-        with col, st.container(border=True, height="stretch"):
-            if key == "inicializacao":
-                rd = S.readiness(doc, fs, None) if doc else None
-                tone, label, _ = rd["stages"][key] if rd else ("off", "Sem cenário", "")
-                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
-                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}. Disponível nesta versão.</p>')
-                if st.button("ABRIR INICIALIZAÇÃO", key="op_open_init", type="primary", width="stretch", disabled=cur is None):
-                    shell.go("operacao", TAB_INIT)
-                    st.rerun()
-            elif key == "previsoes":
-                rd = S.readiness(doc, fs, None) if doc else None
-                tone, label, _ = rd["stages"][key] if rd else ("off", "Sem cenário", "")
-                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
-                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}. Disponível nesta versão.</p>')
-                if st.button("ABRIR PREVISÕES", key="op_open_fc", type="primary", width="stretch", disabled=cur is None):
-                    shell.go("operacao", TAB_FC)
-                    st.rerun()
-            elif key == "estrategia":
-                tone, label, _ = S.strategy_status(doc) if doc else ("off", "Sem cenário", "")
-                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
-                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}.</p>')
-                if st.button("ABRIR ESTRATÉGIA EMS", key="op_open_sg", type="primary", width="stretch", disabled=cur is None):
-                    shell.go("operacao", TAB_SG)
-                    st.rerun()
-            else:
-                tone, label, _ = execution_ui.stage_state(store, cur) if cur is not None else ("off", "Sem cenário", "")
-                st.html(f'<div class="op-row"><span class="op-stage-n">0{i + 1}</span>{_pill(label, tone)}</div>'
-                        f'<div class="op-t">{escape(title)}</div><p class="op-d">{escape(sub)}.</p>')
-                if st.button("ABRIR EXECUÇÃO", key="op_open_ex", type="primary", width="stretch", disabled=cur is None):
-                    shell.go("operacao", TAB_EX)
+    estados = [_stage_state(store, cur, doc, fs, k) for k, *_ in ETAPAS]
+    prox = next((i for i, e in enumerate(estados) if e[0] != "ok"), None) if doc is not None else None
+    titulos = {k: (t, d) for k, t, d in S.STAGES}
+    with st.container(key="op_etapas"):
+        cols = st.columns(len(ETAPAS))
+        for i, (col, (key, tab, bkey, blabel), (tone, label, detail)) in enumerate(zip(cols, ETAPAS, estados)):
+            title, sub = titulos[key]
+            ok_seg = tone == "ok"                                    # trecho até a próxima etapa: cheio se esta concluiu
+            ok_ant = i > 0 and estados[i - 1][0] == "ok"             # trecho vindo da anterior: cheio se ela concluiu
+            marca = "✓" if tone == "ok" else "!" if tone == "bad" else f"0{i + 1}"
+            with col, st.container(key=f"op_etapa_{key}"):
+                st.html(f'<div class="et" data-etapa="{key}" data-tom="{escape(tone)}" data-prox="{int(i == prox)}">'
+                        f'<div class="et-trilho" aria-hidden="true"><span class="et-l ini{" fim" if i == 0 else ""}{" ok" if ok_ant else ""}"></span>'
+                        f'<span class="et-m">{marca}</span>'
+                        f'<span class="et-l{" ok" if ok_seg else ""}{" fim" if i == len(ETAPAS) - 1 else ""}"></span></div>'
+                        f'<div class="et-k">Etapa 0{i + 1}{"<span class=et-prox>próxima</span>" if i == prox else ""}</div>'
+                        f'<div class="et-t">{escape(title)}</div><p class="et-d">{escape(sub)}.</p>'
+                        f'<div class="et-s"><b>{escape(label)}</b>{f"<span>{escape(detail)}</span>" if detail else ""}</div>'
+                        f'<div class="et-ir" aria-hidden="true">{"Selecione um cenário" if cur is None else "Abrir a seção →"}</div>'
+                        '</div>')
+                if st.button(blabel, key=bkey, width="stretch", disabled=cur is None,
+                             help=None if cur is not None else "Selecione ou crie um cenário para abrir as etapas."):
+                    shell.go("operacao", tab)
                     st.rerun()
 
 
@@ -451,12 +528,16 @@ def _panel(store, items, cur) -> None:
     _stages(store, cur)
     shell.callout("<b>Execução de cenário (etapa 04)</b>: usa as condições DESTE cenário — estados iniciais, previsões, "
                   "estratégia e janela — sobre a revisão do inventário que ele referencia, e grava cada rodada (imutável) "
-                  "nesta microrrede. A <b>Simulação</b> (console V1.6) continua independente: usa a configuração salva da "
-                  "microrrede, suas condições da rodada e a demanda/clima do inventário.", "")
+                  "nesta microrrede. As <b>bancadas</b> dos modelos (barra lateral) continuam independentes: executam cada "
+                  "física isoladamente, sem usar nem alterar a configuração da microrrede.", "")
     _archive_card(store, cur)
     with st.expander("Instalação física (inventário salvo) e prontidão do console V1.6"):
         home.installation_summary()
-    with st.expander("Ferramentas V1.6 — bancadas individuais dos modelos"):
+    # UI-REDESIGN-01: no desktop as bancadas estão na barra lateral (grupo «Bancadas»); a barra INFERIOR do celular só
+    # comporta os destinos essenciais, então ali elas aparecem aqui — nunca as duas formas ao mesmo tempo (CSS).
+    st.html(BANCADAS_CSS)
+    with st.container(key="op_bancadas_movel"):
+        st.html('<div class="sd-section">Bancadas dos modelos</div>')
         home.benches()
 
 

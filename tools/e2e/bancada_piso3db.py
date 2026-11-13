@@ -34,13 +34,15 @@ def pagina(frame: dict, outros: dict | None = None) -> str:
 def pagina_componente(nome: str, dados: dict) -> str:
     """Página de bancada para um componente de PÁGINA do 3D-B2 (``planta``, ``sidebar``…): recebe ``dados`` como o Python
     os entrega; as ações devolvidas ficam em ``window.__acoes``."""
-    js = ((ESTATICO / "trama.js").read_text("utf-8") + "\n" + (ESTATICO / f"{nome}.js").read_text("utf-8")
+    from seeds2.ui.trama import icones_gestor_js, tokens_gestor_css     # mesma montagem de trama._pagina (UI-REDESIGN-01)
+
+    js = ((ESTATICO / "trama.js").read_text("utf-8") + "\n" + icones_gestor_js() + "\n" + (ESTATICO / f"{nome}.js").read_text("utf-8")
           .replace("export default function (component)", "window.__monta = function (component)"))
     if "window.__monta" not in js:
         raise RuntimeError(f"ponto de montagem do componente não encontrado em {nome}.js")
     d = json.dumps(dados, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
     return ("<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><title>Bancada " + nome + "</title><style>"
-            "html,body{margin:0;background:#f4f4f2}" + (ESTATICO / "trama.css").read_text("utf-8") + "</style></head><body>"
+            "html,body{margin:0;background:#f4f4f2}" + (ESTATICO / "trama.css").read_text("utf-8") + tokens_gestor_css() + "</style></head><body>"
             "<div id=\"raiz\" style=\"padding:10px\"></div>"
             f"<script>window.__D = {d}; window.__acoes = [];</script><script>{js}\n"
             "window.__monta({ data: window.__D, parentElement: document.getElementById('raiz'), "

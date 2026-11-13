@@ -3265,3 +3265,42 @@ Código final: `068ef9d` (los commits siguientes solo cambian documentación y e
 ### 7. Recomendación
 
 Sin defectos bloqueantes conocidos. La interfaz cubre ahora el recorrido completo aprobado (Catálogo → microrred → Planta → escenario → Folha en tres columnas → prontitud → ejecución → rodada Partitura → recursos → Caderno → comparación → Arquivo Científico). Recomendación: **apto para revisión e integración tras la aprobación del responsable y la CI verde del HEAD final**; **sin merge** hasta autorización expresa.
+
+## Entrega 20 — SEEDS2 · UI-REDESIGN-01: navegación, flujo experimental e identidad visual de la Planta — 2026-11-13
+
+### 1. Identificación
+
+- Rama `claude/friendly-mccarthy-zrel1q` desde `main` `8cbd15c` (merge del PR #24); PR contra `main` **sin merge**. Pedido del responsable: paquete `SEEDS2_OPUS_UI_REDESIGN_2026-11-13` (`PROMPT_PARA_OPUS.md` + imágenes 01–05 del estado anterior, inspeccionadas antes de editar).
+- Misión de **interfaz**: sin cambios en `ems_v2/`, `integracao_v2/`, modelos físicos, motor V1.6, contratos, persistencia, criterios de aceptación ni resultados científicos; Gestor (`gestor.py`, `inventory.js`, `techpicker.js`, `kit.css`), `home.py`, `main.py` y `operations.py` intactos. Auditoría explícita `python tests/ems_v2/ui_redesign01_guard_policy.py` ⇒ `ok: true`.
+
+### 2. Qué cambió
+
+| Pedido | Entregado |
+|---|---|
+| 1. Console V1.6 → Bancadas | Grupo «Bancadas» en la barra lateral (Solar, Eólica, Batería, H₂/PEMFC, Térmica) con la MISMA acción de los botones «ABRIR …» (`energy_source`); íconos y colores del Gestor. Simulación/Resultados V1.6 fuera de la navegación (las vistas siguen roteables por URL y por la navegación clásica opcional; nada borrado). Bloque «Ferramentas V1.6» fuera del área principal en escritorio; en el celular (barra inferior sin espacio) las bancadas quedan al final del Centro de Operação — nunca las dos formas a la vez. |
+| 2. Etapas como flujo continuo | Franja única 01→02→03→04 con riel, marcador (✓ concluida, ! impedimento), descripción y estado reales (las mismas funciones de antes), «próxima» = primera etapa no concluida; la etapa ENTERA es el botón existente (misma clave y nombre accesible), sin botones negros; stepper vertical ≤ 900 px; foco de teclado visible; sin escenario ⇒ etapas indisponibles. |
+| 3. Planta con la identidad del Gestor | Íconos `ICONS` de `inventory.js` y colores `--k-*` de `kit.css` reutilizados SIN copia (extraídos al registrar el componente: `trama.icones_gestor_js`/`tokens_gestor_css`); nodo = tarjeta con el ícono en círculo claro (referencia 05), tipo corto + TAG, nombre, nominal del inventario, estado y potencia grabada; demanda (color `--k-load` del Gestor) y PCC con íconos propios en el mismo trazo; topología, conexiones, N/D, hover/Tab, clic/Enter y panel de detalles preservados; sin flechas ni flujos. |
+
+Decisiones y lo que NO se removió: `docs/seeds2/UI_REDESIGN_01.md`. Evidencia antes × después (mismos datos en `main` y en la rama): `docs/seeds2/evidencia_ui_redesign01/` (barra lateral, etapas con escenario completo e incompleto, Planta con y sin rodada, celular 400 px, selección, bancada abierta desde la barra).
+
+### 3. Hallazgos
+
+- El corte del panel lateral de la Planta visible en la referencia 04 **no se reprodujo** (400, 760, 900, 1024, 1100, 1280, 1540 px, antes y después: sin desbordamiento horizontal ni panel fuera de la ventana); por la geometría, la captura termina donde el panel empieza. No se «corrigió» nada sin prueba.
+- Guardas: el componente Trama solo puede importar `pathlib`/`streamlit` (la extracción usa `str.find`); el test nuevo y UNA aserción antigua adaptada (`tests/test_seeds2_piso2a_app.py`: el texto del Centro apunta ahora a las bancadas, no a la «Simulação (console V1.6)») entran por la excepción nominal `tests/ems_v2/ui_redesign01_guard_policy.py`, encadenada al final de la política del 3D-B.
+- `tools/e2e/run_stabilization.py` fuerza un Chromium del sistema (`/usr/bin/chromium`) ausente en este entorno; el guion de las bancadas se ejecutó directamente con el Chromium de Playwright sobre la misma semilla.
+- La primera ejecución de `run_piso3da2h.sh` falló por temporización (el clic en «ABRIR EXECUÇÃO» esperó 30 s mientras el preflight V2 recalculaba la curva H₂ tras guardar); repetido aislado, pasó entero.
+
+### 4. Verificación
+
+Código final `ac67b91` (los commits siguientes solo cambian documentación).
+
+- **Regresión completa con solver** (Pyomo 6.10.1 + HiGHS): **2343 passed, 2 skipped, 150 subtests (1326 s), 0 fallos** (`main` `8cbd15c`: 2335 passed). Una pasada intermedia sobre `29b1e90` dio 16 errores con una sola causa — la página de banco del instrumento Partitura (`tools/e2e/bancada_piso3db.py`) usaba los tokens del Gestor sin importarlos — corregida en `ac67b91` (66 passed en los archivos afectados).
+- **Regresión completa sin solver:** **1822 passed, 178 skipped, 145 subtests (692 s), 0 fallos**.
+- **Suites focalizadas** (UI-REDESIGN-01, plataforma, Folha, Caderno, app 3D-B/3D-A/A2-R/A2-H, app 2A–2D-B, app SEEDS2, Gestor, smoke, `tests/ems_v2` sin MILP): 1419 passed, 2 skipped.
+- **E2E en navegador real:** `run_piso3db.sh` **103 + 79** verificaciones (grupo «Bancadas» incluido; registro del motor vacío en la consulta); `run_piso3da2h.sh` **60** (banco H₂ abierto por la barra lateral; 1ª ejecución con falla de temporización, repetida aislada y aprobada); guion de aceptación de las bancadas `e2e_stabilization_benches.js` con las cinco abiertas por la barra lateral: solar 22, eólica 21, térmica 20, batería 28, H₂ 19 verificaciones (incluye «la navegación sigue tras recargar»).
+- **Verificación visual** (capturas en `docs/seeds2/evidencia_ui_redesign01/`): barra lateral expandida, etapas con escenario completo e incompleto (estados reales, «próxima», impedimento), stepper vertical a 400 px, Planta con y sin rodada, selección/realce/panel, 400 px; clic en la superficie de la etapa y Tab + Enter navegan; sin errores de página ni de consola; sin desbordamiento horizontal.
+- Auditoría explícita de la misión: `ok: true`.
+
+### 5. Recomendación
+
+Sin defectos bloqueantes conocidos. Riesgos menores: (a) los roteiros E2E manuales de los pisos 1–2D-B que abrían las bancadas por el bloque antiguo se actualizaron solo en los casos encontrados (2A, estabilización, 3D-A2-H, plataforma); (b) `run_stabilization.py` exige un Chromium del sistema en `/usr/bin/chromium` (dependencia de entorno anterior). Apto para revisión; **sin merge** hasta autorización expresa del responsable.

@@ -103,11 +103,9 @@ async function bancada(b) {
   try {
     await p.goto(url); await ready(p);
     await abrirMicrorrede(p);
-    const exp = p.getByText("bancadas individuais dos modelos", { exact: false });
-    await rolarAte(p, exp);
-    await exp.first().click(); await ready(p);
-    await p.getByRole("button", { name: "ABRIR H₂ / PEMFC" }).first().waitFor({ timeout: 60000 });
-    await btn(p, "ABRIR H₂ / PEMFC");
+    // UI-REDESIGN-01: a bancada H₂/PEMFC abre pela barra lateral (grupo «Bancadas»), a mesma ação do antigo botão
+    await p.locator('.pt.sb .it[data-id="bancada_h2"]').waitFor({ timeout: 60000 });
+    await p.locator('.pt.sb .it[data-id="bancada_h2"]').click(); await ready(p);
     await btn(p, "Caracterização");
     await p.getByText("H₂ · Curva de consumo do EMS", { exact: false }).first().scrollIntoViewIfNeeded();
     for (let i = 0; i < 60 && !(await chart(p, "Consumo de hidrogênio × potência líquida")); i++) {

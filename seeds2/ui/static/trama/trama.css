@@ -123,15 +123,25 @@
 .pt.sb .grp::before { content: ""; display: block; width: 20px; border-top: 1px solid var(--line-2); margin-bottom: -1px; } .pt.sb:hover .grp::before, .pt.sb:has(:focus-visible) .grp::before { display: none; }
 .pt.sb .brand { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 8px; font: 800 16px var(--f-d); letter-spacing: .01em; white-space: nowrap; flex: none; color: var(--ink); }
 .pt.sb .brand small { font: 500 10.5px var(--f-m); color: var(--ink-3); margin-left: 4px; } .pt.sb .sp { flex: 1; }
+.pt.sb .kico { flex: none; width: 22px; height: 22px; margin: 0 -1px; display: grid; place-items: center; border-radius: 50%; color: var(--kc);
+  background: color-mix(in srgb, var(--kc) 13%, transparent); } .pt.sb .kico svg { width: 17px; height: 17px; }
+.pt.sb .it[aria-current="page"] .kico { background: var(--on-ink); }
 .pt.sb .brand svg { flex: none; } .pt.sb .brand .lab { min-width: 0; }  /* trilho recolhido: a marca continua visível (não encolhe até sumir) */
 .pt.sb .ctx { font-size: 11.5px; color: var(--ink-3); padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
 /* ---- Planta (.pt.planta): barramento equivalente, um nó por equipamento */
 .pt.planta .pl-stage { height: auto; align-items: start; } .pt.planta .pl-host { min-height: 470px; overflow-x: auto; overflow-y: hidden; }
-.pt.planta .node { cursor: pointer; transition: opacity .14s; outline: none; } .pt.planta .node .bx { fill: var(--surface-2); stroke: var(--line-2); transition: stroke .12s, stroke-width .12s; }
-.pt.planta .node.on .bx, .pt.planta .node:focus-visible .bx { stroke: var(--k); stroke-width: 2; } .pt.planta .node.sel .bx { stroke: var(--ink); stroke-width: 2.4; } .pt.planta .node.off { opacity: .32; }
-.pt.planta .node.dis .bx { stroke-dasharray: 5 4; fill: var(--field); } .pt.planta .node text { font-family: var(--f-t); font-size: 11.5px; fill: var(--ink-2); pointer-events: none; }
-.pt.planta .node text.nm { font: 700 13.5px var(--f-d); fill: var(--ink); } .pt.planta .node text.tg { font: 10.5px var(--f-m); fill: var(--ink-3); } .pt.planta .node text.pw { font: 700 15px var(--f-d); fill: var(--ink); font-variant-numeric: tabular-nums; }
-.pt.planta .wire { transition: opacity .14s; } .pt.planta .pl-bus { font: 600 10.5px var(--f-d); fill: var(--ink-3); letter-spacing: .12em; } .pt.planta .pl-vazio { font: 13px var(--f-t); fill: var(--ink-3); }
+.pt.planta .node { cursor: pointer; transition: opacity .14s; outline: none; } .pt.planta .node .bx { fill: var(--surface); stroke: var(--line-2); stroke-width: 1; transition: stroke .12s, stroke-width .12s, fill .12s; }
+.pt.planta .node.on .bx, .pt.planta .node:focus-visible .bx { stroke: var(--k); stroke-width: 2; fill: color-mix(in srgb, var(--k) 5%, var(--surface)); }
+.pt.planta .node.sel .bx { stroke: var(--ink); stroke-width: 2.4; } .pt.planta .node.off { opacity: .34; }
+.pt.planta .node.dis .bx { stroke-dasharray: 5 4; fill: var(--field); } .pt.planta .node.dis .ico { opacity: .55; }
+.pt.planta .node .ico-fundo { fill: color-mix(in srgb, var(--k) 15%, var(--surface)); stroke: color-mix(in srgb, var(--k) 28%, transparent); stroke-width: 1; }
+.pt.planta .node .ico { color: var(--k); } .pt.planta .node .pino { fill: var(--ink); stroke: var(--surface); stroke-width: 2.5; }  /* ponto de conexão no barramento (neutro) */
+.pt.planta .node text { font-family: var(--f-t); font-size: 11.5px; fill: var(--ink-2); pointer-events: none; }
+.pt.planta .node text.tp { font: 700 10.5px var(--f-d); letter-spacing: .08em; fill: var(--k); }
+.pt.planta .node text.nm { font: 700 14.5px var(--f-d); fill: var(--ink); } .pt.planta .node text.rs { font: 600 13px var(--f-t); fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pt.planta .node text.sb { font-size: 11.5px; fill: var(--ink-3); } .pt.planta .node text.pw { font: 700 15px var(--f-d); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.pt.planta .wire { stroke-width: 3; stroke-linecap: round; transition: opacity .14s; } .pt.planta .pl-barra { stroke: var(--ink); stroke-width: 6; }
+.pt.planta .pl-bus { font: 600 10.5px var(--f-d); fill: var(--ink-3); letter-spacing: .12em; } .pt.planta .pl-vazio { font: 13px var(--f-t); fill: var(--ink-3); }
 .pt .pop { position: absolute; z-index: 6; width: 250px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; pointer-events: none; }
 .pt .pop .pn { font: 700 14px var(--f-d); display: block; }
 /* ---- Caderno de ensaios (.pt.caderno) e Folha de ensaio (.pt.folha) */

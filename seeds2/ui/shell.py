@@ -207,21 +207,40 @@ def nav_classica() -> bool:
     return os.environ.get("SEEDS2_NAV_CLASSICA", "").strip() == "1"
 
 
+# UI-REDESIGN-01: as cinco bancadas individuais (as MESMAS telas que os botões «ABRIR …» do Centro de Operação abrem:
+# ``energy_source`` roteado por ``app.py``), na ordem do Gestor; ``kind`` = tipo do inventário, para o ícone e a cor do Gestor.
+BANCADAS = (("solar", "Solar", "pv"), ("wind", "Eólica", "wind"), ("battery", "Bateria", "battery"),
+            ("h2", "H₂ / PEMFC", "pemfc"), ("thermal", "Térmica", "thermal"))
+
+
+def abrir_bancada(fonte: str) -> bool:
+    """Abre uma bancada individual exatamente como ``home.benches``: independente da configuração da microrrede."""
+    if fonte not in {b[0] for b in BANCADAS}:
+        return False
+    st.session_state["energy_source"] = fonte
+    if fonte == "solar":
+        st.session_state["current_page"] = "Visão geral"
+    return True
+
+
 def _on_sidebar() -> None:
     a = payload("seeds_sidebar")
     if a and a.get("type") == "nav":
         go(a["view"], a.get("tab"))
     elif a and a.get("type") == "switch":               # Catálogo com microrrede aberta = TROCAR MICRORREDE
         st.session_state[SWITCH_KEY] = True
+    elif a and a.get("type") == "bancada":               # UI-REDESIGN-01: bancada individual (fonte desconhecida é ignorada)
+        abrir_bancada(str(a.get("fonte") or ""))
 
 
 def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bool, rodada: str | None = None) -> list[dict]:
-    """Destinos da barra lateral (Piso 3D-B2-A). Espelha a navegação existente — nada é retirado da barra superior —
-    e dá nome aos lugares da experiência Partitura: Catálogo, (Planta, Caderno, Folha quando integrados), Arquivo."""
-    def it(ident, rotulo, icone, grupo, alvo_view, alvo_tab=None, *, atual=False, curto=None, movel=False, dica=None, troca=False):
+    """Destinos da barra lateral (Piso 3D-B2-A). Dá nome aos lugares da experiência Partitura: Catálogo, Planta, Caderno,
+    Folha, Rodada, Arquivo e, desde o UI-REDESIGN-01, as cinco BANCADAS no lugar do antigo console V1.6."""
+    def it(ident, rotulo, icone, grupo, alvo_view, alvo_tab=None, *, atual=False, curto=None, movel=False, dica=None, troca=False,
+           acao=None):
         return {"id": ident, "rotulo": rotulo, "curto": curto or rotulo, "icone": icone, "grupo": grupo, "atual": bool(atual),
                 "movel": movel, "dica": dica or rotulo,
-                "acao": {"type": "switch"} if troca else {"type": "nav", "view": alvo_view, "tab": alvo_tab}}
+                "acao": acao or ({"type": "switch"} if troca else {"type": "nav", "view": alvo_view, "tab": alvo_tab})}
     doc = it("alcance", "Alcance e limitações", "alcance", "Documentação", "alcance", atual=view == "alcance", curto="Alcance")
     if not is_open:
         return [it("catalogo", "Catálogo de microrredes", "catalogo", None, "gestor", atual=view == "gestor", curto="Catálogo", movel=True),
@@ -252,9 +271,11 @@ def sidebar_items(*, view: str, tab: str | None, is_open: bool, commissioned: bo
                curto="Operação", movel=True),
             it("gestao", "Gestão da Microrrede", "gestao", "Microrrede", "gestao", atual=view == "gestao", curto="Gestão", movel=True),
             it("arquivo", "Arquivo Científico", "arquivo", "Microrrede", "operacao", "arquivo", atual=arq, curto="Arquivo", movel=True),
-            it("simulacao", "Simulação V1.6", "simulacao", "Console V1.6", "simulacao", atual=view == "simulacao", curto="Simulação"),
-            it("resultados", "Resultados V1.6", "resultados", "Console V1.6", "resultados", atual=view == "resultados",
-               curto="Resultados"), doc]
+            # UI-REDESIGN-01: o grupo «Console V1.6» (Simulação/Resultados V1.6, sem o EMS hierárquico) saiu da navegação;
+            # no lugar, as cinco bancadas. As vistas antigas continuam existindo (URL ``?view=`` e navegação clássica).
+            *[it(f"bancada_{fonte}", rot, f"k:{kind}", "Bancadas", None, curto=rot.split(" ")[0],
+                 dica=f"Bancada {rot}: modelo físico isolado, sem usar nem alterar a configuração da microrrede",
+                 acao={"type": "bancada", "fonte": fonte}) for fonte, rot, kind in BANCADAS], doc]
 
 
 def _rodada_da_sessao() -> str | None:

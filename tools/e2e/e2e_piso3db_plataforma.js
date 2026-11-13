@@ -76,7 +76,10 @@ function ok(c, msg) { if (c) { n += 1; log("ok —", msg); } else { falhas.push(
   // ------------------------------------------------------------------ B2-A · microrrede ativa
   [ctx, p] = await abrir(1500, 900, `${base}/?view=operacao&mg=${seed.mg}`);
   const ids = await itens(p);
-  ok(["catalogo", "planta", "caderno", "folha", "operacao", "gestao", "arquivo", "simulacao", "resultados", "alcance"].every((i) => ids.includes(i)), "microrrede ativa: todos os destinos anteriores estão na barra lateral");
+  ok(["catalogo", "planta", "caderno", "folha", "operacao", "gestao", "arquivo", "alcance"].every((i) => ids.includes(i)), "microrrede ativa: os destinos da plataforma estão na barra lateral");
+  // UI-REDESIGN-01: o console V1.6 saiu da navegação; no lugar, as cinco bancadas (com os ícones do Gestor)
+  ok(!ids.includes("simulacao") && !ids.includes("resultados") && ["solar", "wind", "battery", "h2", "thermal"].every((f) => ids.includes("bancada_" + f))
+     && await p.locator(".pt.sb .it[data-acao=\"bancada\"] .kico svg").count() === 5, "barra lateral: grupo «Bancadas» (5) no lugar de Simulação/Resultados V1.6");
   ok(JSON.stringify(await atual(p)) === JSON.stringify(["operacao"]), "Centro de Operação marcado como destino atual");
   await p.locator(".pt.sb .side-in").evaluate((e) => e.setAttribute("data-marca", "1"));
   await p.locator("body").press("r"); await p.waitForTimeout(3500);
