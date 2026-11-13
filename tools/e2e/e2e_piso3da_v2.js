@@ -248,7 +248,7 @@ async function operar(b) {
   const ene = await chart(p, "Energia armazenada nas fronteiras");
   assert(ene && ene.traces[0].n === 13, "gráfico: energia em 13 fronteiras (N + 1)");
   assert(p.url().includes("run="), "URL identifica a rodada (?run=)");
-  assert(await p.getByRole("button", { name: "Baixar" }).count() === 10, "10 dados gravados disponíveis para download");
+  assert(await p.getByRole("button", { name: "Baixar", exact: true }).count() === 10, "10 dados gravados disponíveis para download");
   const runUid = new URL(p.url()).searchParams.get("run");
   fs.writeFileSync(runFile, JSON.stringify({ run: runUid, custo: CUSTO, link: p.url() }));
   await shot(p, "p3da_06_rodada_v2.png");

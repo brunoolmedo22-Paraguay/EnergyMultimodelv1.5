@@ -107,7 +107,7 @@ async function operar(b) {
   await p.getByRole("button", { name: /EXECUTAR MISSÃO V2/ }).click();
   await waitRun(p); await ready(p);
   const custo = await conferirRodada(p, "rodada", null);
-  assert(await p.getByRole("button", { name: "Baixar" }).count() === 11, "11 dados gravados (inclui v2/renovaveis.json)");
+  assert(await p.getByRole("button", { name: "Baixar", exact: true }).count() === 11, "11 dados gravados (inclui v2/renovaveis.json)");
   assert(await visible(p, "v2/renovaveis.json"), "derivação renovável gravada com a rodada");
   fs.writeFileSync(runFile, JSON.stringify({ custo, link: p.url() }));
   await shot(p, "p3da2r_02_rodada.png");
