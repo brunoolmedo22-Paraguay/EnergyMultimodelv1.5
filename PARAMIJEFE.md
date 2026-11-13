@@ -3304,3 +3304,41 @@ Código final `ac67b91` (los commits siguientes solo cambian documentación).
 ### 5. Recomendación
 
 Sin defectos bloqueantes conocidos. Riesgos menores: (a) los roteiros E2E manuales de los pisos 1–2D-B que abrían las bancadas por el bloque antiguo se actualizaron solo en los casos encontrados (2A, estabilización, 3D-A2-H, plataforma); (b) `run_stabilization.py` exige un Chromium del sistema en `/usr/bin/chromium` (dependencia de entorno anterior). Apto para revisión; **sin merge** hasta autorización expresa del responsable.
+
+## Entrega 21 — SEEDS2 · UI-RUNNING-01: modal de seguimiento de la ejecución V2 y cancelación cooperativa — 2026-11-13
+
+### 1. Identificación
+
+- Rama `claude/friendly-mccarthy-zrel1q` reiniciada desde `main` `9d2bcf0` (merge del PR #26); PR contra `main` **sin merge**. Pedido del responsable: paquete `SEEDS2_OPUS_RUNNING_SIMULATION_MODAL_2026-11-13` (`PROMPT_PARA_OPUS.md` + referencias 01 «Execução em andamento» y 02 overlay, inspeccionadas antes de editar).
+- Misión de **seguimiento**, no de motor: `ems_v2/`, el runner V2 (`integracao_v2/execucao.py`), modelos físicos, motor V1.6, almacenamiento, contratos y criterios de aceptación **intactos**. Auditoría explícita `python tests/ems_v2/ui_running01_guard_policy.py` ⇒ `ok: true`, `intocados_violados: []`.
+
+### 2. Qué cambió
+
+| Pedido | Entregado |
+|---|---|
+| Modal automático «SEEDS2 — RUNNING SIMULATION» | Componente `seeds2/ui/static/trama/execucao.js` (estilos `.pt.mx`), dibujado por el fragmento EXISTENTE `execution_ui._live` (1 s) con los datos de `integracao_v2/ui.dados_modal`; se abre solo al aceptar la rodada V2. Animación SVG/CSS original (diagrama abstracto, `aria-hidden`), detenida fuera de «en curso». |
+| Progreso real | SOLO `run.progress` grabado por el runner (fase, k de n, ventanas); porcentaje solo en `missao` con k < n; indeterminado en las demás fases; 100 % solo con `concluida` en la base; sin ETA; franja del horizonte receding con N/m/H_L del manifiesto. |
+| Ocultar ≠ cancelar | Ocultar/Escape/clic fuera = estado del navegador (`sessionStorage` por rodada); franja «ACOMPANHAR EXECUÇÃO»; recarga relee la MISMA rodada; un cambio de desenlace reabre el panel. |
+| Cancelar de forma segura | No existía API. `integracao_v2/ui.cancelar` = `store.fail_run(…, state="interrompida", error.kind="cancelada_pelo_usuario")` con `runner.OWNER`: transacción condicionada a «en ejecución por este dueño»; el runner (sin cambios) sale en el próximo `beat` sin grabar. Deshabilitado con motivo en auditoría/grabación y para rodadas de otro proceso; confirmación explícita. |
+| Errores / desenlaces | Falla y misión interrumpida con el mensaje REAL del runner, visibles hasta «VER DIAGNÓSTICO»/«OK»; conclusión ⇒ apertura automática de la rodada (destino de antes). |
+| Accesibilidad / proporción | `role=dialog`, `aria-modal`, `progressbar`, `aria-live`, foco atrapado, Escape, `prefers-reduced-motion`; tarjeta `min(50vw, 680px)` × ≤ 50dvh (medido 42–46 % de la altura en escritorio), celular 92vw × ≤ 78dvh (medido 58 % en 390×844); sin desbordamiento horizontal. |
+
+Decisiones y limitaciones: `docs/seeds2/UI_RUNNING_01.md`. Evidencia: `docs/seeds2/evidencia_ui_running01/` (antes, modal en ejecución, oculto, confirmación, cancelando, cancelada, concluida, 1366/1280/1440 oscuro/movimiento reducido/celular, GIF del flujo de cancelación y GIF de la animación).
+
+### 3. Hallazgos
+
+- **Limitación de la cancelación:** granular por VENTANA; el HiGHS no se aborta a mitad de una resolución (exigiría tocar el adaptador del solver en `ems_v2`, no autorizado). El modal muestra «Cancelamento solicitado» hasta que el hilo termina.
+- **Fallas PREEXISTENTES en `main` (no causadas por esta misión):** el commit `f523035` (añade el solver a `requirements.txt` para el despliegue) hace fallar `test_ems_v2_3c4_isolamento::test_pisos_anteriores_v16_e_aplicacao_sem_alteracao_desde_o_merge_do_pr16` y `test_piso3db_guardas::test_auditoria_explicita_do_diff_da_missao` (`requirements.txt` protegido). Verificado en un worktree de `main` puro. Requiere decisión del responsable (excepción nominal para `requirements.txt`); no se debilitó ninguna guarda.
+
+### 4. Verificación
+
+Código final `fefb920`.
+
+- **Regresión completa con solver** (Pyomo 6.10.1 + HiGHS): **2350 passed, 2 skipped, 150 subtests, 2 failed** (1403 s) — las 2 fallas son exactamente las preexistentes de `requirements.txt` (mensajes `{'requirements.txt'}` y `[['M', 'requirements.txt']]`).
+- `tests/test_ui_running01.py`: **9 passed** (datos del modal; progreso puro en Node; componente real en el navegador de banco; cancelación REAL con HiGHS y pausa determinista entre ventanas SOLO en el test — «después de 4 de 24 intervalos», hilo terminado, sin datos ni resumen, segunda cancelación rechazada, nueva rodada concluye; rechazos `finalizada`/`inexistente`/`tarde`/`outro_processo`; desenlace de falla en AppTest).
+- **E2E en navegador real:** `run_piso3da.sh` 65+14+8+19, `run_piso3da2r.sh` 22+6+7+8, `run_piso3da2h.sh` 6+20+16+18, `run_piso3db.sh` 103+79 — todos aprobados; registros del motor saboteado vacíos.
+- **Verificación manual en navegador** (servidor real con HiGHS): apertura automática, progreso 2 → 6 → 11 de 48; ocultar + recarga ⇒ misma rodada, panel oculto; reapertura; Escape; cancelación ⇒ `interrompida`/`cancelada_pelo_usuario`/0 datos en la base; misión corta 0 → 25 → 50 → 83 % → Concluída → página de la rodada; tema oscuro, movimiento reducido; sin errores de JavaScript.
+
+### 5. Recomendación
+
+Sin defectos bloqueantes conocidos de la misión. Apto para revisión; **sin merge** hasta autorización expresa del responsable. Pendiente fuera del alcance: decisión sobre la excepción de `requirements.txt` en las guardas.

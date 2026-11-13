@@ -24,7 +24,10 @@
   **Pré-existente no `main` (não causado por esta missão):** o commit `f523035` (requirements.txt com o solver, para o
   Streamlit Cloud) faz falhar `test_ems_v2_3c4_isolamento::…pr16` e `test_piso3db_guardas::test_auditoria_explicita…`
   (requirements.txt protegido). Corrigir exige decisão do responsável (exceção nominal para `requirements.txt`).
-- **Verificação:** ver `PARAMIJEFE.md` Entrega 21.
+- **Verificação (código `fefb920`):** regressão completa com solver 2350 passed, 2 skipped, 2 failed (só as
+  pré-existentes de `requirements.txt`); `test_ui_running01` 9 passed; E2E 3D-A/A2-R/A2-H/3D-B aprovados. Detalhes:
+  `PARAMIJEFE.md` Entrega 21.
+- **Próximo passo:** revisão do PR pelo responsável; decidir a exceção de `requirements.txt` nas guardas.
 
 ---
 
