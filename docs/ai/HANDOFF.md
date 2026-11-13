@@ -23,7 +23,11 @@
   `integracao_v2/ui.cartao_rodada`, entregue à Folha por `CTA_SLOT` (a Folha desenha sob o índice).
 - **Guardas:** exceção nominal `tests/ems_v2/ui_finish01_guard_policy.py` (lista explícita de linhas REMOVIDAS de
   `dossier.py`/`report_exports.py`); C-DEPLOY-01 NÃO aplicada (2 guardas de `requirements.txt` falham como no `main`).
-- **Verificação:** ver `PARAMIJEFE.md` Entrega 22. **Próximo passo:** revisão do PR pelo responsável.
+- **Verificação:** testes da missão 21 + 2 passed; regressão com solver só com as 2 falhas pré-existentes de `requirements.txt`
+  (após `41fab35`); E2E `run_ui_finish.sh` 76 verificações (exportações com motor sabotado: registro VAZIO) e as quatro suítes
+  3D aprovadas. Detalhes: `PARAMIJEFE.md` Entrega 22.
+- **Pendente:** roteiros E2E dos pisos 1–2D-B/estabilização adaptados (`tools/e2e/catalogo_util.js`) mas não reexecutados.
+- **Próximo passo:** revisão do PR pelo responsável; decisão sobre C-DEPLOY-01.
 
 ---
 

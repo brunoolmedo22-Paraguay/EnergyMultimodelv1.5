@@ -118,8 +118,11 @@ contrato V1.6 (`entradas/missao.csv`, `saidas/despacho_ems.csv`, `saidas/relator
 Exceção nominal `tests/ems_v2/ui_finish01_guard_policy.py` (encadeada no fim da do UI-RUNNING-01; a auditoria do 3D-B a
 consulta para o caminho intocado `seeds2/report/dossier.py`): nomes e status exatos e, para os dois arquivos fora das áreas
 de interface (`seeds2/report/dossier.py`, `seeds2/ui/report_exports.py`), as linhas REMOVIDAS têm de estar numa lista
-explícita — qualquer outra alteração volta a falhar (testado). Três asserções antigas mudaram porque o pedido muda o que
-fixavam (bancadas sem microrrede e no comissionamento; botões do Gestor vazio). **C-DEPLOY-01 NÃO foi aplicada:** as duas
+explícita — qualquer outra alteração volta a falhar (testado em `tests/ems_v2/test_ui_finish01_guardas.py`). Quatro
+asserções antigas mudaram porque o pedido muda o que fixavam (bancadas sem microrrede e no comissionamento; botões do Gestor
+vazio; o dossiê 2D-B que não lia rodadas V2 — a recusa dos geradores V1.6 continua, agora nomeando o motor). Os roteiros E2E
+anteriores expandem os cartões do Catálogo antes de usar as ações (`tools/e2e/catalogo_util.js`, como o usuário faria) e
+contam os downloads «Baixar» por nome exato. **C-DEPLOY-01 NÃO foi aplicada:** as duas
 guardas de `requirements.txt` continuam falhando como no `main`.
 
 ## 8. Arquivos e justificativa

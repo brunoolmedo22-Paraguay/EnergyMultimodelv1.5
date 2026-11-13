@@ -3358,3 +3358,34 @@ Sin defectos bloqueantes conocidos de la misión. Apto para revisión; **sin mer
 - **Servidor real** (HiGHS; misión de 240 h): visibilidad computada + elemento que recibe el clic en el centro de la pantalla en abrir/ocultar/ciclos del fragmento (intervalo 3 → 10 con el panel oculto)/recarga/reabrir/Escape/clic fuera/desenlace/FECHAR; doble clic en SÍ ⇒ un solo pedido; «Simulação em andamento → Cancelamento solicitado → Cancelada»; base de datos: cada cancelación una sola vez, `interrompida`/`cancelada_pelo_usuario`, 0 datos, sin resumen; **dos servidores sobre el mismo directorio de datos**: el que no ejecuta la rodada muestra la cancelación deshabilitada con el motivo y ve el desenlace; FECHAR quita el desenlace de la página; VER DIAGNÓSTICO abre la rodada; misión corta 16 → 41 → 66 % → Concluída → página de la rodada; proporciones con mensaje: 1366×768 50 %, 1280×720 50 %, 390×844 92 % × 67 %; mensaje y acciones siempre visibles; sin desbordamiento horizontal ni errores de JavaScript.
 - **E2E:** `run_piso3da.sh` 65+14+8+19, `run_piso3da2r.sh` 22+6+7+8, `run_piso3da2h.sh` 6+20+16+18 (+18+18 de conferencia), `run_piso3db.sh` 103+79 — todos aprobados.
 - Auditoría de la misión `ok: true`; sin diff en `ems_v2/`, runner, modelos ni persistencia.
+
+## Entrega 22 — SEEDS2 · UI-FINISH-01: navegação, catálogo compacto, prontidão do ensaio y exportaciones de la Partitura — 2026-11-13
+
+### 1. Identificación
+
+- Rama `claude/friendly-mccarthy-zrel1q` reiniciada desde `main` `c29e600` (merge del PR #27); PR contra `main` **sin merge**. Pedido del responsable: paquete `SEEDS2_OPUS_UI_FINISH_2026-11-13` (`PROMPT_PARA_OPUS.md`, seis referencias inspeccionadas, fuente de ProgE-Web v0.1.379-r1 leída solo como benchmark — nada copiado).
+- Acabado de interfaz e integración de capacidades existentes. `ems_v2/`, runner V2, modelos, motor V1.6, contratos, almacenamiento y datos persistidos **intactos**. Detalle, decisiones y matriz pedido → cambio → prueba → evidencia: `docs/seeds2/UI_FINISH_01.md`.
+
+### 2. Qué cambió (seis frentes)
+
+1. **Bancadas sin microrred**: las cinco en la barra lateral en los tres contextos (sin microrred, comisionamiento, microrred abierta), misma acción; en el celular, bloque al final del Catálogo.
+2. **Catálogo**: tarjetas plegadas por defecto con `<details>/<summary>` + CSS `:has` (hover solo con mouse; clic/toque; Enter/Espacio nativos; acciones con `display: none`, mismas claves y validaciones); sin JavaScript, sin rerun, sin consulta a la base.
+3. **Etapa 04 V2**: informe del preflight compacto (bloqueos siempre visibles con orientación solo donde la sección es inequívoca; advertencias por área; aprobadas plegadas por clase — mismos ítems) y **tarjeta «Rodada · execução V2» bajo la Folha** con el ÚNICO botón de ejecutar (mismo `op_ex_run_v2`, mismas guardas, mismo `X.submit` idempotente; entregado a la Folha por `CTA_SLOT`); «VER PROGRESSO DA RODADA» reabre el modal.
+4. **Overlay que parpadeaba**: causa raíz MEDIDA — el Streamlit marca el contenedor del componente como «stale» con `transition: opacity 1s ease-in 0.5s` en cada ciclo del fragmento; una transición de opacidad pendiente convierte el contenedor en nueva raíz del `backdrop-filter` y la página se veía nítida por algunos cuadros (nitidez 3,7 → 32,1 exactamente en esos cuadros). Corrección: el contenedor del modal queda fuera del efecto «stale».
+5. **Cada gráfico** de la Partitura exporta PNG 300 ppp (pHYs + tEXt) o SVG autocontenido, tema claro u oscuro independiente de la pantalla (estilos resueltos bajo el tema, sin CSS/variables/clases/scripts; cursor y foco fuera; cabecera, leyenda, fuentes y N/D).
+6. **PDF / ZIP / Excel de la rodada V2**: hallazgo — los generadores 2D-B **rechazaban** las rodadas V2 (contrato V1.6); el panel existente solo habría mostrado tres rechazos. Se cerró la brecha REUTILIZANDO la arquitectura: dossier consciente del motor (`REQUIRED_CONCLUDED_V2` = `registro.OBRIGATORIOS`; `require_complete(d, engine=…)` con rechazo cruzado explícito), `integracao_v2/documentos.py` sobre el mismo dossier, `figures.render`/`figures_zip`, el núcleo de `run_pdf` y el escritor de `xlsx`, y el MISMO panel `report_exports.render` (generador/rótulos opcionales) visible en la página de la rodada V2 (local y estudio archivado).
+
+### 3. Guardas
+
+Excepción nominal `tests/ems_v2/ui_finish01_guard_policy.py` (nombres, estado y lista explícita de líneas REMOVIDAS de `dossier.py`/`report_exports.py`; cualquier otra alteración vuelve a fallar — probado). Cuatro aserciones antiguas actualizadas porque el pedido cambia lo que fijaban. **C-DEPLOY-01 NO aplicada**: las dos guardias de `requirements.txt` siguen fallando como en `main`.
+
+### 4. Verificación
+
+- `tests/test_ui_finish01.py` **21 passed** + `tests/ems_v2/test_ui_finish01_guardas.py` **2 passed** (componente REAL en el navegador para la exportación de gráficos; documentos V2 con HiGHS real: ZIP con hashes y fuentes = índice de la rodada, Excel = texto del CSV grabado valor a valor y N/D vacío, PDF inicio/medio/fin, diagnóstico de rodada interrumpida, adulteración rechazada, generación sin solver, estudio archivado = rodada local).
+- **Regresión completa con solver** (sobre `70b78d3`): 2373 passed, 2 skipped, 6 failed — las 2 preexistentes de `requirements.txt` + 4 causadas por esta misión (una mención del paquete del motor en un test fuera de `tests/ems_v2`, que hacía fallar también los 2 tests de la política eólica que re-ejecutan las guardas, y el test 3D-A que fijaba el rechazo antiguo del dossier). Corregidas en `41fab35` y re-ejecutados todos los archivos afectados: **161 passed, 2 failed (solo las preexistentes)**.
+- **E2E en navegador real** — nuevo `tools/e2e/run_ui_finish.sh`: preparación 52 + exportaciones 4 (servidor SIN solver, motor y modelos saboteados: **registro de llamadas VACÍO**) + archivos 20 = **76 verificaciones**; overlay con nitidez constante en 30 cuadros (2 durante la actualización del fragmento); exactamente UNA rodada nueva. Suites anteriores (adaptadas: expandir tarjetas, «Baixar» exacto): `run_piso3da.sh` 65+14+8+19, `run_piso3da2r.sh` 22+6+7+8, `run_piso3da2h.sh` 6+20+16+18, `run_piso3db.sh` 103+79 — todas aprobadas.
+- Evidencia: `docs/seeds2/evidencia_ui_finish01/` (antes × después, GIF del parpadeo en `main` × fondo estable, archivos exportados de ejemplo).
+
+### 5. Recomendación y pendientes
+
+Sin defectos bloqueantes conocidos. Pendientes fuera del alcance: (a) decisión sobre C-DEPLOY-01; (b) los roteros E2E de los pisos 1–2D-B y de estabilización se adaptaron (`catalogo_util.js`) pero no se re-ejecutaron en esta misión; (c) Escape no pliega la tarjeta del catálogo (sin JavaScript; el propio convite pliega por clic/teclado). Apto para revisión; **sin merge** hasta autorización expresa del responsable.
