@@ -3479,3 +3479,23 @@ Ver §6 (resultado final, con comandos).
 - El informe visual requiere la Partitura abierta en el navegador (C4: ~14 s por informe).
 - Preexistente (también en `main`): `DocumentosV2Test` de `tests/test_ui_finish01.py` falla por identidad de clases
   (matplotlib/`FigureError`) si corre en el MISMO proceso después de `tests/test_piso3db_*`; solo, pasa.
+
+### 6. Verificación (código `2ac99b1`)
+
+- `tests/test_ui_resultados02.py`: Node (funciones derivadas), navegador de banco (interfaz real), C4 restaurado de la
+  instantánea (paquete con la pantalla AMPLIADA a 6 h → misión completa y mismo dibujo que la pantalla; PDF de 57 páginas;
+  evidencia intacta; rechazos de paquete ajeno/adulterado/SVG con imagen; composición sin solver ni modelos), topologías reales
+  con HiGHS (híbrida FV + eólica + batería + PEMFC + PCC, dos bancos, aislada, dos PEMFC), SVG restringido y AppTest del panel.
+- Regresión completa **con solver**: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rs` ⇒ **2443 passed, 2 skipped,
+  167 subtests passed (1650 s)**, 0 fallas (los 2 skipped son las auditorías explícitas 3D-A/3D-A2-R que piden variable o
+  ejecución manual, como antes).
+- Regresión completa **sin solver** (pyomo/highspy desinstalados, como la matriz del CI): **1908 passed, 192 skipped,
+  154 subtests passed (883 s)**, 0 fallas.
+- E2E real `tools/e2e/run_ui_resultados02.sh python <salida> <capturas>`: **17 verificaciones** en el navegador (apertura en
+  Operação, tarifa escalonada con dos inicios de período, Visão Geral sin N/D, reapertura vuelve a Operação, demanda en los
+  paneles Solar/Batería/Red, Carga líquida, pantalla ampliada, informe por el botón de la Partitura ≈ 14,3 s y por el panel
+  ≈ 14,0 s, ZIP/Excel presentes, sin errores de página/consola) + **33 verificaciones** de los PDF descargados
+  (`check_ui_resultados02.py`: secciones, fuentes, costo sellado, numeración, los dos caminos generan el mismo documento salvo
+  el instante de generación, evidencia intacta y verificada sin solver).
+- Inspección visual del PDF real (57 páginas, todas revisadas en hoja de contacto y las principales en detalle):
+  `docs/seeds2/evidencia_ui_resultados02/relatorio_C4_UI_RESULTADOS_02.pdf` y `pdf_p*.jpg`.

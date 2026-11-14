@@ -33,9 +33,11 @@
   lista de recursos do explorador) com as linhas removidas listadas. Auditoria: `python tests/ems_v2/ui_resultados02_guard_policy.py`.
 - **Testes:** `tests/test_ui_resultados02.py` (Node, navegador de bancada, C4, topologias reais com HiGHS, SVG restrito,
   AppTest) + `tests/ems_v2/test_ui_resultados02_guardas.py`; E2E `tools/e2e/run_ui_resultados02.sh <python> <saída> [capturas]`.
-- **Observado (pré-existente, não causado aqui):** rodando `tests/test_piso3db_*` seguido de `tests/test_ui_finish01.py` no
+- **Observado (pré-existente, não causado aqui):** rodando SÓ `tests/test_piso3db_*` seguido de `tests/test_ui_finish01.py` no
   MESMO processo, `DocumentosV2Test` falha por identidade de classe do matplotlib/`FigureError` (módulos recarregados por um
-  teste anterior); `tests/test_ui_finish01.py` sozinho passa — também acontecia no `main` (linha de base desta missão).
+  teste anterior); sozinho ou na suíte completa, passa — também acontecia no `main` (linha de base desta missão).
+- **Verificação (código `2ac99b1`):** regressão completa COM solver 2443 passed, 2 skipped, 0 falhas (1650 s); SEM solver 1908 passed, 192 skipped, 0 falhas; E2E
+  `run_ui_resultados02.sh` 17 + 33 verificações; PDF real do C4 (57 páginas) inspecionado. Detalhes: `PARAMIJEFE.md` Entrega 24 §6.
 - **Próximo passo:** revisão do PR pelo responsável (avaliar o PDF da evidência).
 
 ---
