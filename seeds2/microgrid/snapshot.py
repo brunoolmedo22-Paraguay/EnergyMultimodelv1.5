@@ -21,8 +21,8 @@ Garantias:
   exatamente duas entradas, manifesto validado campo a campo, SHA-256, ``integrity_check``, versão do esquema,
   identidade, ausência de lápide e de rodada em execução, contagens iguais às do manifesto e **esquema idêntico**
   ao que esta versão do SEEDS2 cria (nenhuma tabela, índice, gatilho ou visão a mais ou a menos);
-* a **restauração** é feita pelo catálogo (``MicrogridRegistry.import_snapshot``) com o mesmo protocolo recuperável
-  da criação/importação: preparação em ``.staging``, verificação e confirmação atômica.
+* a **restauração** (``restore_snapshot``) usa o protocolo recuperável EXISTENTE do catálogo
+  (``MicrogridRegistry._commit_new``, inalterado): preparação em ``.staging``, verificação e confirmação atômica.
 
 Não confundir com o backup (configuração) nem com o estudo científico (um cenário, para o Arquivo Científico).
 """
@@ -301,3 +301,49 @@ def inspect_snapshot(data: bytes) -> SnapshotInspection:
     except Exception as exc:  # noqa: BLE001 — entrada não confiável: nenhum defeito vira exceção
         rep.errors.append(f"Instantânea ilegível: {type(exc).__name__}: {str(exc)[:200]}")
     return rep
+
+
+# ============================================================================ restauração no catálogo
+def restore_snapshot(reg, data: bytes, *, note: str = "") -> str:
+    """Restaura uma instantânea COMPLETA no catálogo ``reg`` como NOVA entrada com a identidade de origem:
+    configuração, revisões, cenários, versões, previsões, rodadas e seus dados, exatamente como foram guardados.
+
+    Usa o protocolo recuperável EXISTENTE do catálogo (``MicrogridRegistry._commit_new``, sem alteração): o banco é
+    escrito no diretório de preparação (``.staging``) no lugar do banco vazio recém-criado, aberto pelo
+    ``MicrogridStore`` (migra a cópia, se for de versão anterior), conferido (identidade, contagens e esquema
+    idêntico ao desta versão) e só então confirmado sob o bloqueio do catálogo (rename + INSERT, desfeito em falha).
+    Recusa se a identidade já existir no catálogo.
+
+    A incarnação gravada na instantânea é PRESERVADA (``stamp_incarnation`` não a substitui): os cenários a
+    registram em seus documentos imutáveis e só aceitam novas versões na mesma incarnação. Por isso a restauração dos
+    exemplos é feita ao iniciar o processo (``exemplos.garantir_na_inicializacao``), quando não há sessões antigas."""
+    from .registry import RegistryError
+
+    rep = inspect_snapshot(data)
+    if not rep.ok:
+        raise RegistryError("Instantânea recusada: " + " | ".join(rep.errors))
+    uid = rep.uid
+    if reg.get(uid) is not None:
+        raise RegistryError("Esta microrrede já existe no catálogo; a instantânea não foi restaurada.")
+    m = rep.manifest
+
+    def build(store: MicrogridStore):
+        db = store.path                                           # .staging/<op>/seeds2.db (banco vazio recém-criado)
+        for suffix in ("-wal", "-shm", "-journal"):
+            Path(str(db) + suffix).unlink(missing_ok=True)
+        db.write_bytes(rep.db_bytes)
+        prepared = MicrogridStore(store.data_dir, must_exist=True, fixed_uid=uid)   # migra a CÓPIA, se necessário
+        cur = prepared.load()
+        if cur is None or cur.config["installation"]["uid"] != uid:
+            raise RegistryError("A instantânea preparada não contém a mesma microrrede; nada foi restaurado.")
+        after, before = counts(db), m["counts"]
+        if after["revisions"] < before["revisions"] or any(after[t] != before[t] for t in COUNTED_TABLES if t != "revisions"):
+            raise RegistryError("A verificação da instantânea preparada falhou (registros divergentes); nada foi restaurado.")
+        if schema(db) != reference_schema():
+            raise RegistryError("O esquema da instantânea preparada difere do que o SEEDS2 cria; nada foi restaurado.")
+        return cur
+
+    text = note or (f"Restaurada da instantânea completa de {str(m.get('created_at'))[:40]} "
+                    f"(revisão {m.get('revision')}, {str(m.get('fingerprint'))[:12]}…)")
+    reg._commit_new(uid, build, origin="import", source_fingerprint=m.get("fingerprint"), note=text)   # noqa: SLF001
+    return uid

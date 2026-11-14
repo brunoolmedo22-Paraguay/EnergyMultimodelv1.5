@@ -22,8 +22,8 @@
   (filosofia da entrega à banca; o aplicativo oficial definirá outra); (5) **exceção autorizada à regra 8** restrita a
   `seeds2/exemplos/*.seeds2snapshot.zip` de microrredes hipotéticas.
 - **Entregue:** `seeds2/microgrid/snapshot.py` (formato v1, exportação, inspeção não confiável com esquema idêntico,
-  `state_stamp`), `seeds2/microgrid/exemplos.py` (restauração idempotente ao iniciar), `registry.import_snapshot` +
-  `_confirm_staged` (confirmação extraída de `_commit_new`, mesmo comportamento), `session._registry_for` chama
+  `state_stamp`, `restore_snapshot` sobre o `MicrogridRegistry._commit_new` EXISTENTE — `registry.py` intocado),
+  `seeds2/microgrid/exemplos.py` (restauração idempotente ao iniciar), `session._registry_for` chama
   `exemplos.garantir_na_inicializacao` (uma vez por processo) e `session.exemplos_relato`, Gestor: botão
   `g_snap_<uid>` «GUARDAR COMPLETO» + `g_snapdl_<uid>` (só oferecido enquanto o estado não mudou), selo «Exemplo» e
   aviso de falhas. `seeds2/exemplos/README.md` (pasta ainda SEM instantâneas). `SEEDS2_EXEMPLOS=0` em

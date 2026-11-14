@@ -133,7 +133,7 @@ class InstantaneaTest(_Dirs):
         self.assertEqual(rep.uid, uid)
         self.assertEqual(rep.manifest["counts"]["scenario_runs"], 2)
         rb = MicrogridRegistry(self.b)
-        self.assertEqual(rb.import_snapshot(data), uid)
+        self.assertEqual(S.restore_snapshot(rb, data), uid)
         self.assertEqual(dump(ra.dir_for(uid) / DB_FILENAME), dump(rb.dir_for(uid) / DB_FILENAME))   # linha a linha
         sa, sb = ra.open(uid), rb.open(uid)
         self.assertEqual(sa.load().fingerprint, sb.load().fingerprint)
@@ -159,7 +159,7 @@ class InstantaneaTest(_Dirs):
         self.assertNotIn(LIFECYCLE_KEY, meta)
         self.assertEqual(meta[INCARNATION_KEY], ra.get(uid).incarnation)
         rb = MicrogridRegistry(self.b)
-        rb.import_snapshot(data)
+        S.restore_snapshot(rb, data)
         self.assertEqual(rb.get(uid).incarnation, ra.get(uid).incarnation)   # documentos dos cenários continuam válidos
 
     def test_exportacao_recusa_rodada_em_execucao(self):
@@ -188,7 +188,7 @@ class InstantaneaTest(_Dirs):
         data = S.export_snapshot(ra.open(uid))
         before = dump(ra.dir_for(uid) / DB_FILENAME)
         with self.assertRaisesRegex(RegistryError, "já existe"):
-            ra.import_snapshot(data)
+            S.restore_snapshot(ra, data)
         self.assertEqual(before, dump(ra.dir_for(uid) / DB_FILENAME))
         self.assertEqual(len(ra.entries()), 1)
 
@@ -211,7 +211,7 @@ class InspecaoAdversarialTest(_Dirs):
         self.assertTrue(any(trecho in e for e in rep.errors), rep.errors)
         rb = MicrogridRegistry(self.b)
         with self.assertRaises(RegistryError):
-            rb.import_snapshot(data)
+            S.restore_snapshot(rb, data)
         self.assertEqual(rb.entries(), [])                                     # catálogo intocado
         self.assertEqual(list(rb.microgrids_dir.iterdir()), [])
         self.assertEqual(list(rb.staging_dir.iterdir()), [])
@@ -381,7 +381,7 @@ class GestorTest(_Dirs):
         rep = S.inspect_snapshot(data)
         self.assertTrue(rep.ok, rep.errors)
         rb = MicrogridRegistry(self.b)
-        rb.import_snapshot(data)
+        S.restore_snapshot(rb, data)
         self.assertEqual(dump(reg.dir_for(uid) / DB_FILENAME), dump(rb.dir_for(uid) / DB_FILENAME))
         # depois de uma nova versão do cenário, a instantânea preparada deixa de ser oferecida (estado mudou)
         editar_cenario(reg.open(uid), "nova versão")

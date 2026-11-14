@@ -83,7 +83,7 @@ def garantir(reg, pasta: Path | None = None) -> Relato:
             rel.presentes.append(f"{path.name} ({uid})")
             continue
         try:
-            reg.import_snapshot(data, note=f"{NOTE_PREFIX} de seeds2/exemplos/{path.name} "
+            S.restore_snapshot(reg, data, note=f"{NOTE_PREFIX} de seeds2/exemplos/{path.name} "
                                            f"(instantânea de {str(rep.manifest.get('created_at'))[:40]}, "
                                            f"revisão {rep.manifest.get('revision')}).")
             rel.restaurados.append(f"{path.name} ({uid})")

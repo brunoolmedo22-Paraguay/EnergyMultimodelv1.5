@@ -357,11 +357,13 @@ versão do esquema ≤ a deste software e igual à declarada; identidade, revis�
 manifesto; sem lápide; sem rodada em execução; contagens iguais; **esquema idêntico** ao que esta versão cria (nenhuma
 tabela, índice, gatilho ou visão a mais ou a menos — um banco com gatilho injetado é recusado).
 
-**Restauração** (`MicrogridRegistry.import_snapshot`): mesmo protocolo recuperável da importação — banco escrito em
-`.staging`, aberto pelo `MicrogridStore` (migra a cópia se for de versão anterior, com `.bak-v<N>`), conferido
-(identidade, contagens, esquema) e confirmado por `_confirm_staged` (a mesma confirmação de criar/importar, extraída
-de `_commit_new` sem mudança de comportamento: rename + `INSERT` sob L1, desfeito em caso de falha). Identidade já
-presente no catálogo ⇒ recusa, sem tocar em nada. Origem no catálogo: `import`, com nota de procedência.
+**Restauração** (`snapshot.restore_snapshot`): usa o protocolo recuperável EXISTENTE do catálogo
+(`MicrogridRegistry._commit_new`, **inalterado** — `registry.py` não foi modificado): o banco da instantânea é escrito no
+diretório de preparação (`.staging`) no lugar do banco vazio recém-criado, aberto pelo `MicrogridStore` (migra a cópia se
+for de versão anterior, com `.bak-v<N>`), conferido (identidade, contagens, esquema) e confirmado pelo `_commit_new`
+(rename + `INSERT` sob L1, desfeito em caso de falha). A incarnação da instantânea é preservada (`stamp_incarnation` usa
+`INSERT OR IGNORE`). Identidade já presente no catálogo ⇒ recusa, sem tocar em nada. Origem no catálogo: `import`, com
+nota de procedência.
 
 **Exemplos persistentes** (`seeds2/microgrid/exemplos.py`; pasta `seeds2/exemplos/`): ao abrir o catálogo (uma vez
 por processo, em `seeds2/ui/session._registry_for`), toda instantânea da pasta cuja microrrede não esteja no catálogo é

@@ -415,53 +415,44 @@ class MicrogridRegistry:
         staging = self._new_staging()
         try:
             result = build(MicrogridStore(staging, fixed_uid=uid))
-            self._confirm_staged(uid, staging, origin=origin, source_uid=source_uid,
-                                 source_fingerprint=source_fingerprint, note=note, on_commit=on_commit)
+            prepared = MicrogridStore(staging, must_exist=True, fixed_uid=uid)
+            check = prepared.load()
+            if check is None or check.config["installation"]["uid"] != uid:
+                raise RegistryError("Preparação da microrrede inconsistente; nada foi registrado.")
+            incarnation = prepared.stamp_incarnation(uuid.uuid4().hex)
+            target = self.dir_for(uid)
+            con = self._connect()
+            try:
+                con.execute("BEGIN IMMEDIATE")
+                if con.execute("SELECT 1 FROM microgrids WHERE uid = ?", (uid,)).fetchone():
+                    raise RegistryError("Já existe uma microrrede com esta identidade no catálogo.")
+                if target.exists():                       # órfão de operação interrompida (sem linha no catálogo)
+                    self._move_to_trash(target, quarantine=True)
+                os.rename(staging, target)
+                try:
+                    con.execute("INSERT INTO microgrids(uid, state, origin, created_at, source_uid, source_fingerprint, note, "
+                                "incarnation) VALUES (?,?,?,?,?,?,?,?)", (uid, "ready", origin, C.utc_now(), source_uid,
+                                                                          source_fingerprint, note[:500], incarnation))
+                    if on_commit is not None:
+                        on_commit(con)
+                    con.execute("COMMIT")
+                except BaseException:
+                    if con.in_transaction:
+                        con.execute("ROLLBACK")
+                    if target.exists() and not staging.exists():
+                        os.rename(target, staging)        # desfaz a confirmação no sistema de arquivos
+                    raise
+            except BaseException:
+                if con.in_transaction:
+                    con.execute("ROLLBACK")
+                raise
+            finally:
+                con.close()
             return result
         finally:
             if staging.exists():
                 shutil.rmtree(staging, ignore_errors=True)
             self._purge_trash()
-
-    def _confirm_staged(self, uid: str, staging: Path, *, origin: str, source_uid: str | None = None,
-                        source_fingerprint: str | None = None, note: str = "",
-                        on_commit: Callable[[sqlite3.Connection], None] | None = None) -> None:
-        """Confirma uma microrrede JÁ preparada em ``staging``: verificação, incarnação, rename + INSERT sob o
-        bloqueio do catálogo (L1). Falha antes do COMMIT → catálogo inalterado e rename desfeito. A limpeza do
-        ``staging`` é responsabilidade de quem o criou."""
-        prepared = MicrogridStore(staging, must_exist=True, fixed_uid=uid)
-        check = prepared.load()
-        if check is None or check.config["installation"]["uid"] != uid:
-            raise RegistryError("Preparação da microrrede inconsistente; nada foi registrado.")
-        incarnation = prepared.stamp_incarnation(uuid.uuid4().hex)
-        target = self.dir_for(uid)
-        con = self._connect()
-        try:
-            con.execute("BEGIN IMMEDIATE")
-            if con.execute("SELECT 1 FROM microgrids WHERE uid = ?", (uid,)).fetchone():
-                raise RegistryError("Já existe uma microrrede com esta identidade no catálogo.")
-            if target.exists():                       # órfão de operação interrompida (sem linha no catálogo)
-                self._move_to_trash(target, quarantine=True)
-            os.rename(staging, target)
-            try:
-                con.execute("INSERT INTO microgrids(uid, state, origin, created_at, source_uid, source_fingerprint, note, "
-                            "incarnation) VALUES (?,?,?,?,?,?,?,?)", (uid, "ready", origin, C.utc_now(), source_uid,
-                                                                      source_fingerprint, note[:500], incarnation))
-                if on_commit is not None:
-                    on_commit(con)
-                con.execute("COMMIT")
-            except BaseException:
-                if con.in_transaction:
-                    con.execute("ROLLBACK")
-                if target.exists() and not staging.exists():
-                    os.rename(target, staging)        # desfaz a confirmação no sistema de arquivos
-                raise
-        except BaseException:
-            if con.in_transaction:
-                con.execute("ROLLBACK")
-            raise
-        finally:
-            con.close()
 
     # ------------------------------------------------------------ criar
     def create(self, config: dict, *, note: str = "Comissionamento: identificação e localização",
@@ -517,49 +508,6 @@ class MicrogridRegistry:
         if rep.config["installation"]["uid"] != uid:
             raise RegistryError("O backup pertence a outra microrrede; importe-o pelo Gestor.")
         return store.restore_backup(data, expected_revision, confirm=True)
-
-    # ------------------------------------------------------------ instantânea completa (exemplos persistentes)
-    def import_snapshot(self, data: bytes, *, note: str = "") -> str:
-        """Restaura uma instantânea COMPLETA (``.seeds2snapshot.zip``) como NOVA entrada com a identidade de origem:
-        configuração, revisões, cenários, versões, previsões, rodadas e seus dados, exatamente como foram guardados.
-
-        Mesmo protocolo recuperável da importação: a instantânea é verificada (``snapshot.inspect_snapshot``), o banco
-        é preparado e migrado em ``.staging``, conferido (identidade, contagens e esquema idêntico ao desta versão)
-        e só então confirmado sob o bloqueio do catálogo. Recusa se a identidade já existir no catálogo.
-
-        A incarnação gravada na instantânea é PRESERVADA (``stamp_incarnation`` não a substitui): os cenários a
-        registram em seus documentos imutáveis e só aceitam novas versões na mesma incarnação. Por isso a restauração
-        é feita ao iniciar o processo (``exemplos.garantir_na_inicializacao``), quando não há sessões antigas."""
-        from . import snapshot as S
-
-        rep = S.inspect_snapshot(data)
-        if not rep.ok:
-            raise RegistryError("Instantânea recusada: " + " | ".join(rep.errors))
-        uid = _check_uid(rep.uid)
-        if self.get(uid) is not None:
-            raise RegistryError("Esta microrrede já existe no catálogo; a instantânea não foi restaurada.")
-        m = rep.manifest
-        staging = self._new_staging()
-        try:
-            (staging / DB_FILENAME).write_bytes(rep.db_bytes)
-            store = MicrogridStore(staging, must_exist=True, fixed_uid=uid)      # migra a CÓPIA, se for de versão anterior
-            cur = store.load()
-            if cur is None or cur.config["installation"]["uid"] != uid:
-                raise RegistryError("A instantânea preparada não contém a mesma microrrede; nada foi restaurado.")
-            after = S.counts(staging / DB_FILENAME)
-            before = m["counts"]
-            if after["revisions"] < before["revisions"] or any(after[t] != before[t] for t in S.COUNTED_TABLES if t != "revisions"):
-                raise RegistryError("A verificação da instantânea preparada falhou (registros divergentes); nada foi restaurado.")
-            if S.schema(staging / DB_FILENAME) != S.reference_schema():
-                raise RegistryError("O esquema da instantânea preparada difere do que o SEEDS2 cria; nada foi restaurado.")
-            text = note or (f"Restaurada da instantânea completa de {str(m.get('created_at'))[:40]} "
-                            f"(revisão {m.get('revision')}, {str(m.get('fingerprint'))[:12]}…)")
-            self._confirm_staged(uid, staging, origin="import", source_fingerprint=m.get("fingerprint"), note=text)
-            return uid
-        finally:
-            if staging.exists():
-                shutil.rmtree(staging, ignore_errors=True)
-            self._purge_trash()
 
     # ------------------------------------------------------------ excluir
     def delete(self, uid: str, *, expected_incarnation: str | None = None,
