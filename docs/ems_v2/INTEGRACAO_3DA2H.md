@@ -316,6 +316,34 @@ Evidência: `docs/ems_v2/evidencia_3da2h/verificacao_massas_eventos.{json,log}`;
 - transitórios incompatíveis com Δ e T_amb (análise a priori): p. ex. partida fria, ou Δ ≤ 15 min com partida quente.
   Com `transicoes_bloqueadas` só as rampas se aplicam.
 
+**§5c. B04-C5-01 — diagnóstico da admissibilidade dinâmica (caso C5 EMB-H2-120; P1 autorizada em 14/11/2026).** O
+bloqueio `pemfc_transitorio_incompativel` NÃO é o certificado B04: a curva q(P) é certificada antes (B04, verificação
+separada); a admissibilidade dinâmica a priori é a coerência entre a contabilidade INSTANTÂNEA do MILP e o modelo dinâmico.
+Com `transicoes_bloqueadas` (unidade ligada em toda a missão) só as rampas P_mín ↔ P_máx em operação contínua são
+avaliadas — a partida não é. Na configuração nominal (P_mín 10 kW, P_máx 50 kW, T_amb 25 °C), a descida 50 → 10 kW a
+3,5 kW/s dura ≈ 11 s e o modelo dinâmico consome **0,004346 kg** de H₂ e entrega **0,05806 kWh** a mais do que q̂(10)·Δ e
+10·Δ (H₂ adicional coerente com a energia adicional: 0,0749 kg/kWh, entre os consumos específicos de regime em 10 e 50 kW);
+a subida 10 → 50 kW a 2 kW/s fica 0,1056 kWh e 0,00915 kg abaixo. São desvios FIXOS por evento, enquanto a parcela absoluta
+das tolerâncias cresce com Δ (0,02 kg/h · Δ; 0,5 kW · Δ): a descida (H₂) é o critério dominante e exige **Δ ≥ 13,04 min**.
+Malha de 1 kW (3 278 pares por Δ, integração própria): violações em Δ = 5 min (293) e 10 min (29); nenhuma em 15 e 20 min.
+O passo interno de 1 s do modelo SUBESTIMA o transitório contínuo (0,004785 kg): o bloqueio não é artefato numérico.
+
+Desde a P1 a mensagem (somente TEXTO; veredito, física, tolerâncias e abstrações inalterados — `preflight.
+mensagem_transitorio_pemfc`/`mensagem_dinamica_compativel_pemfc`): separa B04 × admissibilidade dinâmica; cita a partida
+só quando ela é avaliada; dá o pior caso com a razão desvio/tolerância; explica o desvio fixo por evento (C-3DA2H-12,
+condição 7); diz se o degrau avaliado é alcançável com a rampa declarada (R·Δ); e lista os Δ que dividem a missão
+(2 ≤ K_M ≤ limite) em que a MESMA análise não encontra violação (`preflight.deltas_admissiveis_pemfc`), além de
+`transicoes_bloqueadas` (quando a abstração é instantânea), T_amb acima do limiar de partida fria (só se for a condição
+real) e a unidade indisponível. A aprovação com `transicoes_bloqueadas` diz que só as rampas foram avaliadas.
+
+**P2 — limitação DOCUMENTADA, não implementada (decisão do responsável).** A análise a priori avalia sempre o degrau
+P_mín ↔ P_máx inteiro: (i) ignora a rampa declarada — com R·Δ < P_máx − P_mín o MILP nunca comanda esse degrau num único
+intervalo; (ii) ignora o estado inicial — com todas as unidades DESLIGADAS e `transicoes_bloqueadas` nenhuma rampa é
+alcançável. Nos dois casos a análise é CONSERVADORA (pode bloquear o que nunca ocorre) e a mensagem o diz. Torná-la
+dependente da alcançabilidade (degrau máximo min(R·Δ, P_máx − P_mín), pior par por busca no domínio, estado inicial)
+AFROUXARIA bloqueios em outros cenários: exige decisão científica explícita. A verificação a posteriori das consignas
+aplicadas continuaria a marcar qualquer incoerência real. Testes: `tests/test_b04_c5_01.py`.
+
 **Nada é inventado.** P_mín, T_on/T_off, custos, preço, estados iniciais e condições são DECLARADOS. A rampa única do
 inventário vale para subida E descida (interpretação registrada na procedência).
 
@@ -332,7 +360,7 @@ inventário vale para subida E descida (interpretação registrada na procedênc
 | `pemfc_perfil_nao_suportado` | perfil de modelo diferente do suportado |
 | `pemfc_pmin_abaixo_do_idle` | P_mín declarado < IDLE do modelo dinâmico (auditoria PR #23, D) |
 | `pemfc_rampa_acima_do_modelo_dinamico` | rampa declarada > capacidade do modelo dinâmico nos dois sentidos (D) |
-| `pemfc_transitorio_incompativel` | partida/parada/rampa a priori fora das tolerâncias no Δ e na T_amb declarados (D) |
+| `pemfc_transitorio_incompativel` | partida/parada/rampa a priori fora das tolerâncias no Δ e na T_amb declarados (D); NÃO é o B04 — mensagem contextual com os Δ admissíveis (B04-C5-01, §5c) |
 
 **Outras regras:**
 

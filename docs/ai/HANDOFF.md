@@ -5,10 +5,37 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `ccr-3d9d6a3e-67m47p` (a partir de `main` `e765028`, merge do PR #32) |
-| **PR** | «UI-RESULTADOS-02» — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **UI-RESULTADOS-02** — tarifa escalonada, demanda nas fontes, aba Carga líquida, lente Visão Geral e relatório PDF visual que reproduz a Partitura. |
+| **Branch** | `ccr-5023dbcf-6x5amv` (a partir de `main` `8dc5f6b5c7a25e7ce981c29efbeb15d1154d1509`, UI-RESULTADOS-02) |
+| **PR** | ainda não aberto — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **B04-C5-01 (P1)** — diagnóstico contextual da admissibilidade dinâmica da PEMFC (caso C5 EMB-H2-120). |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## B04-C5-01 — admissibilidade dinâmica da PEMFC × certificado B04 (caso C5; P1 autorizada em 14/11/2026)
+
+- **Diagnóstico (Fase A):** o bloqueio do C5 (Δ = 5 e 10 min, `transicoes_bloqueadas`, PEMFC ligada a 30 kW) é
+  `pemfc_transitorio_incompativel` (admissibilidade DINÂMICA a priori), NÃO o certificado B04 (aprovado). Incompatibilidade
+  LEGÍTIMA e já documentada (C-3DA2H-12, condição 7): a descida 50 → 10 kW a 3,5 kW/s gasta 0,004346 kg de H₂ (e entrega
+  0,05806 kWh) a mais do que a contabilidade instantânea do MILP — desvio fixo por evento; a tolerância absoluta
+  (0,02 kg/h · Δ) só o admite com Δ ≥ 13,04 min. Física, B04, MILP (R·Δ = 120 kW/min · Δ) e interface modelo × MILP sem
+  defeito. Malha densa de 1 kW: violações só em Δ = 5/10 min; Δ = 15/20 min admissíveis e missão real coerente. Detalhes:
+  `docs/ems_v2/INTEGRACAO_3DA2H.md` §5c; relatório `PARAMIJEFE.md` Entrega 25.
+- **P1 (implementada):** só o TEXTO do preflight (`integracao_v2/preflight.py`: `mensagem_transitorio_pemfc`,
+  `mensagem_dinamica_compativel_pemfc`, `deltas_admissiveis_pemfc`) — distingue B04 × admissibilidade dinâmica, cita a
+  partida só quando avaliada, explica o desvio fixo por evento, diz se o degrau é alcançável com a rampa declarada e lista os
+  Δ admissíveis pela MESMA análise. Veredito = `pemfc_dinamica.admissibilidade` (inalterada); nenhuma tolerância,
+  abstração, critério ou número mudou; nenhuma exceção para o C5.
+- **P2 (só documentada; NÃO implementar sem decisão):** a análise ignora R·Δ e o estado inicial (conservadora); a mensagem
+  o declara (§5c).
+- **Recomendação para o C5:** Δ = 15 min, N = 4 (ou 2 para comparar com os ensaios A/B), m = 1, H_L = 8; demanda com passo
+  = 15 min (o motor não agrega); clima de 5 ou 15 min (o de 10 min não divide 15); PEMFC sem alteração. Δ = 20 min como
+  sensibilidade.
+- **Guardas:** exceção nominal `tests/ems_v2/b04c501_guard_policy.py` (encadeada no fim da do UI-RESULTADOS-02; ganchos em
+  `ui_resultados02_guard_policy.py` — filtro e auditoria — e `piso3db_guard_policy.py` — fim da cadeia `referencia_autorizada`
+  da guarda 3A). Auditoria: `python tests/ems_v2/b04c501_guard_policy.py`.
+- **Testes:** `tests/test_b04_c5_01.py` (oráculo independente das rampas, matriz Δ × abstração, partida quente/fria,
+  ligada/desligada, mensagens, conversão R·Δ, missões reais HiGHS em Δ = 15/20/40) + `tests/ems_v2/test_b04c501_guardas.py`.
+- **Verificação:** ver o fim desta seção (preenchido no checkpoint final).
+- **Próximo passo:** revisão pelo responsável; abrir PR e fazer merge só com autorização.
 
 ## UI-RESULTADOS-02 (pedido do responsável, 14/11/2026)
 

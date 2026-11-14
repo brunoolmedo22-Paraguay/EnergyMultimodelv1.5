@@ -44,7 +44,8 @@ REFERENCIAM_O_MOTOR: frozenset = frozenset()
 
 
 def referencia_autorizada(rel: str) -> bool:
-    return rel in REFERENCIAM_O_MOTOR
+    from b04c501_guard_policy import referencia_autorizada as autorizada_b04c501   # exceção nominal B04-C5-01 (P1)
+    return rel in REFERENCIAM_O_MOTOR or autorizada_b04c501(rel)
 
 
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:

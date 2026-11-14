@@ -803,16 +803,10 @@ def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
         mev = DY.massas_eventos(cond, t_amb, float(decl["p_min_kW"]), float(curva.p_max_kW))
         delta_s = float(bloco["malha"]["delta_min"]) * 60.0
         adm = DY.admissibilidade(mev["analise"], curva, delta_s, decl["abstracao"])
-        if adm:
-            pior = max(adm, key=lambda v: (v["desvio"] / v["tolerancia"]) if v["tolerancia"] else math.inf)
-            casos = sorted({v["caso"] for v in adm})
-            pf.add(ERROR, "pemfc", f"{x['name']}: a abstração '{decl['abstracao']}' NÃO é compatível com o modelo dinâmico "
-                   f"em Δ = {delta_s / 60:g} min e T_amb = {t_amb:g} °C (partida {'FRIA' if par['partida_fria'] else 'quente'}"
-                   f" de {par['partida_s']:g} s): {len(adm)} violação(ões) a priori em {', '.join(casos)}; pior caso "
-                   f"{pior['caso']} em P = {pior['p_kW']} kW: desvio {pior['desvio']:.4g} > tolerância "
-                   f"{pior['tolerancia']:.4g} ({pior['grandeza']}). Alternativas: Δ maior, transições bloqueadas, "
-                   "condições ambientes que não impliquem partida fria, ou a unidade indisponível no cenário.", x["id"],
-                   code="pemfc_transitorio_incompativel")
+        if adm:                                    # B04-C5-01 (P1): só o TEXTO é contextual; o veredito é ``adm``
+            pf.add(ERROR, "pemfc", mensagem_transitorio_pemfc(
+                x["name"], decl, par, mev["analise"], curva, delta_s, adm,
+                (stored.document.get("mission") or {}).get("duration_min")), x["id"], code="pemfc_transitorio_incompativel")
             continue
         pm = Procedencia("referencia", "h2_pemfc · Equivalent65kWHorizonDynamicModel (modelo dinâmico APROXIMADO)",
                          f"massas ADICIONAIS por evento · curva {curva.impressao[:12]}", sha256=curva.impressao,
@@ -823,13 +817,7 @@ def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
                         "curva_pwl": K.CurvaPWL(tuple(curva.vertices), "real_certificada_b04", proc),
                         "temperatura_ambiente_C": decl["temperatura_ambiente_C"], "declaracao": decl,
                         "admissibilidade": {"delta_s": delta_s, "abstracao": decl["abstracao"], "violacoes": adm}}
-        an = mev["analise"]
-        pf.add(OK, "pemfc", f"{x['name']}: restrições do modelo dinâmico compatíveis — P_min {decl['p_min_kW']:g} ≥ IDLE "
-               f"{par['idle_kW']:g} kW; rampa {decl['rampa_kW_min']:g} ≤ {par['rampa_max_kW_min']:g} kW/min; transitórios "
-               f"de partida/parada/rampa no domínio dentro das tolerâncias em Δ = {delta_s / 60:g} min (pior déficit de "
-               f"energia numa partida {min(v['delta_E_partida_kWh'] for v in an['pontos']):.3f} kWh). Massas ADICIONAIS "
-               f"por evento: partida {mev['m_partida_kg']:.4g} kg, parada {mev['m_parada_kg']:.4g} kg (superestimação "
-               f"máx. {mev['superestimacao_max_partida_kg']:.3g} / {mev['superestimacao_max_parada_kg']:.3g} kg).", x["id"])
+        pf.add(OK, "pemfc", mensagem_dinamica_compativel_pemfc(x["name"], decl, par, mev, delta_s), x["id"])
         if decl["abstracao"] == "instantanea_unidade_quente":
             pf.add(WARNING, "pemfc", f"{x['name']}: abstração INSTANTÂNEA declarada (D05): o MILP liga/desliga dentro do "
                    "intervalo; admissível A PRIORI pelo modelo dinâmico nas tolerâncias declaradas e conferida a posteriori "
@@ -837,6 +825,117 @@ def _pemfc(pf: PreflightV2, bloco: dict, inv, stored) -> dict | None:
     if pf.count(ERROR):
         return None
     return out
+
+
+# ---- B04-C5-01 (P1): diagnóstico CONTEXTUAL da admissibilidade dinâmica a priori da PEMFC. Só TEXTO: o veredito continua
+# sendo exclusivamente ``pemfc_dinamica.admissibilidade`` (nenhuma física, tolerância, abstração, critério ou número muda).
+ABSTRACAO_SEM_TRANSICOES = "transicoes_bloqueadas"
+MAX_DELTAS_LISTADOS = 6
+
+
+def deltas_admissiveis_pemfc(analise: dict, curva, abstracao: str, duracao_min) -> list[int]:
+    """Δ [min] inteiros que dividem a duração da missão (2 <= K_M <= limite do planejador) em que a MESMA análise a priori
+    (``pemfc_dinamica.admissibilidade``, mesmas tolerâncias, mesma abstração) não encontra violação. Só lê a análise já
+    calculada (aritmética sobre ela; nenhum modelo é reexecutado). Duração ausente ou inválida ⇒ lista vazia."""
+    from . import pemfc_dinamica as DY
+    try:
+        dur = int(duracao_min)
+    except (TypeError, ValueError):
+        return []
+    if dur <= 0:
+        return []
+    # K_M >= 2: a malha exige H_L > N >= 1 e H_L <= K_M (``_tempo``); K_M <= limite do planejador (B3C4-05)
+    return [d for d in range(1, dur + 1) if dur % d == 0 and 2 <= dur // d <= E.LIMITES["intervalos_missao"]
+            and not DY.admissibilidade(analise, curva, d * 60.0, abstracao)]
+
+
+def _lista_deltas(ds: list[int]) -> str:
+    xs = [f"{d:g}" for d in ds[:MAX_DELTAS_LISTADOS]]
+    txt = xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " e " + xs[-1]
+    return txt + " min" + (" (e divisores maiores)" if len(ds) > MAX_DELTAS_LISTADOS else "")
+
+
+def mensagem_transitorio_pemfc(nome: str, decl: dict, par: dict, analise: dict, curva, delta_s: float, adm: list[dict],
+                               duracao_min) -> str:
+    """Texto do bloqueio ``pemfc_transitorio_incompativel``: distingue o certificado B04 (curva q(P), já aprovado quando
+    esta verificação roda) da admissibilidade DINÂMICA a priori; descreve só o que a abstração DECLARADA avalia; quantifica o
+    pior caso; e lista os Δ admissíveis pela MESMA análise. Não decide nada: ``adm`` vem de ``admissibilidade``."""
+    abst = decl["abstracao"]
+    dmin = delta_s / 60.0
+    p_min, p_max = float(decl["p_min_kW"]), float(curva.p_max_kW)
+    t_amb = float(decl["temperatura_ambiente_C"])
+    pior = max(adm, key=lambda v: (v["desvio"] / v["tolerancia"]) if v["tolerancia"] else math.inf)
+    casos = sorted({v["caso"] for v in adm})
+    partes = [f"{nome}: ADMISSIBILIDADE DINÂMICA a priori NÃO atendida — a abstração '{abst}' NÃO é compatível com o modelo "
+              f"dinâmico em Δ = {dmin:g} min e T_amb = {t_amb:g} °C. Não é o certificado B04: a curva q(P) já foi certificada "
+              "(B04, verificação SEPARADA); este bloqueio é a coerência entre a contabilidade INSTANTÂNEA do MILP (energia e "
+              "H₂ por intervalo) e o modelo dinâmico, nas tolerâncias declaradas."]
+    if abst == ABSTRACAO_SEM_TRANSICOES:
+        partes.append(f"Com '{abst}' a unidade mantém o estado inicial em toda a missão (nenhuma partida ou parada): só são "
+                      f"avaliadas as rampas em operação contínua P_mín ↔ P_máx ({p_min:g} ↔ {p_max:.4g} kW); a partida NÃO é "
+                      "avaliada.")
+    else:
+        partes.append(f"Com '{abst}' são avaliadas a partida ({'FRIA' if par['partida_fria'] else 'quente'} de "
+                      f"{par['partida_s']:g} s), a parada ({par['parada_s']:g} s) e as rampas em operação contínua P_mín ↔ "
+                      f"P_máx ({p_min:g} ↔ {p_max:.4g} kW).")
+    if pior["p_kW"] is None:
+        partes.append(f"{len(adm)} violação(ões) a priori: {pior.get('texto', pior['caso'])}")
+    else:
+        partes.append(f"{len(adm)} violação(ões) a priori em {', '.join(casos)}; pior caso {pior['caso']} em P = "
+                      f"{pior['p_kW']:g} kW: desvio {pior['desvio']:.4g} > tolerância {pior['tolerancia']:.4g} "
+                      f"({pior['grandeza']}; razão {pior['desvio'] / pior['tolerancia']:.2f}).")
+    if "rampa" in casos:
+        r = float(decl["rampa_kW_min"]) * dmin
+        partes.append(f"O desvio de uma rampa é FIXO por evento (o modelo dinâmico sobe a {par['rampa_subida_kW_s']:g} kW/s e "
+                      f"desce a {par['rampa_descida_kW_s']:g} kW/s; o MILP muda a potência na fronteira do intervalo), enquanto "
+                      "a parcela absoluta da tolerância cresce com Δ: o resíduo das rampas aceito em C-3DA2H-12 não se estende "
+                      "a outro Δ sem esta verificação (condição 7).")
+        desligadas = [u for u in (decl.get("unidades") or []) if u.get("estado") == "desligada"]
+        if abst == ABSTRACAO_SEM_TRANSICOES and desligadas and len(desligadas) == len(decl.get("unidades") or []):
+            partes.append(f"Todas as unidades começam DESLIGADAS e '{abst}' as mantém desligadas: nenhuma rampa é alcançável "
+                          "na missão; a análise a priori não depende do estado inicial e é CONSERVADORA aqui (limitação "
+                          "registrada — P2 de B04-C5-01, não implementada).")
+        elif r >= p_max - p_min:
+            partes.append(f"O degrau avaliado é ALCANÇÁVEL num único intervalo com a rampa declarada (R·Δ = {r:g} kW ≥ "
+                          f"{p_max - p_min:.4g} kW).")
+        else:
+            partes.append(f"A rampa declarada limita o degrau a R·Δ = {r:g} kW < {p_max - p_min:.4g} kW: a análise a priori "
+                          "avalia o degrau P_mín ↔ P_máx inteiro e é CONSERVADORA aqui (limitação registrada — P2 de "
+                          "B04-C5-01, não implementada).")
+    alt = []
+    oks = deltas_admissiveis_pemfc(analise, curva, abst, duracao_min)
+    if oks:
+        alt.append(f"declarar Δ = {_lista_deltas(oks)} — divisores da missão ({int(duracao_min)} min) em que a MESMA "
+                   "análise a priori não encontra violação com esta abstração (a série de demanda precisa de passo = Δ e a "
+                   "climática de passo que divida Δ; N, m e H_L são redeclarados)")
+    elif duracao_min is not None:
+        alt.append(f"nenhum Δ que divida a missão ({duracao_min} min) é admissível com esta abstração")
+    if abst != ABSTRACAO_SEM_TRANSICOES:
+        oks_b = deltas_admissiveis_pemfc(analise, curva, ABSTRACAO_SEM_TRANSICOES, duracao_min)
+        alt.append(f"'{ABSTRACAO_SEM_TRANSICOES}' (estado inicial mantido em toda a missão)"
+                   + (f", admissível em Δ = {_lista_deltas(oks_b)}" if oks_b else ""))
+        if par["partida_fria"]:
+            alt.append(f"T_amb acima do limiar de partida fria ({par['limiar_partida_fria_C']:g} °C), somente se for a "
+                       "condição real do ensaio")
+    alt.append("a unidade indisponível no cenário")
+    partes.append("Alternativas (sem alterar a física, as tolerâncias nem os parâmetros declarados): " + "; ".join(alt) + ".")
+    return " ".join(partes)
+
+
+def mensagem_dinamica_compativel_pemfc(nome: str, decl: dict, par: dict, mev: dict, delta_s: float) -> str:
+    """Texto da admissibilidade dinâmica ATENDIDA, conforme a abstração declarada (o B04 da curva é verificação separada)."""
+    an = mev["analise"]
+    base = (f"{nome}: restrições do modelo dinâmico compatíveis — P_min {decl['p_min_kW']:g} ≥ IDLE {par['idle_kW']:g} kW; "
+            f"rampa {decl['rampa_kW_min']:g} ≤ {par['rampa_max_kW_min']:g} kW/min; ")
+    if decl["abstracao"] == ABSTRACAO_SEM_TRANSICOES:
+        return base + (f"admissibilidade DINÂMICA a priori atendida em Δ = {delta_s / 60:g} min: rampas P_mín ↔ P_máx em "
+                       f"operação contínua dentro das tolerâncias (com '{ABSTRACAO_SEM_TRANSICOES}' não há partida nem parada "
+                       "na missão; as massas por evento não têm efeito). Verificação separada do certificado B04 da curva.")
+    return base + (f"transitórios de partida/parada/rampa no domínio dentro das tolerâncias em Δ = {delta_s / 60:g} min (pior "
+                   f"déficit de energia numa partida {min(v['delta_E_partida_kWh'] for v in an['pontos']):.3f} kWh). Massas "
+                   f"ADICIONAIS por evento: partida {mev['m_partida_kg']:.4g} kg, parada {mev['m_parada_kg']:.4g} kg "
+                   f"(superestimação máx. {mev['superestimacao_max_partida_kg']:.3g} / "
+                   f"{mev['superestimacao_max_parada_kg']:.3g} kg).")
 
 
 def _com_disponibilidade_geradores(uids, tabela, verdade, prev_nucleo, real_nucleo, t: MT.Tempo, stored, bloco):
