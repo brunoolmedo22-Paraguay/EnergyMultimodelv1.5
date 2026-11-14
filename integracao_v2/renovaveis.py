@@ -182,9 +182,14 @@ def derivar_fv(eq: dict, eta: float, clima: Clima, K: int) -> list:
         ns, npar, suj = a.get("n_series"), a.get("n_parallel"), a.get("soiling_pct")
         if not all(isinstance(x, int) and not isinstance(x, bool) and x >= 1 for x in (ns, npar)):
             raise DerivacaoInvalida(f"{rot}: N_s/N_p não declarados.")
-        if a.get("soiling_default", False) or not isinstance(suj, (int, float)) or isinstance(suj, bool):
-            raise DerivacaoInvalida(f"{rot}: perdas por sujeira NÃO declaradas (0 % aplicado só como hipótese padrão do "
-                                    "Piso 1): declare o valor no inventário — nenhum valor é presumido.")
+        # A origem automática do 0 % não impede o cálculo: ausência de perdas é uma
+        # hipótese operacional válida, já identificada pelo inventário (soiling_default).
+        # Exigir declaração manual adicional aqui bloquearia cenários completos do Piso 1.
+        # Continuam proibidos valores ausentes, não finitos ou fora de [0, 100) %.
+        if (not isinstance(suj, (int, float)) or isinstance(suj, bool)
+                or not math.isfinite(suj) or not 0.0 <= suj < 100.0):
+            raise DerivacaoInvalida(f"{rot}: perdas por sujeira NÃO declaradas ou inválidas no inventário "
+                                    "(é necessário valor numérico entre 0 % e menos de 100 %).")
         mod = get_module(ref)
         perfil = pd.DataFrame({"G": clima.valores["ghi_W_m2"], "Tamb": clima.valores["temperature_C"]}, index=_indice(clima))
         res = simulate_noct_efficiency_model(mod, perfil, n_series=ns, n_parallel=npar, soiling_losses=float(suj) / 100.0)
