@@ -19,7 +19,7 @@ contrato: hoje só aparecem em inventários sintéticos de ensaio; numa microrre
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from ..diagnostics import Constatacao, ContratoInvalido, aviso, erro, pendente
 from ..provenance import Procedencia, Transformacao
@@ -93,7 +93,7 @@ REQUISITOS: tuple[RequisitoParametro, ...] = (
     _R("Ns", ("pv_arranjo",), "Módulos em série", "contagem", None, "obrigatorio", ("M03-v1.1",), ("n_series",)),
     _R("Np", ("pv_arranjo",), "Strings em paralelo", "contagem", None, "obrigatorio", ("M03-v1.1",), ("n_parallel",)),
     _R("perdas_sujeira", ("pv_arranjo",), "Perdas por sujeira (fração)", "fisico", "1", "obrigatorio", ("M03-v1.1",),
-       ("soiling_pct",), nota="0 % aplicado como hipótese PADRÃO (não declarada) é tratado como sugerido."),
+       ("soiling_pct",), nota="0 % automático é hipótese-padrão rastreável e válida; valor ausente ou outro sugerido continua bloqueado."),
     _R("c_curt", ("pv_arranjo", "eolica"), "Custo de curtailment operacional", "economico", "R$/kWh", "condicional",
        ("M21-CURT",), ("custo_curtailment",), condicao="termo:curtailment_operacional"),
     # ------------------------------------------------------------------ eólica
@@ -230,7 +230,19 @@ def classificar_dispositivo(d: DispositivoInventario, *, termos: frozenset[str] 
         v = next((d.valor(k) for k in r.fontes if d.valor(k) is not None and d.valor(k).presente), None)
         sugerido = next((d.valor(k) for k in r.fontes if d.valor(k) is not None
                          and d.valor(k).origem == "inventario_sugerido_seeds2"), None)
-        if v is None or v.origem == "inventario_sugerido_seeds2":
+        # Hotfix FV-0: 0 % automático é uma hipótese explícita de ENSAIO/OPERAÇÃO
+        # do modelo (sem perda por sujeira), não um parâmetro físico desconhecido.
+        # Mantemos origem='inventario_sugerido_seeds2' e registramos a procedência
+        # de REFERÊNCIA (não medição, não declaração do usuário), sem liberar outros
+        # parâmetros sugeridos ou valor ausente (None).
+        zero_fv_padrao = (d.tipo == "pv_arranjo" and r.simbolo == "perdas_sujeira"
+                          and v is not None and v.origem == "inventario_sugerido_seeds2"
+                          and v.numero is not None and v.numero == 0.0 and v.unidade_fonte == "%")
+        if zero_fv_padrao:
+            v = replace(v, procedencia=Procedencia(
+                "referencia", "SEEDS2 · hipótese automática de perdas por sujeira iguais a 0 %",
+                v.caminho_fonte, observacoes="Hipótese de modelagem; não é medição nem confirmação do usuário."))
+        if v is None or (v.origem == "inventario_sugerido_seeds2" and not zero_fv_padrao):
             if v is not None or sugerido is not None:
                 s = v or sugerido
                 out.append(ClassificacaoParametro(**base, classe="faltante_necessario" if exigido else "opcional",
@@ -268,6 +280,9 @@ def classificar_dispositivo(d: DispositivoInventario, *, termos: frozenset[str] 
             msg = "Valor sintético: aceito apenas em contexto de ensaio."
         elif v.origem in ("derivado", "catalogo_referencia"):
             classe, bloq, cod, msg = "derivavel", False, "derivado", f"Derivado: {v.derivacao}"
+        elif zero_fv_padrao:
+            classe, bloq, cod = "disponivel_verificavel", False, "hipotese_padrao_zero_sujeira"
+            msg = "Hipótese-padrão de 0 % de perdas por sujeira (não medida nem confirmada)."
         else:
             classe, bloq, cod, msg = "disponivel_verificavel", False, "disponivel", f"{v.chave} ({v.origem})"
         out.append(ClassificacaoParametro(**base, classe=classe, bloqueia=bloq, codigo=cod, mensagem=msg, numero=numero,
