@@ -156,6 +156,34 @@ def test_subamostras_sao_agregadas_pela_media_aritmetica_sem_interpolacao(tmp_pa
     assert np.allclose(d.potencia_kW, sub.reshape(12, 2).mean(axis=1), rtol=1e-12, atol=1e-12)
 
 
+def test_sujeira_zero_automatica_e_aceita_no_ems_v2_sem_confirmacao(tmp_path):
+    """Zero automático do cadastro é hipótese válida, não impedimento de execução."""
+    store = _loja(tmp_path, eolica=False, sujeira=None, arranjos=2)
+    sc = R.criar_cenario_hibrido(store, clima=_tabela())
+    fv = next(e for e in sc.document["inventory_ref"]["equipment"].values() if e["kind"] == "pv")
+    assert len(fv["arrays"]) == 2
+    assert all(a["soiling_pct"] == 0.0 and a["soiling_default"] for a in fv["arrays"])
+    pf = PF.preparar(store, sc)
+    _apto(pf)
+    assert len(pf.montagem.renovaveis) == 2
+    esperado = R.potencia_fv_independente(GHI, TAMB, sujeira=0.0)
+    for d in pf.montagem.renovaveis:
+        assert d.parametros["sujeira_pct"] == 0.0
+        assert np.allclose(d.potencia_kW, esperado, rtol=1e-12, atol=1e-12)
+
+
+def test_sujeira_realmente_ausente_continua_invalida(tmp_path):
+    """Não converter None em zero silenciosamente; aceitar apenas zero numérico."""
+    store = _loja(tmp_path, eolica=False)
+    pf = PF.preparar(store, R.criar_cenario_hibrido(store, clima=_tabela()))
+    _apto(pf)
+    cfg = R.config_hibrida(eolica=False)
+    eq = next(e for e in cfg["equipment"] if e["kind"] == "pv")
+    eq["arrays"][0]["soiling_pct"] = None
+    with pytest.raises(RN.DerivacaoInvalida, match="NÃO declaradas"):
+        RN.derivar_fv(eq, 1.0, pf.montagem.clima, 12)
+
+
 # ====================================================================== bloqueios legíveis
 @pytest.mark.parametrize("caso, codigo", [
     ("passo_que_nao_divide", "clima_insuficiente"), ("cobertura_incompleta", "clima_insuficiente"),
@@ -190,7 +218,6 @@ def test_clima_ausente_bloqueia_sem_perfil_substituto(tmp_path):
 @pytest.mark.parametrize("kw, trecho", [
     ({"turbina": R.TURBINA_ANALISE, "fv": False}, "ANÁLISE de pontos"),
     ({"eolica": False, "modo_arranjo": "declarado"}, "potência declarada"),
-    ({"eolica": False, "sujeira": None}, "sujeira NÃO declaradas"),
 ])
 def test_equipamento_nao_derivavel_bloqueia_com_diagnostico(tmp_path, kw, trecho):
     store = _loja(tmp_path, **kw)
