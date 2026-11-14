@@ -32,6 +32,10 @@
   nova bloquearia a edição dos cenários ⇒ a incarnação VIAJA na instantânea e é preservada (restauração só ao iniciar
   o processo, quando não há sessões antigas). Documentado em `docs/seeds2/ARMAZENAMENTO.md`.
 - **Testes:** `tests/test_seeds2_snapshot.py` (24) + `tests/ems_v2/test_exemplos01_guardas.py` (3). Regressão completa com solver: 2408 passed, 2 skipped, 3 failed = as 3 falhas PRÉ-EXISTENTES no `main` `c807a28` (sujeira zero do 3D-A2-R e as auditorias históricas 3D-B/UI-FINISH-01, que apontam `integracao_v2/renovaveis.py`). Detalhes: `PARAMIJEFE.md` Entrega 23.
+- **Exemplos versionados:** C4 (`seeds2/exemplos/C4_Carga_CT046_Solar_Bateria_Rede.seeds2snapshot.zip`, SHA-256
+  `d8d71cfa…6318ed`, 3 rodadas V2 concluídas). A localização gravada é a capturada pelo navegador
+  (−25,555499 / −54,609635), não a referência do roteiro; publicada por decisão expressa do responsável (repositório
+  público). TAGs dos equipamentos = nomes (o roteiro sugeria `FV-CT046-C4`/`BESS-CT046-C4`). Faltam C1, C2, C3 e C5.
 - **Próximo passo:** revisão/merge do PR pelo responsável → no deploy, criar C1–C5 com o caderno, executar,
   GUARDAR COMPLETO em cada uma (sem reiniciar a app nem fazer push durante a montagem) → enviar os 5 arquivos →
   novo PR colocando-os em `seeds2/exemplos/`. Ao adicioná-los, rodar `tests/test_seeds2_snapshot.py`
