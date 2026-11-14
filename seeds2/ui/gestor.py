@@ -18,6 +18,7 @@ from seeds2.microgrid.admin import SECRET_KEY, deletion_policy
 from seeds2.microgrid.references import KIND_LABELS
 from seeds2.microgrid.registry import (EMS_LABELS, ORIGIN_LABELS, STATE_LABELS, MicrogridNotFound, RegistryError,
                                        card_summary)
+from seeds2.microgrid import exemplos, snapshot
 from seeds2.microgrid.store import StoreError, backup_filename
 
 from . import forms, session, shell
@@ -173,12 +174,16 @@ def _card_html(entry, s: dict) -> str:
                                    ("Armazenamento", *storage),
                                    ("Equipamentos", str(s["n_equipment"]), f"{len(s['technologies'])} tecnologia(s)")))
     comm = "Comissionamento concluído" if s["commissioned"] else f"Comissionamento em andamento · etapa {step:02d} de 05"
-    origin = ORIGIN_LABELS.get(entry.origin, entry.origin)
+    origin = ("Exemplo do SEEDS2 (restaurado da instantânea em seeds2/exemplos/)" if exemplos.eh_exemplo(entry)
+              else ORIGIN_LABELS.get(entry.origin, entry.origin))
     copied = s.get("copied_from") or {}
     origin_txt = origin + (f" (origem {copied.get('uid', '')[:8]}…)" if copied else "")
     warn = "".join(f'<div class="gc-warn">! {escape(a)}</div>' for a in s["attention"])
     return (f'<div class="gc"><div class="gc-top"><span class="gc-chip s-{escape(state)}">{escape(STATE_LABELS[state])}</span>'
-            f'<span class="gc-chip e-{escape(ems_key)}" title="{escape(ems_detail)}">{escape(EMS_LABELS[ems_key])}</span></div>'
+            f'<span class="gc-chip e-{escape(ems_key)}" title="{escape(ems_detail)}">{escape(EMS_LABELS[ems_key])}</span>'
+            + ('<span class="gc-chip s-ativa" title="Restaurada automaticamente a cada reinício a partir da instantânea '
+               'guardada no código-fonte; alterações valem até o próximo reinício.">Exemplo</span>' if exemplos.eh_exemplo(entry) else "")
+            + '</div>'
             f'<div class="gc-name">{escape(s["name"] or "Sem nome")}</div>'
             f'<div class="gc-uid" title="Identificador interno imutável">ID {escape(entry.uid)}</div>'
             f'<div class="gc-res">{escape(_resumo_curto(s))}</div>{_alternador(entry.uid)}'
@@ -292,6 +297,13 @@ def _prepare_zip(reg, uid: str) -> None:
     _ss().setdefault("gestor_zip", {})[uid] = (cur.fingerprint, backup_filename(cur.config), store.export_backup())
 
 
+def _prepare_snapshot(reg, uid: str) -> None:
+    store = reg.open(uid)
+    stamp = snapshot.state_stamp(store)
+    data = snapshot.export_snapshot(store)
+    _ss().setdefault("gestor_snap", {})[uid] = (stamp, snapshot.snapshot_filename(store.load().config), data)
+
+
 def _prepare_pdf(reg, uid: str) -> None:
     from seeds2.report.pdf import build_report, report_filename
 
@@ -349,6 +361,15 @@ def _acoes(reg, entry, s: dict) -> None:
                  help="EXCLUIR MICRORREDE — exclusão definitiva com confirmação"):
         _ss()[DLG] = {"type": "delete", "uid": uid, "incarnation": entry.incarnation}   # H-02: vínculo
         st.rerun()
+    if st.button("GUARDAR COMPLETO", key=f"g_snap_{uid}", icon=":material/save:", width="stretch",
+                 help="GUARDAR COMPLETO — instantânea .seeds2snapshot.zip com TUDO desta microrrede: configuração, "
+                      "inventário, cenários e versões, previsões, estratégias, rodadas e resultados. Restaurada, "
+                      "reproduz a microrrede exatamente como está (usada para os exemplos persistentes)."):
+        try:
+            with st.spinner("Preparando a instantânea completa…"):
+                _prepare_snapshot(reg, uid)
+        except StoreError as exc:
+            st.error(shell.md(exc))
     for kind, label, mime in (("zip", "⬇ Baixar ZIP", "application/zip"), ("pdf", "⬇ Baixar relatório PDF", "application/pdf")):
         ready = _ss().get(f"gestor_{kind}", {}).get(uid)
         if ready and ready[0] == s["fingerprint"]:
@@ -356,6 +377,18 @@ def _acoes(reg, entry, s: dict) -> None:
                                width="stretch", type="secondary")
             st.caption(f"{shell.md(ready[1])} · revisão {s['revision']}"
                        + (" · não inclui cenários nem rodadas científicas" if kind == "zip" else ""))
+    snap = _ss().get("gestor_snap", {}).get(uid)
+    if snap:
+        try:
+            atual = snapshot.state_stamp(reg.open(uid))
+        except StoreError:
+            atual = None
+        if atual == snap[0]:
+            st.download_button("⬇ Baixar instantânea completa", snap[2], file_name=snap[1], mime="application/zip",
+                               key=f"g_snapdl_{uid}", width="stretch", type="secondary")
+            st.caption(f"{shell.md(snap[1])} · revisão {s['revision']} · configuração, cenários, rodadas e resultados")
+        else:
+            st.caption("A microrrede mudou depois da última instantânea; clique em GUARDAR COMPLETO de novo.")
 
 
 # --------------------------------------------------------------------------- diálogos
@@ -623,6 +656,10 @@ def render() -> None:
             f'<h1>GESTOR DE MICRORREDES</h1><p>Selecione, registre e gerencie suas instalações energéticas.</p>'
             f'<div class="facts">{f}</div></div>')
     _flash()
+    rel = session.exemplos_relato()
+    if rel is not None and rel.falhas:
+        st.warning("Exemplos do SEEDS2 que não puderam ser restaurados neste início:\n\n"
+                   + "\n".join(f"- {shell.md(f)}" for f in rel.falhas))
     with st.container(horizontal=True, gap="small", key="gestor_actions"):
         if st.button("＋ NOVA MICRORREDE", key="g_new", type="primary", width="content"):
             session.begin_new("")

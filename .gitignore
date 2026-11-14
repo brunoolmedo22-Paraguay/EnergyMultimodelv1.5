@@ -9,6 +9,9 @@
 seeds2_data/
 .seeds2/
 *.seeds2backup.zip
+# Instantâneas completas: só as de exemplo, em seeds2/exemplos/ (exceção autorizada à regra 8; ver seeds2/exemplos/README.md)
+*.seeds2snapshot.zip
+!seeds2/exemplos/*.seeds2snapshot.zip
 
 # --- Python / ferramentas ---
 # (arquivos __pycache__ já versionados anteriormente continuam rastreados; limpeza pendente — ver HANDOFF)
