@@ -3557,6 +3557,35 @@ después de esta misión.
 para comparar con A/B), m = 1, H_L = 8; demanda con paso de 15 min (el motor no agrega), clima de 5 o 15 min; PEMFC sin
 cambios. Δ = 20 min como sensibilidad.
 
-### 6. Verificación
+### 6. Verificación (código `f363c15`; base `8dc5f6b`)
 
-Ver el final de la sección (resultado final, con comandos).
+- Regresión COMPLETA limpia en el HEAD: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs` ⇒ EN EJECUCIÓN al momento de este commit (resultado en el commit siguiente).
+- Comparación caso a caso (JUnit) base × HEAD, en paralelo y en la MISMA máquina: base **2438 passed, 5 failed, 2 skipped**;
+  HEAD **2473 passed, 5 failed, 2 skipped**; +35 casos nuevos (31 de `tests/test_b04_c5_01.py` + 4 de
+  `tests/ems_v2/test_b04c501_guardas.py`), todos aprobados; **ningún caso común cambió de resultado**. Las 5 fallas eran
+  IDÉNTICAS en ambos árboles y TRANSITORIAS: `.pyc` versionados regenerados por un guion de diagnóstico ejecutado con
+  `python -I` (que ignora `PYTHONDONTWRITEBYTECODE`); restaurados sin commit y los 5 tests reejecutados en árboles limpios:
+  **5/5 aprobados en la base y en el HEAD** (la base reproduce así el registro de la Entrega 24: 2443 passed, 2 skipped).
+- Sin solver (pyomo/highspy bloqueados por `sitecustomize` local): `tests/test_b04_c5_01.py` + guarda ⇒ 29 passed,
+  6 skipped (las misiones HiGHS, con motivo explícito).
+- Diferencial del preflight REAL en 52 escenarios PEMFC (Δ 5/10/15/20/40/60 × abstracción × T_amb 25/0 °C × encendida/apagada,
+  más rampa 4 y 150 kW/min y P_mín 8 y 15 kW), base × HEAD: `ok`, nivel/área/código de cada ítem, violaciones a priori y
+  masas por evento **idénticos**; textos distintos solo en los 29 bloqueos dinámicos y en las 17 aprobaciones con
+  `transicoes_bloqueadas` (identificadores aleatorios por ejecución normalizados; los hashes de la montagem difieren igual
+  entre dos ejecuciones del MISMO HEAD). Conclusión: la P1 cambió exclusivamente el diagnóstico.
+- UI-RESULTADOS-02 preservado: ningún archivo de interfaz, informe, evidencia, prueba o E2E alterado (solo el gancho en su
+  política de guarda, sin tocar sus listas); E2E `tools/e2e/run_ui_resultados02.sh` ⇒ **17 verificaciones en el navegador +
+  33 de los PDF, 0 fallas** (igual que en la Entrega 24).
+
+### 7. Auditorías explícitas históricas que YA fallaban en la base (preexistentes, no corregidas)
+
+Guiones manuales del diff ORIGINAL de cada misión; fallan en `8dc5f6b` por misiones posteriores AUTORIZADAS y dan el MISMO
+veredicto antes y después de esta misión (ningún archivo de B04-C5-01 aparece en ellos). Las guardas pytest
+correspondientes pasan o se saltan por exigir ejecución manual (los 2 skipped).
+
+| Guion | Base de la misión | Hallazgos en `8dc5f6b` (= HEAD) |
+|---|---|---|
+| `python tests/ems_v2/piso3da_guard_policy.py` | `a636350` (3D-A) | 11 rutas protegidas: CI `regression.yml`, `ems_v2/contracts.py` y `ponte/{compromisso,preflight,projecao,requisitos}.py` (C-3DA2H-01, hotfix FV 0 %), `h2_app.py`, `requirements.txt`, `seeds2/microgrid/{exemplos,snapshot}.py`, `seeds2/report/dossier.py` |
+| `python tests/ems_v2/piso3da2r_guard_policy.py` | `7eb29e5` (3D-A2-R) | 31 rutas: las anteriores + la interfaz 3D-B/UI (`seeds2/ui/*`, `static/trama/*`, `trama.py`) |
+| `python tests/ems_v2/piso3da2h_guard_policy.py` | `0c9df80` (3D-A2-H) | 26 rutas: CI, hotfix FV 0 %, requisitos, ejemplos, dossier e interfaz 3D-B/UI |
+| `python tests/ems_v2/piso3db_guard_policy.py` | `724d235` (3D-B) | 18 archivos «fuera de la política» de UI-RUNNING-01/UI-FINISH-01/deploy (p. ej. `integracao_v2/documentos.py`, `seeds2/ui/execution_ui.py`, `report_exports.py`, `static/trama/execucao.js`) |
