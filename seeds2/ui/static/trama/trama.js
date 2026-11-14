@@ -14,7 +14,8 @@ function h(tag, a = {}, ...kids) {
 // ARREDONDA para zero na precisão mostrada — é exibido como zero ("0,0", nunca "-0,0"). Os números gravados não mudam.
 const nf = (v, d = 1) => { if (v == null || Number.isNaN(v)) return "N/D"; const s = Number(v).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }); return /^-0(,0*)?$/.test(s) ? s.slice(1) : s; };
 const ne = (v, d = 1) => { if (v == null || Number.isNaN(v)) return "N/D"; const s = Number(v).toExponential(d); return /^-0(\.0*)?e[+-]0$/.test(s) ? s.slice(1) : s; };
-const COR = { wt: "var(--s-wt)", fv: "var(--s-fv)", bat: "var(--s-bat)", fc: "var(--s-fc)", grid: "var(--s-grid)", dem: "var(--s-dem)", eco: "var(--s-eco)" };
+const COR = { wt: "var(--s-wt)", fv: "var(--s-fv)", bat: "var(--s-bat)", fc: "var(--s-fc)", grid: "var(--s-grid)", dem: "var(--s-dem)", eco: "var(--s-eco)",
+  liq: "var(--s-liq)", tarx: "var(--s-tarx)", ens: "var(--bad)", ref: "var(--ink-2)" };
 const novoBarramento = () => ({ subs: [], emit(i, src) { this.subs.forEach((f) => f(i, src)); }, clear() { this.subs = []; } });
 let TRAMA_ID = 0;
 

@@ -5,10 +5,42 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `ccr-97327863-dz2vx1` (a partir de `main` `c807a28`) |
-| **PR** | «Exemplos persistentes» — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **EXEMPLOS-PERSISTENTES-01** — instantânea completa (GUARDAR COMPLETO) + restauração automática dos exemplos de `seeds2/exemplos/` ao iniciar. |
+| **Branch** | `ccr-3d9d6a3e-67m47p` (a partir de `main` `e765028`, merge do PR #32) |
+| **PR** | «UI-RESULTADOS-02» — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **UI-RESULTADOS-02** — tarifa escalonada, demanda nas fontes, aba Carga líquida, lente Visão Geral e relatório PDF visual que reproduz a Partitura. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## UI-RESULTADOS-02 (pedido do responsável, 14/11/2026)
+
+- **Detalhes, decisões D-UR02-01…10 e matriz pedido → alteração → teste → evidência:** `docs/seeds2/UI_RESULTADOS_02.md`;
+  evidência (capturas + PDF real do exemplo C4): `docs/seeds2/evidencia_ui_resultados02/`; relatório: `PARAMIJEFE.md` Entrega 24.
+- **Interface (só `seeds2/ui/static/trama/{partitura.js,trama.js,trama.css}`):** `laneTarifa` (degrau por intervalo, inícios de
+  período marcados; remuneração de exportação omitida só com evidência — `tarifaExportacao`); `demRef` (demanda total nos
+  gráficos de POTÊNCIA dos painéis das fontes; atendida pontilhada com déficit); recurso `liq` «Carga líquida» no explorador
+  (`cargaLiquida`, `cascata`); lente `visao` «Visão Geral» por último (`visaoGeral`, `complementares`, `areas`, `rosca`,
+  `barrasFontes`, `balancoSvg`) — **nunca restaurada ao abrir uma rodada** (as outras lentes, como antes). Raias de Operação,
+  Economia e Decisão extraídas para `lanesOperacao`/`lanesEconomia`/`decisaoLanes` (mesmo desenho, partilhado com o relatório).
+- **Relatório PDF:** a Partitura desenha (`relatorio` → `svgPdf`: missão COMPLETA, tema claro, SVG restrito com cores
+  resolvidas) e devolve o pacote pelo gatilho «relatorio» (único dado que o componente devolve); `integracao_v2/ui.py`
+  (`_desenhar_partitura` chama o MESMO `trama.component` — `seeds2/ui/trama.py` intocado, a guarda 3D-B o exige —;
+  `_on_relatorio`/`gerar_relatorio`; painel próprio `_exportacoes_partitura` com os MESMOS botões/chaves do 2D-B, o de PDF
+  com `on_click=pedir_relatorio`) → `integracao_v2/relatorio_visual.py` (confere evidência + hash do marco remontado, diagrama
+  A4 paisagem: capa escura, sumário, Operação + uma página por fonte com cartões ao lado + Carga líquida, Visão Geral,
+  Decisão completa, Economia, Evidência terminando nas limitações) + `integracao_v2/svg_pdf.py` (SVG restrito → vetores).
+  `documentos.pdf` (relatório técnico/diagnóstico) INALTERADO e ainda usado para rodadas falhas/interrompidas.
+- **Guardas:** exceção nominal `tests/ems_v2/ui_resultados02_guard_policy.py` (encadeada no fim da do EXEMPLOS-01; gancho em
+  `exemplos01_guard_policy.py`); seis asserções antigas de `tests/test_piso3db_{trama,nd,lentes}.py` atualizadas (fixavam a
+  lista de recursos do explorador) com as linhas removidas listadas. Auditoria: `python tests/ems_v2/ui_resultados02_guard_policy.py`.
+- **Testes:** `tests/test_ui_resultados02.py` (Node, navegador de bancada, C4, topologias reais com HiGHS, SVG restrito,
+  AppTest) + `tests/ems_v2/test_ui_resultados02_guardas.py`; E2E `tools/e2e/run_ui_resultados02.sh <python> <saída> [capturas]`.
+- **Observado (pré-existente, não causado aqui):** rodando SÓ `tests/test_piso3db_*` seguido de `tests/test_ui_finish01.py` no
+  MESMO processo, `DocumentosV2Test` falha por identidade de classe do matplotlib/`FigureError` (módulos recarregados por um
+  teste anterior); sozinho ou na suíte completa, passa — também acontecia no `main` (linha de base desta missão).
+- **Verificação (código `2ac99b1`):** regressão completa COM solver 2443 passed, 2 skipped, 0 falhas (1650 s); SEM solver 1908 passed, 192 skipped, 0 falhas; E2E
+  `run_ui_resultados02.sh` 17 + 33 verificações; PDF real do C4 (57 páginas) inspecionado. Detalhes: `PARAMIJEFE.md` Entrega 24 §6.
+- **Próximo passo:** revisão do PR pelo responsável (avaliar o PDF da evidência).
+
+---
 
 ## EXEMPLOS-PERSISTENTES-01 (decisão do responsável, 14/11/2026)
 

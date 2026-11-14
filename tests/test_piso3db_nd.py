@@ -158,7 +158,7 @@ class ModeloComDadosAusentesTest(unittest.TestCase):
     def test_recurso_inexistente_e_omitido_sem_nd(self):
         r = self._modelo(P.marco_sintetico(pemfc=0, eolicas=0))
         self.assertEqual((r["A"]["fcP"], r["A"]["wtP"], r["A"]["cH2"], r["A"]["fcOn"]), (ND, ND, ND, ND))
-        self.assertEqual(r["ord"], ["fv", "bat", "grid", "dem", "eco"])
+        self.assertEqual(r["ord"], ["fv", "bat", "grid", "dem", "liq", "eco"])        # UI-RESULTADOS-02: «Carga líquida»
         self.assertEqual([k for k, _v in r["b"]["inj"]], ["fv", "bat", "grid"])
         self.assertEqual(r["b"]["total"], 4 + 1 + 5)
         r = self._modelo(P.marco_sintetico(conectado=False))
@@ -362,7 +362,8 @@ class NavegadorComDadosAusentesTest(unittest.TestCase):
 
     def test_recurso_inexistente_nao_gera_nd_nem_painel(self):
         v = self.r["sem_recursos"]["vistas"]
-        self.assertEqual(sorted(k for k in v if k.startswith("painel:")), ["painel:Carga", "painel:Custos", "painel:Solar:arr-fv1"])
+        self.assertEqual(sorted(k for k in v if k.startswith("painel:")), ["painel:Carga", "painel:Carga líquida", "painel:Custos",
+                                                                           "painel:Solar:arr-fv1"])   # UI-RESULTADOS-02
         self.assertNotIn("balanço incompleto", v["lente:operacao"])
         self.assertIn("Σ injeção (derivado) = 4,00 kW", v["lente:operacao"])
         for ausente in ("Eólica", "PEMFC", "Rede", "Bateria"):

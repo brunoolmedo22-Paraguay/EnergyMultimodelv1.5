@@ -1077,17 +1077,85 @@ def _partitura(source, run, v, key: str) -> bool:
     cache = _ss().setdefault("op_v2_frame", {})
     # origem do marco: estudo ARQUIVADO (identidade local do arquivo) ou microrrede aberta — nunca compartilham cache
     chave = (run.run_uid, getattr(getattr(source, "study", None), "archive_uid", None) or "local")
+    nomes = _nomes_do_inventario(source, run)
     if chave not in cache:
         if len(cache) > 4:
             cache.clear()
         try:
-            cache[chave] = TF.montar(source, run, verificacao=v, nomes=_nomes_do_inventario(source, run))
+            cache[chave] = TF.montar(source, run, verificacao=v, nomes=nomes)
         except (StoreError, KeyError, ValueError, TypeError) as exc:
             st.caption(f"Partitura indisponível para esta rodada ({shell.md(exc)}). A vista clássica abaixo continua "
                        "completa.")
             return False
-    TR.partitura(cache[chave], key=f"{key}_partitura")
+    # UI-RESULTADOS-02: o relatório PDF é desenhado pela própria Partitura (pedido = botão da barra dela ou do painel de
+    # exportações); o pacote volta pelo gatilho «relatorio» e é diagramado no servidor (``relatorio_visual``).
+    _desenhar_partitura(TR, cache[chave], f"{key}_partitura", _estado_relatorio(run.run_uid),
+                        lambda: _on_relatorio(source, run, f"{key}_partitura", nomes))
     return True
+
+
+def _desenhar_partitura(TR, frame: dict, chave: str, relatorio: dict | None, on_relatorio) -> None:
+    """O MESMO componente e a MESMA moldura de ``seeds2.ui.trama.partitura`` (inalterado), com dois acréscimos do
+    UI-RESULTADOS-02: o estado do pedido do relatório nos dados e o gatilho «relatorio» (pacote desenhado pela Partitura) —
+    o único dado que o componente devolve ao Python; cursor, lente, zoom e painéis continuam estado do navegador."""
+    if not isinstance(frame, dict) or frame.get("formato") != TR.FRAME_FORMAT:
+        raise ValueError("Marco de dados inválido para a Partitura.")
+    st.html(TR.WIDE_CSS)
+    TR.component()(key=chave, data={"frame": frame, **({"relatorio": relatorio} if relatorio else {})},
+                   on_relatorio_change=on_relatorio)
+
+
+# ------------------------------------------------------------------------------------------------ relatório PDF visual
+REL_ESTADO = "op_v2_rel"            # {run_uid: {pedido, estado: pedido|pronto|erro, msg, nome, paginas, t}}
+REL_ESPERA_S = 180                  # sem resposta do navegador depois disso, o painel sugere o botão da Partitura
+
+
+def _estado_relatorio(run_uid: str) -> dict | None:
+    e = _ss().get(REL_ESTADO, {}).get(run_uid)
+    return {k: e.get(k) for k in ("pedido", "estado", "msg", "nome", "paginas")} if e else None
+
+
+def pedir_relatorio(run_uid: str) -> None:
+    """Callback do botão do painel de exportações: registra um PEDIDO que a Partitura atende no próximo ciclo."""
+    import time
+    import uuid
+
+    _ss().setdefault(REL_ESTADO, {})[run_uid] = {"pedido": "painel-" + uuid.uuid4().hex[:12], "estado": "pedido", "t": time.time()}
+
+
+def gerar_relatorio(source, run, pacote, *, nomes: dict | None = None) -> tuple[dict, tuple | None]:
+    """Diagrama o relatório a partir do pacote da Partitura (sem Streamlit; usado pelo callback e pelos testes).
+    Devolve (estado do pedido, item do painel de exportações ou ``None``). Nunca grava nada nem chama o motor."""
+    from seeds2.report import dossier as D
+    from seeds2.ui import report_exports as RX
+
+    from . import relatorio_visual as RV
+    from . import svg_pdf as SVG
+
+    est = {"pedido": str((pacote or {}).get("pedido") or "") if isinstance(pacote, dict) else "", "estado": "erro"}
+    try:
+        nome, dados, info = RV.pdf(source, run.run_uid, pacote, nomes=nomes)
+    except D.DossierIntegrityError as exc:
+        return {**est, "msg": f"Geração recusada: {exc}"}, None
+    except (RV.PacoteInvalido, SVG.SvgInvalido, StoreError, ValueError) as exc:
+        return {**est, "msg": str(exc)[:600]}, None
+    except Exception as exc:                            # noqa: BLE001 — falha inesperada: mensagem legível, sem documento
+        return {**est, "msg": f"Falha inesperada ao diagramar o PDF ({type(exc).__name__}: {str(exc)[:300]}). Os dados da "
+                              "rodada não foram alterados."}, None
+    return ({**est, "estado": "pronto", "nome": nome, "paginas": info.get("paginas")},
+            (nome, dados, RX.KINDS["pdf"][1], [], D.utc_now()))
+
+
+def _on_relatorio(source, run, chave: str, nomes: dict) -> None:
+    from seeds2.ui import report_exports as RX
+
+    pac = shell.payload(chave, "relatorio")
+    if not isinstance(pac, dict):
+        return
+    est, item = gerar_relatorio(source, run, pac, nomes=nomes)
+    if item is not None:
+        _ss()[RX._key(run.run_uid, "pdf")] = item          # o MESMO lugar em que o painel guarda os documentos da rodada
+    _ss().setdefault(REL_ESTADO, {})[run.run_uid] = est
 
 
 def planta_rodada(source, run) -> dict | None:
@@ -1230,7 +1298,7 @@ def run_results(source, run, *, key: str) -> None:
     desenhada = run.state == "concluida" and _partitura(source, run, v, key)      # Piso 3D-B: instrumento Partitura
     shell.callout(f"<b>Motor V2 experimental (MILP–MPC hierárquico).</b> {escape(m.get('scope') or PF.ESCOPO)} Dados "
                   "sintéticos/declarados estão rotulados na procedência.", "warn")
-    exportacoes(source, run, key)                 # UI-FINISH-01: área de exportações VISÍVEL (não dentro da vista clássica)
+    exportacoes(source, run, key, partitura=desenhada)   # UI-FINISH-01: área de exportações VISÍVEL (não dentro da vista clássica)
     if not desenhada:                         # rodada falha/interrompida, evidência com problemas ou marco indisponível
         _vista_classica(source, run, v, key)
         return
@@ -1242,18 +1310,114 @@ def run_results(source, run, *, key: str) -> None:
         _vista_classica(source, run, v, key)
 
 
-def exportacoes(source, run, key: str) -> None:
+def exportacoes(source, run, key: str, *, partitura: bool = False) -> None:
     """Exportações científicas da rodada V2 (UI-FINISH-01, ponto 6): o MESMO painel do Piso 2D-B
     (``seeds2.ui.report_exports.render``: geração sob demanda, progresso real, cache por rodada, erros sem perder a
-    página) com os geradores V2 de ``documentos`` (dossiê, figuras e escritores do 2D-B sobre o contrato ``v2/…``)."""
+    página) com os geradores V2 de ``documentos`` (dossiê, figuras e escritores do 2D-B sobre o contrato ``v2/…``).
+
+    UI-RESULTADOS-02: com a Partitura desenhada (rodada concluída e evidência verificada), o relatório PDF é o relatório
+    VISUAL desenhado pela própria Partitura (``_exportacoes_partitura``); figuras ZIP e Excel continuam os mesmos.
+    Rodadas falhas/interrompidas continuam com o diagnóstico PDF de ``documentos``."""
     from seeds2.ui import report_exports as RX
 
     from . import documentos as DOC
 
     done = run.state == "concluida"
     with st.container(key=f"{key}_exportacoes_v2"):
+        if done and partitura:
+            _exportacoes_partitura(source, run, key)
+            return
         RX.render(source, run, key=f"{key}_v2", gerador=DOC.gerar, rotulos=DOC.ROTULOS if done else DOC.ROTULOS_DIAG,
                   ajudas=DOC.AJUDAS)
+
+
+AJUDA_RELATORIO = ("Relatório científico VISUAL da rodada, no padrão da Partitura: capa, sumário, Operação (painel da missão "
+                   "completa e uma subseção por fonte, incluindo a Carga líquida), Visão Geral, Decisão, Economia e Evidência "
+                   "(verificação, auditoria, procedência com SHA-256, configuração, condições iniciais, método, preflight e "
+                   "limitações). Os gráficos são os da Partitura, vetoriais, com a missão COMPLETA (sem o zoom da tela); nada "
+                   "é recalculado e o motor não é executado.")
+
+
+def _exportacoes_partitura(source, run, key: str) -> None:
+    """Painel de exportações da rodada V2 com a Partitura: mesmos botões, chaves e downloads do painel do 2D-B; o PDF é
+    pedido à Partitura (que desenha) e diagramado no servidor no ciclo seguinte (``_on_relatorio``)."""
+    import io
+    import time
+    import zipfile
+
+    from seeds2.report import dossier as D
+    from seeds2.ui import report_exports as RX
+
+    from . import documentos as DOC
+
+    ss, k2 = _ss(), f"{key}_v2"
+    RX._forget_other_runs(run.run_uid)
+    st.html(RX.CSS)
+    st.markdown('<div class="sd-section">Exportações científicas</div>', unsafe_allow_html=True)
+    origem = "estudo arquivado" if not hasattr(source, "start_run") else "armazenamento desta microrrede"
+    st.html(f'<div class="rx-note">Documentos <b>derivados</b> desta rodada, gerados sob demanda a partir dos dados gravados '
+            f'({escape(origem)}). Gerar um documento não executa modelos nem o EMS e não altera rodadas, cenários ou estudos; '
+            'o pacote <b>.seeds2study.zip</b> continua sendo a fonte portátil integral. O <b>relatório PDF</b> reproduz a '
+            'Partitura (missão completa, todas as lentes e fontes) e também pode ser pedido pelo botão «Relatório PDF» da '
+            'barra dela.</div>')
+    c1, c2, c3 = st.columns(3)
+    c1.button(DOC.ROTULOS["pdf"], key=f"{k2}_rx_pdf", width="stretch", help=AJUDA_RELATORIO, on_click=pedir_relatorio,
+              args=(run.run_uid,))
+    clicado = None
+    if c2.button(DOC.ROTULOS["fig"], key=f"{k2}_rx_fig", width="stretch", help=DOC.AJUDAS["fig"]):
+        clicado = "fig"
+    if c3.button(DOC.ROTULOS["xlsx"], key=f"{k2}_rx_xlsx", width="stretch", help=DOC.AJUDAS["xlsx"]):
+        clicado = "xlsx"
+    est = ss.get(REL_ESTADO, {}).get(run.run_uid) or {}
+    if est.get("estado") == "pedido":
+        if time.time() - float(est.get("t") or 0) > REL_ESPERA_S:
+            st.warning("A Partitura não respondeu ao pedido do relatório. Use o botão «Relatório PDF» na barra da Partitura, "
+                       "logo acima (ou recarregue a página).")
+        else:
+            st.info("Preparando o relatório PDF: a Partitura desenha a missão completa (todas as lentes e fontes, tema claro) "
+                    "e o servidor diagrama o documento. O botão de download aparece aqui.")
+    elif est.get("estado") == "erro":
+        st.error(f"Nenhum relatório foi gerado: {est.get('msg') or 'falha não identificada'}")
+    if clicado:
+        with st.status(f"Gerando {RX.KINDS[clicado][0].lower()}…", expanded=True) as box:
+            try:
+                ss[RX._key(run.run_uid, clicado)] = DOC.gerar(source, run.run_uid, clicado, progress=box.write)
+                box.update(label=f"{RX.KINDS[clicado][0]} pronto para download.", state="complete", expanded=False)
+            except D.DossierIntegrityError as exc:
+                ss.pop(RX._key(run.run_uid, clicado), None)
+                box.update(label="Geração recusada: dados inconsistentes ou corrompidos.", state="error")
+                st.error(f"Nenhum documento foi gerado: {exc}")
+            except (StoreError, ValueError) as exc:
+                ss.pop(RX._key(run.run_uid, clicado), None)
+                box.update(label="Não foi possível gerar o documento.", state="error")
+                st.error(str(exc))
+            except Exception as exc:                    # noqa: BLE001 — falha inesperada: mensagem legível, sem documento
+                ss.pop(RX._key(run.run_uid, clicado), None)
+                box.update(label="Falha inesperada ao gerar o documento.", state="error")
+                st.error(f"Nenhum documento foi gerado ({type(exc).__name__}: {str(exc)[:300]}). Os dados da rodada não foram "
+                         "alterados.")
+    for kind in ("pdf", "xlsx", "fig"):
+        item = ss.get(RX._key(run.run_uid, kind))
+        if not item:
+            continue
+        nome, dados, mime, avisos, quando = item
+        a, b = st.columns([3, 2], vertical_alignment="center")
+        extra = f" · {est.get('paginas')} páginas" if kind == "pdf" and est.get("estado") == "pronto" and est.get("nome") == nome else ""
+        a.caption(f"{nome} · {len(dados) / 1024:,.0f} KiB{extra} · gerado em {quando}".replace(",", "."))
+        b.download_button(f"BAIXAR {RX.KINDS[kind][0]}", data=dados, file_name=nome, mime=mime, key=f"{k2}_dl_{kind}",
+                          width="stretch", type="primary", on_click="ignore")
+        if kind == "xlsx":
+            st.caption(RX.EXCEL_PRECISION_CAPTION)
+        for w in avisos:
+            st.warning(w)
+        if kind == "fig":
+            zf = zipfile.ZipFile(io.BytesIO(dados))
+            arqs = [x for x in zf.namelist() if x.startswith("figuras/")]
+            a, b = st.columns([3, 2], vertical_alignment="bottom")
+            pick = a.selectbox("Figura individual", arqs, format_func=lambda n: n.split("/", 1)[1], key=f"{k2}_rx_pick")
+            b.download_button("BAIXAR FIGURA SELECIONADA", data=zf.read(pick), file_name=pick.rsplit("/", 1)[1],
+                              mime="image/png" if pick.endswith(".png") else "image/svg+xml", key=f"{k2}_dl_one",
+                              width="stretch", on_click="ignore")
 
 
 def _vista_classica(source, run, v, key: str) -> None:

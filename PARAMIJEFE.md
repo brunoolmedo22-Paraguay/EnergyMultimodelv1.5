@@ -3423,3 +3423,79 @@ Siguiente paso del responsable: merge → en el deploy, crear C1–C5 con el cua
 ### 6. Regresión completa (resultado final, con solver, código `bdfa51f`)
 
 `python -m pytest tests/ -q`: **2408 passed, 2 skipped, 3 failed** en 22 min. Las 3 fallas son exactamente las que fallan en una copia limpia de `main` `c807a28` (verificado ejecutándolas en un worktree de `origin/main`): `test_piso3da2r_renovaveis::test_sujeira_zero_automatica_e_aceita_no_ems_v2_sem_confirmacao` y las auditorías explícitas históricas `test_piso3db_guardas::test_auditoria_explicita_do_diff_da_missao` y `test_ui_finish01_guardas::test_auditoria_explicita_da_missao` (ambas señalan solo `M integracao_v2/renovaveis.py`, de `c807a28`; tras el gancho de esta misión, ninguna lista archivos de esta misión). No ejecutado: suite sin solver y roteiros E2E completos (`run_piso3d*.sh`); el servidor E2E ahora arranca con `SEEDS2_EXEMPLOS=0`.
+
+## Entrega 24 — SEEDS2 · UI-RESULTADOS-02: tarifa escalonada, demanda en las fuentes, Carga líquida, Visão Geral y relatório PDF visual — 2026-11-14
+
+### 1. Identificación
+
+- Rama `ccr-3d9d6a3e-67m47p` desde `main` `e765028` (merge del PR #32); PR contra `main` **sin merge**. Pedido del responsable
+  «SEEDS2 — UI-RESULTADOS-02» (14/11/2026): cinco mejoras sin rediseño; la apertura de una rodada sigue en Operação.
+- Detalle, decisiones D-UR02-01…10 y matriz pedido → alteración → prueba → evidencia: `docs/seeds2/UI_RESULTADOS_02.md`.
+
+### 2. Qué cambió
+
+1. **Tarifa escalonada** (`partitura.js` `laneTarifa`): un escalón por intervalo `[t_k, t_k+1)` con el valor GRABADO, sin
+   interpolación; inicio de cada período marcado y rotulado; importación (color de la red) × remuneración de exportación
+   (verde, discontinua). La remuneración se omite solo con evidencia (sentidos del PCC declarados sin exportación); serie
+   vacía con exportación permitida o sin declaración = N/D. Sustituye las franjas de color en Operação, Economia y en los
+   paneles Batería, Red y Costos.
+2. **Demanda en las fuentes** (`demRef`): demanda TOTAL como línea fina neutra en los gráficos de POTENCIA de Solar, Eólica,
+   Batería, PEMFC y Red (misma escala kW, leyenda y tooltip); demanda ATENDIDA punteada solo con déficit grabado; nunca
+   sumada a la generación; ausente en SOC/energía/tarifa/costo. Las franjas compactas de Operação no cambiaron (D-UR02-02).
+3. **Carga líquida** (recurso `liq` del explorador): `P_liq = P_demanda − Σ P_renovable APROVECHADA`; (A) demanda × carga
+   líquida con la franja renovable; (B) compensación por los controlables (suministran arriba de cero, absorben abajo);
+   (C) cierre por intervalo = residuo grabado del balance; tarjetas de la misión y cascada de energía. Negativos preservados;
+   cada UID sumado una sola vez.
+4. **Visão Geral** (lente `visao`, última; nunca restaurada al abrir una rodada): KPIs con origen (sellado × derivado),
+   energía por fuente, participación (rosca con denominador = inyecciones del barramento; descarga de batería rayada y
+   acompañada de la energía cargada), balance entradas × salidas con cierre, participación temporal (áreas en escalón +
+   demanda; franja porcentual) e indicadores complementarios (pico importado, uso del PCC, vertimiento, SOC, auditoría).
+5. **Relatório PDF visual**: la PROPIA Partitura dibuja el informe con las MISMAS funciones de la interfaz (misión completa,
+   independiente del zoom; tema claro) y serializa cada gráfico como SVG restringido; el paquete vuelve por el disparador
+   «relatorio»; `integracao_v2/relatorio_visual.py` verifica la evidencia (`registro.verificar`) y el hash del marco Trama
+   rearmado de los datos grabados y diagrama (A4 apaisado: portada oscura con violeta y la demanda grabada como «partitura»,
+   sumario, Operação + una página por fuente con tarjetas al lado + Carga líquida, Visão Geral, Decisión completa —tapete,
+   decisión de cada ventana, V(E) de cada decisión, tabla previsto × realizado—, Economía y Evidencia, que conserva el
+   contenido del informe técnico y termina en las limitaciones). `integracao_v2/svg_pdf.py` dibuja el SVG restringido como
+   vectores (entrada no confiable: sin DTD/entidades/scripts/imágenes, colores resueltos, números acotados). Botón «Relatório
+   PDF» en la barra de la Partitura y el MISMO «GERAR RELATÓRIO PDF» del panel. `documentos.pdf` (técnico/diagnóstico) sin
+   cambios.
+
+### 3. Guardas
+
+Excepción nominal `tests/ems_v2/ui_resultados02_guard_policy.py` (nombres y estados exactos; líneas REMOVIDAS de
+`integracao_v2/ui.py`, del gancho en `exemplos01_guard_policy.py` y de seis aserciones antiguas de
+`tests/test_piso3db_{trama,nd,lentes}.py` —fijaban la lista de recursos del explorador— en lista explícita). Intocados:
+`ems_v2/`, modelos, V1.6, runner, almacenamiento, contratos, `trama_frame.py`, `documentos.py`, `seeds2/report`,
+`seeds2/ui/report_exports.py` y `seeds2/ui/trama.py` (la guarda 3D-B mantiene visible cualquier «M» en él; la integración
+llama al mismo componente desde `integracao_v2/ui.py`).
+
+### 4. Verificación
+
+Ver §6 (resultado final, con comandos).
+
+### 5. Pendientes y observaciones
+
+- El informe visual requiere la Partitura abierta en el navegador (C4: ~14 s por informe).
+- Preexistente (también en `main`): `DocumentosV2Test` de `tests/test_ui_finish01.py` falla por identidad de clases
+  (matplotlib/`FigureError`) si corre en el MISMO proceso después de `tests/test_piso3db_*`; solo, pasa.
+
+### 6. Verificación (código `2ac99b1`)
+
+- `tests/test_ui_resultados02.py`: Node (funciones derivadas), navegador de banco (interfaz real), C4 restaurado de la
+  instantánea (paquete con la pantalla AMPLIADA a 6 h → misión completa y mismo dibujo que la pantalla; PDF de 57 páginas;
+  evidencia intacta; rechazos de paquete ajeno/adulterado/SVG con imagen; composición sin solver ni modelos), topologías reales
+  con HiGHS (híbrida FV + eólica + batería + PEMFC + PCC, dos bancos, aislada, dos PEMFC), SVG restringido y AppTest del panel.
+- Regresión completa **con solver**: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rs` ⇒ **2443 passed, 2 skipped,
+  167 subtests passed (1650 s)**, 0 fallas (los 2 skipped son las auditorías explícitas 3D-A/3D-A2-R que piden variable o
+  ejecución manual, como antes).
+- Regresión completa **sin solver** (pyomo/highspy desinstalados, como la matriz del CI): **1908 passed, 192 skipped,
+  154 subtests passed (883 s)**, 0 fallas.
+- E2E real `tools/e2e/run_ui_resultados02.sh python <salida> <capturas>`: **17 verificaciones** en el navegador (apertura en
+  Operação, tarifa escalonada con dos inicios de período, Visão Geral sin N/D, reapertura vuelve a Operação, demanda en los
+  paneles Solar/Batería/Red, Carga líquida, pantalla ampliada, informe por el botón de la Partitura ≈ 14,3 s y por el panel
+  ≈ 14,0 s, ZIP/Excel presentes, sin errores de página/consola) + **33 verificaciones** de los PDF descargados
+  (`check_ui_resultados02.py`: secciones, fuentes, costo sellado, numeración, los dos caminos generan el mismo documento salvo
+  el instante de generación, evidencia intacta y verificada sin solver).
+- Inspección visual del PDF real (57 páginas, todas revisadas en hoja de contacto y las principales en detalle):
+  `docs/seeds2/evidencia_ui_resultados02/relatorio_C4_UI_RESULTADOS_02.pdf` y `pdf_p*.jpg`.

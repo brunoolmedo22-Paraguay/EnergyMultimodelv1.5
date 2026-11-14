@@ -79,9 +79,11 @@ def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos; código protegido só se as remoções forem conformes."""
     ruins = remocoes_nao_conformes(root)
     changes = filter_ponte_zero_autorizado(root, changes)
-    return [row for row in changes if not (len(row) == 2 and (
+    restantes = [row for row in changes if not (len(row) == 2 and (
         (row[0] == "M" and row[1] in MODIFICADOS and row[1] not in ruins)
         or (row[0] == "A" and (row[1] in ADICIONADOS or _exemplo(row[1])))))]
+    from ui_resultados02_guard_policy import filter_changes as filter_resultados02   # exceção nominal UI-RESULTADOS-02
+    return filter_resultados02(root, restantes)
 
 
 INTOCADOS = ("ems_v2", "integracao_v2", "models", "h2_pemfc", "simulation", "config", "ems_integration",
@@ -138,6 +140,8 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base).splitlines() if ln.strip()]
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
     linhas = filter_ponte_zero_autorizado(root, linhas)
+    from ui_resultados02_guard_policy import filter_changes as filter_resultados02   # UI-RESULTADOS-02: nomes e status exatos
+    linhas = filter_resultados02(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     ruins = remocoes_nao_conformes(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,

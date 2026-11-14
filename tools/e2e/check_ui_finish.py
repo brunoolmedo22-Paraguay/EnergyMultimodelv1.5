@@ -107,8 +107,11 @@ def main(dados: str, seedf: str, saida: str) -> int:
     pdf = PdfReader(glob.glob(str(bx / "seeds2_relatorio_*.pdf"))[0])
     txt = [p.extract_text() for p in pdf.pages]
     custo = f"{run.summary['mission']['custo_realizado_total_R']:.2f}".replace(".", ",")
-    ok(len(txt) >= 6 and run.run_uid in "".join(txt) and "Resultados" in "".join(txt[1:-1]) and "Limitações" in txt[-1],
-       f"PDF: {len(txt)} páginas; início (rodada), meio (Resultados), fim (Limitações)")
+    # UI-RESULTADOS-02: com a Partitura, o PDF da rodada é o relatório VISUAL (Operação → Visão Geral → Decisão → Economia →
+    # Evidência, terminando nas limitações); o relatório técnico anterior tinha «Resultados» no meio e «Limitações» no fim.
+    meio, fim = "".join(txt[1:-1]), "".join(txt[-3:])
+    ok(len(txt) >= 6 and run.run_uid in txt[0] + "".join(txt) and ("Resultados" in meio or "Visão Geral" in meio) and "Limitações" in fim,
+       f"PDF: {len(txt)} páginas; início (rodada), meio (Resultados / Visão Geral), fim (Limitações)")
     ok("SINTÉTICOS" in "".join(txt) and custo in "".join(txt), f"PDF: rótulo de dados sintéticos e custo selado R$ {custo}")
     # ---- modal
     q = json.loads((Path(saida) / "modal_quadros.json").read_text("utf-8"))

@@ -148,7 +148,7 @@ class MarcoDeRodadaRealTest(unittest.TestCase):
         js, f, it = json.loads(r.stdout), self.frame, self.it
         self.assertEqual(js["K"], len(it))
         self.assertEqual(js["n_rot"], len(it) + 1)
-        self.assertEqual(js["ord"], ["fv", "wt", "bat", "fc", "grid", "dem", "eco"])
+        self.assertEqual(js["ord"], ["fv", "wt", "bat", "fc", "grid", "dem", "liq", "eco"])   # UI-RESULTADOS-02: «Carga líquida»
         tot = lambda uids, col: math.fsum(float(it[f"{u}|{col}"].sum()) for u in uids)  # noqa: E731
         uids = lambda k: [r["uid"] for r in f["recursos"][k]]  # noqa: E731
         for chave, valor in (("wtP", tot(uids("wt"), "P_R_kW")), ("fvP", tot(uids("fv"), "P_R_kW")),
