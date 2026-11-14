@@ -90,6 +90,26 @@ INTOCADOS = ("ems_v2", "integracao_v2", "models", "h2_pemfc", "simulation", "con
              "seeds2/microgrid/adapter.py", ".github")
 
 
+# ÚNICA exceção histórica autorizada após a missão: correção do zero FV do PR #30.
+# O SHA é o blob Git EXATO do arquivo aprovado em main c807a28; qualquer modificação posterior
+# torna a exceção inválida. Não enfraquece as guardas do motor nem autoriza outros caminhos.
+FV_ZERO_BLOB_SHA = "855b0ee3fa8a49260cc0f03f2117ff4b348425b3"
+
+
+def filter_fv_zero_autorizado(root: Path, linhas: list[list[str]]) -> list[list[str]]:
+    """Ignora só 'M integracao_v2/renovaveis.py' quando o conteúdo coincide byte a byte com o PR #30."""
+    try:
+        sha_atual = subprocess.run(
+            ["git", "hash-object", "integracao_v2/renovaveis.py"],
+            cwd=root, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return linhas
+    if sha_atual != FV_ZERO_BLOB_SHA:
+        return linhas
+    return [ln for ln in linhas if ln != ["M", "integracao_v2/renovaveis.py"]]
+
+
 def auditar_missao(root: Path, base: str = BASE) -> dict:
     """Auditoria EXPLÍCITA do diff desta missão (base → árvore de trabalho)."""
     def git(*args: str) -> str:
