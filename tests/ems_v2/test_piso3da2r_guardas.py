@@ -48,6 +48,11 @@ def test_motor_auditado_e_modelos_fisicos_identicos_a_base():
         assert _git("rev-parse", f"{P.BASE}:{alvo}") == _git("rev-parse", f"HEAD:{alvo}"), alvo
     linhas = [ln.split("\t") for ln in _git("diff", "--name-status", "--no-renames", P.BASE, "HEAD", "--", "ems_v2")
               .splitlines() if ln.strip()]
+    # A auditoria histórica continua exigindo os quatro arquivos do C-3DA2H-01.
+    # A única alteração posterior admitida é o hotfix FV 0 % da ponte 3C-0,
+    # identificado pelo SHA exato do conteúdo aprovado; outros arquivos seguem bloqueados.
+    from exemplos01_guard_policy import filter_ponte_zero_autorizado
+    linhas = filter_ponte_zero_autorizado(RAIZ, linhas)
     assert all(ln[0] == "M" and ln[1] in NUCLEO_AUTORIZADO for ln in linhas), linhas
 
 

@@ -5,10 +5,39 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `claude/friendly-mccarthy-zrel1q` (reiniciada de `main` `c29e600` = merge do PR #27) |
-| **PR** | ver «UI-FINISH-01» abaixo — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **UI-FINISH-01** — bancadas sem microrrede, catálogo recolhido, preflight compacto + cartão de rodada, overlay do modal estável, exportação de cada gráfico (PNG/SVG claro/escuro) e PDF/ZIP/Excel da rodada V2. |
+| **Branch** | `ccr-97327863-dz2vx1` (a partir de `main` `c807a28`) |
+| **PR** | «Exemplos persistentes» — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **EXEMPLOS-PERSISTENTES-01** — instantânea completa (GUARDAR COMPLETO) + restauração automática dos exemplos de `seeds2/exemplos/` ao iniciar. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## EXEMPLOS-PERSISTENTES-01 (decisão do responsável, 14/11/2026)
+
+- **Problema:** no Streamlit Community Cloud o disco é efímero (reboot, redeploy por push, sono por inatividade) e
+  `SEEDS2_DATA_DIR` (`/home/appuser/.seeds2`) some. A entrega à banca precisa de 5 exemplos fixos (C1–C5 do caderno de
+  roteiros). Backup = só configuração; estudo = um cenário no Arquivo Científico, somente leitura.
+- **Decisões do responsável:** (1) instantânea COMPLETA (banco inteiro); (2) botão GUARDAR COMPLETO no Gestor que só
+  BAIXA o arquivo — sem commit pela aplicação, sem token, sem senha (ideia de «guardar no código-fonte» descartada:
+  commit pela app exigiria token e redeploy a cada gravação); (3) os responsáveis colocam as instantâneas em
+  `seeds2/exemplos/` por PR; (4) **exemplos editáveis** — alterações valem até o reinício, depois volta o original
+  (filosofia da entrega à banca; o aplicativo oficial definirá outra); (5) **exceção autorizada à regra 8** restrita a
+  `seeds2/exemplos/*.seeds2snapshot.zip` de microrredes hipotéticas.
+- **Entregue:** `seeds2/microgrid/snapshot.py` (formato v1, exportação, inspeção não confiável com esquema idêntico,
+  `state_stamp`, `restore_snapshot` sobre o `MicrogridRegistry._commit_new` EXISTENTE — `registry.py` intocado),
+  `seeds2/microgrid/exemplos.py` (restauração idempotente ao iniciar), `session._registry_for` chama
+  `exemplos.garantir_na_inicializacao` (uma vez por processo) e `session.exemplos_relato`, Gestor: botão
+  `g_snap_<uid>` «GUARDAR COMPLETO» + `g_snapdl_<uid>` (só oferecido enquanto o estado não mudou), selo «Exemplo» e
+  aviso de falhas. `seeds2/exemplos/README.md` (pasta ainda SEM instantâneas). `SEEDS2_EXEMPLOS=0` em
+  `tests/conftest.py` e `tools/e2e/servidor.sh`. `.gitignore`: `*.seeds2snapshot.zip` ignorado fora da pasta.
+- **Achado na implementação:** os documentos dos cenários registram `microgrid.incarnation`; restaurar com incarnação
+  nova bloquearia a edição dos cenários ⇒ a incarnação VIAJA na instantânea e é preservada (restauração só ao iniciar
+  o processo, quando não há sessões antigas). Documentado em `docs/seeds2/ARMAZENAMENTO.md`.
+- **Testes:** `tests/test_seeds2_snapshot.py` (24) + `tests/ems_v2/test_exemplos01_guardas.py` (3). Regressão completa com solver: 2408 passed, 2 skipped, 3 failed = as 3 falhas PRÉ-EXISTENTES no `main` `c807a28` (sujeira zero do 3D-A2-R e as auditorias históricas 3D-B/UI-FINISH-01, que apontam `integracao_v2/renovaveis.py`). Detalhes: `PARAMIJEFE.md` Entrega 23.
+- **Próximo passo:** revisão/merge do PR pelo responsável → no deploy, criar C1–C5 com o caderno, executar,
+  GUARDAR COMPLETO em cada uma (sem reiniciar a app nem fazer push durante a montagem) → enviar os 5 arquivos →
+  novo PR colocando-os em `seeds2/exemplos/`. Ao adicioná-los, rodar `tests/test_seeds2_snapshot.py`
+  (`test_diretorio_do_codigo_existe_e_so_tem_instantaneas_validas` inspeciona cada arquivo da pasta).
+
+---
 
 ## UI-FINISH-01 (pedido do responsável; pacote `SEEDS2_OPUS_UI_FINISH_2026-11-13`)
 

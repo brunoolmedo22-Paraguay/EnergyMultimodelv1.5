@@ -9,6 +9,9 @@ import tempfile
 
 _SAFE = tempfile.mkdtemp(prefix="seeds2_pytest_")
 os.environ["SEEDS2_DATA_DIR"] = _SAFE
+# Exemplos persistentes (seeds2/exemplos/): desligados por padrão para que nenhuma microrrede de exemplo apareça nos
+# catálogos dos testes; os testes da restauração os ligam explicitamente.
+os.environ.setdefault("SEEDS2_EXEMPLOS", "0")
 
 
 def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001

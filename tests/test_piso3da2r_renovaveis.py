@@ -161,8 +161,11 @@ def test_sujeira_zero_automatica_e_aceita_no_ems_v2_sem_confirmacao(tmp_path):
     store = _loja(tmp_path, eolica=False, sujeira=None, arranjos=2)
     sc = R.criar_cenario_hibrido(store, clima=_tabela())
     fv = next(e for e in sc.document["inventory_ref"]["equipment"].values() if e["kind"] == "pv")
-    assert len(fv["arrays"]) == 2
-    assert all(a["soiling_pct"] == 0.0 and a["soiling_default"] for a in fv["arrays"])
+    # inventory_ref resume o número de arranjos; os registros completos ficam no inventário.
+    assert fv["arrays"] == 2
+    fv_completo = next(e for e in store.load().config["equipment"] if e["kind"] == "pv")
+    assert len(fv_completo["arrays"]) == 2
+    assert all(a["soiling_pct"] == 0.0 and a["soiling_default"] for a in fv_completo["arrays"])
     pf = PF.preparar(store, sc)
     _apto(pf)
     assert len(pf.montagem.renovaveis) == 2

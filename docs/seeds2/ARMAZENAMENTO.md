@@ -326,6 +326,57 @@ backup v1 real (`tests/fixtures/seeds2_backup_v1_piso1.zip`).
 
 Nome do arquivo ASCII (acentos transliterados) para portabilidade.
 
+## Instantânea completa (`.seeds2snapshot.zip`) e exemplos persistentes — missão «Exemplos persistentes»
+
+**Motivo (decisão do responsável, 14/11/2026).** No Streamlit Community Cloud o disco do contêiner é efímero: reboot,
+redeploy (push na rama publicada) e o «sono» por inatividade recriam o contêiner a partir do repositório, e tudo o que
+foi gravado em `SEEDS2_DATA_DIR` (`/home/appuser/.seeds2`) desaparece. O SEEDS2 é entregue com microrredes de exemplo
+(casos C1–C5 do caderno de roteiros) que precisam sobreviver a isso. Nenhum formato anterior bastava: o backup leva só a
+configuração e o estudo científico abre UM cenário no Arquivo Científico, somente leitura.
+
+**Formato** (`seeds2/microgrid/snapshot.py`, versão 1): `manifest.json` (formato, versões, identidade, revisão,
+impressão digital, contagens de `revisions`, `blobs`, `simulation_runs`, `scenarios`, `scenario_versions`,
+`scenario_runs`, `scenario_run_data`, SHA-256 e tamanho do banco) + `seeds2.db` (cópia consistente pela API de backup
+do SQLite, com o conteúdo do `-wal`; `integrity_check`). É o banco INTEIRO da microrrede: configuração, revisões,
+dados de entrada, cenários e versões, previsões, estratégias, rodadas e todos os dados gravados das rodadas.
+
+| | backup `.seeds2backup.zip` | estudo `.seeds2study.zip` | instantânea `.seeds2snapshot.zip` |
+|---|---|---|---|
+| Conteúdo | configuração + histórico + blobs | UM cenário (versões, previsões, rodadas finalizadas) | o banco inteiro da microrrede |
+| Ao importar | microrrede sem cenários | estudo somente leitura no Arquivo Científico | a microrrede exatamente como estava |
+| Onde | Gestor (ZIP) / Gestão | Arquivo Científico | Gestor → **GUARDAR COMPLETO** |
+
+**Exportação** (`export_snapshot`): recusada com lápide ou com rodada em execução (estado não reprodutível). A
+**incarnação viaja** com a instantânea: os documentos dos cenários registram `microgrid.incarnation` e o armazenamento
+só aceita novas versões de um cenário na mesma incarnação; restaurada com outra, a microrrede ficaria com os cenários
+bloqueados para edição.
+
+**Inspeção** (`inspect_snapshot`, entrada tratada como não confiável, nunca levanta exceção): ≤ 512 MiB, exatamente as
+duas entradas, sem criptografia, leitura em blocos com limite; manifesto validado campo a campo; SHA-256; `integrity_check`;
+versão do esquema ≤ a deste software e igual à declarada; identidade, revisão e impressão digital iguais às do
+manifesto; sem lápide; sem rodada em execução; contagens iguais; **esquema idêntico** ao que esta versão cria (nenhuma
+tabela, índice, gatilho ou visão a mais ou a menos — um banco com gatilho injetado é recusado).
+
+**Restauração** (`snapshot.restore_snapshot`): usa o protocolo recuperável EXISTENTE do catálogo
+(`MicrogridRegistry._commit_new`, **inalterado** — `registry.py` não foi modificado): o banco da instantânea é escrito no
+diretório de preparação (`.staging`) no lugar do banco vazio recém-criado, aberto pelo `MicrogridStore` (migra a cópia se
+for de versão anterior, com `.bak-v<N>`), conferido (identidade, contagens, esquema) e confirmado pelo `_commit_new`
+(rename + `INSERT` sob L1, desfeito em caso de falha). A incarnação da instantânea é preservada (`stamp_incarnation` usa
+`INSERT OR IGNORE`). Identidade já presente no catálogo ⇒ recusa, sem tocar em nada. Origem no catálogo: `import`, com
+nota de procedência.
+
+**Exemplos persistentes** (`seeds2/microgrid/exemplos.py`; pasta `seeds2/exemplos/`): ao abrir o catálogo (uma vez
+por processo, em `seeds2/ui/session._registry_for`), toda instantânea da pasta cuja microrrede não esteja no catálogo é
+restaurada. Idempotente; sessões concorrentes não duplicam (o catálogo recusa a segunda); uma instantânea defeituosa
+vira aviso no Gestor e no log, sem impedir a aplicação nem os demais exemplos. Exemplos são **editáveis**: alterações
+valem até o próximo reinício do processo, quando a microrrede volta ao estado guardado; uma microrrede excluída volta
+no próximo reinício. O cartão do Gestor mostra o selo «Exemplo». `SEEDS2_EXEMPLOS=0` desliga a restauração (padrão na
+suíte de testes e em `tools/e2e/servidor.sh`); `SEEDS2_EXEMPLOS_DIR` aponta outra pasta (testes).
+
+**Exceção autorizada à regra 8 do `CLAUDE.md`** (responsável, 14/11/2026): somente `seeds2/exemplos/*.seeds2snapshot.zip`
+pode ser versionado, e só com microrredes HIPOTÉTICAS de exemplo. O `.gitignore` ignora `*.seeds2snapshot.zip` fora
+dessa pasta.
+
 ## Restauração
 
 1. **Inspeção de arquivo não confiável** (`inspect_backup`, nunca levanta exceção — todo defeito vira

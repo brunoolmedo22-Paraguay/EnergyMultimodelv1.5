@@ -3390,3 +3390,36 @@ Excepción nominal `tests/ems_v2/ui_finish01_guard_policy.py` (nombres, estado y
 ### 5. Recomendación y pendientes
 
 Sin defectos bloqueantes conocidos. Pendientes fuera del alcance: (a) decisión sobre C-DEPLOY-01; (b) los roteros E2E de los pisos 1–2D-B y de estabilización se adaptaron (`catalogo_util.js`) pero no se re-ejecutaron en esta misión; (c) Escape no pliega la tarjeta del catálogo (sin JavaScript; el propio convite pliega por clic/teclado). Apto para revisión; **sin merge** hasta autorización expresa del responsable.
+
+## Entrega 23 — SEEDS2 · EXEMPLOS-PERSISTENTES-01: instantánea completa (GUARDAR COMPLETO) y ejemplos que sobreviven al reinicio — 2026-11-14
+
+### 1. Identificación
+
+- Rama `ccr-97327863-dz2vx1` desde `main` `c807a28`; PR contra `main` **sin merge**. Pedido y decisiones del responsable en la conversación del 14/11/2026.
+- **Problema:** en Streamlit Community Cloud el disco del contenedor es efímero (reboot, redeploy por push, «sueño» por inactividad). `SEEDS2_DATA_DIR` (`/home/appuser/.seeds2`) desaparece y con él todas las microrredes. La entrega a la banca necesita cinco ejemplos fijos (C1–C5 del cuaderno de roteiros). El backup lleva solo la configuración; el estudio abre UN escenario en el Arquivo Científico, solo lectura.
+- **Decisiones del responsable:** (1) instantánea COMPLETA (banco entero); (2) botón GUARDAR COMPLETO que solo DESCARGA el archivo — se descartó «guardar en el código fuente» desde la app (exigiría token de GitHub y provocaría redeploy en cada guardado); (3) los responsables colocan las instantáneas en `seeds2/exemplos/` por PR; (4) ejemplos **editables**: los cambios valen hasta el reinicio y luego vuelve el original (filosofía de la entrega a la banca; el aplicativo oficial definirá otra); (5) **excepción autorizada a la regla 8** restringida a `seeds2/exemplos/*.seeds2snapshot.zip` de microrredes hipotéticas.
+
+### 2. Qué cambió
+
+1. `seeds2/microgrid/snapshot.py`: formato `.seeds2snapshot.zip` v1 (`manifest.json` + `seeds2.db`); exportación por la API de backup del SQLite (incluye el `-wal`), rechazada con lápida o rodada en ejecución; inspección de entrada NO confiable (límites, dos entradas exactas, manifiesto campo a campo, SHA-256, `integrity_check`, versión, identidad, conteos y **esquema idéntico** al que crea esta versión — un disparador inyectado se rechaza); `restore_snapshot` sobre el `MicrogridRegistry._commit_new` EXISTENTE (`registry.py` **sin cambios**); `state_stamp` (huella barata del estado completo).
+2. `seeds2/microgrid/exemplos.py`: restaura al abrir el catálogo (una vez por proceso, `seeds2/ui/session._registry_for`) las instantáneas de `seeds2/exemplos/` ausentes; idempotente, sin duplicados con sesiones concurrentes, fallas convertidas en aviso (Gestor + log), nunca impide abrir la app. `SEEDS2_EXEMPLOS=0` la apaga (por defecto en `tests/conftest.py` y `tools/e2e/servidor.sh`).
+3. Gestor: botón «GUARDAR COMPLETO» (`g_snap_<uid>`) + descarga (`g_snapdl_<uid>`, ofrecida solo mientras el estado no cambió), sello «Exemplo» y aviso de fallas. `seeds2/exemplos/README.md` (carpeta todavía SIN instantáneas). `.gitignore` ignora `*.seeds2snapshot.zip` fuera de la carpeta.
+4. **Hallazgo durante la implementación:** los documentos de escenario registran `microgrid.incarnation` y el almacenamiento rechaza nuevas versiones de otra incarnation. Restaurar con incarnation nueva habría dejado los escenarios de los ejemplos **no editables** ⇒ la incarnation viaja en la instantánea y se conserva (`stamp_incarnation` usa `INSERT OR IGNORE`); la restauración solo ocurre al iniciar el proceso, cuando no hay sesiones antiguas. Documentado en `docs/seeds2/ARMAZENAMENTO.md`.
+
+### 3. Guardas
+
+Excepción nominal `tests/ems_v2/exemplos01_guard_policy.py` (nombres y estados exactos; líneas REMOVIDAS de `session.py`/`gestor.py` en lista explícita; instantáneas solo directamente en `seeds2/exemplos/`), encadenada al final de la política del UI-FINISH-01 y enganchada en las auditorías de `ui_finish01_guard_policy.py` y `piso3db_guard_policy.py`. Primera versión tocaba `registry.py`; la guardia eólica (fijada por hash) usa ese archivo como ejemplo de lo que NINGUNA excepción debe autorizar ⇒ se revirtió `registry.py` y la restauración pasó a `snapshot.py` usando el `_commit_new` existente.
+
+### 4. Verificación
+
+- `tests/test_seeds2_snapshot.py` **24 passed** (instantánea × banco de origen fila a fila; incarnation preservada y escenarios editables; rechazo de rodada en ejecución; inspección adversarial; restauración idempotente/concurrente de ejemplos con `threading.Barrier`; botón y sello en AppTest) + `tests/ems_v2/test_exemplos01_guardas.py` **3 passed**.
+- Navegador real (Chromium): sello «EXEMPLO» en la tarjeta restaurada al iniciar, botón GUARDAR COMPLETO, descarga del `.seeds2snapshot.zip` y re-inspección del archivo descargado: aprobada.
+- Regresión completa: ver §6 (resultado final).
+
+### 5. Recomendación y pendientes
+
+Siguiente paso del responsable: merge → en el deploy, crear C1–C5 con el cuaderno, ejecutarlas y GUARDAR COMPLETO en cada una (sin reiniciar la app ni hacer push mientras se arman) → enviar los cinco archivos → nuevo PR que los coloque en `seeds2/exemplos/`. Fallas preexistentes en `main` no tratadas aquí: `test_piso3da2r_renovaveis::test_sujeira_zero_automatica…` (commit `c807a28`) y las dos auditorías explícitas históricas (3D-B y UI-FINISH-01), que señalan `integracao_v2/renovaveis.py` de `c807a28`.
+
+### 6. Regresión completa (resultado final, con solver, código `bdfa51f`)
+
+`python -m pytest tests/ -q`: **2408 passed, 2 skipped, 3 failed** en 22 min. Las 3 fallas son exactamente las que fallan en una copia limpia de `main` `c807a28` (verificado ejecutándolas en un worktree de `origin/main`): `test_piso3da2r_renovaveis::test_sujeira_zero_automatica_e_aceita_no_ems_v2_sem_confirmacao` y las auditorías explícitas históricas `test_piso3db_guardas::test_auditoria_explicita_do_diff_da_missao` y `test_ui_finish01_guardas::test_auditoria_explicita_da_missao` (ambas señalan solo `M integracao_v2/renovaveis.py`, de `c807a28`; tras el gancho de esta misión, ninguna lista archivos de esta misión). No ejecutado: suite sin solver y roteiros E2E completos (`run_piso3d*.sh`); el servidor E2E ahora arranca con `SEEDS2_EXEMPLOS=0`.

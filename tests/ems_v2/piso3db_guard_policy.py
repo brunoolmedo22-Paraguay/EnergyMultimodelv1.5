@@ -82,6 +82,12 @@ def auditar_missao(root: Path, base: str = BASE, head: str = "HEAD", *, incluir_
     linhas = filter_deploy(root, linhas)
     from ui_finish01_guard_policy import filter_intocados          # UI-FINISH-01: só M seeds2/report/dossier.py, conforme
     linhas = filter_intocados(root, linhas)
+    from exemplos01_guard_policy import filter_changes as filter_exemplos01   # EXEMPLOS-PERSISTENTES-01: nomes e status exatos
+    linhas = filter_exemplos01(root, linhas)
+    from exemplos01_guard_policy import filter_fv_zero_autorizado   # somente blob aprovado no hotfix FV PR #30
+    linhas = filter_fv_zero_autorizado(root, linhas)
+    from exemplos01_guard_policy import filter_ponte_zero_autorizado   # blob exato: hipótese FV 0% (3C-0)
+    linhas = filter_ponte_zero_autorizado(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     fora = [ln for ln in linhas if not (
         (ln[0] == "M" and ln[1] in MODIFICADOS) or (ln[0] == "A" and ln[1] in ADICIONADOS)

@@ -37,9 +37,16 @@ CREATING_KEY = "mg_creating"
 _KEEP_ON_SWITCH = ("seeds_route", "mg_flash")
 
 
+_EXEMPLOS: dict[str, object] = {}       # relato da restauração dos exemplos, por diretório de dados (uma vez por processo)
+
+
 @st.cache_resource(show_spinner=False)
 def _registry_for(path: str) -> MicrogridRegistry:
-    return MicrogridRegistry(path)
+    from seeds2.microgrid import exemplos
+
+    reg = MicrogridRegistry(path)
+    _EXEMPLOS[path] = exemplos.garantir_na_inicializacao(reg)   # exemplos persistentes (seeds2/exemplos/)
+    return reg
 
 
 @st.cache_resource(show_spinner=False)
@@ -49,6 +56,13 @@ def _store_for(path: str, uid: str, incarnation: str | None) -> MicrogridStore:
 
 def registry() -> MicrogridRegistry:
     return _registry_for(str(resolve_data_dir()))
+
+
+def exemplos_relato():
+    """Relato da restauração automática dos exemplos neste processo (``exemplos.Relato``) ou ``None``."""
+    path = str(resolve_data_dir())
+    _registry_for(path)
+    return _EXEMPLOS.get(path)
 
 
 @st.cache_resource(show_spinner=False)

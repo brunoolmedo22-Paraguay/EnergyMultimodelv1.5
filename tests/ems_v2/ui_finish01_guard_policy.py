@@ -78,7 +78,9 @@ def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
         (row[0] == "M" and row[1] in MODIFICADOS and (conforme or row[1] not in REMOVIDAS))
         or (row[0] == "A" and row[1] in ADICIONADOS)))]
     from deploy_requirements_guard_policy import filter_changes as filter_deploy
-    return filter_deploy(root, restantes)
+    restantes = filter_deploy(root, restantes)
+    from exemplos01_guard_policy import filter_changes as filter_exemplos01      # exceção nominal EXEMPLOS-PERSISTENTES-01
+    return filter_exemplos01(root, restantes)
 
 
 def filter_intocados(root: Path, linhas: list[list[str]]) -> list[list[str]]:
@@ -106,6 +108,12 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
     from deploy_requirements_guard_policy import filter_changes as filter_deploy
     linhas = filter_deploy(root, linhas)
+    from exemplos01_guard_policy import filter_changes as filter_exemplos01   # EXEMPLOS-PERSISTENTES-01: nomes e status exatos
+    linhas = filter_exemplos01(root, linhas)
+    from exemplos01_guard_policy import filter_fv_zero_autorizado   # somente blob aprovado no hotfix FV PR #30
+    linhas = filter_fv_zero_autorizado(root, linhas)
+    from exemplos01_guard_policy import filter_ponte_zero_autorizado   # blob exato: hipótese FV 0% (3C-0)
+    linhas = filter_ponte_zero_autorizado(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     fora = removidas_fora_da_lista(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,
