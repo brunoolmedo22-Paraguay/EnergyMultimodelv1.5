@@ -10,7 +10,7 @@ const plano = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 const texto = (p) => p.evaluate(() => (document.querySelector(".pt") || document.body).textContent.replace(/\s+/g, " "));
 
 async function percorrer(p, vistas) {
-  for (const l of ["operacao", "decisao", "economia", "evidencia"]) { await p.click(`[data-lente="${l}"]`); await p.waitForTimeout(250); vistas["lente:" + l] = await texto(p); }
+  for (const l of ["operacao", "decisao", "economia", "evidencia", "visao"]) { /* «visao»: UI-RESULTADOS-02 */ await p.click(`[data-lente="${l}"]`); await p.waitForTimeout(250); vistas["lente:" + l] = await texto(p); }
   await p.click('[data-lente="operacao"]'); await p.waitForTimeout(150);
   await p.click(".status .pill"); await p.waitForTimeout(250);
   const n = await p.locator('.dtools [role="tab"]').count();

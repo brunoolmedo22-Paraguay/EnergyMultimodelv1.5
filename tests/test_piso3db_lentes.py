@@ -185,7 +185,7 @@ class LentesSobreRodadasReaisTest(unittest.TestCase):
         json.dumps(f, allow_nan=False)
         if P.NODE:
             js = P.node("const M = api.modelo(F); return [M.ord, M.A.fcP, M.A.wtP, M.A.cH2, api.balancoDe(M.A, 0).faltam];", f)
-            self.assertEqual(js, [["bat", "grid", "dem", "eco"], "__undefined__", "__undefined__", "__undefined__", []])
+            self.assertEqual(js, [["bat", "grid", "dem", "liq", "eco"], "__undefined__", "__undefined__", "__undefined__", []])
 
 
     # ------------------------------------------------------------------------------------------- microrrede isolada
@@ -196,7 +196,7 @@ class LentesSobreRodadasReaisTest(unittest.TestCase):
         self.assertNotIn("importacao_rede", f["resumo"]["componentes_R"])
         if P.NODE:
             js = P.node("const M = api.modelo(F), b = api.balancoDe(M.A, 0); return [M.ord, M.A.impR, M.A.tar, M.A.cImp, b.inj.map((x) => x[0]), b.faltam, b.total];", f)
-            self.assertEqual(js[:4], [["bat", "dem", "eco"], "__undefined__", "__undefined__", "__undefined__"])
+            self.assertEqual(js[:4], [["bat", "dem", "liq", "eco"], "__undefined__", "__undefined__", "__undefined__"])
             self.assertEqual(js[4:], [["bat"], [], 1.0])
 
 
@@ -220,7 +220,7 @@ class LentesNoNavegadorTest(unittest.TestCase):
             with self.subTest(marco=nome):
                 self.assertEqual(res["erros"], [])
                 self.assertEqual({k for k in res["vistas"] if k.startswith("lente:")},
-                                 {"lente:operacao", "lente:decisao", "lente:economia", "lente:evidencia"})
+                                 {"lente:operacao", "lente:decisao", "lente:economia", "lente:evidencia", "lente:visao"})   # UI-RESULTADOS-02
 
     def test_selecao_por_uid_com_dois_bancos_e_duas_unidades(self):
         f, v = self.f["bancos"], self.r["bancos"]["vistas"]
@@ -248,10 +248,10 @@ class LentesNoNavegadorTest(unittest.TestCase):
         self.assertIn("00:30", v["lente:operacao"])
         v = self.r["legado"]["vistas"]
         self.assertIn("Contrato de dadosv1", v["lente:evidencia"])
-        self.assertEqual(sorted(k.split(":")[1] for k in v if k.startswith("painel:")), ["Bateria", "Carga", "Custos", "Rede"])
+        self.assertEqual(sorted(k.split(":")[1] for k in v if k.startswith("painel:")), ["Bateria", "Carga", "Carga líquida", "Custos", "Rede"])
         self.assertNotIn("balanço incompleto", v["lente:operacao"])     # recurso inexistente ≠ dado ausente
         v = self.r["isolada"]["vistas"]
-        self.assertEqual(sorted(k.split(":")[1] for k in v if k.startswith("painel:")), ["Bateria", "Carga", "Custos"])
+        self.assertEqual(sorted(k.split(":")[1] for k in v if k.startswith("painel:")), ["Bateria", "Carga", "Carga líquida", "Custos"])
         self.assertNotIn("balanço incompleto", v["lente:operacao"])
         self.assertIn("Σ injeção (derivado) = 1,00 kW", v["lente:operacao"])
         self.assertNotIn("Tarifa de decisão", v["lente:economia"])       # sem PCC não há tarifa: omitida, não N/D
