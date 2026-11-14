@@ -40,6 +40,16 @@ def test_remocao_nao_conforme_volta_a_falhar():
             ["M", "seeds2/ui/session.py"], ["M", "seeds2/microgrid/registry.py"]]
 
 
+def test_excecao_fv_so_para_blob_do_pr30():
+    linhas = [["M", "integracao_v2/renovaveis.py"], ["M", "integracao_v2/preflight.py"],
+              ["D", "integracao_v2/renovaveis.py"]]
+    with mock.patch.object(G.subprocess, "run") as git:
+        git.return_value.stdout = G.FV_ZERO_BLOB_SHA + "\n"
+        assert G.filter_fv_zero_autorizado(RAIZ, linhas) == linhas[1:]
+        git.return_value.stdout = "0000000000000000000000000000000000000000\n"
+        assert G.filter_fv_zero_autorizado(RAIZ, linhas) == linhas
+
+
 @pytest.mark.skipif(not _base_disponivel(), reason="base da missão indisponível neste clone")
 def test_auditoria_explicita_da_missao():
     rel = G.auditar_missao(RAIZ)
