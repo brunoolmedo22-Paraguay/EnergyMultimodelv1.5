@@ -3419,3 +3419,7 @@ Excepción nominal `tests/ems_v2/exemplos01_guard_policy.py` (nombres y estados 
 ### 5. Recomendación y pendientes
 
 Siguiente paso del responsable: merge → en el deploy, crear C1–C5 con el cuaderno, ejecutarlas y GUARDAR COMPLETO en cada una (sin reiniciar la app ni hacer push mientras se arman) → enviar los cinco archivos → nuevo PR que los coloque en `seeds2/exemplos/`. Fallas preexistentes en `main` no tratadas aquí: `test_piso3da2r_renovaveis::test_sujeira_zero_automatica…` (commit `c807a28`) y las dos auditorías explícitas históricas (3D-B y UI-FINISH-01), que señalan `integracao_v2/renovaveis.py` de `c807a28`.
+
+### 6. Regresión completa (resultado final, con solver, código `bdfa51f`)
+
+`python -m pytest tests/ -q`: **2408 passed, 2 skipped, 3 failed** en 22 min. Las 3 fallas son exactamente las que fallan en una copia limpia de `main` `c807a28` (verificado ejecutándolas en un worktree de `origin/main`): `test_piso3da2r_renovaveis::test_sujeira_zero_automatica_e_aceita_no_ems_v2_sem_confirmacao` y las auditorías explícitas históricas `test_piso3db_guardas::test_auditoria_explicita_do_diff_da_missao` y `test_ui_finish01_guardas::test_auditoria_explicita_da_missao` (ambas señalan solo `M integracao_v2/renovaveis.py`, de `c807a28`; tras el gancho de esta misión, ninguna lista archivos de esta misión). No ejecutado: suite sin solver y roteiros E2E completos (`run_piso3d*.sh`); el servidor E2E ahora arranca con `SEEDS2_EXEMPLOS=0`.
