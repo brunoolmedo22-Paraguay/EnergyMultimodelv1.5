@@ -50,6 +50,16 @@ def test_excecao_fv_so_para_blob_do_pr30():
         assert G.filter_fv_zero_autorizado(RAIZ, linhas) == linhas
 
 
+def test_excecao_da_ponte_fv_so_para_blob_autorizado():
+    linhas = [["M", "ems_v2/ponte/requisitos.py"], ["M", "ems_v2/ponte/inventario.py"],
+              ["D", "ems_v2/ponte/requisitos.py"]]
+    with mock.patch.object(G.subprocess, "run") as git:
+        git.return_value.stdout = G.FV_PONTE_ZERO_BLOB_SHA + "\n"
+        assert G.filter_ponte_zero_autorizado(RAIZ, linhas) == linhas[1:]
+        git.return_value.stdout = "0000000000000000000000000000000000000000\n"
+        assert G.filter_ponte_zero_autorizado(RAIZ, linhas) == linhas
+
+
 @pytest.mark.skipif(not _base_disponivel(), reason="base da missão indisponível neste clone")
 def test_auditoria_explicita_da_missao():
     rel = G.auditar_missao(RAIZ)
