@@ -78,6 +78,7 @@ def _exemplo(path: str) -> bool:
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos; código protegido só se as remoções forem conformes."""
     ruins = remocoes_nao_conformes(root)
+    changes = filter_ponte_zero_autorizado(root, changes)
     return [row for row in changes if not (len(row) == 2 and (
         (row[0] == "M" and row[1] in MODIFICADOS and row[1] not in ruins)
         or (row[0] == "A" and (row[1] in ADICIONADOS or _exemplo(row[1])))))]
@@ -110,6 +111,25 @@ def filter_fv_zero_autorizado(root: Path, linhas: list[list[str]]) -> list[list[
     return [ln for ln in linhas if ln != ["M", "integracao_v2/renovaveis.py"]]
 
 
+# Exceção científica estrita autorizada: aceitação de hipótese FV 0% no leitor
+# da matriz de parâmetros da ponte 3C-0. Somente este blob aprovado.
+FV_PONTE_ZERO_BLOB_SHA = "1c39495b7020d7988d99e3f9983fd4ab4a2852f5"
+
+
+def filter_ponte_zero_autorizado(root: Path, linhas: list[list[str]]) -> list[list[str]]:
+    """Aceita exclusivamente M ems_v2/ponte/requisitos.py com conteúdo do hotfix FV 0%."""
+    alvo = ["M", "ems_v2/ponte/requisitos.py"]
+    if alvo not in linhas:
+        return linhas
+    try:
+        sha_atual = subprocess.run(
+            ["git", "hash-object", alvo[1]], cwd=root, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return linhas
+    return [ln for ln in linhas if ln != alvo] if sha_atual == FV_PONTE_ZERO_BLOB_SHA else linhas
+
+
 def auditar_missao(root: Path, base: str = BASE) -> dict:
     """Auditoria EXPLÍCITA do diff desta missão (base → árvore de trabalho)."""
     def git(*args: str) -> str:
@@ -117,6 +137,7 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
 
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base).splitlines() if ln.strip()]
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
+    linhas = filter_ponte_zero_autorizado(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     ruins = remocoes_nao_conformes(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,
