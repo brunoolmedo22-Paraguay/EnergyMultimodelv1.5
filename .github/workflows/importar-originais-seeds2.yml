@@ -1,0 +1,45 @@
+name: Importar originais cientificos SEEDS2
+on:
+  workflow_dispatch:
+    inputs:
+      zip_path:
+        description: Caminho do ZIP no repositorio
+        required: false
+        default: SEEDS2_ORIGINAIS_COMPLETOS_PARA_GITHUB.zip
+permissions:
+  contents: write
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/escrita-cientifica-15nov
+          persist-credentials: true
+      - name: Validar e extrair originais
+        env:
+          ZIP_PATH: ${{ inputs.zip_path }}
+        run: |
+          python - <<'PY'
+          import os, zipfile, pathlib, shutil, sys
+          p=pathlib.Path(os.environ['ZIP_PATH'])
+          if not p.is_file(): sys.exit('ZIP ausente no repositorio: '+str(p))
+          with zipfile.ZipFile(p) as z:
+              items=[x for x in z.infolist() if not x.is_dir()]
+              if len(items)!=107: sys.exit(f'Quantidade inesperada de arquivos: {len(items)} (esperados 107)')
+              for x in items:
+                  parts=pathlib.PurePosixPath(x.filename).parts
+                  if not parts or parts[0]!='escrita_cientifica' or '..' in parts or x.filename.startswith('/'):
+                      sys.exit('Caminho inseguro: '+x.filename)
+                  if x.file_size>10_000_000: sys.exit('Arquivo muito grande: '+x.filename)
+                  dest=pathlib.Path(*parts)
+                  dest.parent.mkdir(parents=True,exist_ok=True)
+                  with z.open(x) as src, open(dest,'wb') as out: shutil.copyfileobj(src,out)
+          print(f'Extraidos {len(items)} originais completos')
+          PY
+      - name: Registrar importacao no Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add escrita_cientifica
+          if git diff --cached --quiet; then echo "Sem alteracoes"; else git commit -m "docs: importar 107 arquivos originais de escrita cientifica"; git push; fi
