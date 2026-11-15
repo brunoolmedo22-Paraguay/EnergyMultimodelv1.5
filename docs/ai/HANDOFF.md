@@ -5,10 +5,37 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `ccr-5023dbcf-6x5amv` (recriado a partir de `main` `21e3be5`, merge do PR #35) |
-| **PR** | ainda não aberto — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **EXEMPLO C5 v13** — substituir a instantânea persistente do C5 pela da primeira rodada integral (v13). |
+| **Branch** | `ccr-932f3ef1-tk6jh1` (a partir de `main` `5b7e540`, merge do PR #36) |
+| **PR** | aberto nesta missão — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **EXEMPLO CT-046 C1–C4** — substituir a instantânea persistente da microrrede industrial CT-046 pela que contém os quatro cenários operativos comparáveis. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## EXEMPLO CT-046 — quatro cenários operativos comparáveis (pedido do responsável, 15/11/2026)
+
+- **Substituição:** `seeds2/exemplos/C4_Carga_CT046_Solar_Bateria_Rede.seeds2snapshot.zip` ← instantânea do deploy de 15/11/2026
+  05:10 UTC (GUARDAR COMPLETO após a última rodada C4), sem alteração de conteúdo (SHA-256 `e4539899…c6179b187b`; blob Git
+  `fbaa7036…`). A instantânea anterior enviada (04:24 UTC, SHA-256 `63dd1e19…`) foi RECUSADA: não continha a rodada C4
+  `14d8e5b3…`. Nome do arquivo e da microrrede mantidos; nenhuma microrrede nova.
+- **Inspeção oficial aprovada** (`snapshot.inspect_snapshot`; CRC do ZIP, SHA-256 do banco, `integrity_check`, esquema v4
+  idêntico, contagens). MESMA microrrede (`ef5bc710…`), revisão 2, impressão `4a47bac7…` e incarnação `742ed1ac…`. Instantânea
+  NOVA = SUPERCONJUNTO estrito da anterior: `microgrid`, `revisions`, `meta`, `blobs`, versões v1–v9 do C4, as 3 rodadas antigas
+  e seus 33 dados IDÊNTICOS linha a linha; acrescentados 3 cenários, 6 versões, 4 rodadas e 42 dados. Total: 4 cenários,
+  15 versões, 7 rodadas concluídas, 75 dados.
+- **Rodadas de referência (02-10-2026, Δ = 15 min, 96 intervalos, N = 8, m = 1, H_L = 96), verificadas SEM solver**
+  (`registro.verificar`, motor/modelos sabotados, registro de motor vazio): C1 «Somente Rede» v2 `4f7da832…` R$ 1.274,2549 ·
+  C2 «Solar + Rede» v2 `dbccd121…` R$ 1.100,9713 · C3 «Bateria + Rede» v2 `7252f033…` R$ 1.038,3149 · C4 «Solar + Bateria +
+  Rede» v9 `14d8e5b3…` R$ 865,0313 — todas 96/96, demanda 1.967,1547 kWh atendida, ENS 0, auditoria integral aprovada,
+  96/96 sinais de valor futuro válidos, física não validada (ensaio offline).
+- **Atenção C4:** `363d98d6…` (v9, 14/11) tem o MESMO custo; `14d8e5b3…` (15/11 04:25) é a reexecução da MESMA versão
+  (mesma impressão do cenário) com `intervalos.csv`, `fronteiras.csv`, `planos.csv`, `auditoria.json`, `preflight.json` e
+  `renovaveis.json` de MESMO SHA-256 (registros selados, janelas, coordenações, modelo e índice diferem). A referência é a
+  `14d8e5b3…`; é também a que `list_runs()[0]` devolve (testes/E2E do UI-RESULTADOS-02 passam a usá-la).
+- **Guarda:** a auditoria explícita da B04-C5-01 (base `8dc5f6b`, anterior ao C4) recusa `M` de um exemplo existente ⇒
+  exceção NOMINAL `b04c501_guard_policy.exemplo_c4_ct046_autorizado`: só `M` desse caminho com o blob Git EXATO `fbaa7036…`
+  (mesmo mecanismo de `exemplos01_guard_policy.FV_ZERO_BLOB_SHA`); a exceção genérica `exemplo_persistente` e todas as
+  asserções existentes ficam INALTERADAS; testes de estrição novos. Precisa da aprovação do responsável junto com o PR.
+- **Implantação:** o carregador só restaura microrredes AUSENTES; um catálogo que já tenha a CT-046 continua com o estado
+  anterior (1 cenário) até um disco novo. Política não alterada.
 
 ## EXEMPLO C5 v13 — instantânea da primeira rodada integral (pedido do responsável, 15/11/2026)
 
