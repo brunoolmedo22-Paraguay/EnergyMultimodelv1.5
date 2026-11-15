@@ -1,0 +1,1 @@
+Este arquivo é temporário: a publicação dos arquivos originais integrais está em preparação. Não usar resumos como substitutos.
