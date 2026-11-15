@@ -71,6 +71,28 @@ def test_excecao_dos_exemplos_persistentes_e_estrita():
         assert not G.exemplo_persistente(row), row
 
 
+def test_substituicao_do_exemplo_ct046_so_com_o_blob_aprovado():
+    """Exceção NOMINAL (responsável, 15/11/2026): só ``M`` da instantânea do CT-046 com o blob Git EXATO aprovado."""
+    ok = G.C4_CT046_BLOB_SHA
+    assert G.exemplo_c4_ct046_autorizado(["M", G.C4_CT046], ok)
+    assert not G.exemplo_c4_ct046_autorizado(["M", G.C4_CT046], "0" * 40)          # outro conteúdo
+    assert not G.exemplo_c4_ct046_autorizado(["M", G.C4_CT046], "")                # sem git ou arquivo ausente
+    for row in (["D", G.C4_CT046], ["A", G.C4_CT046],
+                ["M", "seeds2/exemplos/C5_EMB_H2_120_Embarcacao_hibrida.seeds2snapshot.zip"],
+                ["M", "seeds2/exemplos/README.md"], ["M", "seeds2/microgrid/exemplos.py"],
+                ["M", "seeds2/microgrid/snapshot.py"], ["M", G.C4_CT046, "x"]):
+        assert not G.exemplo_c4_ct046_autorizado(row, ok), row
+    assert not G.exemplo_persistente(["M", G.C4_CT046])                          # a exceção genérica continua estrita
+
+
+@pytest.mark.skipif(not _base_disponivel(), reason="base da missão indisponível neste clone")
+def test_auditoria_recusa_outro_conteudo_do_exemplo_ct046():
+    if ("M", G.C4_CT046) not in G.auditar_missao(RAIZ)["alterados"]:
+        pytest.skip("instantânea do CT-046 igual à da base")
+    with mock.patch.object(G, "_blob", return_value="0" * 40):
+        assert ["M", G.C4_CT046] in G.auditar_missao(RAIZ)["intocados_violados"]
+
+
 @pytest.mark.skipif(not _base_disponivel(), reason="base da missão indisponível neste clone")
 def test_auditoria_explicita_da_missao():
     rel = G.auditar_missao(RAIZ)
