@@ -1,5 +1,9 @@
 name: Importar originais cientificos SEEDS2
 on:
+  push:
+    branches: [docs/escrita-cientifica-15nov]
+    paths:
+      - SEEDS2_ORIGINAIS_COMPLETOS_PARA_GITHUB.zip
   workflow_dispatch:
     inputs:
       zip_path:
@@ -18,7 +22,7 @@ jobs:
           persist-credentials: true
       - name: Validar e extrair originais
         env:
-          ZIP_PATH: ${{ inputs.zip_path }}
+          ZIP_PATH: ${{ inputs.zip_path || 'SEEDS2_ORIGINAIS_COMPLETOS_PARA_GITHUB.zip' }}
         run: |
           python - <<'PY'
           import os, zipfile, pathlib, shutil, sys
