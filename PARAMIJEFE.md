@@ -3499,3 +3499,93 @@ Ver §6 (resultado final, con comandos).
   el instante de generación, evidencia intacta y verificada sin solver).
 - Inspección visual del PDF real (57 páginas, todas revisadas en hoja de contacto y las principales en detalle):
   `docs/seeds2/evidencia_ui_resultados02/relatorio_C4_UI_RESULTADOS_02.pdf` y `pdf_p*.jpg`.
+
+## Entrega 25 — SEEDS2 · B04-C5-01: admisibilidad dinámica de la PEMFC × certificado B04 (caso C5 EMB-H2-120) — 2026-11-14
+
+### 1. Identificación
+
+- Rama `ccr-5023dbcf-6x5amv` desde `main` `8dc5f6b5c7a25e7ce981c29efbeb15d1154d1509` (UI-RESULTADOS-02, mejoras gráficas
+  preservadas); **sin merge**. Misión «B04-C5-01»: Fase A (diagnóstico sin cambios de código), Fase B (propuesta) y Fase C
+  limitada a la **P1** autorizada por el responsable (solo el diagnóstico; P2 solo documentada).
+
+### 2. Diagnóstico (causa raíz)
+
+- El bloqueo de los ensayos A (Δ = 5 min) y B (Δ = 10 min) es `pemfc_transitorio_incompativel`
+  (`integracao_v2/preflight.py` → `pemfc_dinamica.admissibilidade`), **no** el certificado B04 de la curva q(P), que se aprueba
+  antes (`b04_reprovada` no ocurre).
+- Con `transicoes_bloqueadas` solo se evalúan las rampas P_mín ↔ P_máx en operación continua; el arranque NO se evalúa (el
+  mensaje anterior imprimía «partida quente de 30 s» como contexto y sugería «transições bloqueadas», ya declaradas).
+- Mecanismo: el MILP cambia la potencia en la frontera del intervalo; el modelo dinámico baja a 3,5 kW/s y sube a 2 kW/s.
+  Bajada 50 → 10 kW: +0,004346 kg de H₂ y +0,05806 kWh respecto a q̂(10)·Δ y 10·Δ (H₂ adicional coherente con la energía
+  adicional: 0,0749 kg/kWh, entre 0,0603 y 0,0768 kg/kWh de régimen); subida 10 → 50 kW: −0,1056 kWh y −0,00915 kg. Son
+  desvíos FIJOS por evento; la parte absoluta de la tolerancia crece con Δ (0,02 kg/h · Δ): criterio dominante = H₂ en la
+  bajada ⇒ **Δ ≥ 13,04 min**. Es exactamente el residuo aceptado en C-3DA2H-12 (0,0044 kg/rampa), cuya condición 7 prohíbe
+  extenderlo a otro Δ sin esta verificación.
+- No hay defecto en la física, en el B04 (el vértice de la PWL coincide con el modelo en 10 y 50 kW), en la conversión de la
+  rampa (120 kW/min → R·Δ = 600/1200 kW por intervalo en M11) ni en la interfaz modelo × MILP. El paso interno de 1 s del
+  modelo dinámico SUBESTIMA el transitorio continuo (0,004785 kg): el bloqueo no es artefacto numérico.
+- Verificación densa independiente (malla de 1 kW, 3 278 pares por Δ, integración propia): 293 violaciones en Δ = 5 min,
+  29 en 10 min, 0 en 15 y 20 min (peor razón desvío/tolerancia 0,869 y 0,652). Misiones reales HiGHS de un C5 sintético en
+  Δ = 15 y 20 min: `concluida`, `algebrica_aprovada_dinamica_coerente`.
+
+### 3. Qué cambió (P1; solo texto)
+
+- `integracao_v2/preflight.py`: los dos TEXTOS de la PEMFC en `_pemfc` pasan a funciones puras
+  (`mensagem_transitorio_pemfc`, `mensagem_dinamica_compativel_pemfc`, `deltas_admissiveis_pemfc`, `_lista_deltas`):
+  separación B04 × admisibilidad dinámica; contexto según la abstracción (arranque/parada solo con la instantánea, con
+  «FRIA» cuando corresponde); peor caso con razón desvío/tolerancia; desvío fijo por evento (C-3DA2H-12, condición 7);
+  alcanzabilidad del escalón con la rampa declarada (R·Δ) y aviso explícito de análisis CONSERVADOR (R·Δ < P_máx − P_mín, o
+  todas las unidades apagadas con transiciones bloqueadas); Δ que dividen la misión (2 ≤ K_M ≤ límite) admisibles por la
+  MISMA análisis; alternativas sin alterar física ni tolerancias. El veredicto sigue siendo exclusivamente
+  `pemfc_dinamica.admissibilidade` (sin cambios); ninguna tolerancia, abstracción, criterio ni número cambia; ninguna
+  excepción para el C5.
+- **P2 documentada, no implementada** (`docs/ems_v2/INTEGRACAO_3DA2H.md` §5c): análisis dependiente de la alcanzabilidad
+  (R·Δ, estado inicial) — aflojaría bloqueos en otros escenarios; requiere decisión científica.
+
+### 4. Guardas
+
+Excepción nominal `tests/ems_v2/b04c501_guard_policy.py` (nombres y estados exactos; líneas REMOVIDAS de `preflight.py` y de
+los dos ganchos en lista explícita; intocados: `ems_v2/`, modelos, `h2_pemfc`, todo `integracao_v2/` salvo `preflight.py`,
+`seeds2/`, V1.6, requisitos). Ganchos: `ui_resultados02_guard_policy.py` (filtro + auditoría) y `piso3db_guard_policy.py`
+(fin de la cadena `referencia_autorizada` de la guarda 3A). Las auditorías explícitas históricas `piso3da`, `piso3da2r`,
+`piso3da2h` y `piso3db` ya fallaban en la base `8dc5f6b` (misiones posteriores autorizadas) con el MISMO veredicto antes y
+después de esta misión.
+
+### 5. Recomendación para el C5
+
+Δ = 15 min (el menor admisible; margen 13 % en el criterio dominante, ≈ 4 % con el transitorio continuo exacto), N = 4 (o 2
+para comparar con A/B), m = 1, H_L = 8; demanda con paso de 15 min (el motor no agrega), clima de 5 o 15 min; PEMFC sin
+cambios. Δ = 20 min como sensibilidad.
+
+### 6. Verificación (código `f363c15`; base `8dc5f6b`)
+
+- Regresión COMPLETA limpia en el HEAD: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs` ⇒ **2478 passed, 0 failed, 2 skipped, 167 subtests passed (1618 s)**, ningún `.pyc` alterado; los 2 skipped son las auditorías explícitas 3D-A/3D-A2-R que piden ejecución manual (como antes); base `8dc5f6b` limpia = 2443 passed, 2 skipped ⇒ la diferencia son los 35 tests nuevos.
+- Comparación caso a caso (JUnit) base × HEAD, en paralelo y en la MISMA máquina: base **2438 passed, 5 failed, 2 skipped**;
+  HEAD **2473 passed, 5 failed, 2 skipped**; +35 casos nuevos (31 de `tests/test_b04_c5_01.py` + 4 de
+  `tests/ems_v2/test_b04c501_guardas.py`), todos aprobados; **ningún caso común cambió de resultado**. Las 5 fallas eran
+  IDÉNTICAS en ambos árboles y TRANSITORIAS: `.pyc` versionados regenerados por un guion de diagnóstico ejecutado con
+  `python -I` (que ignora `PYTHONDONTWRITEBYTECODE`); restaurados sin commit y los 5 tests reejecutados en árboles limpios:
+  **5/5 aprobados en la base y en el HEAD** (la base reproduce así el registro de la Entrega 24: 2443 passed, 2 skipped).
+- Sin solver (pyomo/highspy bloqueados por `sitecustomize` local): `tests/test_b04_c5_01.py` + guarda ⇒ 29 passed,
+  6 skipped (las misiones HiGHS, con motivo explícito).
+- Diferencial del preflight REAL en 52 escenarios PEMFC (Δ 5/10/15/20/40/60 × abstracción × T_amb 25/0 °C × encendida/apagada,
+  más rampa 4 y 150 kW/min y P_mín 8 y 15 kW), base × HEAD: `ok`, nivel/área/código de cada ítem, violaciones a priori y
+  masas por evento **idénticos**; textos distintos solo en los 29 bloqueos dinámicos y en las 17 aprobaciones con
+  `transicoes_bloqueadas` (identificadores aleatorios por ejecución normalizados; los hashes de la montagem difieren igual
+  entre dos ejecuciones del MISMO HEAD). Conclusión: la P1 cambió exclusivamente el diagnóstico.
+- UI-RESULTADOS-02 preservado: ningún archivo de interfaz, informe, evidencia, prueba o E2E alterado (solo el gancho en su
+  política de guarda, sin tocar sus listas); E2E `tools/e2e/run_ui_resultados02.sh` ⇒ **17 verificaciones en el navegador +
+  33 de los PDF, 0 fallas** (igual que en la Entrega 24).
+
+### 7. Auditorías explícitas históricas que YA fallaban en la base (preexistentes, no corregidas)
+
+Guiones manuales del diff ORIGINAL de cada misión; fallan en `8dc5f6b` por misiones posteriores AUTORIZADAS y dan el MISMO
+veredicto antes y después de esta misión (ningún archivo de B04-C5-01 aparece en ellos). Las guardas pytest
+correspondientes pasan o se saltan por exigir ejecución manual (los 2 skipped).
+
+| Guion | Base de la misión | Hallazgos en `8dc5f6b` (= HEAD) |
+|---|---|---|
+| `python tests/ems_v2/piso3da_guard_policy.py` | `a636350` (3D-A) | 11 rutas protegidas: CI `regression.yml`, `ems_v2/contracts.py` y `ponte/{compromisso,preflight,projecao,requisitos}.py` (C-3DA2H-01, hotfix FV 0 %), `h2_app.py`, `requirements.txt`, `seeds2/microgrid/{exemplos,snapshot}.py`, `seeds2/report/dossier.py` |
+| `python tests/ems_v2/piso3da2r_guard_policy.py` | `7eb29e5` (3D-A2-R) | 31 rutas: las anteriores + la interfaz 3D-B/UI (`seeds2/ui/*`, `static/trama/*`, `trama.py`) |
+| `python tests/ems_v2/piso3da2h_guard_policy.py` | `0c9df80` (3D-A2-H) | 26 rutas: CI, hotfix FV 0 %, requisitos, ejemplos, dossier e interfaz 3D-B/UI |
+| `python tests/ems_v2/piso3db_guard_policy.py` | `724d235` (3D-B) | 18 archivos «fuera de la política» de UI-RUNNING-01/UI-FINISH-01/deploy (p. ej. `integracao_v2/documentos.py`, `seeds2/ui/execution_ui.py`, `report_exports.py`, `static/trama/execucao.js`) |

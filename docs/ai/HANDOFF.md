@@ -5,10 +5,60 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `ccr-3d9d6a3e-67m47p` (a partir de `main` `e765028`, merge do PR #32) |
-| **PR** | «UI-RESULTADOS-02» — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **UI-RESULTADOS-02** — tarifa escalonada, demanda nas fontes, aba Carga líquida, lente Visão Geral e relatório PDF visual que reproduz a Partitura. |
+| **Branch** | `ccr-5023dbcf-6x5amv` (a partir de `main` `8dc5f6b5c7a25e7ce981c29efbeb15d1154d1509`, UI-RESULTADOS-02) |
+| **PR** | ainda não aberto — **NÃO FAZER MERGE** sem autorização expressa do responsável |
+| **Missão em curso** | **B04-C5-01 (P1)** — diagnóstico contextual da admissibilidade dinâmica da PEMFC (caso C5 EMB-H2-120). |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## B04-C5-01 — admissibilidade dinâmica da PEMFC × certificado B04 (caso C5; P1 autorizada em 14/11/2026)
+
+- **Diagnóstico (Fase A):** o bloqueio do C5 (Δ = 5 e 10 min, `transicoes_bloqueadas`, PEMFC ligada a 30 kW) é
+  `pemfc_transitorio_incompativel` (admissibilidade DINÂMICA a priori), NÃO o certificado B04 (aprovado). Incompatibilidade
+  LEGÍTIMA e já documentada (C-3DA2H-12, condição 7): a descida 50 → 10 kW a 3,5 kW/s gasta 0,004346 kg de H₂ (e entrega
+  0,05806 kWh) a mais do que a contabilidade instantânea do MILP — desvio fixo por evento; a tolerância absoluta
+  (0,02 kg/h · Δ) só o admite com Δ ≥ 13,04 min. Física, B04, MILP (R·Δ = 120 kW/min · Δ) e interface modelo × MILP sem
+  defeito. Malha densa de 1 kW: violações só em Δ = 5/10 min; Δ = 15/20 min admissíveis e missão real coerente. Detalhes:
+  `docs/ems_v2/INTEGRACAO_3DA2H.md` §5c; relatório `PARAMIJEFE.md` Entrega 25.
+- **P1 (implementada):** só o TEXTO do preflight (`integracao_v2/preflight.py`: `mensagem_transitorio_pemfc`,
+  `mensagem_dinamica_compativel_pemfc`, `deltas_admissiveis_pemfc`) — distingue B04 × admissibilidade dinâmica, cita a
+  partida só quando avaliada, explica o desvio fixo por evento, diz se o degrau é alcançável com a rampa declarada e lista os
+  Δ admissíveis pela MESMA análise. Veredito = `pemfc_dinamica.admissibilidade` (inalterada); nenhuma tolerância,
+  abstração, critério ou número mudou; nenhuma exceção para o C5.
+- **P2 (só documentada; NÃO implementar sem decisão):** a análise ignora R·Δ e o estado inicial (conservadora); a mensagem
+  o declara (§5c).
+- **Recomendação para o C5:** Δ = 15 min, N = 4 (ou 2 para comparar com os ensaios A/B), m = 1, H_L = 8; demanda com passo
+  = 15 min (o motor não agrega); clima de 5 ou 15 min (o de 10 min não divide 15); PEMFC sem alteração. Δ = 20 min como
+  sensibilidade.
+- **Guardas:** exceção nominal `tests/ems_v2/b04c501_guard_policy.py` (encadeada no fim da do UI-RESULTADOS-02; ganchos em
+  `ui_resultados02_guard_policy.py` — filtro e auditoria — e `piso3db_guard_policy.py` — fim da cadeia `referencia_autorizada`
+  da guarda 3A). Auditoria: `python tests/ems_v2/b04c501_guard_policy.py`.
+- **Testes:** `tests/test_b04_c5_01.py` (oráculo independente das rampas, matriz Δ × abstração, partida quente/fria,
+  ligada/desligada, mensagens, conversão R·Δ, missões reais HiGHS em Δ = 15/20/40) + `tests/ems_v2/test_b04c501_guardas.py`.
+- **Verificação (código `f363c15`; base `8dc5f6b`):**
+  - regressão COMPLETA limpa no HEAD (`PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs`): **2478 passed, 0 failed, 2 skipped** (+167 subtests, 1618 s; nenhum `.pyc` alterado) — os 2 skipped são as auditorias explícitas 3D-A/3D-A2-R que exigem execução manual, como antes; linha de base `8dc5f6b` limpa = 2443 passed, 2 skipped (registro da Entrega 24 reproduzido) ⇒ diferença = os 35 testes novos;
+  - comparação caso a caso (JUnit) base × HEAD na MESMA máquina: base 2438 passed / 5 failed / 2 skipped; HEAD 2473 passed /
+    5 failed / 2 skipped; +35 casos novos (31 + 4), todos aprovados; NENHUM caso comum mudou de resultado. As 5 falhas eram
+    IDÊNTICAS nas duas árvores e TRANSITÓRIAS: `.pyc` versionados regenerados por um roteiro de diagnóstico rodado com
+    `python -I` (ignora `PYTHONDONTWRITEBYTECODE`) — restaurados sem commit; os 5 testes reexecutados em árvores limpas:
+    5/5 aprovados na base e no HEAD;
+  - sem solver (pyomo/highspy bloqueados): `tests/test_b04_c5_01.py` + guarda = 29 passed, 6 skipped (missões HiGHS);
+  - diferencial do preflight REAL em 52 cenários PEMFC (Δ 5/10/15/20/40/60 × abstração × T_amb × estado + rampas/P_mín
+    extremos) base × HEAD: ok, nível/área/código de cada item, violações a priori e massas por evento IDÊNTICOS; textos
+    diferentes só nas 29 mensagens de bloqueio dinâmico e nas 17 aprovações com `transicoes_bloqueadas` (identificadores
+    aleatórios por execução normalizados; os hashes da montagem diferem igualmente entre duas execuções do MESMO HEAD);
+  - UI-RESULTADOS-02 preservado: nenhum arquivo de interface/relatório/evidência/teste/E2E alterado (só o gancho na sua
+    política de guarda); E2E `tools/e2e/run_ui_resultados02.sh` = 17 verificações no navegador + 33 dos PDFs, 0 falhas.
+- **Auditorias explícitas históricas que JÁ falhavam na base `8dc5f6b` (pré-existentes, NÃO corrigidas — veredito idêntico
+  antes e depois desta missão; nenhum arquivo desta missão aparece nelas):**
+  `python tests/ems_v2/piso3da_guard_policy.py` (base `a636350`: 11 caminhos de missões posteriores autorizadas —
+  `.github/workflows/regression.yml`, `ems_v2/contracts.py`, `ems_v2/ponte/{compromisso,preflight,projecao,requisitos}.py`,
+  `h2_app.py`, `requirements.txt`, `seeds2/microgrid/{exemplos,snapshot}.py`, `seeds2/report/dossier.py`);
+  `piso3da2r_guard_policy.py` (base `7eb29e5`: 31 caminhos — os anteriores + a interface 3D-B/UI);
+  `piso3da2h_guard_policy.py` (base `0c9df80`: 26 caminhos — CI, hotfix FV 0 %, requisitos, exemplos, dossiê e interface
+  3D-B/UI); `piso3db_guard_policy.py` (base `724d235`: 18 arquivos «fora da política» do UI-RUNNING-01/UI-FINISH-01/deploy).
+  São roteiros manuais do diff ORIGINAL de cada missão; as guardas pytest correspondentes passam (ou são puladas por
+  exigirem execução manual, os 2 skipped).
+- **Próximo passo:** revisão pelo responsável; abrir PR e fazer merge só com autorização.
 
 ## UI-RESULTADOS-02 (pedido do responsável, 14/11/2026)
 

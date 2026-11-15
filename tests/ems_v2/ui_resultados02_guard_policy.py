@@ -83,8 +83,10 @@ def remocoes_nao_conformes(root: Path, base: str = BASE) -> dict:
 def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
     """Política pura: nomes E status exatos; código protegido só se as remoções forem as listadas."""
     ruins = remocoes_nao_conformes(root)
-    return [row for row in changes if not (len(row) == 2 and (
+    restantes = [row for row in changes if not (len(row) == 2 and (
         (row[0] == "M" and row[1] in MODIFICADOS and row[1] not in ruins) or (row[0] == "A" and row[1] in ADICIONADOS)))]
+    from b04c501_guard_policy import filter_changes as filter_b04c501          # exceção nominal B04-C5-01 (P1)
+    return filter_b04c501(root, restantes)
 
 
 def auditar_missao(root: Path, base: str = BASE) -> dict:
@@ -94,6 +96,8 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
 
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base).splitlines() if ln.strip()]
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
+    from b04c501_guard_policy import filter_changes as filter_b04c501   # B04-C5-01 (P1): nomes, status e remoções exatos
+    linhas = filter_b04c501(root, linhas)
     intocados = [ln for ln in linhas if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     ruins = remocoes_nao_conformes(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,
