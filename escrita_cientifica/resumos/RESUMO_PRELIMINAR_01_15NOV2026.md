@@ -1,0 +1,13 @@
+# SEEDS2 — Resumo preliminar 01
+
+**Data:** 15/11/2026  
+**Estado:** primeira versão preliminar aprovada pelo autor para desenvolvimento editorial; não é versão final validada.  
+**Abertura escolhida:** opção B.  
+**Critérios:** português brasileiro; voz impessoal; ações do estudo no passado; duas contribuições equivalentes; dois estudos computacionais; oito palavras-chave.  
+**Atenção:** afirmações de redução de custos e comportamento PEMFC/bateria devem ser confrontadas com resultados, logs e auditoria final antes da submissão. Não atribuir causalidade não comprovada nem validação experimental.
+
+## Resumo
+
+A análise operacional de microrredes com diferentes configurações energéticas motivou o desenvolvimento de ferramentas computacionais capazes de representar seus componentes e avaliar estratégias de despacho. Nesse contexto, foi desenvolvido o SEEDS2 (*Smart Energy Ecosystem for Decision Support*), um simulador modular e reconfigurável de microrredes, integrado a um sistema de gerenciamento energético hierárquico baseado em programação linear inteira mista (MILP) e controle preditivo baseado em modelo (MPC). O desenvolvimento contemplou duas contribuições complementares: a organização de um ambiente computacional para configuração, execução e análise de cenários energéticos e a integração de uma estratégia de despacho que coordenou decisões operacionais em diferentes horizontes temporais. Para avaliar a aplicação da plataforma, foram estruturados dois estudos computacionais. No primeiro, considerou-se uma microrrede industrial conectada à rede elétrica, examinada em quatro configurações que combinaram fornecimento da concessionária, geração fotovoltaica e armazenamento em baterias, sob condições tarifárias variáveis. No segundo, foi considerada uma embarcação híbrida isolada, composta por geração fotovoltaica, célula a combustível de membrana de troca de prótons (PEMFC) e armazenamento eletroquímico. Na avaliação industrial, observou-se o carregamento da bateria durante períodos de menor tarifa e sua descarga nos períodos de maior tarifa, contribuindo para a redução dos custos de aquisição de energia da distribuidora. Na embarcação, a bateria foi utilizada para atender às variações de demanda, enquanto o aumento da geração da PEMFC possibilitou sua recarga antes de um segundo período de elevada solicitação de potência. Esses comportamentos evidenciaram a capacidade do SEEDS2 de representar e coordenar recursos energéticos sob diferentes condições operacionais.
+
+**Palavras-chave:** Microrredes; Simulação computacional; Modelagem energética; Gerenciamento energético hierárquico; Programação linear inteira mista; Controle preditivo baseado em modelo; Armazenamento de energia; Despacho energético.
