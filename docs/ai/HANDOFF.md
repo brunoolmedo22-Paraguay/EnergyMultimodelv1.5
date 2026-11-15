@@ -5,10 +5,26 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `ccr-5023dbcf-6x5amv` (recriado a partir de `main` `4bf38b9`, merge do PR #34) |
+| **Branch** | `ccr-5023dbcf-6x5amv` (recriado a partir de `main` `21e3be5`, merge do PR #35) |
 | **PR** | ainda não aberto — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **EXEMPLO C5** — restaurar o C5 EMB-H2-120 como exemplo persistente a partir da instantânea do responsável. |
+| **Missão em curso** | **EXEMPLO C5 v13** — substituir a instantânea persistente do C5 pela da primeira rodada integral (v13). |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## EXEMPLO C5 v13 — instantânea da primeira rodada integral (pedido do responsável, 15/11/2026)
+
+- **Substituição:** `seeds2/exemplos/C5_EMB_H2_120_Embarcacao_hibrida.seeds2snapshot.zip` ← instantânea do deploy de 15/11/2026
+  03:00 UTC, sem alteração de conteúdo (SHA-256 `14e61065…dcdc1f2ebb`). Inspeção oficial aprovada; MESMA microrrede
+  (`085e4418…`), revisão 9 e impressão digital do inventário; tabelas `microgrid`, `revisions`, `meta` (incarnação) e versões
+  v1–v8 IDÊNTICAS às da instantânea anterior; 13 versões, 4 rodadas (v10–v12 interrompidas = histórico da B04-C5-02; v13
+  concluída).
+- **Rodada v13 (`055096cf…`), verificada SEM solver:** 8/8 intervalos, auditoria integral aceita,
+  `algebrica_aprovada_dinamica_coerente`, 8/8 sinais de valor futuro válidos (erro máx. 0,0454 R$ ≤ 0,05); demanda 68,207 kWh
+  atendida, ENS 0; H₂ 2,1556 kg; custo R$ 21,5559; SOC 50 % → 30 % (45 kWh = reserva terminal); FV 6,05 kWh.
+- **Referência experimental, NÃO validada:** planejador com `pontos_max = 50` e `tolerancia_interpolacao_R = 0,05 R$` (v13) —
+  sem análise de sensibilidade (decisão do responsável). Contexto: B04-C5-02 (V^tail(E) com centenas de micro-quebras da curva
+  PWL de H₂; a exatidão 1e-6 R$ é impraticável; erro B04 da curva ≈ R$ 0,028 por hora de cauda).
+- **Implantação:** o carregador restaura só microrredes AUSENTES; num disco novo (reinício/redeploy do Streamlit Cloud) entra a
+  v13. Um catálogo que já tenha o C5 não é sobrescrito.
 
 ## EXEMPLO C5 — EMB-H2-120 restaurado da instantânea (pedido do responsável, 15/11/2026)
 
