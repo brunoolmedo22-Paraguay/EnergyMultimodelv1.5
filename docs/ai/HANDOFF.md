@@ -5,10 +5,32 @@
 
 | Item | Estado |
 |---|---|
-| **Branch** | `ccr-5023dbcf-6x5amv` (a partir de `main` `8dc5f6b5c7a25e7ce981c29efbeb15d1154d1509`, UI-RESULTADOS-02) |
+| **Branch** | `ccr-5023dbcf-6x5amv` (recriado a partir de `main` `4bf38b9`, merge do PR #34) |
 | **PR** | ainda não aberto — **NÃO FAZER MERGE** sem autorização expressa do responsável |
-| **Missão em curso** | **B04-C5-01 (P1)** — diagnóstico contextual da admissibilidade dinâmica da PEMFC (caso C5 EMB-H2-120). |
+| **Missão em curso** | **EXEMPLO C5** — restaurar o C5 EMB-H2-120 como exemplo persistente a partir da instantânea do responsável. |
 | **Ramo de backup** | `backup/partitura-v2-fable-audit-3688414-20261113` — **nunca modificar** |
+
+## EXEMPLO C5 — EMB-H2-120 restaurado da instantânea (pedido do responsável, 15/11/2026)
+
+- **Instantânea:** gerada pelo responsável no deploy (GUARDAR COMPLETO, 14/11/2026 22:20 UTC) e versionada SEM alteração de
+  conteúdo em `seeds2/exemplos/C5_EMB_H2_120_Embarcacao_hibrida.seeds2snapshot.zip` (SHA-256 `9b56f776…7f361ca2`). Inspeção
+  oficial (`snapshot.inspect_snapshot`) aprovada: SHA-256 do banco, `integrity_check`, esquema v4 idêntico, sem rodada em
+  execução; microrrede `085e4418…`, revisão 9; 1 cenário com 8 versões; 8 blobs; nenhuma rodada.
+- **Conteúdo preservado:** PEMFC Horizon equivalente (1 unidade); BESS 150 kWh / 75 kW (SOC 10–90 %); FV 3,48 kWp
+  (6S×1P CS7L-580MS); isolada. Cenário v8 = ensaio B: motor V2, Δ = 10 min, N = 3, m = 1, H_L = 12; demanda e clima de 10 min
+  (12 amostras, America/Sao_Paulo); PEMFC ligada a 30 kW, `transicoes_bloqueadas`, rampa 120 kW/min, H₂ R$ 10/kg; reserva
+  terminal 45 kWh. Restauração local verificada: todas as tabelas IDÊNTICAS linha a linha (inclusive `meta`/incarnação); o
+  preflight (sem executar a missão) dá 10 OK, 3 avisos e 1 bloqueio `pemfc_transitorio_incompativel` em Δ = 10 min — esperado
+  (B04-C5-01). Servidor real com `SEEDS2_EXEMPLOS=1` e disco vazio: o Gestor lista C4 e C5 com o selo EXEMPLO; C4 intacto.
+- **Guardas:** a auditoria da B04-C5-01 passou a reconhecer a exceção JÁ autorizada dos exemplos persistentes
+  (`b04c501_guard_policy.exemplo_persistente`: só instantânea NOVA na raiz da pasta + README da pasta; teste de estrição).
+- **Testes ajustados (suposição frágil revelada pelo 2º exemplo):** `tests/test_ui_resultados02.py::c4_restaurado` e
+  `tools/e2e/seed_ui_resultados02.py` pegavam o PRIMEIRO exemplo do catálogo; com C4 + C5 o primeiro por UID é o C5 (sem
+  rodadas) ⇒ agora o C4 é escolhido pela identidade fixa `ef5bc710…`. Nenhuma asserção removida ou enfraquecida;
+  `tests/test_ui_resultados02.py` + snapshot + guardas = 64 passed; E2E `run_ui_resultados02.sh` = 17 + 33, 0 falhas.
+- **Pendente (próximo passo do responsável):** redeclarar Δ = 15 min — demanda com passo de 15 min (o motor não agrega) e
+  clima com passo que divida 15 min (o atual, de 10 min, não divide); N/m/H_L redeclarados. Não feito aqui (pedido explícito).
+- **B04-C5-01:** integrado em `main` pelo PR #34 (merge `4bf38b9`, CI `scientific-regression` true/false aprovados).
 
 ## B04-C5-01 — admissibilidade dinâmica da PEMFC × certificado B04 (caso C5; P1 autorizada em 14/11/2026)
 

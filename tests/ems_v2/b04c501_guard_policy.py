@@ -91,6 +91,15 @@ def filter_changes(root: Path, changes: list[list[str]]) -> list[list[str]]:
         (row[0] == "M" and row[1] in MODIFICADOS and row[1] not in ruins) or (row[0] == "A" and row[1] in ADICIONADOS)))]
 
 
+def exemplo_persistente(row: list[str]) -> bool:
+    """Exceção à regra 8 JÁ autorizada (responsável, 14/11/2026; EXEMPLOS-PERSISTENTES-01): uma NOVA instantânea de
+    exemplo HIPOTÉTICO na raiz de ``seeds2/exemplos/`` (mesmo critério de ``exemplos01_guard_policy._exemplo``) e o
+    README dessa pasta não são código protegido desta missão. Qualquer outro arquivo, status ou caminho continua visível."""
+    from exemplos01_guard_policy import _exemplo
+    return len(row) == 2 and ((row[0] == "A" and _exemplo(row[1]))
+                              or (row[0] == "M" and row[1] == "seeds2/exemplos/README.md"))
+
+
 def auditar_missao(root: Path, base: str = BASE) -> dict:
     """Auditoria EXPLÍCITA do diff desta missão (base → árvore de trabalho)."""
     def git(*args: str) -> str:
@@ -98,7 +107,7 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
 
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base).splitlines() if ln.strip()]
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
-    restantes = filter_changes(root, linhas)
+    restantes = [row for row in filter_changes(root, linhas) if not exemplo_persistente(row)]
     intocados = [ln for ln in restantes if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     ruins = remocoes_nao_conformes(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,
@@ -106,7 +115,7 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
 
 
 __all__ = ["ADICIONADOS", "BASE", "INTOCADOS", "MODIFICADOS", "REFERENCIAM_O_MOTOR", "REMOVIDAS", "auditar_missao",
-           "filter_changes", "referencia_autorizada", "remocoes_nao_conformes"]
+           "exemplo_persistente", "filter_changes", "referencia_autorizada", "remocoes_nao_conformes"]
 
 if __name__ == "__main__":
     import json

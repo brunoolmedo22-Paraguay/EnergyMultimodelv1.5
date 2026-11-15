@@ -59,6 +59,18 @@ def test_veredito_da_pemfc_continua_sendo_a_admissibilidade_e_os_textos_sao_func
         assert not any(isinstance(n, (ast.Global, ast.Nonlocal)) for n in ast.walk(f)), nome
 
 
+def test_excecao_dos_exemplos_persistentes_e_estrita():
+    """Só NOVAS instantâneas na raiz de ``seeds2/exemplos/`` e o README dessa pasta (exceção já autorizada à regra 8)."""
+    assert G.exemplo_persistente(["A", "seeds2/exemplos/C5_EMB_H2_120_Embarcacao_hibrida.seeds2snapshot.zip"])
+    assert G.exemplo_persistente(["M", "seeds2/exemplos/README.md"])
+    for row in (["M", "seeds2/exemplos/C4_Carga_CT046_Solar_Bateria_Rede.seeds2snapshot.zip"],   # nunca alterar um exemplo
+                ["D", "seeds2/exemplos/C4_Carga_CT046_Solar_Bateria_Rede.seeds2snapshot.zip"],
+                ["A", "seeds2/exemplos/sub/X.seeds2snapshot.zip"], ["A", "seeds2/exemplos/x.py"],
+                ["A", "seeds2/microgrid/X.seeds2snapshot.zip"], ["A", "seeds2/exemplos/X.seeds2backup.zip"],
+                ["M", "seeds2/microgrid/exemplos.py"], ["A", "seeds2/exemplos/README.md"]):
+        assert not G.exemplo_persistente(row), row
+
+
 @pytest.mark.skipif(not _base_disponivel(), reason="base da missão indisponível neste clone")
 def test_auditoria_explicita_da_missao():
     rel = G.auditar_missao(RAIZ)

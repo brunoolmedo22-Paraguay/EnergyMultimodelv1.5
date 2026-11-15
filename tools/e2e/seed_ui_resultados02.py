@@ -11,6 +11,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(RAIZ)]
+C4_UID = "ef5bc710ef45428b86d492406acf5f30"            # microrrede da instantânea C4 (seeds2/exemplos/README.md)
 
 
 def main(dados: str, saida: str) -> int:
@@ -19,7 +20,8 @@ def main(dados: str, saida: str) -> int:
 
     reg = MicrogridRegistry(dados)
     rel = exemplos.garantir(reg, RAIZ / "seeds2" / "exemplos")
-    uid = next(e.uid for e in reg.entries())
+    # a pasta tem VÁRIOS exemplos (C4, C5, …): o C4 é escolhido pela identidade fixa da sua instantânea
+    uid = next(e.uid for e in reg.entries() if e.uid == C4_UID)
     st = reg.open(uid)
     run = next(r for r in st.list_runs() if r.state == "concluida")
     out = {"mg": uid, "sc": run.scenario_uid, "run": run.run_uid, "restaurados": rel.restaurados,

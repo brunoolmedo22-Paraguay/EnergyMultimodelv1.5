@@ -38,6 +38,7 @@ from seeds2.report import dossier as D  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parents[1]
 EXEMPLOS = RAIZ / "seeds2" / "exemplos"
+C4_UID = "ef5bc710ef45428b86d492406acf5f30"            # microrrede da instantânea C4 (seeds2/exemplos/README.md)
 PUROS = P.PUROS + ", cargaLiquida, visaoGeral, mudancasTarifa, tarifaExportacao, LENTES, TIPOS"
 NAV = bool(P.NODE) and P.navegador_disponivel()
 ND = "__undefined__"
@@ -75,7 +76,10 @@ def c4_restaurado(pasta: str):
     rel = exemplos.garantir(reg, EXEMPLOS)
     if not rel.restaurados and not rel.presentes:
         raise unittest.SkipTest(f"exemplo C4 indisponível: {rel.falhas}")
-    uid = next(e.uid for e in reg.entries())
+    # a pasta tem VÁRIOS exemplos (C4, C5, …): o C4 é escolhido pela identidade fixa da sua instantânea
+    uid = next((e.uid for e in reg.entries() if e.uid == C4_UID), None)
+    if uid is None:
+        raise unittest.SkipTest(f"exemplo C4 ({C4_UID}) ausente da pasta de exemplos: {rel.falhas}")
     st = reg.open(uid)
     return st, [r for r in st.list_runs() if r.state == "concluida"]
 
