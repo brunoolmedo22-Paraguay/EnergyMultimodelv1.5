@@ -36,6 +36,16 @@
   asserções existentes ficam INALTERADAS; testes de estrição novos. Precisa da aprovação do responsável junto com o PR.
 - **Implantação:** o carregador só restaura microrredes AUSENTES; um catálogo que já tenha a CT-046 continua com o estado
   anterior (1 cenário) até um disco novo. Política não alterada.
+- **Verificação (Python 3.13.18, venvs com e sem Pyomo/HiGHS):** idempotência (catálogo vazio → C4 + C5 idênticos às
+  instantâneas tabela a tabela; 2ª/3ª restauração sem efeito); C5 com SHA-256 `14e61065…` inalterado e rodada v13 verificada;
+  servidor real sem solver, motor sabotado, `SEEDS2_EXEMPLOS=1`, disco vazio → restauração, Gestor com 2 selos «Exemplo»,
+  as 4 rodadas abertas na Partitura (custo, 1.967 kWh, déficit 0, valor futuro 96/96, evidência 16/16 ou 20/20 sem solver),
+  Caderno «7 de 7»; reinício no MESMO disco = nada restaurado, mesmas 42 verificações, bancos idênticos, registro de motor
+  vazio; `caderno_ui.comparar` nos 6 pares (mesmo motor, temporal com 96 instantes; C1→C4 −R$ 409,22, −32,11 %). Testes
+  focados (guardas, snapshot, UI-RESULTADOS-02 com navegador, Caderno, Gestor) 252 passed / 2 skipped; E2E
+  `run_ui_resultados02.sh` 17 + 33, 0 falhas; regressão COMPLETA com solver **2481 passed, 0 failed, 2 skipped** (1547 s;
+  os 2 skipped = auditorias manuais 3D-A/3D-A2-R, que executadas à mão só apontam arquivos de missões anteriores — situação
+  pré-existente, sem a instantânea); `git diff --check` limpo.
 
 ## EXEMPLO C5 v13 — instantânea da primeira rodada integral (pedido do responsável, 15/11/2026)
 
