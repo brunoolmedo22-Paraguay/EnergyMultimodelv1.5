@@ -1,0 +1,2526 @@
+TY  - CONF
+ID  - REF0001
+TI  - IESopt: A Modular Framework for High-Performance Energy System Optimization
+AU  - Strömer, Stefan
+AU  - Maggauer, Klara
+PY  - 2024
+T2  - 2024 Open Source Modelling and Simulation of Energy Systems (OSMSES)
+SP  - 1
+EP  - 6
+DO  - 10.1109/osmses62085.2024.10668965
+UR  - https://doi.org/10.1109/osmses62085.2024.10668965
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - CONF
+ID  - REF0022
+TI  - Incorporating AC Power Flow into the Multi-Energy System Optimization Framework COMANDO
+AU  - Glucker, Philipp
+AU  - Langiu, Marco
+AU  - Pesch, Thiemo
+AU  - Dahmen, Manuel
+AU  - Benigni, Andrea
+PY  - 2022
+T2  - 2022 Open Source Modelling and Simulation of Energy Systems (OSMSES)
+SP  - 1
+EP  - 6
+DO  - 10.1109/osmses54027.2022.9769138
+UR  - https://doi.org/10.1109/osmses54027.2022.9769138
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - CONF
+ID  - REF0023
+TI  - HEMS-Arena: An Open-Source Modular Framework for Reproducible Evaluation of Residential Energy Management Strategies
+AU  - Bouchabou, Damien
+AU  - Dabbech, Akrem
+PY  - 2026
+T2  - Proceedings of the 2026 ACM Sustainability Week
+SP  - 153
+EP  - 161
+DO  - 10.1145/3765611.3815505
+UR  - https://doi.org/10.1145/3765611.3815505
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0028
+TI  - The open source electricity Model Base for Europe - An engagement framework for open and transparent European energy modelling
+AU  - Henke, Hauke T.J.
+AU  - Gardumi, Francesco
+AU  - Howells, Mark
+PY  - 2022
+JO  - Energy
+VL  - 239
+SP  - 121973
+DO  - 10.1016/j.energy.2021.121973
+UR  - https://doi.org/10.1016/j.energy.2021.121973
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura M
+ER  -
+
+TY  - CONF
+ID  - REF0031
+TI  - Microgrid Energy Management Strategy with Battery Energy Storage System and Approximate Dynamic Programming
+AU  - Zhuo, Wenhao
+PY  - 2018
+T2  - 2018 37th Chinese Control Conference (CCC)
+SP  - 7581
+EP  - 7587
+DO  - 10.23919/chicc.2018.8482602
+UR  - https://doi.org/10.23919/chicc.2018.8482602
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0040
+TI  - Optimal day-ahead trading and storage of renewable energies—an approximate dynamic programming approach
+AU  - Löhndorf, Nils
+AU  - Minner, Stefan
+PY  - 2010
+JO  - Energy Systems
+VL  - 1
+IS  - 1
+SP  - 61
+EP  - 77
+DO  - 10.1007/s12667-009-0007-4
+UR  - https://doi.org/10.1007/s12667-009-0007-4
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0048
+TI  - Tight polyhedral approximation for mixed-integer linear programming unit commitment formulations
+AU  - Jabr, R.A.
+PY  - 2012
+JO  - IET Generation, Transmission &amp; Distribution
+VL  - 6
+IS  - 11
+SP  - 1104
+EP  - 1111
+DO  - 10.1049/iet-gtd.2012.0218
+UR  - https://doi.org/10.1049/iet-gtd.2012.0218
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0049
+TI  - Comparative Assessment of Priority Listing and Mixed Integer Linear Programming Unit Commitment Methods for Non-Interconnected Island Systems
+AU  - Psarros, Georgios N.
+AU  - Papathanassiou, Stavros A.
+PY  - 2019
+JO  - Energies
+VL  - 12
+IS  - 4
+SP  - 657
+DO  - 10.3390/en12040657
+UR  - https://doi.org/10.3390/en12040657
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0053
+TI  - A mixed-integer linear programming model for microgrid optimal scheduling considering BESS degradation and RES uncertainty
+AU  - Minh, Nguyen Quoc
+AU  - Linh, Nguyen Duy
+AU  - Khiem, Nguyen Trong
+PY  - 2024
+JO  - Journal of Energy Storage
+VL  - 104
+SP  - 114663
+DO  - 10.1016/j.est.2024.114663
+UR  - https://doi.org/10.1016/j.est.2024.114663
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0062
+TI  - Steady‐state Semi‐empirical Model of a Single Proton Exchange Membrane Fuel Cell (PEMFC) at Varying Operating Conditions
+AU  - Labach, I.
+AU  - Rallières, O.
+AU  - Turpin, C.
+PY  - 2017
+JO  - Fuel Cells
+VL  - 17
+IS  - 2
+SP  - 166
+EP  - 177
+DO  - 10.1002/fuce.201600074
+UR  - https://doi.org/10.1002/fuce.201600074
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0066
+TI  - Modelling of proton exchange membrane fuel cell performance based on semi-empirical equations
+AU  - Al-Baghdadi, Maher A.R. Sadiq
+PY  - 2005
+JO  - Renewable Energy
+VL  - 30
+IS  - 10
+SP  - 1587
+EP  - 1599
+DO  - 10.1016/j.renene.2004.11.015
+UR  - https://doi.org/10.1016/j.renene.2004.11.015
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - CHAP
+ID  - REF0076
+TI  - Mixed-Integer Programming Formulations for Piecewise Linear Functions
+AU  - Warwicker, John Alasdair
+AU  - Rebennack, Steffen
+PY  - 2023
+T2  - Encyclopedia of Optimization
+SP  - 1
+EP  - 7
+DO  - 10.1007/978-3-030-54621-2_791-1
+UR  - https://doi.org/10.1007/978-3-030-54621-2_791-1
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0083
+TI  - Mixed-Integer Models for Nonseparable Piecewise-Linear Optimization: Unifying Framework and Extensions
+AU  - Vielma, Juan Pablo
+AU  - Ahmed, Shabbir
+AU  - Nemhauser, George
+PY  - 2010
+JO  - Operations Research
+VL  - 58
+IS  - 2
+SP  - 303
+EP  - 315
+DO  - 10.1287/opre.1090.0721
+UR  - https://doi.org/10.1287/opre.1090.0721
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0090
+TI  - Model construction and energy management system of lithium battery, PV generator, hydrogen production unit and fuel cell in islanded AC microgrid
+AU  - Zhang, Yong
+AU  - Wei, Wei
+PY  - 2020
+JO  - International Journal of Hydrogen Energy
+VL  - 45
+IS  - 33
+SP  - 16381
+EP  - 16397
+DO  - 10.1016/j.ijhydene.2020.04.155
+UR  - https://doi.org/10.1016/j.ijhydene.2020.04.155
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0092
+TI  - Two-level energy management strategy for PV-Fuel cell-battery-based DC microgrid
+AU  - Han, Ying
+AU  - Chen, Weirong
+AU  - Li, Qi
+AU  - Yang, Hanqing
+AU  - Zare, Firuz
+AU  - Zheng, Yongkang
+PY  - 2019
+JO  - International Journal of Hydrogen Energy
+VL  - 44
+IS  - 35
+SP  - 19395
+EP  - 19404
+DO  - 10.1016/j.ijhydene.2018.04.013
+UR  - https://doi.org/10.1016/j.ijhydene.2018.04.013
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0093
+TI  - Bilevel Optimal Sizing and Operation Method of Fuel Cell/Battery Hybrid All-Electric Shipboard Microgrid
+AU  - Jin, Hao
+AU  - Yang, Xinhang
+PY  - 2023
+JO  - Mathematics
+VL  - 11
+IS  - 12
+SP  - 2728
+DO  - 10.3390/math11122728
+UR  - https://doi.org/10.3390/math11122728
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0094
+TI  - Modular Energy Management via Distributed and Predictive Optimization for Fuel Cell-Battery Shipboard Microgrids
+AU  - Kopka, Timon
+AU  - Coraddu, Andrea
+AU  - Polinder, Henk
+PY  - 2026
+JO  - IEEE Open Journal of the Industrial Electronics Society
+VL  - 7
+SP  - 1155
+EP  - 1171
+DO  - 10.1109/ojies.2026.3710800
+UR  - https://doi.org/10.1109/ojies.2026.3710800
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0101
+TI  - Comparative study based on techno-economics analysis of different shipboard microgrid systems comprising PV/wind/fuel cell/battery/diesel generator with two battery technologies: A step toward green maritime transportation
+AU  - Iqbal, Rashid
+AU  - Liu, Yancheng
+AU  - Zeng, Yuji
+AU  - Zhang, Qinjin
+AU  - Zeeshan, Muhammad
+PY  - 2024
+JO  - Renewable Energy
+VL  - 221
+SP  - 119670
+DO  - 10.1016/j.renene.2023.119670
+UR  - https://doi.org/10.1016/j.renene.2023.119670
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0103
+TI  - Power management system for a fuel cell/battery hybrid vehicle incorporating fuel cell and battery degradation
+AU  - Wang, Yongqiang
+AU  - Moura, Scott J.
+AU  - Advani, Suresh G.
+AU  - Prasad, Ajay K.
+PY  - 2019
+JO  - International Journal of Hydrogen Energy
+VL  - 44
+IS  - 16
+SP  - 8479
+EP  - 8492
+DO  - 10.1016/j.ijhydene.2019.02.003
+UR  - https://doi.org/10.1016/j.ijhydene.2019.02.003
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0104
+TI  - PyPSA: Python for Power System Analysis
+AU  - Brown, Thomas
+AU  - Hörsch, Jonas
+AU  - Schlachtberger, David
+PY  - 2018
+JO  - Journal of Open Research Software
+VL  - 6
+IS  - 1
+SP  - 4
+DO  - 10.5334/jors.188
+UR  - https://doi.org/10.5334/jors.188
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - CONF
+ID  - REF0105
+TI  - GridLAB-D: An open-source power systems modeling and simulation environment
+AU  - Chassin, D. P.
+AU  - Schneider, K.
+AU  - Gerkensmeyer, C.
+PY  - 2008
+T2  - 2008 IEEE/PES Transmission and Distribution Conference and Exposition
+SP  - 1
+EP  - 5
+DO  - 10.1109/tdc.2008.4517260
+UR  - https://doi.org/10.1109/tdc.2008.4517260
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0108
+TI  - EnergyScope TD: A novel open-source model for regional energy systems
+AU  - Limpens, Gauthier
+AU  - Moret, Stefano
+AU  - Jeanmart, Hervé
+AU  - Maréchal, Francois
+PY  - 2019
+JO  - Applied Energy
+VL  - 255
+SP  - 113729
+DO  - 10.1016/j.apenergy.2019.113729
+UR  - https://doi.org/10.1016/j.apenergy.2019.113729
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0110
+TI  - SpineOpt: A flexible open-source energy system modelling framework
+AU  - Ihlemann, Maren
+AU  - Kouveliotis-Lysikatos, Iasonas
+AU  - Huang, Jiangyi
+AU  - Dillon, Joseph
+AU  - O’Dwyer, Ciara
+AU  - Rasku, Topi
+AU  - Marin, Manuel
+AU  - Poncelet, Kris
+AU  - Kiviluoma, Juha
+PY  - 2022
+JO  - Energy Strategy Reviews
+VL  - 43
+SP  - 100902
+DO  - 10.1016/j.esr.2022.100902
+UR  - https://doi.org/10.1016/j.esr.2022.100902
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0111
+TI  - Pyomo: modeling and solving mathematical programs in Python
+AU  - Hart, William E.
+AU  - Watson, Jean-Paul
+AU  - Woodruff, David L.
+PY  - 2011
+JO  - Mathematical Programming Computation
+VL  - 3
+IS  - 3
+SP  - 219
+EP  - 260
+DO  - 10.1007/s12532-011-0026-8
+UR  - https://doi.org/10.1007/s12532-011-0026-8
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0113
+TI  - pvlib python: a python package for modeling solar energy systems
+AU  - F. Holmgren, William
+AU  - W. Hansen, Clifford
+AU  - A. Mikofski, Mark
+PY  - 2018
+JO  - Journal of Open Source Software
+VL  - 3
+IS  - 29
+SP  - 884
+DO  - 10.21105/joss.00884
+UR  - https://doi.org/10.21105/joss.00884
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0117
+TI  - A Computationally Efficient Mixed-Integer Linear Formulation for the Thermal Unit Commitment Problem
+AU  - Carrion, M.
+AU  - Arroyo, J.M.
+PY  - 2006
+JO  - IEEE Transactions on Power Systems
+VL  - 21
+IS  - 3
+SP  - 1371
+EP  - 1378
+DO  - 10.1109/tpwrs.2006.876672
+UR  - https://doi.org/10.1109/tpwrs.2006.876672
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0118
+TI  - Microgrid Operation Optimization Using Hybrid System Modeling and Switched Model Predictive Control
+AU  - Maślak, Grzegorz
+AU  - Orłowski, Przemysław
+PY  - 2022
+JO  - Energies
+VL  - 15
+IS  - 3
+SP  - 833
+DO  - 10.3390/en15030833
+UR  - https://doi.org/10.3390/en15030833
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - CONF
+ID  - REF0119
+TI  - Hierarchical control of droop-controlled DC and AC microgrids — a general approach towards standardization
+AU  - Guerrero, Josep M.
+AU  - Vasquez, Juan C.
+AU  - Teodorescu, Remus
+PY  - 2009
+T2  - 2009 35th Annual Conference of IEEE Industrial Electronics
+SP  - 4305
+EP  - 4310
+DO  - 10.1109/iecon.2009.5414926
+UR  - https://doi.org/10.1109/iecon.2009.5414926
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0121
+TI  - Energy Management in Microgrids with Renewable Energy Sources: A Literature Review
+AU  - García Vera, Yimy E.
+AU  - Dufo-López, Rodolfo
+AU  - Bernal-Agustín, José L.
+PY  - 2019
+JO  - Applied Sciences
+VL  - 9
+IS  - 18
+SP  - 3854
+DO  - 10.3390/app9183854
+UR  - https://doi.org/10.3390/app9183854
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0123
+TI  - Photovoltaic array performance model.
+AU  - Kratochvil, Jay
+AU  - Boyson, William
+AU  - King, David
+PY  - 2004
+DO  - 10.2172/919131
+UR  - https://doi.org/10.2172/919131
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0125
+TI  - Assessing the outdoor operating temperature of photovoltaic modules
+AU  - Faiman, David
+PY  - 2008
+JO  - Progress in Photovoltaics: Research and Applications
+VL  - 16
+IS  - 4
+SP  - 307
+EP  - 315
+DO  - 10.1002/pip.813
+UR  - https://doi.org/10.1002/pip.813
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - CONF
+ID  - REF0126
+TI  - A Generic Battery Model for the Dynamic Simulation of Hybrid Electric Vehicles
+AU  - Tremblay, Olivier
+AU  - Dessaint, Louis-A.
+AU  - Dekkiche, Abdel-Illah
+PY  - 2007
+T2  - 2007 IEEE Vehicle Power and Propulsion Conference
+SP  - 284
+EP  - 289
+DO  - 10.1109/vppc.2007.4544139
+UR  - https://doi.org/10.1109/vppc.2007.4544139
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0128
+TI  - A comparative study of equivalent circuit models for Li-ion batteries
+AU  - Hu, Xiaosong
+AU  - Li, Shengbo
+AU  - Peng, Huei
+PY  - 2012
+JO  - Journal of Power Sources
+VL  - 198
+SP  - 359
+EP  - 367
+DO  - 10.1016/j.jpowsour.2011.10.013
+UR  - https://doi.org/10.1016/j.jpowsour.2011.10.013
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0129
+TI  - Battery energy storage technology for power systems—An overview
+AU  - Divya, K.C.
+AU  - Østergaard, Jacob
+PY  - 2009
+JO  - Electric Power Systems Research
+VL  - 79
+IS  - 4
+SP  - 511
+EP  - 520
+DO  - 10.1016/j.epsr.2008.09.017
+UR  - https://doi.org/10.1016/j.epsr.2008.09.017
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0130
+TI  - A review of the main parameters influencing long-term performance and durability of PEM fuel cells
+AU  - Schmittinger, Wolfgang
+AU  - Vahidi, Ardalan
+PY  - 2008
+JO  - Journal of Power Sources
+VL  - 180
+IS  - 1
+SP  - 1
+EP  - 14
+DO  - 10.1016/j.jpowsour.2008.01.070
+UR  - https://doi.org/10.1016/j.jpowsour.2008.01.070
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0132
+TI  - New Equations for Computing Vapor Pressure and Enhancement Factor
+AU  - Buck, Arden L.
+PY  - 1981
+JO  - Journal of Applied Meteorology
+VL  - 20
+IS  - 12
+SP  - 1527
+EP  - 1532
+DO  - 10.1175/1520-0450(1981)020<1527:nefcvp>2.0.co;2
+UR  - https://doi.org/10.1175/1520-0450(1981)020<1527:nefcvp>2.0.co;2
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0134
+TI  - oemof.solph—A model generator for linear and mixed-integer linear optimisation of energy systems
+AU  - Krien, Uwe
+AU  - Schönfeldt, Patrik
+AU  - Launer, Jann
+AU  - Hilpert, Simon
+AU  - Kaldemeyer, Cord
+AU  - Pleßmann, Guido
+PY  - 2020
+JO  - Software Impacts
+VL  - 6
+SP  - 100028
+DO  - 10.1016/j.simpa.2020.100028
+UR  - https://doi.org/10.1016/j.simpa.2020.100028
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0135
+TI  - OSeMOSYS: The Open Source Energy Modeling System
+AU  - Howells, Mark
+AU  - Rogner, Holger
+AU  - Strachan, Neil
+AU  - Heaps, Charles
+AU  - Huntington, Hillard
+AU  - Kypreos, Socrates
+AU  - Hughes, Alison
+AU  - Silveira, Semida
+AU  - DeCarolis, Joe
+AU  - Bazillian, Morgan
+AU  - Roehrl, Alexander
+PY  - 2011
+JO  - Energy Policy
+VL  - 39
+IS  - 10
+SP  - 5850
+EP  - 5870
+DO  - 10.1016/j.enpol.2011.06.033
+UR  - https://doi.org/10.1016/j.enpol.2011.06.033
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - CONF
+ID  - REF0136
+TI  - REopt: A Platform for Energy System Integration and Optimization
+AU  - Simpkins, T.
+AU  - Cutler, D.
+AU  - Anderson, K.
+AU  - Olis, D.
+AU  - Elgqvist, E.
+AU  - Callahan, M.
+AU  - Walker, A.
+PY  - 2014
+T2  - Volume 2: Economic, Environmental, and Policy Aspects of Alternate Energy; Fuels and Infrastructure, Biofuels and Energy Storage; High Performance Buildings; Solar Buildings, Including Solar Climate Control/Heating/Cooling; Sustainable Cities and Communities, Including Transportation; Thermofluid Analysis of Energy Systems, Including Exergy and Thermoeconomics
+DO  - 10.1115/es2014-6570
+UR  - https://doi.org/10.1115/es2014-6570
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - GEN
+ID  - REF0137
+TI  - Micropower System Modeling with Homer
+AU  - Lambert, Tom
+AU  - Gilman, Paul
+AU  - Lilienthal, Peter
+PY  - 2005
+T2  - Integration of Alternative Sources of Energy
+SP  - 379
+EP  - 418
+DO  - 10.1002/0471755621.ch15
+UR  - https://doi.org/10.1002/0471755621.ch15
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0138
+TI  - SciPy 1.0: fundamental algorithms for scientific computing in Python
+AU  - Virtanen, Pauli
+AU  - Gommers, Ralf
+AU  - Oliphant, Travis E.
+AU  - Haberland, Matt
+AU  - Reddy, Tyler
+AU  - Cournapeau, David
+AU  - Burovski, Evgeni
+AU  - Peterson, Pearu
+AU  - Weckesser, Warren
+AU  - Bright, Jonathan
+AU  - van der Walt, Stéfan J.
+AU  - Brett, Matthew
+AU  - Wilson, Joshua
+AU  - Millman, K. Jarrod
+AU  - Mayorov, Nikolay
+AU  - Nelson, Andrew R. J.
+AU  - Jones, Eric
+AU  - Kern, Robert
+AU  - Larson, Eric
+AU  - Carey, C J
+AU  - Polat, İlhan
+AU  - Feng, Yu
+AU  - Moore, Eric W.
+AU  - VanderPlas, Jake
+AU  - Laxalde, Denis
+AU  - Perktold, Josef
+AU  - Cimrman, Robert
+AU  - Henriksen, Ian
+AU  - Quintero, E. A.
+AU  - Harris, Charles R.
+AU  - Archibald, Anne M.
+AU  - Ribeiro, Antônio H.
+AU  - Pedregosa, Fabian
+AU  - van Mulbregt, Paul
+AU  - SciPy 1.0 Contributors
+AU  - Vijaykumar, Aditya
+AU  - Bardelli, Alessandro Pietro
+AU  - Rothberg, Alex
+AU  - Hilboll, Andreas
+AU  - Kloeckner, Andreas
+AU  - Scopatz, Anthony
+AU  - Lee, Antony
+AU  - Rokem, Ariel
+AU  - Woods, C. Nathan
+AU  - Fulton, Chad
+AU  - Masson, Charles
+AU  - Häggström, Christian
+AU  - Fitzgerald, Clark
+AU  - Nicholson, David A.
+AU  - Hagen, David R.
+AU  - Pasechnik, Dmitrii V.
+AU  - Olivetti, Emanuele
+AU  - Martin, Eric
+AU  - Wieser, Eric
+AU  - Silva, Fabrice
+AU  - Lenders, Felix
+AU  - Wilhelm, Florian
+AU  - Young, G.
+AU  - Price, Gavin A.
+AU  - Ingold, Gert-Ludwig
+AU  - Allen, Gregory E.
+AU  - Lee, Gregory R.
+AU  - Audren, Hervé
+AU  - Probst, Irvin
+AU  - Dietrich, Jörg P.
+AU  - Silterra, Jacob
+AU  - Webber, James T
+AU  - Slavič, Janko
+AU  - Nothman, Joel
+AU  - Buchner, Johannes
+AU  - Kulick, Johannes
+AU  - Schönberger, Johannes L.
+AU  - de Miranda Cardoso, José Vinícius
+AU  - Reimer, Joscha
+AU  - Harrington, Joseph
+AU  - Rodríguez, Juan Luis Cano
+AU  - Nunez-Iglesias, Juan
+AU  - Kuczynski, Justin
+AU  - Tritz, Kevin
+AU  - Thoma, Martin
+AU  - Newville, Matthew
+AU  - Kümmerer, Matthias
+AU  - Bolingbroke, Maximilian
+AU  - Tartre, Michael
+AU  - Pak, Mikhail
+AU  - Smith, Nathaniel J.
+AU  - Nowaczyk, Nikolai
+AU  - Shebanov, Nikolay
+AU  - Pavlyk, Oleksandr
+AU  - Brodtkorb, Per A.
+AU  - Lee, Perry
+AU  - McGibbon, Robert T.
+AU  - Feldbauer, Roman
+AU  - Lewis, Sam
+AU  - Tygier, Sam
+AU  - Sievert, Scott
+AU  - Vigna, Sebastiano
+AU  - Peterson, Stefan
+AU  - More, Surhud
+AU  - Pudlik, Tadeusz
+AU  - Oshima, Takuya
+AU  - Pingel, Thomas J.
+AU  - Robitaille, Thomas P.
+AU  - Spura, Thomas
+AU  - Jones, Thouis R.
+AU  - Cera, Tim
+AU  - Leslie, Tim
+AU  - Zito, Tiziano
+AU  - Krauss, Tom
+AU  - Upadhyay, Utkarsh
+AU  - Halchenko, Yaroslav O.
+AU  - Vázquez-Baeza, Yoshiki
+PY  - 2020
+JO  - Nature Methods
+VL  - 17
+IS  - 3
+SP  - 261
+EP  - 272
+DO  - 10.1038/s41592-019-0686-2
+UR  - https://doi.org/10.1038/s41592-019-0686-2
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0139
+TI  - Array programming with NumPy
+AU  - Harris, Charles R.
+AU  - Millman, K. Jarrod
+AU  - van der Walt, Stéfan J.
+AU  - Gommers, Ralf
+AU  - Virtanen, Pauli
+AU  - Cournapeau, David
+AU  - Wieser, Eric
+AU  - Taylor, Julian
+AU  - Berg, Sebastian
+AU  - Smith, Nathaniel J.
+AU  - Kern, Robert
+AU  - Picus, Matti
+AU  - Hoyer, Stephan
+AU  - van Kerkwijk, Marten H.
+AU  - Brett, Matthew
+AU  - Haldane, Allan
+AU  - del Río, Jaime Fernández
+AU  - Wiebe, Mark
+AU  - Peterson, Pearu
+AU  - Gérard-Marchant, Pierre
+AU  - Sheppard, Kevin
+AU  - Reddy, Tyler
+AU  - Weckesser, Warren
+AU  - Abbasi, Hameer
+AU  - Gohlke, Christoph
+AU  - Oliphant, Travis E.
+PY  - 2020
+JO  - Nature
+VL  - 585
+IS  - 7825
+SP  - 357
+EP  - 362
+DO  - 10.1038/s41586-020-2649-2
+UR  - https://doi.org/10.1038/s41586-020-2649-2
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - CONF
+ID  - REF0140
+TI  - Data Structures for Statistical Computing in Python
+AU  - McKinney, Wes
+PY  - 2010
+T2  - Proceedings of the Python in Science Conference; Proceedings of the 9th Python in Science Conference
+SP  - 56
+EP  - 61
+DO  - 10.25080/majora-92bf1922-00a
+UR  - https://doi.org/10.25080/majora-92bf1922-00a
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0141
+TI  - Good enough practices in scientific computing
+AU  - Wilson, Greg
+AU  - Bryan, Jennifer
+AU  - Cranston, Karen
+AU  - Kitzes, Justin
+AU  - Nederbragt, Lex
+AU  - Teal, Tracy K.
+PY  - 2017
+JO  - PLOS Computational Biology
+VL  - 13
+IS  - 6
+SP  - e1005510
+DO  - 10.1371/journal.pcbi.1005510
+UR  - https://doi.org/10.1371/journal.pcbi.1005510
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0142
+TI  - Ten Simple Rules for Reproducible Computational Research
+AU  - Sandve, Geir Kjetil
+AU  - Nekrutenko, Anton
+AU  - Taylor, James
+AU  - Hovig, Eivind
+PY  - 2013
+JO  - PLoS Computational Biology
+VL  - 9
+IS  - 10
+SP  - e1003285
+DO  - 10.1371/journal.pcbi.1003285
+UR  - https://doi.org/10.1371/journal.pcbi.1003285
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0143
+TI  - The FAIR Guiding Principles for scientific data management and stewardship
+AU  - Wilkinson, Mark D.
+AU  - Dumontier, Michel
+AU  - Aalbersberg, IJsbrand Jan
+AU  - Appleton, Gabrielle
+AU  - Axton, Myles
+AU  - Baak, Arie
+AU  - Blomberg, Niklas
+AU  - Boiten, Jan-Willem
+AU  - da Silva Santos, Luiz Bonino
+AU  - Bourne, Philip E.
+AU  - Bouwman, Jildau
+AU  - Brookes, Anthony J.
+AU  - Clark, Tim
+AU  - Crosas, Mercè
+AU  - Dillo, Ingrid
+AU  - Dumon, Olivier
+AU  - Edmunds, Scott
+AU  - Evelo, Chris T.
+AU  - Finkers, Richard
+AU  - Gonzalez-Beltran, Alejandra
+AU  - Gray, Alasdair J.G.
+AU  - Groth, Paul
+AU  - Goble, Carole
+AU  - Grethe, Jeffrey S.
+AU  - Heringa, Jaap
+AU  - ’t Hoen, Peter A.C
+AU  - Hooft, Rob
+AU  - Kuhn, Tobias
+AU  - Kok, Ruben
+AU  - Kok, Joost
+AU  - Lusher, Scott J.
+AU  - Martone, Maryann E.
+AU  - Mons, Albert
+AU  - Packer, Abel L.
+AU  - Persson, Bengt
+AU  - Rocca-Serra, Philippe
+AU  - Roos, Marco
+AU  - van Schaik, Rene
+AU  - Sansone, Susanna-Assunta
+AU  - Schultes, Erik
+AU  - Sengstag, Thierry
+AU  - Slater, Ted
+AU  - Strawn, George
+AU  - Swertz, Morris A.
+AU  - Thompson, Mark
+AU  - van der Lei, Johan
+AU  - van Mulligen, Erik
+AU  - Velterop, Jan
+AU  - Waagmeester, Andra
+AU  - Wittenburg, Peter
+AU  - Wolstencroft, Katherine
+AU  - Zhao, Jun
+AU  - Mons, Barend
+PY  - 2016
+JO  - Scientific Data
+VL  - 3
+IS  - 1
+DO  - 10.1038/sdata.2016.18
+UR  - https://doi.org/10.1038/sdata.2016.18
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0144
+TI  - Opening the black box of energy modelling: Strategies and lessons learned
+AU  - Pfenninger, Stefan
+AU  - Hirth, Lion
+AU  - Schlecht, Ingmar
+AU  - Schmid, Eva
+AU  - Wiese, Frauke
+AU  - Brown, Tom
+AU  - Davis, Chris
+AU  - Gidden, Matthew
+AU  - Heinrichs, Heidi
+AU  - Heuberger, Clara
+AU  - Hilpert, Simon
+AU  - Krien, Uwe
+AU  - Matke, Carsten
+AU  - Nebel, Arjuna
+AU  - Morrison, Robbie
+AU  - Müller, Berit
+AU  - Pleßmann, Guido
+AU  - Reeg, Matthias
+AU  - Richstein, Jörn C.
+AU  - Shivakumar, Abhishek
+AU  - Staffell, Iain
+AU  - Tröndle, Tim
+AU  - Wingenbach, Clemens
+PY  - 2018
+JO  - Energy Strategy Reviews
+VL  - 19
+SP  - 63
+EP  - 71
+DO  - 10.1016/j.esr.2017.12.002
+UR  - https://doi.org/10.1016/j.esr.2017.12.002
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0147
+TI  - Comparative Research on RC Equivalent Circuit Models for Lithium-Ion Batteries of Electric Vehicles
+AU  - Zhang, Lijun
+AU  - Peng, Hui
+AU  - Ning, Zhansheng
+AU  - Mu, Zhongqiang
+AU  - Sun, Changyan
+PY  - 2017
+JO  - Applied Sciences
+VL  - 7
+IS  - 10
+SP  - 1002
+DO  - 10.3390/app7101002
+UR  - https://doi.org/10.3390/app7101002
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0150
+TI  - Performance Modeling of the Ballard Mark IV Solid Polymer Electrolyte Fuel Cell: II . Empirical Model Development
+AU  - Amphlett, J. C.
+AU  - Baumert, R. M.
+AU  - Mann, R. F.
+AU  - Peppley, B. A.
+AU  - Roberge, P. R.
+AU  - Harris, T. J.
+PY  - 1995
+JO  - Journal of The Electrochemical Society
+VL  - 142
+IS  - 1
+SP  - 9
+EP  - 15
+DO  - 10.1149/1.2043959
+UR  - https://doi.org/10.1149/1.2043959
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0151
+TI  - Development and application of a generalised steady-state electrochemical model for a PEM fuel cell
+AU  - Mann, Ronald F.
+AU  - Amphlett, John C.
+AU  - Hooper, Michael A.I.
+AU  - Jensen, Heidi M.
+AU  - Peppley, Brant A.
+AU  - Roberge, Pierre R.
+PY  - 2000
+JO  - Journal of Power Sources
+VL  - 86
+IS  - 1-2
+SP  - 173
+EP  - 180
+DO  - 10.1016/s0378-7753(99)00484-x
+UR  - https://doi.org/10.1016/s0378-7753(99)00484-x
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0152
+TI  - Modelling of PEM Fuel Cell Performance: Steady-State and Dynamic Experimental Validation
+AU  - San Martín, Idoia
+AU  - Ursúa, Alfredo
+AU  - Sanchis, Pablo
+PY  - 2014
+JO  - Energies
+VL  - 7
+IS  - 2
+SP  - 670
+EP  - 700
+DO  - 10.3390/en7020670
+UR  - https://doi.org/10.3390/en7020670
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0154
+TI  - The ERA5 global reanalysis
+AU  - Hersbach, Hans
+AU  - Bell, Bill
+AU  - Berrisford, Paul
+AU  - Hirahara, Shoji
+AU  - Horányi, András
+AU  - Muñoz‐Sabater, Joaquín
+AU  - Nicolas, Julien
+AU  - Peubey, Carole
+AU  - Radu, Raluca
+AU  - Schepers, Dinand
+AU  - Simmons, Adrian
+AU  - Soci, Cornel
+AU  - Abdalla, Saleh
+AU  - Abellan, Xavier
+AU  - Balsamo, Gianpaolo
+AU  - Bechtold, Peter
+AU  - Biavati, Gionata
+AU  - Bidlot, Jean
+AU  - Bonavita, Massimo
+AU  - De Chiara, Giovanna
+AU  - Dahlgren, Per
+AU  - Dee, Dick
+AU  - Diamantakis, Michail
+AU  - Dragani, Rossana
+AU  - Flemming, Johannes
+AU  - Forbes, Richard
+AU  - Fuentes, Manuel
+AU  - Geer, Alan
+AU  - Haimberger, Leo
+AU  - Healy, Sean
+AU  - Hogan, Robin J.
+AU  - Hólm, Elías
+AU  - Janisková, Marta
+AU  - Keeley, Sarah
+AU  - Laloyaux, Patrick
+AU  - Lopez, Philippe
+AU  - Lupu, Cristina
+AU  - Radnoti, Gabor
+AU  - de Rosnay, Patricia
+AU  - Rozum, Iryna
+AU  - Vamborg, Freja
+AU  - Villaume, Sebastien
+AU  - Thépaut, Jean‐Noël
+PY  - 2020
+JO  - Quarterly Journal of the Royal Meteorological Society
+VL  - 146
+IS  - 730
+SP  - 1999
+EP  - 2049
+DO  - 10.1002/qj.3803
+UR  - https://doi.org/10.1002/qj.3803
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0155
+TI  - ERA5-Land: a state-of-the-art global reanalysis dataset for land applications
+AU  - Muñoz-Sabater, Joaquín
+AU  - Dutra, Emanuel
+AU  - Agustí-Panareda, Anna
+AU  - Albergel, Clément
+AU  - Arduini, Gabriele
+AU  - Balsamo, Gianpaolo
+AU  - Boussetta, Souhail
+AU  - Choulga, Margarita
+AU  - Harrigan, Shaun
+AU  - Hersbach, Hans
+AU  - Martens, Brecht
+AU  - Miralles, Diego G.
+AU  - Piles, María
+AU  - Rodríguez-Fernández, Nemesio J.
+AU  - Zsoter, Ervin
+AU  - Buontempo, Carlo
+AU  - Thépaut, Jean-Noël
+PY  - 2021
+JO  - Earth System Science Data
+VL  - 13
+IS  - 9
+SP  - 4349
+EP  - 4383
+DO  - 10.5194/essd-13-4349-2021
+UR  - https://doi.org/10.5194/essd-13-4349-2021
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0156
+TI  - Hierarchical Energy Management of Microgrids including Storage and Demand Response
+AU  - Fan, Songli
+AU  - Ai, Qian
+AU  - Piao, Longjian
+PY  - 2018
+JO  - Energies
+VL  - 11
+IS  - 5
+SP  - 1111
+DO  - 10.3390/en11051111
+UR  - https://doi.org/10.3390/en11051111
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0157
+TI  - Model Predictive Control Based Energy Management System Literature Assessment for RES Integration
+AU  - Tumeran, Nor Liza
+AU  - Yusoff, Siti Hajar
+AU  - Gunawan, Teddy Surya
+AU  - Hanifah, Mohd Shahrin Abu
+AU  - Zabidi, Suriza Ahmad
+AU  - Pranggono, Bernardi
+AU  - Yunus, Muhammad Sharir Fathullah Mohd
+AU  - Sapihie, Siti Nadiah Mohd
+AU  - Halbouni, Asmaa Hani
+PY  - 2023
+JO  - Energies
+VL  - 16
+IS  - 8
+SP  - 3362
+DO  - 10.3390/en16083362
+UR  - https://doi.org/10.3390/en16083362
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0158
+TI  - Constrained model predictive control: Stability and optimality
+AU  - Mayne, D.Q.
+AU  - Rawlings, J.B.
+AU  - Rao, C.V.
+AU  - Scokaert, P.O.M.
+PY  - 2000
+JO  - Automatica
+VL  - 36
+IS  - 6
+SP  - 789
+EP  - 814
+DO  - 10.1016/s0005-1098(99)00214-9
+UR  - https://doi.org/10.1016/s0005-1098(99)00214-9
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0159
+TI  - Li-Ion Battery Performance Degradation Modeling for the Optimal Design and Energy Management of Electrified Propulsion Systems
+AU  - Chen, Li
+AU  - Tong, Yuqi
+AU  - Dong, Zuomin
+PY  - 2020
+JO  - Energies
+VL  - 13
+IS  - 7
+SP  - 1629
+DO  - 10.3390/en13071629
+UR  - https://doi.org/10.3390/en13071629
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0164
+TI  - Lithium-ion battery models: a comparative study and a model-based powerline communication
+AU  - Saidani, Fida
+AU  - Hutter, Franz X.
+AU  - Scurtu, Rares-George
+AU  - Braunwarth, Wolfgang
+AU  - Burghartz, Joachim N.
+PY  - 2017
+JO  - Advances in Radio Science
+VL  - 15
+SP  - 83
+EP  - 91
+DO  - 10.5194/ars-15-83-2017
+UR  - https://doi.org/10.5194/ars-15-83-2017
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0183
+TI  - Characteristics Evaluation of 14 Battery Equivalent Circuit Models
+AU  - Jung, Sunghun
+AU  - Tullu, Abera
+PY  - 2023
+JO  - IEEE Access
+VL  - 11
+SP  - 117200
+EP  - 117209
+DO  - 10.1109/access.2023.3325395
+UR  - https://doi.org/10.1109/access.2023.3325395
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0189
+TI  - Parameters Identification and Sensitive Characteristics Analysis for Lithium-Ion Batteries of Electric Vehicles
+AU  - Zhang, Yun
+AU  - Shang, Yunlong
+AU  - Cui, Naxin
+AU  - Zhang, Chenghui
+PY  - 2017
+JO  - Energies
+VL  - 11
+IS  - 1
+SP  - 19
+DO  - 10.3390/en11010019
+UR  - https://doi.org/10.3390/en11010019
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0199
+TI  - Optimal dispatching method for integrated energy system based on robust economic model predictive control considering source–load power interval prediction
+AU  - Yu, Yang
+AU  - Li, Jiali
+AU  - Chen, Dongyang
+PY  - 2022
+JO  - Global Energy Interconnection
+VL  - 5
+IS  - 5
+SP  - 564
+EP  - 578
+DO  - 10.1016/j.gloei.2022.10.010
+UR  - https://doi.org/10.1016/j.gloei.2022.10.010
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0202
+TI  - Dynamic rolling horizon control approach for a university campus
+AU  - Yoldas, Yeliz
+AU  - Goren, Selcuk
+AU  - Onen, Ahmet
+AU  - Ustun, Taha Selim
+PY  - 2022
+JO  - Energy Reports
+VL  - 8
+SP  - 1154
+EP  - 1162
+DO  - 10.1016/j.egyr.2021.11.146
+UR  - https://doi.org/10.1016/j.egyr.2021.11.146
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0212
+TI  - Power Management of a Hybrid Micro-Grid with Photovoltaic Production and Hydrogen Storage
+AU  - K/bidi, Fabrice
+AU  - Damour, Cédric
+AU  - Grondin, Dominique
+AU  - Hilairet, Mickaël
+AU  - Benne, Michel
+PY  - 2021
+JO  - Energies
+VL  - 14
+IS  - 6
+SP  - 1628
+DO  - 10.3390/en14061628
+UR  - https://doi.org/10.3390/en14061628
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0213
+TI  - Microgrid Management Strategies for Economic Dispatch of Electricity Using Model Predictive Control Techniques: A Review
+AU  - Moreno-Castro, Juan
+AU  - Ocaña Guevara, Victor Samuel
+AU  - León Viltre, Lesyani Teresa
+AU  - Gallego Landera, Yandi
+AU  - Cuaresma Zevallos, Oscar
+AU  - Aybar-Mejía, Miguel
+PY  - 2023
+JO  - Energies
+VL  - 16
+IS  - 16
+SP  - 5935
+DO  - 10.3390/en16165935
+UR  - https://doi.org/10.3390/en16165935
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0216
+TI  - A novel energy management system based on two-level hierarchical economic model predictive control for use in microgrid control
+AU  - Vivas, F.J.
+AU  - Pajares, A.
+AU  - Blasco, X.
+AU  - Herrero, J.M.
+AU  - Segura, F.
+AU  - Andújar, J.M.
+PY  - 2025
+JO  - Energy Conversion and Management: X
+VL  - 26
+SP  - 101027
+DO  - 10.1016/j.ecmx.2025.101027
+UR  - https://doi.org/10.1016/j.ecmx.2025.101027
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0220
+TI  - Comparing model predictive control and reinforcement learning for the optimal operation of building-PV-battery systems
+AU  - Zhan, Sicheng
+AU  - Lei, Yue
+AU  - Chong, Adrian
+PY  - 2023
+JO  - E3S Web of Conferences
+VL  - 396
+SP  - 04018
+DO  - 10.1051/e3sconf/202339604018
+UR  - https://doi.org/10.1051/e3sconf/202339604018
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0221
+TI  - A two-layer robust model predictive control-based energy management system for a zero-carbon DC microgrid with hybrid hydrogen-battery energy storage
+AU  - Lim, Donghwan
+AU  - Cha, Junsang
+AU  - Seo, Chiwon
+AU  - Jang, Gilsoo
+PY  - 2026
+JO  - International Journal of Electrical Power &amp; Energy Systems
+VL  - 174
+SP  - 111516
+DO  - 10.1016/j.ijepes.2025.111516
+UR  - https://doi.org/10.1016/j.ijepes.2025.111516
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0227
+TI  - Unified dispatch of grid-connected and islanded microgrids
+AU  - Wodicker, Mackenzie Robert
+AU  - Nelson, James
+AU  - Johnson, Nathan Gregory
+PY  - 2024
+JO  - Frontiers in Energy Research
+VL  - 11
+DO  - 10.3389/fenrg.2023.1257050
+UR  - https://doi.org/10.3389/fenrg.2023.1257050
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0229
+TI  - Predictive Control for Microgrid Applications: A Review Study
+AU  - Villalón, Ariel
+AU  - Rivera, Marco
+AU  - Salgueiro, Yamisleydi
+AU  - Muñoz, Javier
+AU  - Dragičević, Tomislav
+AU  - Blaabjerg, Frede
+PY  - 2020
+JO  - Energies
+VL  - 13
+IS  - 10
+SP  - 2454
+DO  - 10.3390/en13102454
+UR  - https://doi.org/10.3390/en13102454
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0233
+TI  - A Model Predictive Control-Based Energy Management Scheme for Hybrid Storage System in Islanded Microgrids
+AU  - Nair, Unnikrishnan Raveendran
+AU  - Costa-Castello, Ramon
+PY  - 2020
+JO  - IEEE Access
+VL  - 8
+SP  - 97809
+EP  - 97822
+DO  - 10.1109/access.2020.2996434
+UR  - https://doi.org/10.1109/access.2020.2996434
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0236
+TI  - Multi‐time hierarchical stochastic predictive control for energy management of an island microgrid with plug‐in electric vehicles
+AU  - Zou, Yuanyuan
+AU  - Dong, Yi
+AU  - Li, Shaoyuan
+AU  - Niu, Yugang
+PY  - 2019
+JO  - IET Generation, Transmission &amp; Distribution
+VL  - 13
+IS  - 10
+SP  - 1794
+EP  - 1801
+DO  - 10.1049/iet-gtd.2018.5332
+UR  - https://doi.org/10.1049/iet-gtd.2018.5332
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0239
+TI  - Energy Management Optimization of Fuel Cell Hybrid Ship Based on Particle Swarm Optimization Algorithm
+AU  - Peng, Xin
+AU  - Chen, Hui
+AU  - Guan, Cong
+PY  - 2023
+JO  - Energies
+VL  - 16
+IS  - 3
+SP  - 1373
+DO  - 10.3390/en16031373
+UR  - https://doi.org/10.3390/en16031373
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0240
+TI  - Analysis of Hybrid Ship Machinery System with Proton Exchange Membrane Fuel Cells and Battery Pack
+AU  - Penga, Jure
+AU  - Vidović, Tino
+AU  - Radica, Gojmir
+AU  - Penga, Željko
+PY  - 2024
+JO  - Applied Sciences
+VL  - 14
+IS  - 7
+SP  - 2878
+DO  - 10.3390/app14072878
+UR  - https://doi.org/10.3390/app14072878
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0241
+TI  - Modeling a Zero-Emissions Hydrogen-Powered Catamaran Ferry Using AVL Cruise-M Software
+AU  - Micoli, Luca
+AU  - Coppola, Tommaso
+AU  - Russo, Roberta
+AU  - Sorrentino, Vincenzo
+PY  - 2024
+JO  - Journal of Marine Science and Engineering
+VL  - 12
+IS  - 5
+SP  - 770
+DO  - 10.3390/jmse12050770
+UR  - https://doi.org/10.3390/jmse12050770
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0253
+TI  - Optimising the Design of a Hybrid Fuel Cell/Battery and Waste Heat Recovery System for Retrofitting Ship Power Generation
+AU  - Yuksel, Onur
+AU  - Blanco-Davis, Eduardo
+AU  - Spiteri, Andrew
+AU  - Hitchmough, David
+AU  - Shagar, Viknash
+AU  - Di Piazza, Maria Carmela
+AU  - Pucci, Marcello
+AU  - Tsoulakos, Nikolaos
+AU  - Armin, Milad
+AU  - Wang, Jin
+PY  - 2025
+JO  - Energies
+VL  - 18
+IS  - 2
+SP  - 288
+DO  - 10.3390/en18020288
+UR  - https://doi.org/10.3390/en18020288
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0263
+TI  - Energy Management Strategy Considering Energy Storage System Degradation for Hydrogen Fuel Cell Ship
+AU  - Cao, Wei
+AU  - Geng, Pan
+AU  - Xu, Xiaoyan
+AU  - Tarasiuk, Tomasz
+PY  - 2023
+JO  - Polish Maritime Research
+VL  - 30
+IS  - 2
+SP  - 95
+EP  - 104
+DO  - 10.2478/pomr-2023-0025
+UR  - https://doi.org/10.2478/pomr-2023-0025
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0270
+TI  - Analysis of the Impact of Dynamic Operation of PEMFCs for Ship Applications
+AU  - Kim, Jae Hong
+AU  - Lee, Seon Hyeong
+AU  - Kwon, Jae Heon
+AU  - Kwon, Ryu Bin
+AU  - Jung, Kwang Hyo
+AU  - Son, Moonho
+AU  - Park, Hyun
+PY  - 2024
+JO  - Journal of Ocean Engineering and Technology
+VL  - 38
+IS  - 5
+SP  - 199
+EP  - 209
+DO  - 10.26748/ksoe.2024.071
+UR  - https://doi.org/10.26748/ksoe.2024.071
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0271
+TI  - Power-Deficit-Constrained Hierarchical Energy Management for Hydrogen–Electric Ships
+AU  - Chen, Youhong
+AU  - Wang, Rongjie
+AU  - Wang, Yichun
+AU  - Wu, Binyun
+AU  - Liu, Hao
+AU  - Zhang, Lieqi
+AU  - Cai, Fan
+PY  - 2026
+JO  - Journal of Marine Science and Engineering
+VL  - 14
+IS  - 18
+SP  - 1726
+DO  - 10.3390/jmse14181726
+UR  - https://doi.org/10.3390/jmse14181726
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0275
+TI  - Fuel Consumption and CO 2  Emission Reductions of Ships Powered by a Fuel-Cell-Based Hybrid Power Source
+AU  - Roh, Gilltae
+AU  - Kim, Hansung
+AU  - Jeon, Hyeonmin
+AU  - Yoon, Kyoungkuk
+PY  - 2019
+JO  - Journal of Marine Science and Engineering
+VL  - 7
+IS  - 7
+SP  - 230
+DO  - 10.3390/jmse7070230
+UR  - https://doi.org/10.3390/jmse7070230
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0276
+TI  - A Data-Driven Approach to Ship Energy Management: Incorporating Automated Tracking System Data and Weather Information
+AU  - Ünlübayir, Cem
+AU  - Mierendorff, Ulrich Hermann
+AU  - Börner, Martin Florian
+AU  - Quade, Katharina Lilith
+AU  - Blömeke, Alexander
+AU  - Ringbeck, Florian
+AU  - Sauer, Dirk Uwe
+PY  - 2023
+JO  - Journal of Marine Science and Engineering
+VL  - 11
+IS  - 12
+SP  - 2259
+DO  - 10.3390/jmse11122259
+UR  - https://doi.org/10.3390/jmse11122259
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0278
+TI  - Ship Electric Propulsion Based on Hydrogen Fuel Cell, Batteries, PVs and WASP: Energy Management, Dynamics and Converter-Driven Stability
+AU  - Kotsampopoulos, Panos
+AU  - Saridaki, Georgia
+AU  - Kour, Jasdeep
+AU  - Fayek, Hady Habib
+PY  - 2026
+JO  - Energies
+VL  - 19
+IS  - 11
+SP  - 2636
+DO  - 10.3390/en19112636
+UR  - https://doi.org/10.3390/en19112636
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0280
+TI  - Performing energy modelling exercises in a transparent way - The issue of data quality in power plant databases
+AU  - Gotzens, Fabian
+AU  - Heinrichs, Heidi
+AU  - Hörsch, Jonas
+AU  - Hofmann, Fabian
+PY  - 2019
+JO  - Energy Strategy Reviews
+VL  - 23
+SP  - 1
+EP  - 12
+DO  - 10.1016/j.esr.2018.11.004
+UR  - https://doi.org/10.1016/j.esr.2018.11.004
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0291
+TI  - ENTIRETY — sEmanNTIc pRovisioning and govErning ioT devices in smart energY domain
+AU  - Haghgoo, Maliheh
+AU  - Sychev, Ilya
+AU  - Monti, Antonello
+AU  - Fitzek, Frank H.P.
+PY  - 2022
+JO  - SoftwareX
+VL  - 18
+SP  - 101081
+DO  - 10.1016/j.softx.2022.101081
+UR  - https://doi.org/10.1016/j.softx.2022.101081
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0292
+TI  - Economic Model-Predictive Control of Building Heating Systems Using Backbone Energy System Modelling Framework
+AU  - Rasku, Topi
+AU  - Lastusilta, Toni
+AU  - Hasan, Ala
+AU  - Ramesh, Rakesh
+AU  - Kiviluoma, Juha
+PY  - 2023
+JO  - Buildings
+VL  - 13
+IS  - 12
+SP  - 3089
+DO  - 10.3390/buildings13123089
+UR  - https://doi.org/10.3390/buildings13123089
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0294
+TI  - Global sensitivity analysis to enhance the transparency and rigour of energy system optimisation modelling
+AU  - Usher, William
+AU  - Barnes, Trevor
+AU  - Moksnes, Nandi
+AU  - Niet, Taco
+PY  - 2023
+JO  - Open Research Europe
+DO  - 10.12688/openreseurope.15461.1
+UR  - https://doi.org/10.12688/openreseurope.15461.1
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0295
+TI  - LIFT: A user-friendly and scalable technoeconomic energy system simulation tool for fleet and depot electrification
+AU  - Paper, Anna
+AU  - Dietermann, Brian
+AU  - Rosner, Philipp
+AU  - Mayer, Fabian
+AU  - Lienkamp, Markus
+PY  - 2026
+JO  - SoftwareX
+VL  - 35
+SP  - 102843
+DO  - 10.1016/j.softx.2026.102843
+UR  - https://doi.org/10.1016/j.softx.2026.102843
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0298
+TI  - Climate2Energy: a framework to consistently include climate change into energy system modeling
+AU  - Wohland, Jan
+AU  - Bloin-Wibe, Luna
+AU  - Fischer, Erich
+AU  - Göke, Leonard
+AU  - Knutti, Reto
+AU  - De Marco, Francesco
+AU  - Beyerle, Urs
+AU  - Savelsberg, Jonas
+PY  - 2025
+JO  - Environmental Research: Energy
+VL  - 2
+IS  - 4
+SP  - 041001
+DO  - 10.1088/2753-3751/ae2870
+UR  - https://doi.org/10.1088/2753-3751/ae2870
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0301
+TI  - Open-source modelling infrastructure: Building decarbonization capacity in Canada
+AU  - McPherson, Madeleine
+AU  - Monroe, Jacob
+AU  - Jurasz, Jakub
+AU  - Rowe, Andrew
+AU  - Hendriks, Richard
+AU  - Stanislaw, Lauren
+AU  - Awais, Muhammad
+AU  - Seatle, Madeleine
+AU  - Xu, Robert
+AU  - Crownshaw, Timothy
+AU  - Miri, Mohammad
+AU  - Aldana, Dustin
+AU  - Esfahlani, Moe
+AU  - Arjmand, Reza
+AU  - Saffari, Mohammadali
+AU  - Cusi, Tristan
+AU  - Toor, Kanwarpreet Singh
+AU  - Grieco, Joel
+PY  - 2022
+JO  - Energy Strategy Reviews
+VL  - 44
+SP  - 100961
+DO  - 10.1016/j.esr.2022.100961
+UR  - https://doi.org/10.1016/j.esr.2022.100961
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0312
+TI  - A review of mixed-integer linear formulations for framework-based energy system models
+AU  - Hoffmann, Maximilian
+AU  - Schyska, Bruno U.
+AU  - Bartels, Julian
+AU  - Pelser, Tristan
+AU  - Behrens, Johannes
+AU  - Wetzel, Manuel
+AU  - Gils, Hans Christian
+AU  - Tang, Chuen-Fung
+AU  - Tillmanns, Marius
+AU  - Stock, Jan
+AU  - Xhonneux, André
+AU  - Kotzur, Leander
+AU  - Praktiknjo, Aaron
+AU  - Vogt, Thomas
+AU  - Jochem, Patrick
+AU  - Linßen, Jochen
+AU  - Weinand, Jann M.
+AU  - Stolten, Detlef
+PY  - 2024
+JO  - Advances in Applied Energy
+VL  - 16
+SP  - 100190
+DO  - 10.1016/j.adapen.2024.100190
+UR  - https://doi.org/10.1016/j.adapen.2024.100190
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0314
+TI  - Balmorel open source energy system model
+AU  - Wiese, Frauke
+AU  - Bramstoft, Rasmus
+AU  - Koduvere, Hardi
+AU  - Pizarro Alonso, Amalia
+AU  - Balyk, Olexandr
+AU  - Kirkerud, Jon Gustav
+AU  - Tveten, Åsa Grytli
+AU  - Bolkesjø, Torjus Folsland
+AU  - Münster, Marie
+AU  - Ravn, Hans
+PY  - 2018
+JO  - Energy Strategy Reviews
+VL  - 20
+SP  - 26
+EP  - 34
+DO  - 10.1016/j.esr.2018.01.003
+UR  - https://doi.org/10.1016/j.esr.2018.01.003
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0319
+TI  - Improvement and validation of a model for photovoltaic array performance
+AU  - De Soto, W.
+AU  - Klein, S.A.
+AU  - Beckman, W.A.
+PY  - 2006
+JO  - Solar Energy
+VL  - 80
+IS  - 1
+SP  - 78
+EP  - 88
+DO  - 10.1016/j.solener.2005.06.010
+UR  - https://doi.org/10.1016/j.solener.2005.06.010
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0320
+TI  - Erratum to “Improvement and validation of a model for photovoltaic array performance” [Solar Energy 80 (2006) 78–88]
+AU  - De Soto, W.
+AU  - Klein, S.A.
+AU  - Beckman, W.A.
+PY  - 2007
+JO  - Solar Energy
+VL  - 81
+IS  - 1
+SP  - 150
+DO  - 10.1016/j.solener.2006.05.001
+UR  - https://doi.org/10.1016/j.solener.2006.05.001
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0321
+TI  - Pandapower—An Open-Source Python Tool for Convenient Modeling, Analysis, and Optimization of Electric Power Systems
+AU  - Thurner, Leon
+AU  - Scheidler, Alexander
+AU  - Schafer, Florian
+AU  - Menke, Jan-Hendrik
+AU  - Dollichon, Julian
+AU  - Meier, Friederike
+AU  - Meinecke, Steffen
+AU  - Braun, Martin
+PY  - 2018
+JO  - IEEE Transactions on Power Systems
+VL  - 33
+IS  - 6
+SP  - 6510
+EP  - 6521
+DO  - 10.1109/tpwrs.2018.2829021
+UR  - https://doi.org/10.1109/tpwrs.2018.2829021
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0324
+TI  - A review of fuel cell systems for maritime applications
+AU  - van Biert, L.
+AU  - Godjevac, M.
+AU  - Visser, K.
+AU  - Aravind, P.V.
+PY  - 2016
+JO  - Journal of Power Sources
+VL  - 327
+SP  - 345
+EP  - 364
+DO  - 10.1016/j.jpowsour.2016.07.007
+UR  - https://doi.org/10.1016/j.jpowsour.2016.07.007
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0325
+TI  - Fuel Cell Power Systems for Maritime Applications: Progress and Perspectives
+AU  - Xing, Hui
+AU  - Stuart, Charles
+AU  - Spence, Stephen
+AU  - Chen, Hua
+PY  - 2021
+JO  - Sustainability
+VL  - 13
+IS  - 3
+SP  - 1213
+DO  - 10.3390/su13031213
+UR  - https://doi.org/10.3390/su13031213
+Y2  - 2026/11/12
+KW  - P4
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0328
+TI  - A comprehensive review on wind turbine power curve modeling techniques
+AU  - Lydia, M.
+AU  - Kumar, S. Suresh
+AU  - Selvakumar, A. Immanuel
+AU  - Prem Kumar, G. Edwin
+PY  - 2014
+JO  - Renewable and Sustainable Energy Reviews
+VL  - 30
+SP  - 452
+EP  - 460
+DO  - 10.1016/j.rser.2013.10.030
+UR  - https://doi.org/10.1016/j.rser.2013.10.030
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0332
+TI  - The importance of open data and software: Is energy research lagging behind?
+AU  - Pfenninger, Stefan
+AU  - DeCarolis, Joseph
+AU  - Hirth, Lion
+AU  - Quoilin, Sylvain
+AU  - Staffell, Iain
+PY  - 2017
+JO  - Energy Policy
+VL  - 101
+SP  - 211
+EP  - 215
+DO  - 10.1016/j.enpol.2016.11.046
+UR  - https://doi.org/10.1016/j.enpol.2016.11.046
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0338
+TI  - Stochastic Optimization of Microgrid Operation With Renewable Generation and Energy Storages
+AU  - Aaslid, Per
+AU  - Korpas, Magnus
+AU  - Belsnes, Michael M
+AU  - Fosso, Olav B
+PY  - 2022
+JO  - IEEE Transactions on Sustainable Energy
+VL  - 13
+IS  - 3
+SP  - 1481
+EP  - 1491
+DO  - 10.1109/tste.2022.3156069
+UR  - https://doi.org/10.1109/tste.2022.3156069
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0341
+TI  - Performance Modeling of the Ballard Mark IV Solid Polymer Electrolyte Fuel Cell: I . Mechanistic Model Development
+AU  - Amphlett, J. C.
+AU  - Baumert, R. M.
+AU  - Mann, R. F.
+AU  - Peppley, B. A.
+AU  - Roberge, P. R.
+AU  - Harris, T. J.
+PY  - 1995
+JO  - Journal of The Electrochemical Society
+VL  - 142
+IS  - 1
+SP  - 1
+EP  - 8
+DO  - 10.1149/1.2043866
+UR  - https://doi.org/10.1149/1.2043866
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0343
+TI  - ETHOS.FINE: A Framework for Integrated Energy System Assessment
+AU  - Klütz, Theresa
+AU  - Knosala, Kevin
+AU  - Behrens, Johannes
+AU  - Maier, Rachel
+AU  - Hoffmann, Maximilian
+AU  - Pflugradt, Noah
+AU  - Stolten, Detlef
+PY  - 2025
+JO  - Journal of Open Source Software
+VL  - 10
+IS  - 105
+SP  - 6274
+DO  - 10.21105/joss.06274
+UR  - https://doi.org/10.21105/joss.06274
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0348
+TI  - Optimal planning of solar PV and battery storage with energy management systems for Time‐of‐Use and flat electricity tariffs
+AU  - Pan, Xincheng
+AU  - Khezri, Rahmat
+AU  - Mahmoudi, Amin
+AU  - Muyeen, SM
+PY  - 2022
+JO  - IET Renewable Power Generation
+VL  - 16
+IS  - 6
+SP  - 1206
+EP  - 1219
+DO  - 10.1049/rpg2.12433
+UR  - https://doi.org/10.1049/rpg2.12433
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0349
+TI  - A Model Predictive Control Approach to Microgrid Operation Optimization
+AU  - Parisio, Alessandra
+AU  - Rikos, Evangelos
+AU  - Glielmo, Luigi
+PY  - 2014
+JO  - IEEE Transactions on Control Systems Technology
+VL  - 22
+IS  - 5
+SP  - 1813
+EP  - 1827
+DO  - 10.1109/tcst.2013.2295737
+UR  - https://doi.org/10.1109/tcst.2013.2295737
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0350
+TI  - Two-level hierarchical model predictive control with an optimised cost function for energy management in building microgrids
+AU  - Yassuda Yamashita, Daniela
+AU  - Vechiu, Ionel
+AU  - Gaubert, Jean-Paul
+PY  - 2021
+JO  - Applied Energy
+VL  - 285
+SP  - 116420
+DO  - 10.1016/j.apenergy.2020.116420
+UR  - https://doi.org/10.1016/j.apenergy.2020.116420
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0351
+TI  - Development and experimental validation of hierarchical energy management system based on stochastic model predictive control for Off-grid Microgrids
+AU  - Polimeni, Simone
+AU  - Meraldi, Lorenzo
+AU  - Moretti, Luca
+AU  - Leva, Sonia
+AU  - Manzolini, Giampaolo
+PY  - 2021
+JO  - Advances in Applied Energy
+VL  - 2
+SP  - 100028
+DO  - 10.1016/j.adapen.2021.100028
+UR  - https://doi.org/10.1016/j.adapen.2021.100028
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura A
+ER  -
+
+TY  - JOUR
+ID  - REF0352
+TI  - Experimental Validation of a Battery Dynamic Model for EV Applications
+AU  - Tremblay, Olivier
+AU  - Dessaint, Louis-A.
+PY  - 2009
+JO  - World Electric Vehicle Journal
+VL  - 3
+IS  - 2
+SP  - 289
+EP  - 298
+DO  - 10.3390/wevj3020289
+UR  - https://doi.org/10.3390/wevj3020289
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0353
+TI  - Calliope: a multi-scale energy systems modelling framework
+AU  - Pfenninger, Stefan
+AU  - Pickering, Bryn
+PY  - 2018
+JO  - Journal of Open Source Software
+VL  - 3
+IS  - 29
+SP  - 825
+DO  - 10.21105/joss.00825
+UR  - https://doi.org/10.21105/joss.00825
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0354
+TI  - Best Practices for Scientific Computing
+AU  - Wilson, Greg
+AU  - Aruliah, D. A.
+AU  - Brown, C. Titus
+AU  - Chue Hong, Neil P.
+AU  - Davis, Matt
+AU  - Guy, Richard T.
+AU  - Haddock, Steven H. D.
+AU  - Huff, Kathryn D.
+AU  - Mitchell, Ian M.
+AU  - Plumbley, Mark D.
+AU  - Waugh, Ben
+AU  - White, Ethan P.
+AU  - Wilson, Paul
+PY  - 2014
+JO  - PLoS Biology
+VL  - 12
+IS  - 1
+SP  - e1001745
+DO  - 10.1371/journal.pbio.1001745
+UR  - https://doi.org/10.1371/journal.pbio.1001745
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0355
+TI  - The Open Energy Modelling Framework (oemof) - A new approach to facilitate open science in energy system modelling
+AU  - Hilpert, S.
+AU  - Kaldemeyer, C.
+AU  - Krien, U.
+AU  - Günther, S.
+AU  - Wingenbach, C.
+AU  - Plessmann, G.
+PY  - 2018
+JO  - Energy Strategy Reviews
+VL  - 22
+SP  - 16
+EP  - 25
+DO  - 10.1016/j.esr.2018.07.001
+UR  - https://doi.org/10.1016/j.esr.2018.07.001
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - JOUR
+ID  - REF0356
+TI  - Parallelizing the dual revised simplex method
+AU  - Huangfu, Q.
+AU  - Hall, J. A. J.
+PY  - 2018
+JO  - Mathematical Programming Computation
+VL  - 10
+IS  - 1
+SP  - 119
+EP  - 142
+DO  - 10.1007/s12532-017-0130-5
+UR  - https://doi.org/10.1007/s12532-017-0130-5
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0357
+TI  - pymgrid: An Open-Source Python Microgrid Simulator for Applied Artificial Intelligence Research
+AU  - Henri, Gonzague
+AU  - Levent, Tanguy
+AU  - Halev, Avishai
+AU  - Alami, Reda
+AU  - Cordier, Philippe
+PY  - 2020
+T2  - arXiv
+UR  - https://arxiv.org/abs/2011.08004
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+N1  - Preprint arXiv:2011.08004; versão consultada de 2020, sem revisão por pares afirmada.
+ER  -
+
+TY  - CONF
+ID  - REF0358
+TI  - Modeling of a PEM Fuel Cell System in Matlab
+AU  - Altıntaş, Nigar
+AU  - Ertan, Rukiye
+PY  - 2024
+T2  - 11th International Automotive Technologies Congress OTEKON 2024
+UR  - https://www.uludag.edu.tr/dosyalar/fenbilimleri/TEZ%20BA%C5%9EARI%20H%C4%B0KAYELER%C4%B0/2024%20Tez%20Ba%C5%9Far%C4%B1%20Hikayeleri.pdf
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura M
+ER  -
+
+TY  - JOUR
+ID  - REF0359
+TI  - Research on membrane electrode assembly consistency of high-power proton exchange membrane fuel cell stack
+AU  - Chen, Hong
+AU  - Jiang, Kun
+AU  - Tang, Tingjiang
+AU  - Huang, Yiyuan
+AU  - Chi, Bin
+AU  - Liao, Shijun
+PY  - 2024
+JO  - CIESC Journal
+VL  - 75
+IS  - 2
+SP  - 637
+EP  - 646
+DO  - 10.11949/0438-1157.20230745
+UR  - https://doi.org/10.11949/0438-1157.20230745
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura A
+ER  -
+
+TY  - GEN
+ID  - REF0361
+TI  - Introduction: Open Energy Management System
+AU  - OpenEMS Association
+T2  - OpenEMS
+UR  - https://openems.github.io/openems.io/openems/latest/introduction.html
+Y2  - 2026/11/12
+KW  - P1
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0362
+TI  - Working with Streamlit's execution model
+AU  - Streamlit
+T2  - Streamlit
+UR  - https://docs.streamlit.io/develop/concepts/architecture
+Y2  - 2026/11/12
+KW  - P3
+KW  - leitura M
+ER  -
+
+TY  - GEN
+ID  - REF0363
+TI  - Tarifas de energia elétrica
+AU  - COPEL Distribuição S.A.
+T2  - COPEL
+UR  - https://www.copel.com/site/copel-distribuicao/tarifas-de-energia-eletrica/
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0364
+TI  - Modalidades Tarifárias
+AU  - Agência Nacional de Energia Elétrica
+T2  - ANEEL
+UR  - https://www.gov.br/aneel/pt-br/assuntos/tarifas/entenda-a-tarifa/modalidades-tarifarias
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - BOOK
+ID  - REF0365
+TI  - Model Predictive Control: Theory, Computation, and Design. 2nd edition, fifth printing
+AU  - Rawlings, James B.
+AU  - Mayne, David Q.
+AU  - Diehl, Moritz M.
+PY  - 2024
+T2  - Nob Hill Publishing
+UR  - https://sites.engineering.ucsb.edu/~jbraw/mpc/MPC-book-2nd-edition-5th-printing.pdf
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0366
+TI  - GEV MP C 275 kW. Technical characteristics. DC-11-00-01-EN
+AU  - Vergnet
+PY  - 2014
+T2  - Vergnet
+UR  - https://www.vergnet.com/wp-content/uploads/2023/06/DC-11-00-01-EN_GEV_MP-C_275_kW.pdf
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0367
+TI  - BergeyExcel10_8.9kW_7.csv. turbine-models, revisão e9e4ccc6a87f50c0c65d236154a2897e752c47c9
+AU  - NatLabRockies, turbine-models contributors
+T2  - NatLabRockies/turbine-models
+UR  - https://github.com/NatLabRockies/turbine-models/blob/e9e4ccc6a87f50c0c65d236154a2897e752c47c9/turbine_models/data/Distributed/BergeyExcel10_8.9kW_7.csv
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura F
+ER  -
+
+TY  - GEN
+ID  - REF0368
+TI  - pvlib.pvsystem.calcparams_desoto
+AU  - pvlib python contributors
+T2  - pvlib python
+UR  - https://pvlib-python.readthedocs.io/en/stable/reference/generated/pvlib.pvsystem.calcparams_desoto.html
+Y2  - 2026/11/12
+KW  - P2
+KW  - leitura F
+ER  -
+
+TY  - CONF
+ID  - REF0369
+TI  - Desenvolvimento computacional e estimação de parâmetros de um modelo eletroquímico de célula a combustível PEM
+AU  - Chavez, Bruno Manuel O.
+AU  - Peruzzo, Marília Luiza B.
+AU  - da Silva Mota, Ana Carolina
+AU  - Cruz, Pedro Germano A.
+AU  - Ensina, Leandro A.
+AU  - Junior, Oswaldo Hideo A.
+AU  - Maciel, Joylan N.
+AU  - Ledesma, Jorge Javier G.
+PY  - 2026
+T2  - XVI Conferência Nacional em Comunicações, Redes e Segurança da Informação (ENCOM 2026)
+SP  - 295
+EP  - 298
+PB  - Zenodo
+DO  - 10.5281/zenodo.22978126
+UR  - https://doi.org/10.5281/zenodo.22978126
+Y2  - 2026/11/12
+KW  - P0
+KW  - leitura F
+ER  -

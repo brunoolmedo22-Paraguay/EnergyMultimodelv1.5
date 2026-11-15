@@ -1,0 +1,61 @@
+﻿fonte,url,status,bytes_obtidos,sha256_consulta,data_utc
+pypsa,https://openresearchsoftware.metajnl.com/articles/10.5334/jors.188,obtido,739636,3a8cfa18670f47236e2f8f6f0d86247168cb3710c90687b3853c6efa228a584a,2026-11-12
+calliope,https://joss.theoj.org/papers/10.21105/joss.00825,obtido,19852,6f4de9dca57b6f368d0699c77233a311d32128df79e181dc898372da71669f61,2026-11-12
+fine,https://joss.theoj.org/papers/10.21105/joss.06274,obtido,21043,8e030ba0f2db9648f9aee27320ff9c98f5fd092367f218d232310374fcdf82f2,2026-11-12
+pvlib,https://joss.theoj.org/papers/10.21105/joss.00884,obtido,20018,ce7841711fa0ca802862d83e28d132870daf4c028feefab71640816e72ee8c29,2026-11-12
+best,https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.1001745,obtido,190001,03c42771e4b994b44f4be8897b61a767b7d62175994c11c1312790e9e34180d6,2026-11-12
+good,https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005510,obtido,187433,79517990e81689892068f63c2e4322d4406b0bdb44f7fa2254c80570dbc4a27d,2026-11-12
+rules,https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003285,obtido,135300,f41b5e37f1d3359a463a102a6f4ec3b474820c8113030578377fa77d6e6ce4ff,2026-11-12
+fair,https://www.nature.com/articles/sdata201618,obtido,451538,18a1ac7b940a24e7eb8e91ad0266bc8aa95003374e44afeaed8325719ee6af32,2026-11-12
+zhang,https://www.mdpi.com/2076-3417/7/10/1002/xml,Página de download XML; não foi contada como leitura do artigo,60464,6a2985e51d6c71e579199632324c587f47596a90e2c77a4dcf6368b2d7288a26,2026-11-12
+tremblay,https://www.mdpi.com/2032-6653/3/2/289/xml,Página de download XML; não foi contada como leitura do artigo,60454,47093e11be7e77e586cea98d315a212d1eba970070e4e8d3fe009e517e893238,2026-11-12
+fan,https://www.mdpi.com/1996-1073/11/5/1111/xml,Página de download XML; não foi contada como leitura do artigo,60464,cef6b42e94e70cbf58dea3df97d7f28b9a88c2b7321639edbac50158cdc4970f,2026-11-12
+sanmartin,https://www.mdpi.com/1996-1073/7/2/670/xml,Página de download XML; não foi contada como leitura do artigo,60454,06f84a853ef543b6c26581adf54aa715344b54c973cf4a6472385bf6bb12b46b,2026-11-12
+reviewems,https://www.mdpi.com/2076-3417/9/18/3854/xml,Página de download XML; não foi contada como leitura do artigo,60464,e84f1f7a10a52df306918124d41dac5bfba6acdb8f107ad9f44e586793d7b6ef,2026-11-12
+reviewmpc,https://www.mdpi.com/1996-1073/16/8/3362/xml,Página de download XML; não foi contada como leitura do artigo,60464,aed47ea1719e40418f46766d646bdfa4769f7ba0f02a36fe156990f89a81a30d,2026-11-12
+era5land,https://essd.copernicus.org/articles/13/4349/2021/essd-13-4349-2021.html,obtido,557481,0bd8dec0f3e033b79d62f2376c9e9624cc249fd0fc2e693c4a11c4e7920cda3e,2026-11-12
+chen,https://hgxb.cip.com.cn/EN/10.11949/0438-1157.20230745,obtido,107500,d18d7bfbfd4a252cc6361ff11aff14f4e4c497944df2c4848439ce09259a51a2,2026-11-12
+reopt,https://docs.nlr.gov/docs/fy14osti/61783.pdf,HTTP Error 404: Not Found,,,2026-11-12
+polimeni,https://re.public.polimi.it/handle/11311/1200103,HTTP Error 403: Forbidden,,,2026-11-12
+openems,https://openems.github.io/openems.io/openems/latest/introduction.html,obtido,54974,38d0ee18650717375c8cc69bde870b1acc47b16b8a054aac7a826185e7e0b89d,2026-11-12
+streamlit,https://docs.streamlit.io/develop/concepts/architecture,obtido,154723,e6f809ce1bb5366badc84533e49487b60dbb035054735f0ed8b08a328675d1c5,2026-11-12
+copeltar,https://www.copel.com/site/copel-distribuicao/tarifas-de-energia-eletrica/,obtido,139347,a62e52935af61f83249aa3f19fabe32e3428def8964041fddb557b951fdca78d,2026-11-12
+copelgroup,https://www.copel.com/site/copel-distribuicao/para-sua-empresa/grupo-tarifario/,obtido,124326,76ce5b562aa6d85c38c082b4f1d3695cfb3a719bfb681e6b4bc15032d94e6a13,2026-11-12
+rawling,https://sites.engineering.ucsb.edu/~jbraw/mpc/MPC-book-2nd-edition-5th-printing.pdf,obtido,3837012,34f26377117a6aedfc4c48767034c1ba4ed6a758dc68d142fcd5eeef2b37a061,2026-11-12
+calliope,https://joss.theoj.org/papers/10.21105/joss.00825.pdf,obtido,157434,49242a4e778cb32bfbacc07b5e4a4de82694fcc666dbb3686d0358202a6cc7ee,2026-11-12
+fine,https://joss.theoj.org/papers/10.21105/joss.06274.pdf,obtido,534691,1bde3bff20fd35ac2d8e8a7dd3c4f3966e1e88966182c1ed48dc5ca437a509fe,2026-11-12
+pvlib,https://joss.theoj.org/papers/10.21105/joss.00884.pdf,obtido,132404,76438d18e31aa70220dfb35f3fb3e62c28d7ba1f813a184d48707c74db267f33,2026-11-12
+pypsa_pdf,https://arxiv.org/pdf/1707.09913,obtido,1296584,e2a5de11269a49433d05fd9fec053c8cc966f69fd244136c15fc96c4fe673d30,2026-11-12
+reopt_pdf,https://www.nrel.gov/docs/fy14osti/61783.pdf,HTTP Error 503: Service Unavailable,,,2026-11-12
+pymgrid_pdf,https://arxiv.org/pdf/2011.08004,obtido,324570,4ade08acd1b7fc32428eeef4f1c18f36b92e3a3b6814a11428fe0beb58a3a8b3,2026-11-12
+scipy_pdf,https://arxiv.org/pdf/1907.10121,obtido,1365093,920cc79315fd277699ca61ba5f580595c60392a22908c8f06d5962a897550d1a,2026-11-12
+numpy_pdf,https://arxiv.org/pdf/2006.10256,obtido,1437715,c6705a2bad0a8b56e992009d1588dd6c7c2c4d657e253a11811dcee0315be791,2026-11-12
+oemof_pdf,https://arxiv.org/pdf/1808.08070,obtido,606183,cec66791f247f17dc3448e188726beb69ced222757701ff422f50e6cca914464,2026-11-12
+pandapower_pdf,https://arxiv.org/pdf/1709.06743,obtido,1549105,e53a7576bdf3146ff2d72f4e544452293e33a8f934cce0fa074ae1df06cbf7f1,2026-11-12
+osemosys_pdf,https://www.diva-portal.org/smash/get/diva2:465077/FULLTEXT01.pdf,HTTP Error 404: Not Found,,,2026-11-12
+zhang,https://www.mdpi.com/2076-3417/7/10/1002/pdf,obtido,3391424,6a007b7a75a01190e4e162db574e5b4019ad0c3a96303f571711758af5a930e8,2026-11-12
+tremblay,https://www.mdpi.com/2032-6653/3/2/289/pdf,obtido,567498,0c36fc6e535fd5d2e4d346fb0501e1a29f74cc5ed53abd81b8d70723bf2428f1,2026-11-12
+fan,https://www.mdpi.com/1996-1073/11/5/1111/pdf,obtido,2434595,ea7b992e09015baccc90e0f9faf44b6002e4a569e6609512a677466d48309b5f,2026-11-12
+sanmartin,https://www.mdpi.com/1996-1073/7/2/670/pdf,obtido,1046707,5ca7f203ae1bd474487b4ed7a9350ed16a5f223c010ac598a5527de37c7d747a,2026-11-12
+reviewmpc,https://www.mdpi.com/1996-1073/16/16/5935/pdf,obtido,1610666,1a3f7527233c54f70a6843c3795650282285b1a3a8fce6225d2d85e2f7d7abbe,2026-11-12
+navaljin,https://www.mdpi.com/2227-7390/11/12/2728/pdf,obtido,4683756,92953bae2ece2c6fe3ba42abc6328fe5c3b2c3f69c241bc5da3bd24f42bf43cf,2026-11-12
+reviewems,https://www.mdpi.com/2076-3417/9/18/3854/pdf,obtido,1251897,e3c72809975c071d05ac410be46a5d5f8085877d8cb23ff9181e127e3ba416db,2026-11-12
+bessdegr,https://www.mdpi.com/1996-1073/13/7/1629/pdf,obtido,6837194,580d54cfeabde1b16059dbe058e9bbd60215b6119ce3962dddb29915c6041ee9,2026-11-12
+navalkots,https://www.mdpi.com/1996-1073/19/11/2636/pdf,obtido,8223999,b083e02258c923125a23b41960bbbf1294222abde4bfe9aa5273299c20df586f,2026-11-12
+kopka,https://research.tudelft.nl/files/309499948/Modular_Energy_Management_via_Distributed_and_Predictive_Optimization_for_Fuel_Cell-Battery_Shipboard_Microgrids.pdf,HTTP Error 403: Forbidden,,,2026-11-12
+vivas,https://www.sciencedirect.com/science/article/pii/S2590174525000525,Barreira: HTTP 200 com corpo Site Unavailable; não é texto consultado,195,5b131ca14aa96311d3432b0062c7443d3b0e6346ec279bd376a75f0a76bcd5d7,2026-11-12
+chenfull,https://hgxb.cip.com.cn/article/2024/0438-1157/0438-1157-2024-75-2-637.shtml,HTTP Error 403: Forbidden,,,2026-11-12
+sandia,https://www.osti.gov/servlets/purl/919131,obtido,1815785,a83264e0d4c254804533dbc548936b43c638caee630d5f94d8757c52bbdbd219,2026-11-12
+institutional_otekon,https://www.uludag.edu.tr/dosyalar/fenbilimleri/TEZ%20BA%C5%9EARI%20H%C4%B0KAYELER%C4%B0/2024%20Tez%20Ba%C5%9Far%C4%B1%20Hikayeleri.pdf,obtido,47367694,86bba5a432717d1d45ffe4f16b81d7604604854d03da20152aef8475a7430e82,2026-11-12
+vielma,https://juan-pablo-vielma.github.io/publications/Mixed-Integer-Models-for-Nonseparable.pdf,obtido,310770,8f5ae09a9b218935e441a8f5d2b6ba2e3859b47aad06210488807f55534705e3,2026-11-12
+vivas_full,https://riunet.upv.es/handle/10251/231833,The read operation timed out,,,2026-11-12
+polimeni_full,https://www.sciencedirect.com/science/article/pii/S2666792421000214/pdfft?isDTMRedir=true&download=true,Barreira: HTTP 200 com corpo Site Unavailable; não é texto consultado,195,5b131ca14aa96311d3432b0062c7443d3b0e6346ec279bd376a75f0a76bcd5d7,2026-11-12
+desoto,https://www.sciencedirect.com/science/article/pii/S0038092X05002410,Barreira: HTTP 200 com corpo Site Unavailable; não é texto consultado,195,5b131ca14aa96311d3432b0062c7443d3b0e6346ec279bd376a75f0a76bcd5d7,2026-11-12
+desotoerr,https://www.sciencedirect.com/science/article/pii/S0038092X06001691,Barreira: HTTP 200 com corpo Site Unavailable; não é texto consultado,195,5b131ca14aa96311d3432b0062c7443d3b0e6346ec279bd376a75f0a76bcd5d7,2026-11-12
+highs,https://link.springer.com/article/10.1007/s12532-017-0130-5,obtido,385392,140ff9cf83ffc91ce3b065a2db2aa856c4db658fb9fe909a36b19fcefd0944d7,2026-11-12
+oemofprimary,https://www.sciencedirect.com/science/article/pii/S2211467X18300609,Barreira: HTTP 200 com corpo Site Unavailable; não é texto consultado,195,5b131ca14aa96311d3432b0062c7443d3b0e6346ec279bd376a75f0a76bcd5d7,2026-11-12
+copelexperimental,https://www.copel.com/site/copel-distribuicao/para-sua-empresa/tarifa-branca/,HTTP Error 404: Not Found,,,2026-11-12
+base_bibliografica,https://www.webofscience.com/,403,,,2026-11-12
+base_bibliografica,https://www.scopus.com/,403 / Site Unavailable,,,2026-11-12
+base_bibliografica,https://scholar.google.com/,429 / inacessível,,,2026-11-12
+ENCOM_2026_REF0369,https://zenodo.org/records/22978126,PDF fornecido; DOI/Zenodo/DataCite HTTP 200; MD5 corresponde ao depósito,1711752,6ab3834145eadfedc86844617dcf2b5fb3a51996af6f4e6c3474a9c2834546fa,2026-11-12

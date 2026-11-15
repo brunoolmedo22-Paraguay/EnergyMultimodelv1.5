@@ -1,0 +1,320 @@
+{
+  "auditado_em_utc": "2026-11-12",
+  "repositorio": "brunoolmedo22-Paraguay/EnergyMultimodelv1.5",
+  "main_sha": "724d2351ebe4213ed3aa93675c137f7170d260bd",
+  "commit_data_utc": "2026-11-11T16:27:39Z",
+  "pr24": {
+    "draft": true,
+    "head": "15c0b1cde526e653abf31b2dbf0721e96610c950",
+    "branch": "claude/stoic-meitner-2vs91m",
+    "base": "724d2351ebe4213ed3aa93675c137f7170d260bd",
+    "url": "https://github.com/brunoolmedo22-Paraguay/EnergyMultimodelv1.5/pull/24"
+  },
+  "arquivos_pr24": [
+    {
+      "caminho": ".streamlit/config.toml",
+      "status": "modified"
+    },
+    {
+      "caminho": "CLAUDE.md",
+      "status": "modified"
+    },
+    {
+      "caminho": "PARAMIJEFE.md",
+      "status": "modified"
+    },
+    {
+      "caminho": "docs/ai/HANDOFF.md",
+      "status": "modified"
+    },
+    {
+      "caminho": "docs/seeds2/PARTITURA_3DB.md",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/01_operacao.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/03_pemfc_operacao.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/04_pemfc_curva_b04.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/06_painel_bateria.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/08_estudo_arquivado.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/09_decisao_com_sinal.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/10_decisao_sem_sinal.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/11_decisao_so_o_conhecido.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/12_economia.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/13_evidencia.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/14_vista_classica_aberta.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/15_outra_rodada.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2a_01_gestor_barra_expandida.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2a_02_microrrede_barra_expandida.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2a_03_rodada_com_barra.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2a_r_400x850.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2b_01_planta_hover.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2b_02_planta_selecao.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2b_03_painel_por_uid.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2b_04_planta_sem_rodada_v2.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2b_05_catalogo.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2b_r_400x850_planta.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2c_01_caderno.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2d_01_folha_estado_inicial.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2d_02_folha_execucao.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/b2d_r_400x850_folha.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/r_1768x853_dark_decisao.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/r_2560x1440_light.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/r_400x850_light_decisao.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/capturas/r_820x1100_dark_evidencia.jpg",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/e2e_partitura.log",
+      "status": "added"
+    },
+    {
+      "caminho": "docs/seeds2/evidencia_3db/e2e_partitura_b3.log",
+      "status": "added"
+    },
+    {
+      "caminho": "integracao_v2/trama_frame.py",
+      "status": "added"
+    },
+    {
+      "caminho": "integracao_v2/ui.py",
+      "status": "modified"
+    },
+    {
+      "caminho": "seeds2/ui/caderno_ui.py",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/folha_ui.py",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/gestor.py",
+      "status": "modified"
+    },
+    {
+      "caminho": "seeds2/ui/operation_center.py",
+      "status": "modified"
+    },
+    {
+      "caminho": "seeds2/ui/planta_ui.py",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/shell.py",
+      "status": "modified"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/caderno.js",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/folha.js",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/partitura.js",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/planta.js",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/sidebar.js",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/trama.css",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/static/trama/trama.js",
+      "status": "added"
+    },
+    {
+      "caminho": "seeds2/ui/trama.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/ems_v2/piso3da2h_guard_policy.py",
+      "status": "modified"
+    },
+    {
+      "caminho": "tests/ems_v2/piso3db_guard_policy.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/ems_v2/test_piso3db_guardas.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/piso3db_util.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/test_piso3db_app.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/test_piso3db_e2e_servidor.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/test_piso3db_lentes.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/test_piso3db_nd.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/test_piso3db_plataforma.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tests/test_piso3db_trama.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/bancada_piso3db.js",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/bancada_piso3db.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/e2e_piso3da2h.js",
+      "status": "modified"
+    },
+    {
+      "caminho": "tools/e2e/e2e_piso3da2r.js",
+      "status": "modified"
+    },
+    {
+      "caminho": "tools/e2e/e2e_piso3da_v2.js",
+      "status": "modified"
+    },
+    {
+      "caminho": "tools/e2e/e2e_piso3db_partitura.js",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/e2e_piso3db_plataforma.js",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/run_piso3da.sh",
+      "status": "modified"
+    },
+    {
+      "caminho": "tools/e2e/run_piso3da2h.sh",
+      "status": "modified"
+    },
+    {
+      "caminho": "tools/e2e/run_piso3da2r.sh",
+      "status": "modified"
+    },
+    {
+      "caminho": "tools/e2e/run_piso3db.sh",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/seed_piso3db.py",
+      "status": "added"
+    },
+    {
+      "caminho": "tools/e2e/servidor.sh",
+      "status": "added"
+    }
+  ],
+  "operacoes": "GET somente; nenhum commit, branch, PR ou arquivo remoto alterado"
+}

@@ -1,0 +1,10 @@
+﻿parametro_codigo,valor_codigo,valor_tabela_II_ENCOM,casas_decimais,coincide_arredondado,local_artigo
+xi1,-0.674591776167,-0.67459,5,True,"REF0369, Tabela II, p. 297"
+xi2,0.00177858729827,0.0017786,7,True,"REF0369, Tabela II, p. 297"
+xi3,-7.38573038384e-05,-7.3857e-05,9,True,"REF0369, Tabela II, p. 297"
+xi4,1.19623548544e-05,1.1962e-05,9,True,"REF0369, Tabela II, p. 297"
+R_mem_ref_ohm_cm2,0.22543219268,0.22543,5,True,"REF0369, Tabela II, p. 297"
+R_mem_temperature_exponent,-0.776511316144,-0.77651,5,True,"REF0369, Tabela II, p. 297"
+concentration_a_ref_V,0.0065820596488,0.0065821,7,True,"REF0369, Tabela II, p. 297"
+concentration_a_temperature_V_K,1.50924914732e-05,1.5092e-05,9,True,"REF0369, Tabela II, p. 297"
+concentration_b_cm2_A,2.92419192535,2.9242,4,True,"REF0369, Tabela II, p. 297"

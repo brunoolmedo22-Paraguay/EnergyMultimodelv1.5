@@ -1,0 +1,19 @@
+{
+  "registros_descoberta_unicos_doi_titulo": 369,
+  "familias_apos_vincular_versoes": 362,
+  "registros_triagem_focal_titulo_resumo": 165,
+  "biblioteca_priorizada": 121,
+  "metadados_conferidos": 121,
+  "texto_primario_consultado_F": 34,
+  "resumo_A": 46,
+  "metadados_M": 41,
+  "dois_biblioteca": 111,
+  "fichas_nucleares": 30,
+  "fichas_F": 24,
+  "mapas_codigo_modelo": 53,
+  "claims": 46,
+  "buscas_tentativas_registradas": 142,
+  "citacoes_reais_entre_fontes": 95,
+  "arestas_externas_snowballing": 3744,
+  "arquivos_python_indexados": 112
+}

@@ -1,0 +1,73 @@
+{
+  "package": "SEEDS2 — Protocolo Mestre de Conteúdo Científico para Claude",
+  "version": "1.0",
+  "cutoff_date": "2026-11-12",
+  "language": "pt-BR",
+  "status": "Decisões editoriais e conceituais; não contém resultados experimentais nem bibliografia completa",
+  "companion_packages": [
+    "SEEDS2_WORK_BIBLIO_2026-11-12_ENTREGA.zip",
+    "IDENTIDADE_ESCRITA_BRUNO_OLMEDO_v1.0.zip"
+  ],
+  "files": [
+    {
+      "name": "00_LEIA_PRIMEIRO.md",
+      "bytes": 3914,
+      "sha256": "33f66e098a9bce771184250ef248b709a2a2bcd3345a608e4d5b15d72d3183ea"
+    },
+    {
+      "name": "01_PROTOCOLO_CIENTIFICO_MESTRE.md",
+      "bytes": 9486,
+      "sha256": "a392df016866d72af2a769b1847a7f9ffc4bfc2cb3f10fc1d8f324c59c54838f"
+    },
+    {
+      "name": "02_NARRATIVA_E_SETE_SECOES.md",
+      "bytes": 12385,
+      "sha256": "e09d197360ffbe492d4b71a4fee032e6d9b69f8dac15b0d16c869117b96e9874"
+    },
+    {
+      "name": "03_ARQUITETURA_E_MODELOS.md",
+      "bytes": 7896,
+      "sha256": "42bfe4ad495b85876b63982ba392369085460cdbcfe2a6506609317090d64ce3"
+    },
+    {
+      "name": "04_EMS_HIERARQUICO_E_FORMULACAO.md",
+      "bytes": 7490,
+      "sha256": "2f2a4f803fc9509ebedffb8ffe25546c74e1369f74751d60ad570a5111f1843b"
+    },
+    {
+      "name": "05_ESTUDOS_DE_CASO_E_METODOLOGIA.md",
+      "bytes": 10245,
+      "sha256": "b0f7468d21d0f316ba03b477c8883a35bdbfc40a466fbde1b6f82d7941b50971"
+    },
+    {
+      "name": "06_RESULTADOS_E_EVIDENCIAS.md",
+      "bytes": 7300,
+      "sha256": "9d24c69fc278ab2ffbe55d08c25dad45a3d4ab5ec78e1770dc25900dbabe36b8"
+    },
+    {
+      "name": "07_PESQUISA_CITACOES_E_AUTONOMIA.md",
+      "bytes": 5672,
+      "sha256": "90e10f8030219357de527b90b808613b5c369c57580ee7df598af555bf48c158"
+    },
+    {
+      "name": "08_INSTRUCOES_DE_EXECUCAO_CLAUDE.md",
+      "bytes": 5593,
+      "sha256": "603bd42937233c259a92946a002eff5370dcf940ffed7c7eeb9b1c8449345e69"
+    },
+    {
+      "name": "09_REGISTRO_DE_DECISOES_E_PENDENCIAS.md",
+      "bytes": 5931,
+      "sha256": "7389353efd1ec210d13a70503868d29d2ae94b484002e1e1e67c816a788362dd"
+    },
+    {
+      "name": "10_CHECKLIST_DE_CONSISTENCIA.md",
+      "bytes": 4519,
+      "sha256": "bf56024e3f0189183395302095f9ea0495c77cd82495cce2976aa7d6c48645c9"
+    },
+    {
+      "name": "11_VISAO_RAPIDA_UMA_PAGINA.md",
+      "bytes": 3880,
+      "sha256": "31ca2a22b53c31a0304ef3d8397bb108b1854e12d1372557b4e9d876368567ea"
+    }
+  ]
+}

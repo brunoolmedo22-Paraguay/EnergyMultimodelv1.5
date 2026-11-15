@@ -1,0 +1,104 @@
+{
+  "data_utc": "2026-11-12",
+  "checks": {
+    "biblioteca_121_ids_unicos": true,
+    "111_doi_unicos": true,
+    "121_familias_distintas": true,
+    "todos_doi_com_tentativa_registrada": true,
+    "109_doi_com_titulos_crossref_compativeis": true,
+    "Chen_editor_primario_excecao_crossref": true,
+    "bibtex_mesmos_121_ids": true,
+    "bibtex_chaves_balanceadas": true,
+    "bibtex_121_datas_acesso": true,
+    "bibtex_111_doi_corretos": true,
+    "ris_mesmos_121_ids": true,
+    "ris_121_fins_registro": true,
+    "ris_111_doi_corretos": true,
+    "sem_manual_pendente_nas_exportacoes": true,
+    "53_modelos_referencias_conhecidas": true,
+    "modelos_caminhos_linhas_validos": true,
+    "todos_links_codigo_no_SHA": true,
+    "46_claims_sete_secoes": true,
+    "claims_fontes_conhecidas": true,
+    "30_fichas_com_avaliacao_tecnica": true,
+    "24_fichas_F_6_A_M": true,
+    "13_linhas_zhang_coincidem": true,
+    "duas_inconsistencias_tau2_acima_5pct": true,
+    "165_triagens_documentadas": true,
+    "grafo_95_arestas": true,
+    "pdf_texto_01_RELATORIO_EXECUTIVO_PT.pdf": true,
+    "pdf_paginas_01_RELATORIO_EXECUTIVO_PT.pdf": true,
+    "pdf_texto_02_MAPA_DE_ESTADO_DA_ARTE_PT.pdf": true,
+    "pdf_paginas_02_MAPA_DE_ESTADO_DA_ARTE_PT.pdf": true,
+    "xlsx_abas_04_MATRIZ_REFERENCIAS.xlsx": true,
+    "xlsx_tabelas_04_MATRIZ_REFERENCIAS.xlsx": true,
+    "xlsx_sem_erros_04_MATRIZ_REFERENCIAS.xlsx": true,
+    "inspecao_artifact_sem_erros_04_MATRIZ_REFERENCIAS.xlsx": true,
+    "xlsx_abas_05_CODIGO_VS_LITERATURA.xlsx": true,
+    "xlsx_tabelas_05_CODIGO_VS_LITERATURA.xlsx": true,
+    "xlsx_sem_erros_05_CODIGO_VS_LITERATURA.xlsx": true,
+    "inspecao_artifact_sem_erros_05_CODIGO_VS_LITERATURA.xlsx": true,
+    "xlsx_abas_06_CLAIMS_PARA_O_ARTIGO.xlsx": true,
+    "xlsx_tabelas_06_CLAIMS_PARA_O_ARTIGO.xlsx": true,
+    "xlsx_sem_erros_06_CLAIMS_PARA_O_ARTIGO.xlsx": true,
+    "inspecao_artifact_sem_erros_06_CLAIMS_PARA_O_ARTIGO.xlsx": true,
+    "DOI_proprio_confirmado_DataCite": true,
+    "PDF_MD5_igual_registro_Zenodo": true,
+    "9_coeficientes_coincidem_Tabela_II": true,
+    "B1_CT046_esclarecidos_matriz": true,
+    "artigo_proprio_P0_F": true,
+    "120_chaves_anteriores_preservadas": true,
+    "totais_Excel_121_34": true,
+    "novo_REF0369_exportado_Excel": true,
+    "novo_REF0369_na_descoberta_Excel": true
+  },
+  "falhas": [],
+  "pdfs": {
+    "01_RELATORIO_EXECUTIVO_PT.pdf": {
+      "paginas": 4,
+      "links": 14
+    },
+    "02_MAPA_DE_ESTADO_DA_ARTE_PT.pdf": {
+      "paginas": 16,
+      "links": 151
+    }
+  },
+  "planilhas": {
+    "04_MATRIZ_REFERENCIAS.xlsx": {
+      "abas": [
+        "Resumo",
+        "Referencias",
+        "Candidatos",
+        "Buscas",
+        "Acessos",
+        "Citacoes_reais"
+      ],
+      "tabelas_com_filtro": 6
+    },
+    "05_CODIGO_VS_LITERATURA.xlsx": {
+      "abas": [
+        "Mapa_codigo",
+        "Lacunas",
+        "Conferencia_Zhang",
+        "Simbolos"
+      ],
+      "tabelas_com_filtro": 4
+    },
+    "06_CLAIMS_PARA_O_ARTIGO.xlsx": {
+      "abas": [
+        "Claims",
+        "Mapa_secoes",
+        "Mapa_citacoes",
+        "Plataformas"
+      ],
+      "tabelas_com_filtro": 4
+    }
+  },
+  "observacao": "Verificação estrutural e inspeção/renderização dos artefatos; não executa testes científicos do SEEDS2 nem consulta autenticada em bases bloqueadas.",
+  "revision": "01",
+  "notas_adendo": [
+    "Artigo próprio P0/F incorporado; fonte-base OTEKON preservada.",
+    "B1 implementado e CT-046 futuro esclarecidos como usos independentes.",
+    "Conteúdo não relacionado preservado por edição dos arquivos XLSX existentes."
+  ]
+}

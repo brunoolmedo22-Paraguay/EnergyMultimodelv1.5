@@ -1,0 +1,3 @@
+# Conferência independente da Tabela 3
+
+O script usa apenas a biblioteca padrão Python e lê, sem importar/executar o SEEDS2, os arrays do arquivo `repo_snapshot/models/battery_model.py` no SHA auditado e o texto da página publicado em `research/texts/zhang.txt`, extraído com `pdftotext -layout` do PDF legítimo de REF0147. Reconstruir esses dois caminhos localmente para executar. O PDF editorial e o espelho do código não são redistribuídos neste pacote. O resultado entregue em `conferencia_zhang_tabela3.csv` contém os 13 pontos, igualdade dos arrays e os dois tempos característicos calculados por R×C. Não altera a fonte nem o repositório.
