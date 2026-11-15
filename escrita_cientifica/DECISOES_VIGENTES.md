@@ -37,3 +37,6 @@ Citar, quando pertinente e após verificação bibliográfica, o trabalho própr
 
 ## Estado de validação
 A auditoria final de Claude e os fluxos operacionais detalhados estão pendentes. Não tratar notas preliminares como achados definitivos.
+
+## Regra de tempo verbal para o Resumo (15/11/2026)
+Por decisão expressa do autor, redigir o **Resumo** predominantemente no **pretérito**, em voz impessoal, apresentando o trabalho como realizado: «foi desenvolvido», «foram considerados», «adotou-se», «avaliou-se», «foram analisados». Não redigir a metodologia ou as ações realizadas como proposta futura. Afirmações científicas gerais podem permanecer no presente quando gramaticalmente apropriado. Não inventar resultados nem antecipar conclusões pendentes de auditoria.
