@@ -35,7 +35,7 @@
 - **Testes:** `tests/test_b04_c5_01.py` (oráculo independente das rampas, matriz Δ × abstração, partida quente/fria,
   ligada/desligada, mensagens, conversão R·Δ, missões reais HiGHS em Δ = 15/20/40) + `tests/ems_v2/test_b04c501_guardas.py`.
 - **Verificação (código `f363c15`; base `8dc5f6b`):**
-  - regressão COMPLETA limpa no HEAD (`PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs`): EM EXECUÇÃO no momento deste commit (resultado no commit seguinte);
+  - regressão COMPLETA limpa no HEAD (`PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs`): **2478 passed, 0 failed, 2 skipped** (+167 subtests, 1618 s; nenhum `.pyc` alterado) — os 2 skipped são as auditorias explícitas 3D-A/3D-A2-R que exigem execução manual, como antes; linha de base `8dc5f6b` limpa = 2443 passed, 2 skipped (registro da Entrega 24 reproduzido) ⇒ diferença = os 35 testes novos;
   - comparação caso a caso (JUnit) base × HEAD na MESMA máquina: base 2438 passed / 5 failed / 2 skipped; HEAD 2473 passed /
     5 failed / 2 skipped; +35 casos novos (31 + 4), todos aprovados; NENHUM caso comum mudou de resultado. As 5 falhas eram
     IDÊNTICAS nas duas árvores e TRANSITÓRIAS: `.pyc` versionados regenerados por um roteiro de diagnóstico rodado com

@@ -3559,7 +3559,7 @@ cambios. Δ = 20 min como sensibilidad.
 
 ### 6. Verificación (código `f363c15`; base `8dc5f6b`)
 
-- Regresión COMPLETA limpia en el HEAD: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs` ⇒ EN EJECUCIÓN al momento de este commit (resultado en el commit siguiente).
+- Regresión COMPLETA limpia en el HEAD: `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -q -rfEs` ⇒ **2478 passed, 0 failed, 2 skipped, 167 subtests passed (1618 s)**, ningún `.pyc` alterado; los 2 skipped son las auditorías explícitas 3D-A/3D-A2-R que piden ejecución manual (como antes); base `8dc5f6b` limpia = 2443 passed, 2 skipped ⇒ la diferencia son los 35 tests nuevos.
 - Comparación caso a caso (JUnit) base × HEAD, en paralelo y en la MISMA máquina: base **2438 passed, 5 failed, 2 skipped**;
   HEAD **2473 passed, 5 failed, 2 skipped**; +35 casos nuevos (31 de `tests/test_b04_c5_01.py` + 4 de
   `tests/ems_v2/test_b04c501_guardas.py`), todos aprobados; **ningún caso común cambió de resultado**. Las 5 fallas eran
