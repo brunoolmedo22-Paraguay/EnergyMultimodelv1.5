@@ -19,6 +19,11 @@ Ficam INTOCADOS: ``ems_v2/``, modelos físicos (``h2_pemfc`` inclusive), ``integ
 ``integracao_v2/curva_h2.py`` e todo o resto de ``integracao_v2/`` (inclusive a interface e o relatório visual do
 UI-RESULTADOS-02), ``seeds2/``, o motor V1.6 e os requisitos.
 
+Exceção NOMINAL posterior (responsável, 15/11/2026; missão «Atualização definitiva do exemplo industrial CT-046»): a
+instantânea do exemplo CT-046 pode ser SUBSTITUÍDA, mas só pelo blob Git EXATO aprovado (``C4_CT046_BLOB_SHA``; mesmo
+mecanismo de ``exemplos01_guard_policy.FV_ZERO_BLOB_SHA``). A exceção genérica ``exemplo_persistente`` continua recusando
+alterar ou apagar um exemplo existente.
+
 Este módulo não gera nem atualiza hashes e não consulta a rede.
 """
 from __future__ import annotations
@@ -100,6 +105,25 @@ def exemplo_persistente(row: list[str]) -> bool:
                               or (row[0] == "M" and row[1] == "seeds2/exemplos/README.md"))
 
 
+# Substituição AUTORIZADA da instantânea do exemplo CT-046 (quatro cenários C1–C4 da MESMA microrrede; responsável,
+# 15/11/2026). Só ESTE blob Git (``git hash-object``) é aceito; qualquer outro conteúdo, status ou caminho continua visível.
+C4_CT046 = "seeds2/exemplos/C4_Carga_CT046_Solar_Bateria_Rede.seeds2snapshot.zip"
+C4_CT046_BLOB_SHA = "fbaa7036e16f95d56bfedb09a2a34d6fad985579"
+
+
+def exemplo_c4_ct046_autorizado(row: list[str], blob_sha: str) -> bool:
+    """``M`` da instantânea do CT-046 com EXATAMENTE o conteúdo aprovado (``blob_sha`` = blob Git do arquivo atual)."""
+    return row == ["M", C4_CT046] and blob_sha == C4_CT046_BLOB_SHA
+
+
+def _blob(root: Path, arq: str) -> str:
+    try:
+        return subprocess.run(["git", "hash-object", arq], cwd=root, capture_output=True, text=True,
+                              check=True).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return ""                                     # sem git ou arquivo ausente: nenhuma exceção
+
+
 def auditar_missao(root: Path, base: str = BASE) -> dict:
     """Auditoria EXPLÍCITA do diff desta missão (base → árvore de trabalho)."""
     def git(*args: str) -> str:
@@ -107,15 +131,18 @@ def auditar_missao(root: Path, base: str = BASE) -> dict:
 
     linhas = [ln.split("\t") for ln in git("diff", "--name-status", "--no-renames", base).splitlines() if ln.strip()]
     linhas += [["A", p] for p in git("ls-files", "--others", "--exclude-standard").split()]
-    restantes = [row for row in filter_changes(root, linhas) if not exemplo_persistente(row)]
+    blob_c4 = _blob(root, C4_CT046)
+    restantes = [row for row in filter_changes(root, linhas)
+                 if not exemplo_persistente(row) and not exemplo_c4_ct046_autorizado(row, blob_c4)]
     intocados = [ln for ln in restantes if any(ln[1] == p or ln[1].startswith(p.rstrip("/") + "/") for p in INTOCADOS)]
     ruins = remocoes_nao_conformes(root, base)
     return {"base": base, "alterados": sorted(map(tuple, linhas)), "intocados_violados": intocados,
             "remocoes_nao_conformes": ruins, "ok": not intocados and not ruins}
 
 
-__all__ = ["ADICIONADOS", "BASE", "INTOCADOS", "MODIFICADOS", "REFERENCIAM_O_MOTOR", "REMOVIDAS", "auditar_missao",
-           "exemplo_persistente", "filter_changes", "referencia_autorizada", "remocoes_nao_conformes"]
+__all__ = ["ADICIONADOS", "BASE", "C4_CT046", "C4_CT046_BLOB_SHA", "INTOCADOS", "MODIFICADOS", "REFERENCIAM_O_MOTOR",
+           "REMOVIDAS", "auditar_missao", "exemplo_c4_ct046_autorizado", "exemplo_persistente", "filter_changes",
+           "referencia_autorizada", "remocoes_nao_conformes"]
 
 if __name__ == "__main__":
     import json
