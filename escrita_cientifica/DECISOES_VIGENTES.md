@@ -40,3 +40,10 @@ A auditoria final de Claude e os fluxos operacionais detalhados estão pendentes
 
 ## Regra de tempo verbal para o Resumo (15/11/2026)
 Por decisão expressa do autor, redigir o **Resumo** predominantemente no **pretérito**, em voz impessoal, apresentando o trabalho como realizado: «foi desenvolvido», «foram considerados», «adotou-se», «avaliou-se», «foram analisados». Não redigir a metodologia ou as ações realizadas como proposta futura. Afirmações científicas gerais podem permanecer no presente quando gramaticalmente apropriado. Não inventar resultados nem antecipar conclusões pendentes de auditoria.
+
+## Regra obrigatória de rastreabilidade visual no Google Docs (15/11/2026)
+Toda inserção, substituição ou alteração textual realizada por qualquer assistente de IA (incluindo Claude e ChatGPT) no manuscrito científico mestre do Google Docs deve receber **cor de fundo amarelo-claro** (`backgroundColor` do texto), aplicada somente aos caracteres efetivamente novos ou modificados, inclusive em citações e referências. Não colorir parágrafos ou seções inteiras quando apenas um trecho foi alterado. Texto não alterado deve conservar sua formatação e fundo anteriores.
+
+O destaque é uma marca visual de revisão, **não uma aprovação**: deve permanecer até que o autor autorize expressamente sua remoção. Em uma edição posterior, preservar os destaques anteriores ainda não aprovados; não remover ou substituir marcações de outros trechos por conveniência. Após cada edição, reler o Google Docs para verificar o conteúdo, os limites dos destaques e a integridade das demais seções. Informar ao autor quais trechos foram alterados e marcados.
+
+Esta regra é prospectiva: não implica destacar retroativamente conteúdo inserido antes de sua adoção sem autorização específica. Se a ferramenta de edição não permitir aplicar o fundo de cor de maneira confiável, não apresentar a alteração como concluída; informar a limitação e solicitar orientação.
