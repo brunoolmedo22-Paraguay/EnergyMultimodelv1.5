@@ -20,7 +20,8 @@ rodadas de referência). Nenhum modelo, otimizador ou banco do SEEDS2 foi execut
 - `dados/Ck_fronteiras.csv` — energia interna [kWh] e SOC [%] nas N + 1 fronteiras (`02_bateria_*.svg`).
 - `dados/Ck_decisoes.csv` — tabela «Decisões do MPC — previsto × realizado por bloco aplicado» extraída do TEXTO do
   PDF, com a página de origem (valores em R$ com duas casas, como impressos).
-- `scripts/` — extratores (`svgser.py`, `series.py`, `dec.py`) e a análise usada na entrega (`analise.py`).
+- `scripts/` — extratores (`svgser.py`, `series.py`, `dec.py`), a análise da Etapa 1 (`analise.py`) e o gerador da
+  Figura 6.4 derivada (`figura_energia_c3_c4.py`: `python -I figura_energia_c3_c4.py ../dados ../../figuras`, matplotlib).
 
 ## Como as séries foram reconstruídas e conferidas
 
