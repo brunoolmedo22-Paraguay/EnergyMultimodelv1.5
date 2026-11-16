@@ -99,20 +99,23 @@ Tabelas 6.5 e 6.6 já estão na posição de inserção.
 | PEMFC, bateria líquida e FV | 33,80 (49,6 %); 28,36 (41,6 %); 6,05 kWh (8,9 %) | [R] p.6, p.5 e p.12 · [D] percentuais |
 | Intervalos acima de 47 kW; mínimo | 12h, 12h45, 13h15; 7,16 kW às 13h | [D] C5_series · [R] p.10 |
 | Faixa e desvio-padrão da bateria; correlação | −5,80 a +38,27 kW; 16,04 kW; 0,986 | [D] C5_series (desvio populacional) |
+| Limite de potência da bateria | 75 kW | [P] Seção 5.3.1 · [R] p.5 |
 | Desvio-padrão da demanda | 17,18 kW | [D] |
 | Faixa e desvio-padrão da PEMFC | 10,00–19,90 kW (14,83–19,90 sem 13h); 2,97 kW | [D] · média de 16,9 kW [R] p.6 |
 | Intervalos de maior demanda | bateria 25,37 de 40,70 kWh (62 %) | [D] |
 | Intervalos de menor demanda | PEMFC 15,78 de 19,75 kWh; bateria líquida 0,98 kWh | [D] |
 | Consumo específico | 0,0603 kg/kWh (10 kW); 0,0648 (19,90 kW); 0,0768 (P máx) | [D] custo por bloco ÷ energia · [R] p.8 (P mín e P máx) |
-| Inclinações entre pontos operados | 0,068–0,072 kg/h por kW | [D] secantes entre os pontos da Tabela 6.6 |
-| Efeito das diferenças de potência | ordem de 10⁻³ kg | [D] estimativa por secantes (indicada como ordem de grandeza) |
+| Curva quase linear no trecho operado; efeito pequeno das diferenças de potência | (texto qualitativo desde a revisão final) | [D] inclinações secantes de 0,068 a 0,072 kg/h por kW entre os pontos da Tabela 6.6; efeito estimado da ordem de 10⁻³ kg. Mantidos aqui como suporte e não citados no texto |
 | 13h: carga líquida de 4,20 kW; PEMFC em 10,00 kW; sobra de 5,80 kW; 1,45 kWh; sem vertimento; estado IDLE | — | [D] C5_series · [R] p.5, p.9 e p.4 |
 | 12h15: PEMFC = carga líquida = 17,36 kW; bateria inativa ("preserva") | — | [D] · [R] p.5 |
-| 13h15: bateria 38,27 kW; PEMFC 14,83 kW | — | [D] |
+| 13h15: bateria 38,27 kW (maior descarga); PEMFC 14,83 kW | — | [D] C5_series |
+| Variação entre 13h e 13h15 | demanda +48,90 kW; bateria +44,07 kW (90 %); PEMFC +4,83 kW; FV 0 | [D] C5_series |
 | Entrega da bateria de 13h15 a 14h | 11,99 kWh | [D] |
 | Parcela associável à carga das 13h | ≤ 1,45 × 0,95² = 1,31 kWh | [D] |
 | Energia acima da reserva às 13h | 56,25 − 45 = 11,25 kWh | [D] C5_fronteiras |
 | Plano da janela 0 para 13h | 56,3 kWh; realizado 56,25 kWh | [R] p.19 · [D] |
+| Planos intermediários × executado | janela 12h15: 56,3 kWh (13h15) × 57,63; janela 12h30: 48,8 (13h30) × 47,56; janela 12h45: 47,8 (13h45) × 47,01; janelas 13h–13h45: 45,0 (14h) × 45,00. Diferença máxima de 1,3 kWh | [R] p.19 · [D] C5_fronteiras |
+| Reotimização a cada intervalo com aplicação do primeiro (m = 1) | 8 janelas, N = 4 | [R] p.16 e p.23–24 · [P] Seção 5.3.2 |
 | Sinal válido | 8 de 8 | [R] p.16 |
 | Energia final = reserva; 30 kWh internos | 45,00 kWh | [R] p.5 |
 | H₂ do EMS e do modelo dinâmico; subestimação; coerência | 2,156 kg; 2,156 kg; 0,0002 kg; 8 de 8 | [R] p.6 e p.9 |
@@ -124,15 +127,24 @@ Tabelas 6.5 e 6.6 já estão na posição de inserção.
 Não introduz números novos. As afirmações remetem a 6.2.2 e 6.2.3. O objetivo da primeira decisão difere do custo
 realizado em R$ 0,01 em C4 e é igual nos demais ([R] C1 p.28, C2 p.32, C3 p.38, C4 p.42 e C5 p.19).
 
-## 5. Decisões editoriais pendentes
+## 5. Pendência antes da integração
 
-1. **Numeração das figuras.** A missão previa a Partitura de C5 como Figura 6.4. Com a figura derivada C3 × C4 autorizada
-   e citada antes, a numeração sequencial passa a ser 6.3 (Partitura C4), 6.4 (derivada) e 6.5 (Partitura C5). Se a
-   preferência for manter a Partitura de C5 como 6.4, a figura derivada precisa sair, e seu argumento fica só no texto.
-2. **Tabela 6.6 (C5 por intervalo).** Proposta na Etapa 1 e mantida no texto, mas não listada explicitamente na
-   autorização. Confirmar a inclusão.
-3. **Partitura de C5.** Fornecer o PNG. A legenda da Figura 6.5 descreve as faixas presentes no relatório C5 (p.3) e
-   deve ser conferida contra a exportação recebida.
-4. **Extensão.** Seção com cerca de 2.780 palavras em 19 parágrafos (6.2.2 com cerca de 1.400). Se houver limite
-   editorial, os primeiros candidatos a corte são a frase sobre os planos das janelas de 12h45 e 13h em C4 e a
-   decomposição complementar com o custo de reposição.
+1. **Partitura de C5 (Figura 6.5).** Falta o PNG exportado nas mesmas condições da Figura 6.3. Quando for recebido,
+   conferir a legenda contra as faixas efetivamente exportadas.
+
+Resolvidas na revisão autoral final: numeração definitiva (6.3 Partitura C4, 6.4 derivada C3 × C4, 6.5 Partitura C5),
+Tabela 6.6 aprovada e extensão da 6.2.2 aceita.
+
+## 6. Revisão autoral final (correções A a D)
+
+| Correção | Local | Alteração |
+|---|---|---|
+| A | 6.2.4, 1º parágrafo, final | A frase que atribuía à condição terminal o uso do estoque nos dois estudos foi substituída. Em C3 e C4, sem condição terminal de energia, o banco termina no limite inferior porque a energia remanescente não tem valor na formulação. Em C5, a reserva final é uma restrição explícita, atendida exatamente. |
+| B | 6.2.2, parágrafo de C4 («Em C4, a geração fotovoltaica…») | Removido «sem competição ou complementaridade entre eles». O texto afirma a aditividade econômica e a ausência de sinergia econômica adicional mensurável neste caso, sem negar a coordenação operacional (despacho conjunto em cada janela) nem a complementaridade em outras condições. |
+| C | 6.2.3, novo parágrafo «A disponibilidade dessa energia…» · 6.2.4, 2º parágrafo | A primeira janela passa a ser descrita como referência para a fronteira das 13h, alcançada na operação. O texto registra a reotimização das oito janelas e as diferenças de até 1,3 kWh entre planos intermediários e o executado (PDF C5, p.19), e mantém «consistente com o sinal de valor futuro», sem causalidade exclusiva. |
+| D | 6.2.3, ordem e conteúdo | A ordem passou a ser: repartição observada (com o limite de 75 kW) → carga forçada às 13h → segundo ciclo (13h15: 38,27 × 14,83 kW; a bateria assume 44,07 dos 48,90 kW de aumento; reserva de 45 kWh atingida) → referência inicial e reotimização → razão operacional (restrições da PEMFC e consumo específico) → consumo de H₂. Retiradas do texto as inclinações secantes e a ordem de grandeza de 10⁻³ kg, preservadas na seção 4 como suporte. |
+
+Preservado sem alteração: 6.2.1, demais parágrafos de 6.2.2, Tabelas 6.5 e 6.6, Figuras 6.3 e 6.4 (arquivos e legendas),
+legenda da Figura 6.5, todos os valores já citados e as fontes da seção 4. Valores novos no texto (75 kW, 48,90, 44,07,
+90 %, 4,83 kW e 1,3 kWh) decorrem dos mesmos registros (rastreados na seção 4). Nenhuma inconsistência objetiva foi
+encontrada nos resultados.
