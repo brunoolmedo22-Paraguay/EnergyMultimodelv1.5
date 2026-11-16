@@ -25,7 +25,7 @@ Partitura de C4: `seeds2_14d8e5b3_Partitura_da_operacao_lente_Operacao_claro.png
 |---|---|---|---|
 | **6.3** | `figuras/seeds2_14d8e5b3_Partitura_da_operacao_lente_Operacao_claro.png` | Exportação ORIGINAL da Partitura (lente Operação, tema claro, hora local), rodada 14d8e5b3. Não recriada nem recortada. | 6.2.2: coexistência dos recursos em C4, carga antes da ponta, descarga de 50 kW, custo por intervalo. |
 | **6.4** | `figuras/figura_6_4_energia_armazenada_C3_C4.png` (300 ppp; também `.svg` e `.pdf` vetoriais) | Figura DERIVADA. Energia nas 97 fronteiras de C3 e C4, reconstruída dos SVG `02_bateria_eq-e21ff4bbc46d.svg` dos ZIP (SHA-256 `2ea7e6da0ec3a8fd…` em C3 e `7b5f5cb1fbab6447…` em C4). Elementos de referência calculados só de parâmetros da Seção 5. Gerador: `evidencias/scripts/figura_energia_c3_c4.py`. | 6.2.2: carga "a tempo" em C3, carga das 12h45 em C4, mesmas energias e trajetórias distintas, decisões anteriores à entrada da ponta no horizonte do MPC. |
-| **6.5** | **A FORNECER:** exportação da Partitura da rodada 055096cf, lente Operação, tema claro, nas mesmas condições da Figura 6.3. | Exportação original do SEEDS2. | 6.2.3: repartição PEMFC × bateria, carga às 13h, energia armazenada até a reserva. |
+| **6.5** | `figuras/seeds2_055096cf_Partitura_da_operacao_lente_Operacao_claro.png` (2313 × 1956 px, SHA-256 `fd28a10315fabc3b…`) | Exportação ORIGINAL da Partitura fornecida pelo autor em 16/11/2026 (lente Operação, tema claro, hora local, rodada 055096cf, C5 v13, 12:00–14:00). Conferida contra a legenda: as seis faixas descritas estão presentes. O rótulo «14:00» do eixo aparece parcialmente cortado na própria exportação (não alterado). | 6.2.3: repartição PEMFC × bateria, carga às 13h, segundo ciclo e reserva. |
 
 **Precisão da figura derivada.** As coordenadas dos SVG têm 6 casas decimais em pontos tipográficos (resolução de cerca
 de 10⁻⁶ kWh). A energia inicial de 60,000 kWh, a final de 20,000 kWh e as somas de carga e descarga das séries de
@@ -127,13 +127,9 @@ Tabelas 6.5 e 6.6 já estão na posição de inserção.
 Não introduz números novos. As afirmações remetem a 6.2.2 e 6.2.3. O objetivo da primeira decisão difere do custo
 realizado em R$ 0,01 em C4 e é igual nos demais ([R] C1 p.28, C2 p.32, C3 p.38, C4 p.42 e C5 p.19).
 
-## 5. Pendência antes da integração
+## 5. Pendências
 
-1. **Partitura de C5 (Figura 6.5).** Falta o PNG exportado nas mesmas condições da Figura 6.3. Quando for recebido,
-   conferir a legenda contra as faixas efetivamente exportadas.
-
-Resolvidas na revisão autoral final: numeração definitiva (6.3 Partitura C4, 6.4 derivada C3 × C4, 6.5 Partitura C5),
-Tabela 6.6 aprovada e extensão da 6.2.2 aceita.
+Nenhuma pendência científica ou editorial. A Partitura de C5 foi recebida e integrada (seção 7).
 
 ## 6. Revisão autoral final (correções A a D)
 
@@ -148,3 +144,34 @@ Preservado sem alteração: 6.2.1, demais parágrafos de 6.2.2, Tabelas 6.5 e 6.
 legenda da Figura 6.5, todos os valores já citados e as fontes da seção 4. Valores novos no texto (75 kW, 48,90, 44,07,
 90 %, 4,83 kW e 1,3 kWh) decorrem dos mesmos registros (rastreados na seção 4). Nenhuma inconsistência objetiva foi
 encontrada nos resultados.
+
+## 7. Integração ao Google Docs (16/11/2026)
+
+Manuscrito mestre `1PEeDRhVguqhdZPyB4YvHITjFbOT8DiczboQ413g9tdo`, revisão final
+`AHj4eMSQ0PMnXSOh-aqdwBvS_OU9gGo77Ec3FbDJHF0sHlvT85AqIGtCmcKwQNOfSvHECUZcouMlhLhziAS5AlGH88nTybiJOyp9nn9RVXQ`.
+
+- **Substituição:** os três marcadores preliminares («6.2 Resultados da avaliação operacional», «6.2.1 Microrrede industrial
+  CT-046», «6.2.2 Embarcação híbrida isolada», com suas notas de redação e títulos vazios) foram trocados pela Seção 6.2
+  aprovada. O título vazio que os precedia passou a ser o título 6.2 (Título 2), e as subseções usam Título 3, como na 6.1.
+- **Conferência por leitura do documento:**
+  - As Seções 1 a 6.1 e da 6.3 ao fim estão idênticas à leitura anterior à integração, em texto e estilos.
+  - O texto corrido da 6.2 é idêntico, caractere a caractere, ao de `SECAO_6_2_TEXTO.md`.
+  - As 210 células das Tabelas 6.5 e 6.6 são idênticas às aprovadas.
+  - As três figuras estão incorporadas (451 pt de largura, proporções preservadas, centralizadas).
+  - Todo o texto inserido tem o fundo amarelo-claro da regra de rastreabilidade (RGB 1; 0,949; 0,8, o mesmo da 6.1).
+  - Não há marcadores Markdown nem ponto e vírgula, e cada título, tabela e figura aparece uma única vez.
+- **Padrão visual da 6.1 reproduzido:**
+  - Legenda acima e «Fonte» abaixo, em 10 pt, com rótulo em negrito.
+  - Tabelas nativas com cabeçalho cinza-claro em negrito, corpo em 9 pt e preenchimento de 5 pt.
+  - Colunas numéricas alinhadas à direita.
+- **Figuras:** inseridas a partir de um Google Doc temporário de transporte (método já usado nas Figuras 6.1 e 6.2), em
+  resolução original. As imagens do arquivo de transporte são byte a byte iguais às de `figuras/` (SHA-256 conferidos). O
+  documento «SEEDS2 — Transporte temporário das Figuras 6.3–6.5 (pode ser excluído)» ficou na pasta «R03 — figuras
+  finais (8 pt)» do Drive.
+- **Ajustes editoriais de integração:**
+  - 6.2.4: frase substituída conforme a autorização.
+  - Na frase seguinte, «O uso do estoque inicial, porém, resultou de mecanismos distintos» passou a «O uso do estoque
+    inicial também decorreu de mecanismos diferentes», ajuste de conectivo e de repetição sem mudança de sentido.
+- **Limitação da API:** a opção «fixar linha de cabeçalho» das tabelas (presente nas Tabelas 6.1 a 6.4) não pode ser
+  aplicada pela API. As Tabelas 6.5 e 6.6 atravessam uma quebra de página no PDF exportado (págs. 37–38 e 42–43). Para
+  repetir o cabeçalho: botão direito na tabela → Propriedades da tabela → Linha → «Fixar linha de cabeçalho».
