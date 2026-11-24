@@ -1,0 +1,18 @@
+@import url("assets/fonts.css");
+:root{
+  --navy:#14213D; --slate:#4A5568; --teal:#1F7A6D; --rust:#C0532F;
+  --light:#EEF3F2; --line:#DCE3E2; --lime:#C1FF72; --mint:#7FD1C3;
+  --g1:#6DB527; --g2:#1E8A72; --g3:#0072BA;
+  --solar:#D9A21B; --bat:#7B6CF6; --rede:#E0524F; --pem:#1BA39C;
+  --serif:"Gelasio",Georgia,serif; --sans:"Manrope","Inter",sans-serif; --grot:"Space Grotesk","Inter",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#fff}
+.slide{position:relative;width:1920px;height:1080px;overflow:hidden;font-family:var(--serif);color:var(--navy)}
+.kicker{font-family:var(--serif);font-weight:700;letter-spacing:.42em;text-transform:uppercase;font-size:26px}
+.grad-text{background:linear-gradient(90deg,var(--g1),var(--g2) 55%,var(--g3));-webkit-background-clip:text;background-clip:text;color:transparent}
+.names .autor{font-weight:700;font-size:40px}
+.names .ori{font-size:26px;line-height:1.55;margin-top:10px}
+.names .ori b{font-weight:600}
+.meta{font-size:24px}
+.tag{position:absolute;right:28px;bottom:18px;font:500 15px var(--grot);letter-spacing:.2em;color:#9aa5b1;text-transform:uppercase}
