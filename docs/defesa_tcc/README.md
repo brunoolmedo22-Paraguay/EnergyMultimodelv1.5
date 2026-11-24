@@ -9,5 +9,6 @@ Gerenciamento Energético Hierárquico Baseado em MILP–MPC* (UNILA, 9/12/2026)
 | `ROTEIRO_DETALHADO_v1.md` | primeira versão detalhada (falas, justificativas, auxiliares, perguntas prováveis; numeração antiga) |
 | `DESIGN.md` | sistema visual: paleta, tipografia, elementos e medidas da capa aprovada, para implementar em PPTX |
 | `capa/capa_oficial.html`, `capa/png/capa_oficial.png` | capa **aprovada** |
-| `capa/gerar_b.py` | gerador das variações de capa (B1–B7; B7 = capa oficial) |
+| `capa/sumario.html`, `capa/png/sumario.png` | sumário **aprovado** (barramento em chevrons, cartões em zigue-zague) com rodapé |
+| `capa/gerar_b.py`, `capa/gerar_sumario2.py` | geradores das variações (capa B1–B7; sumário X1–X3, Z1–Z3; Z2 = aprovado) |
 | `capa/assets/` | logos (SEEDS, UNILA) e fontes de maquete (Gelasio, Manrope, etc. — licença OFL, Google Fonts) |

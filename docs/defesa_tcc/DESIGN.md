@@ -78,3 +78,21 @@ cd docs/defesa_tcc/capa
 python3 gerar_b.py                       # escreve B1…B7 (B7_oficial.html = capa_oficial.html)
 NODE_PATH=$(npm root -g) node render.js capa_oficial.html   # PNG em png/
 ```
+
+## 6. Sumário (aprovado) — `capa/sumario.html` · `capa/png/sumario.png`
+
+- Título "Sumário": Georgia 700, 60 px, navy, em x 110, y 78.
+- **Barramento em chevrons**: 7 tramos em forma de seta (altura 40 px, ponta de 20 px, folga de 8 px entre tramos),
+  de x 110 a 1810, centro em y 545; cada tramo com a cor do gradiente SEEDS na sua posição; ponto branco (r 7) no centro de cada nó.
+- **Cartões em zigue-zague**: ímpares (01, 03, 05, 07) acima, pares (02, 04, 06) abaixo; 410 × 250 px, fundo light,
+  raio 24 px, borda de 6 px na cor do nó (embaixo nos de cima, em cima nos de baixo). Cartões de cima em y 205; de baixo em y 635.
+- **Conector cartão–barramento**: 10 px, na cor do nó.
+- Número: Georgia 700, 96 px, na cor do nó. Título: Georgia 700, 34 px, navy, alinhado à base do cartão. **Só o título** (sem descrição, sem ícone).
+- **Cartão 05 (Demonstração)**: fundo navy, número lime `#C1FF72`, título branco e marca "● ao vivo" (Manrope 600, 20 px, lime) no canto superior direito.
+
+## 7. Rodapé e número de página (todos os slides de conteúdo)
+
+- Linha fina (1,5 px, `#E6ECEB`) de x 110 a 1810, a 112 px da base.
+- Rodapé a 34 px da base: logo UNILA (altura 56) · separador · "Engenharia de Energia · ILATIT" · separador ·
+  "**Defesa de TCC** · Bruno Manuel Olmedo Chávez" — Manrope 500, 17 px, `#7B8794` ("Defesa de TCC" em 600, `#5B6675`).
+- **Número de página** à direita: Georgia 700, 40 px, navy, com traço de 44 × 5 px do gradiente SEEDS acima.
