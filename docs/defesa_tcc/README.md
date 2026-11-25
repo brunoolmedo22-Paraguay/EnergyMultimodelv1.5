@@ -12,10 +12,11 @@ Gerenciamento Energético Hierárquico Baseado em MILP–MPC* (UNILA, 9/12/2026)
 | `capa/sumario.html`, `capa/png/sumario.png` | sumário **aprovado** (barramento em chevrons, cartões em zigue-zague) com rodapé |
 | `capa/gerar_b.py`, `capa/gerar_sumario2.py` | geradores das variações (capa B1–B7; sumário X1–X3, Z1–Z3; Z2 = aprovado) |
 | `capa/assets/` | logos (SEEDS, UNILA) e fontes de maquete (Gelasio, Manrope, etc. — licença OFL, Google Fonts) |
-| `pptx/SEEDS_Defesa_TCC.pptx`, `pptx/SEEDS_Defesa_TCC.pdf` | deck: capa e sumário nativos; slides 3–6 aprovados (imagem HD, fala nas notas); 7–27 em branco |
-| `pptx/SEEDS_Defesa_TCC_Bloco_I.pdf` | PDF vetorial do bloco I (slides 1–6), gerado dos HTML aprovados por `pptx/exportar_bloco1.js` |
+| `pptx/SEEDS_Defesa_TCC.pptx`, `pptx/SEEDS_Defesa_TCC.pdf` | deck: capa e sumário nativos; slides 3–7 aprovados (imagem HD, fala nas notas); 8–28 em branco |
+| `pptx/SEEDS_Defesa_TCC_Bloco_I.pdf` | PDF vetorial do bloco I (slides 1–7), gerado dos HTML aprovados por `pptx/exportar_bloco1.js` |
 | `pptx/gerar_pptx.js` | gerador do deck (pptxgenjs; formas nativas e editáveis; fontes Georgia + Calibri) |
 | `guia/Guia_Defesa_SEEDS.pdf` | guia completo slide a slide (título, mensagem, tela, motivo, vínculos, fala-guia); fonte em `guia/conteudo.py` |
 | `slides/slide03_aprovado.html`, `slides/png/slide03_aprovado.png` | slide 3 (Contexto) **aprovado**; gerador `slides/gerar_slide3_v3.py`; fontes originais em `slides/fonte_*` |
 | `slides/slide05_aprovado.html`, `slides/png/slide05_aprovado.png` | slide 5 (Trabalhos relacionados) **aprovado**; gerador `slides/gerar_slide5_v4.py` |
 | `slides/slide06_aprovado.html`, `slides/png/slide06_aprovado.png` | slide 6 (Objetivos e contribuições) **aprovado**; gerador `slides/gerar_slide6.py` (`g6_final`) |
+| `slides/slide07_aprovado.html`, `slides/png/slide07_aprovado.png` | slide 7 (O SEEDS — proposta e contribuições) **aprovado**; gerador `slides/gerar_slide7_v2.py` (`k3v2`) |

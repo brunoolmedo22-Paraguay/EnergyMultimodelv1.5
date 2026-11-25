@@ -120,9 +120,19 @@ Gerador: `slides/gerar_slide5_v4.py` (variante `S5v4_E1`; usa `gerar_slide5.py`,
 - Ponto forte de cada lado (ícone colorido) e limitação no pé (cinza `#9AA5B1`), à mesma altura nos dois cartões.
 - Tracejado teal do SEEDS para «A lacuna: não se identificou uma abordagem que reunisse» + três partes com círculos G1/G2/G3.
 
-## 10. Slide 6 — Objetivos e contribuições (aprovado) — `slides/slide06_aprovado.html` · `slides/png/slide06_aprovado.png`
+## 10. Slide 6 — Objetivos (aprovado; título sem «e contribuições» desde a criação do slide 7) — `slides/slide06_aprovado.html` · `slides/png/slide06_aprovado.png`
 
 Gerador: `slides/gerar_slide6.py`, função `g6_final` (as propostas G1–G4 e H1/H2 ficam no mesmo arquivo).
 - «Objetivo geral» (Gelasio 700, 26 px, teal) e o texto do artigo em Gelasio 700, 33 px, navy, largura 1700; filete de 5 px com o gradiente SEEDS em y 384.
 - Cartão navy (x 110, y 420, 640 × 482, raio 28) só com a pergunta (Gelasio 700, 40 px, branco; trechos-chave em lima `#C1FF72`), centrada na vertical.
 - «Objetivos específicos» (Gelasio 700, 28 px) + 4 linhas (passo 105 px) entre filetes: caixa vazia 40 px (contorno teal), número 0N (Gelasio 40; verde `#2E9E6B` para composição, azul `#2C6FB0` para o EMS, teal no 03), texto Gelasio 700, 26 px.
+
+## 11. Slide 7 — O SEEDS (aprovado) — `slides/slide07_aprovado.html` · `slides/png/slide07_aprovado.png`
+
+Gerador: `slides/gerar_slide7_v2.py`, função `k3v2` (propostas J1–J3 em `gerar_slide7.py`; K1–K3 em `_v2`).
+- Cartão navy (x 110, y 172, 560 × 730, raio 28), conteúdo centrado na vertical: logo `seeds_dark.png` (280 px) · frase em Gelasio 700, 37 px,
+  branco com trechos em lima · ilustração: barramento vertical (22 px, gradiente SEEDS, pontos brancos) com Solar, Eólica e H₂ à esquerda e
+  Bateria e Rede à direita — círculos r 26 com preenchimento da cor do recurso a 18 % e contorno a 55 %, curvas da mesma cor (55 %) e um traço
+  de fluxo de 6 px perto do barramento (referência visual do responsável).
+- Ficha à direita (x 720–1810): 4 linhas de 182,5 px entre filetes; pergunta em Gelasio 700, 30 px, teal; resposta em Manrope 27 px, navy,
+  começando com maiúscula, palavras-chave em negrito. «sistema(s) elétrico(s)» no lugar de «microrrede(s)» neste slide.

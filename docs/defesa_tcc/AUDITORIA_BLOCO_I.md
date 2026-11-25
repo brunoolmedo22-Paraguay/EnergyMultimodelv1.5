@@ -32,3 +32,10 @@ fonte `guia/conteudo.py`) e com `ROTEIRO.md`. Data: 25/11/2026.
 - Barra de progresso com os chevrons do sumário nas transições de bloco (guia, slide 2: «podem voltar»).
 - Guia (`guia/`) ainda marca 3–6 «A desenhar», sem as imagens aprovadas e com a «tela» antiga.
 - Falas de 5 e 6 não citam os elementos novos (cartão SEEDS do slide 5; ausência de A/B no 6).
+
+## Resolução (25/11/2026)
+
+- **D2/D3 resolvidas:** novo slide 7 «O SEEDS» apresenta a proposta e as duas contribuições (plataforma modular, EMS hierárquico MILP–MPC);
+  o slide 6 passou a se chamar «Objetivos» e a fala foi ajustada. Numeração: antigos 7–27 → 8–28; bloco I 4:20; margem 0:35.
+- Guia regenerado (slides 1–7 «Pronto», com imagens aprovadas e falas novas de 6 e 7).
+- **Em aberto:** D1 (qual redação da pergunta — o slide usa a do ROTEIRO; o guia mostra a de `conteudo.PERGUNTA`), D4 e as verificações no PDF do artigo.
