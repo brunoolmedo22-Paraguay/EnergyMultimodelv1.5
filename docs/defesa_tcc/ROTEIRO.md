@@ -10,7 +10,7 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 | 1 | Capa | aprovada (`capa/`) | — |
 | 2 | Sumário | 7 seções; pergunta central | barra de progresso |
 | **I** | **Contexto e objetivos (3:30)** | | |
-| 3 | Contexto | LCOE FV −90 %, eólica −70 %; Brasil 2025; sistemas pequenos com várias fontes | → 4 |
+| 3 | Contexto ✔ aprovado | LCOE −90 % / −70 % [1]; eólica + solar 2011–2025, 0,5 % → 26,4 % [3]; cargas pequenas com várias fontes [3–6]; «Várias fontes … exigem coordenação» | → 4 |
 | 4 | Decisões com consequências futuras | SIN (NEWAVE→DECOMP→DESSEM, custo futuro da água) × microrrede; conectada → custo, isolada → atendimento | → 10, 15, 21, 25 |
 | 5 | Trabalhos relacionados | EMS MILP–MPC (composição fixa) × simuladores (estratégias predefinidas); lacuna (texto do artigo) | aux. literatura |
 | 6 | Objetivos e contribuições | pergunta, objetivo geral, específicos, pilares A e B | → 25 |

@@ -168,7 +168,7 @@ REF = ('<div class="ref">[1] IRENA, Renewable Power Generation Costs in 2024 · 
 def cabeca():
     return (f'<div class="tt">Contexto</div>'
             f'<div style="position:absolute;left:110px;top:180px;display:flex;align-items:center;gap:44px">'
-            f'<div style="font:700 26px/1.25 Gelasio,serif;border-right:2px solid #DCE3E2;padding-right:40px">Redução do custo<br>da energia'
+            f'<div style="font:700 26px/1.25 Gelasio,serif;border-right:2px solid #DCE3E2;padding-right:40px">Redução do custo nivelado<br>da energia (LCOE)'
             f'<div style="font:500 17px Manrope;color:#4A5568;margin-top:4px">2010 → 2024 <span style="color:#9AA5B1">[1]</span></div></div>'
             f'<div><div class="big" style="color:{SOLAR}">−90 %</div><div class="bl" style="margin-top:4px">solar fotovoltaica</div></div>'
             f'<div><div class="big" style="color:{WIND}">−70 %</div><div class="bl" style="margin-top:4px">eólica terrestre</div></div>'

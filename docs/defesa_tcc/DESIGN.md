@@ -96,3 +96,16 @@ NODE_PATH=$(npm root -g) node render.js capa_oficial.html   # PNG em png/
 - Rodapé a 34 px da base: logo UNILA (altura 56) · separador · "Engenharia de Energia · ILATIT" · separador ·
   "**Defesa de TCC** · Bruno Manuel Olmedo Chávez" — Manrope 500, 17 px, `#7B8794` ("Defesa de TCC" em 600, `#5B6675`).
 - **Número de página** à direita: Georgia 700, 40 px, navy, com traço de 44 × 5 px do gradiente SEEDS acima.
+
+## 8. Slide 3 — Contexto (aprovado) — `slides/slide03_aprovado.html` · `slides/png/slide03_aprovado.png`
+
+Gerador: `slides/gerar_slide3_v3.py` (variante `S3v3_a`). Estrutura:
+- Linha superior: «Redução do custo nivelado da energia (LCOE)», 2010 → 2024 [1] | **−90 %** solar fotovoltaica | **−70 %** eólica terrestre (lado a lado).
+- Gráfico de barras empilhadas 2011–2025: eólica (azul `#4C8DD6`) embaixo, solar (âmbar `#D9A21B`) em cima; rótulos de participação na geração total em 2011 (0,5 %), 2018 (8,6 %) e 2025 (26,4 %); nota «2025: 204,6 TWh = eólica 116,5 + solar 88,1 — 60 % da geração solar já ocorre junto à carga (MMGD)».
+- Cartão à direita «Cargas pequenas, várias fontes»: fontes convergindo na carga — Residências e comércios (Solar + Rede) [3] · Edificações (Solar + Rede + Bateria) [4] · Localidades isoladas (Eólica + Solar + Célula H₂ + Bateria) [5] · Embarcações (Célula H₂ + Bateria) [6].
+- Faixa azul-marinho: «Várias fontes em um mesmo sistema **exigem coordenação.**» (lima).
+
+**Fontes conferidas nos originais (25/11/2026):**
+- [1] IRENA, *Renewable Power Generation Costs in 2024*, tabela-resumo: FV 0,417 → 0,043 USD/kWh (−90 %); eólica terrestre 0,113 → 0,034 USD/kWh (−70 %).
+- [3] EPE, BEN — Séries Históricas Completas, «Capítulo 5 … 1970 a 2025.xlsx», **Tabela 5.3** (centrais elétricas — total), linhas GWh de geração total, eólica e solar (solar inclui MMGD). Cópia: `slides/fonte_BEN_SeriesHistoricas_Cap5.xlsx`.
+- [3] EPE, BEN 2026 — Relatório Síntese, p. 50: MMGD solar = 60,3 % da geração solar em 2025 (`slides/fonte_BEN2026_p50.png`).
