@@ -69,7 +69,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 16 | Gerenciamento energético hierárquico MILP–MPC | 02 | ✔ aprovado (novo: Fig. 4.1 em horizontal + 3 pontos) |
 | 17 | Desenvolvimento do SEEDS | 03 | ✔ aprovado |
 | 18 | Arquitetura do SEEDS | 03 | ✔ aprovado (Fig. 5.1 em horizontal + 3 pontos) |
-| 19 | Representação energética comum | 03 | a desenhar |
+| 19 | Representação energética comum | 03 | ✔ aprovado |
 | 20 | Gerenciamento energético hierárquico no SEEDS | 03 | a desenhar |
 | 21 | Verificação e fluxo de execução | 03 | a desenhar |
 | 22 | Estudos de caso | 04 | ✔ aprovado |

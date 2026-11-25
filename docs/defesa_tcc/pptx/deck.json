@@ -147,9 +147,9 @@
   "n": 19,
   "titulo": "Representação energética comum",
   "secao": 3,
-  "html": "slides/provisorios/p19.html",
-  "pronto": false,
-  "notas": "Todos os recursos são expressos no mesmo barramento, em kW líquidos e na mesma malha temporal. Antes de executar, a plataforma verifica se tudo é representável; se faltar um dado, ela aponta a pendência em vez de seguir com um valor presumido."
+  "html": "slides/slide19_aprovado.html",
+  "pronto": true,
+  "notas": "Os recursos são muito diferentes, mas entram no mesmo MILP porque falam a mesma língua: um barramento equivalente, kW líquidos com uma convenção de sinais, potências médias por intervalo e energias nas fronteiras, na mesma malha de tempo. Toda a não linearidade é resolvida antes: a renovável vira um limite superior, a bateria um balanço por banco, a célula uma curva de hidrogênio linear por partes com erro verificado, e a rede só existe com sentidos, limites e tarifas declarados."
  },
  {
   "n": 20,

@@ -36,7 +36,7 @@ ORDEM = [
     ("Gerenciamento energético hierárquico MILP–MPC", 2, "slides/slide16_aprovado.html"),
     ("Desenvolvimento do SEEDS", 3, "slides/divisor03.html"),
     ("Arquitetura do SEEDS", 3, "slides/slide18_aprovado.html"),
-    ("Representação energética comum", 3, None),
+    ("Representação energética comum", 3, "slides/slide19_aprovado.html"),
     ("Gerenciamento energético hierárquico no SEEDS", 3, None),
     ("Verificação e fluxo de execução", 3, None),
     ("Estudos de caso", 4, "slides/divisor04.html"),
@@ -61,6 +61,7 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Representação energética comum": "Os recursos são muito diferentes, mas entram no mesmo MILP porque falam a mesma língua: um barramento equivalente, kW líquidos com uma convenção de sinais, potências médias por intervalo e energias nas fronteiras, na mesma malha de tempo. Toda a não linearidade é resolvida antes: a renovável vira um limite superior, a bateria um balanço por banco, a célula uma curva de hidrogênio linear por partes com erro verificado, e a rede só existe com sentidos, limites e tarifas declarados.",
     "Arquitetura do SEEDS": "O SEEDS separa o sistema físico da estratégia de gerenciamento. À esquerda, a modularidade: modelos e catálogos, a configuração de cada microrrede, com revisões, e o cenário operativo. No centro, a integração: tudo vira uma representação energética comum por recurso e passa por uma verificação de compatibilidade. À direita, o EMS hierárquico que acabamos de ver, em malha fechada. Trocar um equipamento muda a instância do problema, não a formulação, e cada resultado fica ligado à revisão e à versão do cenário que o originaram.",
     "Gerenciamento energético hierárquico MILP–MPC": "Juntando as peças: o planejamento de horizonte ampliado, também um MILP, enxerga além da janela e estima o custo de continuar — mas não decide; o plano longo nunca é aplicado. O que ele passa ao MPC é a informação de coordenação: o valor futuro, que entra como custo terminal da janela. O MPC decide o despacho, o sistema elétrico executa, e a decisão seguinte parte do estado realizado, não do planejado.",
     "Coordenação hierárquica e valor futuro": "O MPC só enxerga N intervalos; o que vem depois precisa entrar como custo. Pela relação de Bellman, decidir bem é somar o custo de agora ao custo de continuar a partir do estado final — e, se esse custo for exato, a janela reproduz o ótimo do horizonte completo. A inclinação dessa função é o valor de um kWh guardado, em reais: o mesmo valor da água do SIN, agora para a energia armazenada. Só que no SIN esse valor sai dos duais de problemas lineares; aqui, com decisões inteiras como ligar a célula, a função pode ser não convexa ou descontínua e a derivada pode nem existir. Por isso não usamos os duais do MILP como preço: o planejador constrói essa função por pontos, como mostro adiante.",

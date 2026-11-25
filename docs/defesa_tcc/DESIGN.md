@@ -177,3 +177,9 @@ Gerador `slides/gerar_slide16.py`, função `h4` (H1–H3 = reinterpretações r
 Gerador `slides/gerar_slide18.py`. Fig. 5.1 idêntica em três colunas (Modularidade verde · Integração cinza com cabeçalho escuro da
 representação comum · EMS hierárquico azul + simulação + resultados), mesmos rótulos de setas, retornos laranja tracejados e legenda.
 Textos das caixas 16–22 px (figura inteira). Três pontos embaixo (y 800): físico separado da estratégia · representação comum · rastreáveis.
+
+## 17. Slide 19 — Representação energética comum (aprovado, P1) — `slides/slide19_aprovado.html`
+
+Gerador `slides/gerar_slide19.py` (`p1`). Barramento SEEDS no topo com 5 recursos pendurados; cartões 322 × 490 (Solar e eólica · Bateria ·
+PEMFC · Rede · Demanda): mini-gráfico esquemático · «Entra no MILP como» (18 px) · resposta Gelasio 22 na cor do recurso · detalhe 22 px,
+entrelinha 1,55. Faixa «Comum a todos» (y 808). Fonte: Seção 5.2. Frases sempre com maiúscula.
