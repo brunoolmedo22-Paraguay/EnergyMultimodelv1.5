@@ -109,3 +109,13 @@ Gerador: `slides/gerar_slide3_v3.py` (variante `S3v3_a`). Estrutura:
 - [1] IRENA, *Renewable Power Generation Costs in 2024*, tabela-resumo: FV 0,417 → 0,043 USD/kWh (−90 %); eólica terrestre 0,113 → 0,034 USD/kWh (−70 %).
 - [3] EPE, BEN — Séries Históricas Completas, «Capítulo 5 … 1970 a 2025.xlsx», **Tabela 5.3** (centrais elétricas — total), linhas GWh de geração total, eólica e solar (solar inclui MMGD). Cópia: `slides/fonte_BEN_SeriesHistoricas_Cap5.xlsx`.
 - [3] EPE, BEN 2026 — Relatório Síntese, p. 50: MMGD solar = 60,3 % da geração solar em 2025 (`slides/fonte_BEN2026_p50.png`).
+
+## 9. Slide 5 — Trabalhos relacionados (aprovado) — `slides/slide05_aprovado.html` · `slides/png/slide05_aprovado.png`
+
+Gerador: `slides/gerar_slide5_v4.py` (variante `S5v4_E1`; usa `gerar_slide5.py`, `_v2`, `_v3`). Estrutura:
+- Três cartões (y 168–652): **EMS MILP–MPC** (x 110, 610 px, fundo light) · **SEEDS** (x 750, 420 px, fundo branco, borda de 5 px com o gradiente SEEDS, sombra) · **Ambientes e simuladores** (x 1200, 610 px).
+- EMS em tabela sem grade: glifo esquemático (energia guardada na janela + tratamento no fim) · nome [ref] (Gelasio 21) · limitação (Manrope 18); filetes de 1,5 px; pergunta «E a energia guardada no fim da janela?» (nexo com o slide 4).
+- SEEDS: logo (300 px) + faixas «gerenciamento» (azul `#2C6FB0`) e «composição» (verde `#2E9E6B`) que nascem nas bordas dos cartões vizinhos e se unem num nó com o gradiente; «integrados em uma mesma plataforma».
+- Simuladores: barramento centrado com recursos (eólica e H₂ tracejados = entram e saem) e duas colunas com divisor.
+- Ponto forte de cada lado (ícone colorido) e limitação no pé (cinza `#9AA5B1`), à mesma altura nos dois cartões.
+- Tracejado teal do SEEDS para «A lacuna: não se identificou uma abordagem que reunisse» + três partes com círculos G1/G2/G3.

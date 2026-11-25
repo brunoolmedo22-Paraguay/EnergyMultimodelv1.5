@@ -12,7 +12,7 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 | **I** | **Contexto e objetivos (3:30)** | | |
 | 3 | Contexto ✔ aprovado | LCOE −90 % / −70 % [1]; eólica + solar 2011–2025, 0,5 % → 26,4 % [3]; cargas pequenas com várias fontes [3–6]; «Várias fontes … exigem coordenação» | → 4 |
 | 4 | Decisões com consequências futuras ✔ aprovado (S4v6_H1) | «Conceito de valor da água» (custo imediato × futuro, adaptado ONS 2020 Fig. 3.15; eixo = usar agora ← → guardar depois) + NEWAVE→DECOMP→DESSEM; «Na microrrede, o mesmo dilema»: energia → falta na ponta (tarifa), célula → tempo mínimo; conectada × isolada | → 10, 15, 21, 25 |
-| 5 | Trabalhos relacionados | EMS MILP–MPC (composição fixa) × simuladores (estratégias predefinidas); lacuna (texto do artigo) | aux. literatura |
+| 5 | Trabalhos relacionados ✔ aprovado (S5v4_E1) | três cartões: EMS MILP–MPC em tabela (glifo · referência · como trata a energia no fim da janela: Parisio [17] sem valor final, Fan [20] limite mínimo fixo, Vivas [21] estado final imposto, Kopka [6] custo predefinido, Aaslid [22] exige convexidade) · SEEDS no centro (gerenciamento + composição «integrados em uma mesma plataforma») · ambientes e simuladores (estratégias predefinidas: HOMER [31], pymgrid [27]; foco no planejamento: PyPSA, oemof, Calliope, ETHOS.FINE); «A lacuna» em três partes com o texto do artigo | ← 4 · → 6 · aux. literatura |
 | 6 | Objetivos e contribuições | pergunta, objetivo geral, específicos, pilares A e B | → 25 |
 | **II** | **Fundamentação e SEEDS (8:00)** | | |
 | 7 | Modelagem dos recursos energéticos | FV, eólica, bateria, PEMFC, PCC → o que entregam ao EMS | → 12 |
