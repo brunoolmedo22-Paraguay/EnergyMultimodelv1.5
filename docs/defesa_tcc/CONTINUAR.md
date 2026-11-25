@@ -69,3 +69,4 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 - Sempre 3 propostas diferentes lado a lado; iterar com feedback; dados só de fontes conferidas (citar; «esquemático» quando for).
 - Valorizar o trabalho (tom de defesa, limitações suaves). Conversa em espanhol/portunhol; slides em português.
 - Commit + push na mesma branch a cada passo; não abrir PR.
+- **NÃO enviar PDF/PPTX a cada slide aprovado** (gasta tokens): só registrar no deck.py/docs; exportar e entregar o deck apenas quando o responsável pedir.
