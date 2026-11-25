@@ -23,15 +23,11 @@ EQ = {
 NUM = {"fv": "eq. 1–2", "eol": "eq. 3", "pem": "eq. 6–7", "bat": "eq. 4–5", "rede": "eq. 8"}
 # (símbolo TeX, descrição, unidade)
 VARS = {
-    "fv": [(r"G_{\mathrm{ef}}", "irradiância efetiva", "W/m²"), (r"T_a,\,T_c", "temp. ambiente e da célula", "°C"),
-           (r"\mathrm{NOCT}", "temp. nominal de operação", "°C"), (r"\gamma_P", "coef. térmico de potência", "°C⁻¹"),
-           (r"A", "área bruta do módulo", "m²"), (r"\eta_{\mathrm{STC}}", "eficiência nas STC", "—"),
-           (r"N_s,\,N_p", "módulos em série e paralelo", "—"), (r"P_{\mathrm{FV}}", "potência disponível (CC)", "kW")],
-    "eol": [(r"v", "velocidade do vento", "m/s"), (r"v_{\mathrm{eq}}", "velocidade equivalente", "m/s"),
-            (r"\rho", "densidade do ar", "kg/m³"), (r"\rho_{\mathrm{ref}}", "densidade da curva", "kg/m³")],
-    "pem": [(r"N_{\mathrm{cel}}", "número de células", "—"), (r"V_{\mathrm{cel}}", "tensão da célula", "V"),
-            (r"I", "corrente elétrica", "A"), (r"P_{\mathrm{stack}}", "potência do stack", "kW"),
-            (r"\dot m_{\mathrm{H_2}}", "vazão de hidrogênio", "kg/h"), (r"M_{\mathrm{H_2}}", "massa molar do H₂", "kg/mol"),
+    "fv": [(r"T_c", "temperatura da célula", "°C"), (r"P_{\mathrm{FV}}", "potência disponível (CC)", "kW")],
+    "eol": [(r"v_{\mathrm{eq}}", "velocidade equivalente", "m/s")],
+    "pem": [(r"P_{\mathrm{stack}}", "potência do stack", "kW"), (r"\dot m_{\mathrm{H_2}}", "vazão de hidrogênio", "kg/h"),
+            (r"N_{\mathrm{cel}}", "número de células", "—"), (r"V_{\mathrm{cel}}", "tensão da célula", "V"),
+            (r"I", "corrente elétrica", "A"), (r"M_{\mathrm{H_2}}", "massa molar do H₂", "kg/mol"),
             (r"F", "constante de Faraday", "C/mol"), (r"U_{\mathrm{H_2}}", "fator de utilização", "—")],
     "bat": [(r"E_t", "energia armazenada", "kWh"), (r"P_{c},\,P_{d}", "potência de carga e descarga", "kW"),
             (r"\eta_c,\,\eta_d", "eficiências de carga e descarga", "—"), (r"\Delta t", "duração do intervalo", "h"),
@@ -75,6 +71,12 @@ CSS8 = CSS + """
 .vs .s svg{vertical-align:middle!important}
 .vs .t{font:500 15px "Manrope";color:#4A5568;white-space:nowrap}
 .vs .u{font:700 14.5px "Manrope";color:#14213D;text-align:right;white-space:nowrap}
+.vs.big .s{font-size:21px}.vs.big .t{font-size:17px}.vs.big .u{font-size:17px}.vs.big{row-gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:10px;width:100%}
+.c2{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;background:#fff;border-radius:14px;padding:7px 12px}
+.c2 .s{font-size:18px;color:#14213D;min-width:44px;text-align:center}.c2 .s svg{vertical-align:middle!important}
+.c2 .t{font:500 14px/1.2 "Manrope";color:#4A5568}.c2 .u{font:700 14.5px "Manrope";color:#14213D;display:block;margin-top:2px}
+.c2.r{box-shadow:inset 0 0 0 2px var(--c)}
 .fl{display:flex;align-items:center;justify-content:center;gap:10px;font:600 15.5px/1.3 "Manrope";color:#4A5568;text-align:center;white-space:nowrap}
 .fl b{font-weight:800}
 .fl .ar{font-size:22px;color:#9AA5B1}
@@ -88,10 +90,16 @@ def div(x, y, w, h, inner, cls="", st=""):
     return f'<div class="d {cls}" style="left:{x}px;top:{y}px;width:{w}px;{hh}{st}">{inner}</div>'
 
 
-def vars_html(k, idx):
+def vars_pem(cor):
+    cells = "".join(f'<div class="c2{" r" if i < 2 else ""}" style="--c:{cor}"><div class="s">{SVG[f"i_pem{i}"]}</div>'
+                    f'<div><div class="t">{d}</div><span class="u">{u}</span></div></div>' for i, (_, d, u) in enumerate(VARS["pem"]))
+    return f'<div class="g2">{cells}</div>'
+
+
+def vars_html(k, idx, big=False):
     rows = "".join(f'<div class="s">{SVG[f"i_{k}{i}"]}</div><div class="t">{VARS[k][i][1]}</div><div class="u">{VARS[k][i][2]}</div>'
                    for i in idx)
-    return f'<div class="vs">{rows}</div>'
+    return f'<div class="vs{" big" if big else ""}">{rows}</div>'
 
 
 def curva_eolica(x, y, w, h, cor):
@@ -180,10 +188,18 @@ def cartao(x, y, w, h, r, eq_px, largo=False):
         html += div(x + 30, y2, meio - x - 56, yb - y2 - 14, vars_html(k, range(n)), "", "display:flex;align-items:center;justify-content:center")
         s += (esquema_bateria if k == "bat" else esquema_rede)(meio + 24, y2, x + w - meio - 54, yb - y2 - 14, cor)
     elif k == "eol":
-        hq = 96
-        html += div(x + 24, top, w - 48, hq, SVG[k] + f'<span class="tg">{NUM[k]}</span>', "eq", f"font-size:{eq_px}px")
-        s += curva_eolica(x + 60, top + hq + 36, w - 150, 104, cor)
-        html += div(x + 40, top + hq + 182, w - 80, None, vars_html(k, range(n)), "", "display:flex;justify-content:center")
+        hq = 110
+        html += div(x + 24, top, w - 48, hq, SVG[k] + f'<span class="tg">{NUM[k]}</span>', "eq", f"font-size:{eq_px+2}px")
+        s += curva_eolica(x + 70, top + hq + 46, w - 160, 150, cor)
+        html += div(x + 40, top + hq + 246, w - 80, None, vars_html(k, range(n), big=True), "", "display:flex;justify-content:center")
+    elif k == "pem":
+        hq = 150
+        html += div(x + 24, top - 12, w - 48, hq, SVG[k] + f'<span class="tg">{NUM[k]}</span>', "eq", f"font-size:{eq_px}px")
+        html += div(x + 30, top + hq + 22, w - 60, yb - top - hq - 34, vars_pem(cor), "", "display:flex;align-items:flex-end")
+    elif k == "fv":
+        hq = 210
+        html += div(x + 24, top + 10, w - 48, hq, SVG[k] + f'<span class="tg">{NUM[k]}</span>', "eq", f"font-size:{eq_px}px")
+        html += div(x + 40, top + hq + 40, w - 80, yb - top - hq - 60, vars_html(k, range(n), big=True), "", "display:flex;align-items:center;justify-content:center")
     else:
         hq = 150
         html += div(x + 24, top, w - 48, hq, SVG[k] + f'<span class="tg">{NUM[k]}</span>', "eq", f"font-size:{eq_px}px")
@@ -205,7 +221,7 @@ def gerar():
     w, gap = 550, 25
     for i, r in enumerate(RES[:3]):
         x = 110 + i * (w + gap)
-        c, hh = cartao(x, ytop, w, h, r, 21 if r[0] == "fv" else 26)
+        c, hh = cartao(x, ytop, w, h, r, {"fv": 25, "eol": 26, "pem": 22}[r[0]])
         s += c
         html += hh
         s += no_e_haste(x + w / 2, yb, yn, r[1], r[2], r[8], r=40)
