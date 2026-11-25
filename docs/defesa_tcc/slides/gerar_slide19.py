@@ -35,7 +35,7 @@ def g_renov(x, y, w, h):
         o += f'<rect x="{x+i*bw+1}" y="{y+h-ha}" width="{bw-2}" height="{ha-hu}" fill="{SOLAR}" opacity=".28"/>'
         o += f'<rect x="{x+i*bw+1}" y="{y+h-hu}" width="{bw-2}" height="{hu}" fill="{SOLAR}"/>'
     o += f'<line x1="{x}" x2="{x+w}" y1="{y+h}" y2="{y+h}" stroke="{NAVY}" stroke-width="1.6"/>'
-    o += T(x + w * .52, y + h - .97 * h - 6, "vertimento", 15, 700, "#B88710", anchor="middle")
+    o += T(x + w * .52, y + h - .97 * h - 6, "Vertimento", 15, 700, "#B88710", anchor="middle")
     return o
 
 
@@ -70,7 +70,7 @@ def g_pcc(x, y, w, h):
     o = (f'<line x1="{x}" x2="{x+w}" y1="{y+h}" y2="{y+h}" stroke="{NAVY}" stroke-width="1.6"/>'
          f'<rect x="{a}" y="{y}" width="{b-a}" height="{h}" fill="{REDE}" opacity=".10"/>'
          f'<path d="M{x} {y+h*.72} H{a} V{y+h*.12} H{b} V{y+h*.72} H{x+w}" fill="none" stroke="{REDE}" stroke-width="3.5"/>')
-    return o + T((a + b) / 2, y - 6, "ponta", 15, 700, REDE, anchor="middle")
+    return o + T((a + b) / 2, y - 6, "Ponta", 15, 700, REDE, anchor="middle")
 
 
 def g_dem(x, y, w, h):
@@ -83,11 +83,11 @@ def g_dem(x, y, w, h):
 
 
 REC = [  # chave, ícone, cor, nome, entra no MILP como, detalhe, gráfico
-    ("ren", "sun", SOLAR, "Solar e eólica", "Limite superior", "média das amostras do intervalo, sem interpolação; o que sobra é vertimento", g_renov),
-    ("bat", "bat", BAT, "Bateria", "Energia nas fronteiras", "balanço da eq. 4 em cada banco, sem agregar bancos", g_bat),
-    ("pem", "h2", PEM, "PEMFC", "Curva H₂ linear por partes", "gerada uma vez pelo modelo e aceita só com erro verificado", g_pem),
-    ("pcc", "grid", REDE, "Rede (PCC)", "Sentidos, limites e tarifas", "declarados; ausência não é intercâmbio ilimitado", g_pcc),
-    ("dem", "load", NAVY, "Demanda", "Série prevista", "agregada, na mesma malha de tempo", g_dem),
+    ("ren", "sun", SOLAR, "Solar e eólica", "Limite superior", "Média das amostras do intervalo, sem interpolação; o que sobra é vertimento", g_renov),
+    ("bat", "bat", BAT, "Bateria", "Energia nas fronteiras", "Balanço da eq. 4 em cada banco, sem agregar bancos", g_bat),
+    ("pem", "h2", PEM, "PEMFC", "Curva H₂ linear por partes", "Gerada uma vez pelo modelo e aceita só com erro verificado", g_pem),
+    ("pcc", "grid", REDE, "Rede (PCC)", "Sentidos, limites e tarifas", "Declarados; ausência não é intercâmbio ilimitado", g_pcc),
+    ("dem", "load", NAVY, "Demanda", "Série prevista", "Agregada, na mesma malha de tempo", g_dem),
 ]
 
 
@@ -101,16 +101,16 @@ def p1():
         cx = x + w / 2
         s += f'<line x1="{cx}" x2="{cx}" y1="188" y2="214" stroke="{c}" stroke-width="3"/><circle cx="{cx}" cy="182" r="6" fill="#fff" stroke="{c}" stroke-width="2.5"/>'
         s += f'<circle cx="{cx}" cy="246" r="32" fill="#fff" stroke="{c}" stroke-width="3"/>' + ic(icn, cx - 20, 226, 40, c)
-        s += f'<rect x="{x}" y="296" width="{w}" height="440" rx="24" fill="{LIGHT}"/>'
+        s += f'<rect x="{x}" y="296" width="{w}" height="490" rx="24" fill="{LIGHT}"/>'
         s += T(cx, 340, nome, 24, 700, NAVY, "Gelasio", anchor="middle")
         s += g(x + 34, 372, w - 68, 106)
-        h += div(x + 24, 508, w - 48, None, f'<div style="font:600 18px Manrope;color:#7B8794;margin-bottom:4px">entra no MILP como</div><div style="font:700 22px/1.25 Gelasio,serif;color:{c if k != "dem" else NAVY};margin-bottom:8px">{como}</div>{det}', "p",
-                 "font-size:21px;line-height:1.35;text-align:center")
+        h += div(x + 24, 512, w - 48, None, f'<div style="font:600 18px Manrope;color:#7B8794;margin-bottom:8px">Entra no MILP como</div><div style="font:700 22px/1.25 Gelasio,serif;color:{c if k != "dem" else NAVY};margin-bottom:14px">{como}</div>{det}', "p",
+                 "font-size:22px;line-height:1.55;text-align:center")
     # convenções comuns
-    s += f'<rect x="110" y="764" width="1700" height="112" rx="24" fill="#fff" stroke="{LINE}" stroke-width="2"/>'
-    h += div(140, 782, 1640, 76, "<span><b>Comum a todos:</b> barramento equivalente único · kW líquidos com uma convenção de sinais · potências médias por "
-             "intervalo e energias nas fronteiras · a mesma malha de tempo · a não linearidade resolvida <b>antes</b> do MILP</span>", "p",
-             "font-size:22px;display:flex;align-items:center")
+    s += f'<rect x="110" y="808" width="1700" height="116" rx="24" fill="#fff" stroke="{LINE}" stroke-width="2"/>'
+    h += div(140, 826, 1640, 80, "<span><b>Comum a todos:</b> Barramento equivalente único · kW líquidos com uma convenção de sinais · Potências médias por "
+             "intervalo e energias nas fronteiras · A mesma malha de tempo · A não linearidade resolvida <b>antes</b> do MILP</span>", "p",
+             "font-size:22px;line-height:1.5;display:flex;align-items:center")
     salvar("S19_P1_barramento", s, h)
 
 
@@ -165,7 +165,7 @@ def p3():
         s += T(x + 82, y + 54, nome, 22, 700, NAVY, "Gelasio")
         h += div(x + 24, y + 92, w - 48, None, f'<b>{como}</b><br>{det}', "p", "font-size:20px;line-height:1.32")
     # verificação
-    s += f'<rect x="110" y="764" width="1700" height="112" rx="24" fill="{NAVY}"/>'
+    s += f'<rect x="110" y="808" width="1700" height="116" rx="24" fill="{NAVY}"/>'
     s += T(150, 856, "Antes de executar:", 24, 700, "#fff", "Gelasio")
     for j, (t, c) in enumerate((("representável", "#6DB527"), ("excluído", "#D9A21B"), ("impeditivo", "#E0524F"))):
         xx = 440 + j * 280
