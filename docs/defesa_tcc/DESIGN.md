@@ -183,3 +183,8 @@ Textos das caixas 16–22 px (figura inteira). Três pontos embaixo (y 800): fí
 Gerador `slides/gerar_slide19.py` (`p1`). Barramento SEEDS no topo com 5 recursos pendurados; cartões 322 × 490 (Solar e eólica · Bateria ·
 PEMFC · Rede · Demanda): mini-gráfico esquemático · «Entra no MILP como» (18 px) · resposta Gelasio 22 na cor do recurso · detalhe 22 px,
 entrelinha 1,55. Faixa «Comum a todos» (y 808). Fonte: Seção 5.2. Frases sempre com maiúscula.
+
+## 18. Slide 20 — EMS hierárquico no SEEDS (aprovado) — `slides/slide20_aprovado.html`
+
+Gerador `slides/gerar_slide20.py`. Fig. 5.2 idêntica na largura do slide (y 168–750), legenda (y 772) e três pontos (y 808): custo futuro
+por pontos · sinal verificado · realizado ≠ futuro. Caixas 15–19 px (figura inteira).

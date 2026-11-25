@@ -155,9 +155,9 @@
   "n": 20,
   "titulo": "Gerenciamento energético hierárquico no SEEDS",
   "secao": 3,
-  "html": "slides/provisorios/p20.html",
-  "pronto": false,
-  "notas": "O planejador responde a uma pergunta: se a janela terminar com tanta energia, quanto custa o resto da operação? Ele resolve o trecho seguinte várias vezes, com energias iniciais diferentes, e entrega uma função linear por partes ao MPC. O plano longo nunca é aplicado; ele só informa."
+  "html": "slides/slide20_aprovado.html",
+  "pronto": true,
+  "notas": "Assim isso foi implementado. A cada instante de decisão, o planejador parte do estado executado, resolve um plano longo que nunca é aplicado e reotimiza o trecho após a janela várias vezes, com energias iniciais diferentes: daí sai o sinal de valor futuro, uma função linear por partes por modo das unidades. O MPC verifica esse sinal antes de usá-lo; se não for válido, aplica a degradação declarada. O MILP da janela soma operação e custo futuro, a solução é verificada de forma independente, só os m primeiros intervalos são aplicados, e o custo realizado nunca inclui o custo futuro."
  },
  {
   "n": 21,
