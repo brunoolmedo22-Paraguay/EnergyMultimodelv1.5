@@ -1,0 +1,8 @@
+{
+ "1": "Bom dia. Vou apresentar o SEEDS, um simulador modular de microrredes com gerenciamento energético hierárquico, desenvolvido com o professor Jorge e com o Daniel.",
+ "2": "O percurso é este: contexto, fundamentos, a plataforma, os estudos, uma demonstração ao vivo, os resultados e as conclusões.",
+ "3": "As renováveis ficaram competitivas e se expandiram rapidamente. A diversificação deixou de ser só uma questão do planejamento nacional: hoje, edificações, comunidades isoladas e até embarcações reúnem várias fontes ao mesmo tempo.",
+ "4": "No SIN, a água turbinada hoje pode obrigar a acionar uma térmica mais cara amanhã; por isso a água armazenada tem um custo futuro. Numa microrrede acontece o mesmo: a energia retirada da bateria agora deixa de estar disponível na ponta; ligar uma célula impõe permanência. E a filosofia muda com o sistema: conectado, buscamos custo; isolado, garantir a demanda.",
+ "5": "De um lado, há EMS sofisticados, avaliados cada um numa microrrede de composição fixa. Do outro, ambientes que trocam a composição, mas com estratégias predefinidas. A lacuna está em reunir essas capacidades e avaliá-las em conjunto.",
+ "6": "A pergunta tem duas partes, e cada uma virou uma contribuição: a plataforma, onde microrredes diferentes são compostas a partir de modelos de equipamentos; e o EMS hierárquico, em que um planejador informa ao controle de curto prazo quanto vale a energia armazenada."
+}

@@ -6,7 +6,8 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`.
 - Aprovados: capa (`capa/capa_oficial.html`), sumário (`capa/sumario.html`), slide 3 (`slides/slide03_aprovado.html`, gerador `slides/gerar_slide3_v3.py`), slide 4 (`slides/slide04_aprovado.html`, gerador `slides/gerar_slide4_v6.py`, variante H1), slide 5 (`slides/slide05_aprovado.html`, gerador `slides/gerar_slide5_v4.py`, variante E1), slide 6 (`slides/slide06_aprovado.html`, gerador `slides/gerar_slide6.py`, função `g6_final`).
 - Slide 6 — validar com o orientador a redação da pergunta guia e dos objetivos específicos (derivados do artigo); o objetivo geral é o texto do artigo.
 - Slide 5 — conferir no PDF do artigo: frase exata da lacuna, números de referência de PyPSA/oemof/Calliope/ETHOS.FINE e a divisão dos simuladores em dois grupos.
-- PPTX/PDF (`pptx/`) só tem capa + sumário; slides 3–6 ainda não foram passados ao PPTX (fazer depois, em lote).
+- **Bloco I concluído** (slides 1–6). PPTX `pptx/SEEDS_Defesa_TCC.pptx`: capa e sumário nativos; slides 3–6 como imagem 3840 × 2160 (`pptx/img_hd/`) com a fala nas notas; 7–27 em branco. PDF vetorial do bloco I: `pptx/SEEDS_Defesa_TCC_Bloco_I.pdf`.
+- Regerar: `cd pptx && NODE_PATH=$(npm root -g) node exportar_bloco1.js` (PNG HD + PDF dos HTML aprovados; acrescentar novos slides à lista `PAGS`) e depois `NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` (usa `img_hd/slideNN.png` quando existir; notas em `notas_bloco1.json`).
 - Guia em PDF: `guia/Guia_Defesa_SEEDS.pdf` (fonte `guia/conteudo.py`). Mapa: `ROTEIRO.md`. Sistema visual: `DESIGN.md`.
 - Próximo: slide 7 «Modelagem dos recursos energéticos», depois 8…27 (ver `ROTEIRO.md`).
 

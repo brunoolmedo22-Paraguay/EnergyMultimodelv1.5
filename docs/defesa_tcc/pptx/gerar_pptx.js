@@ -1,4 +1,5 @@
-// Gera SEEDS_Defesa_TCC.pptx: capa e sumário aprovados + slides 3–27 em branco (com rodapé).
+// Gera SEEDS_Defesa_TCC.pptx: capa e sumário aprovados (formas nativas) + slides 3–6 aprovados (imagem 3840 × 2160
+// de img_hd/, gerada por exportar_bloco1.js a partir dos HTML aprovados) + slides 7–27 em branco (com rodapé).
 // Uso: NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <apply_theme.js>
 // Medidas do canvas de referência (1920 × 1080 px) convertidas: 1 px = 1/144 pol. = 0,5 pt.
 const path = require("path");
@@ -72,6 +73,9 @@ const SECOES = [
 
   // ---------------------------------------------------------------- layouts
   pres.defineSlideMaster({ title: "CAPA", background: { color: "FFFFFF" }, objects: [] });
+  // slides aprovados como imagem de página inteira (rodapé e número já estão na imagem)
+  pres.defineSlideMaster({ title: "IMAGEM", background: { color: "FFFFFF" }, objects: [] });
+  const NOTAS = JSON.parse(fs.readFileSync(path.join(AQUI, "notas_bloco1.json"), "utf8"));
 
   const yFt = 1080 - 34 - 28;                  // linha de base aproximada do rodapé
   pres.defineSlideMaster({
@@ -167,6 +171,13 @@ const SECOES = [
   for (const [secao, slides] of SECOES) {
     pres.addSection({ title: secao });
     for (const [n, t] of slides) {
+      const hd = path.join(AQUI, "img_hd", `slide${String(n).padStart(2, "0")}.png`);
+      if (fs.existsSync(hd)) {
+        const si = pres.addSlide({ masterName: "IMAGEM", sectionTitle: secao });
+        si.addImage({ path: hd, x: 0, y: 0, w: 13.333, h: 7.5, objectName: `Slide ${n} — ${t}`, altText: `Slide ${n}: ${t}` });
+        si.addNotes(NOTAS[String(n)] || t);
+        continue;
+      }
       const sl = pres.addSlide({ masterName: "CONTEUDO", sectionTitle: secao });
       sl.addNotes(`Slide ${n} — título planejado: ${t}. (Em branco; conteúdo a definir — ver docs/defesa_tcc/ROTEIRO.md.)`);
     }
