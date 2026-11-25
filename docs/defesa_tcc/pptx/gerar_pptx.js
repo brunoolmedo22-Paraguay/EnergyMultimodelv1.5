@@ -1,5 +1,5 @@
-// Gera SEEDS_Defesa_TCC.pptx: capa e sumário aprovados (formas nativas) + slides 3–7 aprovados (imagem 3840 × 2160
-// de img_hd/, gerada por exportar_bloco1.js a partir dos HTML aprovados) + slides 8–28 em branco (com rodapé).
+// Gera SEEDS_Defesa_TCC.pptx a partir de deck.json: capa e sumário em formas nativas; slides aprovados como imagem 3840 × 2160
+// (img_hd/, gerada por exportar_deck.js); slides ainda não desenhados como provisórios editáveis (título + rodapé).
 // Uso: NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <apply_theme.js>
 // Medidas do canvas de referência (1920 × 1080 px) convertidas: 1 px = 1/144 pol. = 0,5 pt.
 const path = require("path");
@@ -49,14 +49,10 @@ async function icone(k, c) {
 }
 
 // ------------------------------------------------------------------ roteiro (notas dos slides em branco)
-const SECOES = [
-  ["I · Contexto e objetivos", [[3, "Contexto"], [4, "Decisões com consequências futuras"], [5, "Trabalhos relacionados"], [6, "Objetivos"], [7, "O SEEDS"]]],
-  ["II · Fundamentação teórica e desenvolvimento do SEEDS", [[8, "Modelagem dos recursos energéticos"], [9, "Programação linear inteira mista (MILP)"], [10, "Controle preditivo baseado em modelo (MPC)"], [11, "Coordenação hierárquica e valor futuro"], [12, "Arquitetura do SEEDS"], [13, "Representação energética comum"], [14, "Gerenciamento energético hierárquico no SEEDS"], [15, "Verificação e fluxo de execução"]]],
-  ["III · Estudos de caso", [[16, "Estudos de caso"], [17, "Microrrede industrial CT-046 (C1–C4)"], [18, "Embarcação híbrida EMB-H2-120 (C5–C6)"]]],
-  ["IV · Demonstração do SEEDS", [[19, "Demonstração do SEEDS"]]],
-  ["V · Resultados", [[20, "Resultados — custos operacionais (C1–C4)"], [21, "Resultados — operação do armazenamento"], [22, "Resultados — coordenação hierárquica"], [23, "Resultados — embarcação híbrida (C5)"], [24, "Resultados — papel do armazenamento (C4, C5 e C6)"], [25, "Expansibilidade e desempenho computacional"]]],
-  ["VI · Conclusões e perspectivas", [[26, "Conclusões"], [27, "Perspectivas"], [28, "Agradecimentos"]]],
-];
+// ordem, títulos, seções e notas: deck.json (gerado por deck.py); imagens: img_hd/deckNN.png (exportar_deck.js)
+const DECK = JSON.parse(fs.readFileSync(path.join(AQUI, "deck.json"), "utf8"));
+const SEC = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolvimento do SEEDS", "Estudos de caso",
+             "Demonstração do SEEDS", "Resultados", "Conclusões e perspectivas"];
 
 (async () => {
   const pres = new pptxgen();
@@ -75,7 +71,6 @@ const SECOES = [
   pres.defineSlideMaster({ title: "CAPA", background: { color: "FFFFFF" }, objects: [] });
   // slides aprovados como imagem de página inteira (rodapé e número já estão na imagem)
   pres.defineSlideMaster({ title: "IMAGEM", background: { color: "FFFFFF" }, objects: [] });
-  const NOTAS = JSON.parse(fs.readFileSync(path.join(AQUI, "notas_bloco1.json"), "utf8"));
 
   const yFt = 1080 - 34 - 28;                  // linha de base aproximada do rodapé
   pres.defineSlideMaster({
@@ -167,19 +162,20 @@ const SECOES = [
   }
   s.addNotes("Sumário: sete seções; a 05 é a demonstração ao vivo (reprodução da configuração C6).");
 
-  // ---------------------------------------------------------------- 3–27 · em branco (rodapé + notas com o título planejado)
-  for (const [secao, slides] of SECOES) {
-    pres.addSection({ title: secao });
-    for (const [n, t] of slides) {
-      const hd = path.join(AQUI, "img_hd", `slide${String(n).padStart(2, "0")}.png`);
-      if (fs.existsSync(hd)) {
-        const si = pres.addSlide({ masterName: "IMAGEM", sectionTitle: secao });
-        si.addImage({ path: hd, x: 0, y: 0, w: 13.333, h: 7.5, objectName: `Slide ${n} — ${t}`, altText: `Slide ${n}: ${t}` });
-        si.addNotes(NOTAS[String(n)] || t);
-        continue;
-      }
+  // ---------------------------------------------------------------- 3… · aprovados como imagem HD; os demais, provisórios editáveis
+  let secAtual = 0;
+  for (const d of DECK.filter((x) => x.n >= 3)) {
+    const secao = `${String(d.secao).padStart(2, "0")} · ${SEC[d.secao - 1]}`;
+    if (d.secao !== secAtual) { pres.addSection({ title: secao }); secAtual = d.secao; }
+    if (d.pronto) {
+      const si = pres.addSlide({ masterName: "IMAGEM", sectionTitle: secao });
+      si.addImage({ path: path.join(AQUI, "img_hd", `deck${String(d.n).padStart(2, "0")}.png`), x: 0, y: 0, w: 13.333, h: 7.5,
+                    objectName: `Slide ${d.n} — ${d.titulo}`, altText: `Slide ${d.n}: ${d.titulo}` });
+      si.addNotes(d.notas || d.titulo);
+    } else {
       const sl = pres.addSlide({ masterName: "CONTEUDO", sectionTitle: secao });
-      sl.addNotes(`Slide ${n} — título planejado: ${t}. (Em branco; conteúdo a definir — ver docs/defesa_tcc/ROTEIRO.md.)`);
+      sl.addText(d.titulo, { placeholder: "title" });
+      sl.addNotes(`Slide em preparação. ${d.notas || ""}`.trim());
     }
   }
 

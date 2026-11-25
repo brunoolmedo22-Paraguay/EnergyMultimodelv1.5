@@ -136,3 +136,16 @@ Gerador: `slides/gerar_slide7_v2.py`, função `k3v2` (propostas J1–J3 em `ger
   de fluxo de 6 px perto do barramento (referência visual do responsável).
 - Ficha à direita (x 720–1810): 4 linhas de 182,5 px entre filetes; pergunta em Gelasio 700, 30 px, teal; resposta em Manrope 27 px, navy,
   começando com maiúscula, palavras-chave em negrito. «sistema(s) elétrico(s)» no lugar de «microrrede(s)» neste slide.
+
+## 12. Slides 10–11 (deck) — Modelagem dos recursos energéticos (aprovados) — `slides/slide08_aprovado.*`, `slides/slide09_aprovado.*`
+
+Gerador `slides/gerar_slide8_v2.py`. Barramento SEEDS no alto (y 190), contínuo entre os dois slides (sai pela direita do 1º, entra pela esquerda do 2º);
+cada recurso pendurado (haste com seta de sentido, círculo r 40) com o cartão logo abaixo. Cartão: nome (Gelasio 27) · modelo físico (Gelasio itálico 20,
+cor do recurso) · referência (Manrope 14,5) · equação do artigo em LaTeX (MathJax → SVG) com «eq. N» · resultados com unidade (FV e eólica só os
+resultados; PEMFC com todas as variáveis em grade 2 colunas, resultados com contorno) · pé «entrada → o que vai ao EMS [unidade]».
+Eólica: curva de potência ILUSTRATIVA; bateria: banco com SOC_mín/SOC_máx; rede: P_imp·c_imp / P_exp·c_exp no barramento.
+
+## 13. Separadores de seção (aprovados, V1) — `slides/divisor01…07.html`
+
+Gerador `slides/gerar_divisores.py`. Chevrons do sumário no alto (seção atual cheia, demais a 22 %), número 230 px e ícone da seção na cor do nó do
+sumário, título Gelasio 86 px, subdivisões em cartões claros numerados (2 colunas; 05 com «ao vivo»).

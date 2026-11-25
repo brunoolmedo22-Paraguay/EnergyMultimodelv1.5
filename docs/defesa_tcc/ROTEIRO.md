@@ -16,7 +16,7 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 | 6 | Objetivos ✔ aprovado (S6v3_final; título sem «e contribuições») | objetivo geral em largura total (Gelasio negrito, texto do artigo) sobre filete do gradiente; embaixo, à esquerda, a pergunta num cartão navy (trechos-chave em lima) e, à direita, os 4 objetivos específicos com caixa vazia (a marcar no slide 26); sem ícones nem rótulos A/B | ← 5 · → 26 |
 | 7 | O SEEDS ✔ aprovado (S7v3_K3_ficha) | cartão navy (logo, «Uma bancada experimental, no navegador, para compor sistemas elétricos e testar o seu gerenciamento energético», barramento vertical com Solar/Eólica/H₂ → barramento ← Bateria/Rede) + ficha: O que resolve · Como · O que oferece · Para quem; apresenta as contribuições (plataforma modular, EMS hierárquico MILP–MPC) | ← 5, 6 · → 12, 25, 26 |
 | **II** | **Fundamentação e SEEDS (8:00)** | | |
-| 8 | Modelagem dos recursos energéticos | FV, eólica, bateria, PEMFC, PCC → o que entregam ao EMS | → 13 |
+| 8 | Modelagem dos recursos energéticos ✔ aprovado em dois slides (S8v2_a + S8v2_b: geração 3 + armazenamento/rede 2) | FV, eólica, bateria, PEMFC, PCC → o que entregam ao EMS | → 13 |
 | 9 | Programação linear inteira mista (MILP) | eq. 11 e 13; contínuas × binárias | → 10 |
 | 10 | Controle preditivo baseado em modelo (MPC) | janela N/m; eq. 15; miopia sem valor terminal | → 11 |
 | 11 | Coordenação hierárquica e valor futuro (B) | eq. 17–18; V(E) PWL; por que não duais | → 14 |
@@ -44,3 +44,46 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 | 28 | Agradecimentos | CNPq 460014/2025-0, orientadores, banca, QR do repositório | — |
 
 Slides auxiliares (arguição): ver `ROTEIRO_DETALHADO_v1.md` (A1–A15), a reorganizar.
+
+## Ordem do deck (36 slides; fonte: `pptx/deck.py`)
+
+A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **vigente** do deck, com os separadores de seção, é esta:
+
+| Nº | Slide | Seção | Estado |
+|---|---|---|---|
+| 1 | Capa | — | ✔ aprovado |
+| 2 | Sumário | — | ✔ aprovado |
+| 3 | Contexto e objetivos | 01 | ✔ aprovado |
+| 4 | Contexto | 01 | ✔ aprovado |
+| 5 | Decisões com consequências futuras | 01 | ✔ aprovado |
+| 6 | Trabalhos relacionados | 01 | ✔ aprovado |
+| 7 | Objetivos | 01 | ✔ aprovado |
+| 8 | O SEEDS | 01 | ✔ aprovado |
+| 9 | Fundamentação teórica | 02 | ✔ aprovado |
+| 10 | Modelagem dos recursos energéticos | 02 | ✔ aprovado |
+| 11 | Modelagem dos recursos energéticos (2/2) | 02 | ✔ aprovado |
+| 12 | Programação linear inteira mista (MILP) | 02 | a desenhar |
+| 13 | Controle preditivo baseado em modelo (MPC) | 02 | a desenhar |
+| 14 | Coordenação hierárquica e valor futuro | 02 | a desenhar |
+| 15 | Desenvolvimento do SEEDS | 03 | ✔ aprovado |
+| 16 | Arquitetura do SEEDS | 03 | a desenhar |
+| 17 | Representação energética comum | 03 | a desenhar |
+| 18 | Gerenciamento energético hierárquico no SEEDS | 03 | a desenhar |
+| 19 | Verificação e fluxo de execução | 03 | a desenhar |
+| 20 | Estudos de caso | 04 | ✔ aprovado |
+| 21 | Estratégia de avaliação | 04 | a desenhar |
+| 22 | Microrrede industrial CT-046 (C1–C4) | 04 | a desenhar |
+| 23 | Embarcação híbrida EMB-H2-120 (C5–C6) | 04 | a desenhar |
+| 24 | Demonstração do SEEDS | 05 | ✔ aprovado |
+| 25 | Demonstração do SEEDS — roteiro | 05 | a desenhar |
+| 26 | Resultados | 06 | ✔ aprovado |
+| 27 | Resultados — custos operacionais (C1–C4) | 06 | a desenhar |
+| 28 | Resultados — operação do armazenamento | 06 | a desenhar |
+| 29 | Resultados — coordenação hierárquica | 06 | a desenhar |
+| 30 | Resultados — embarcação híbrida (C5) | 06 | a desenhar |
+| 31 | Resultados — papel do armazenamento (C4, C5 e C6) | 06 | a desenhar |
+| 32 | Expansibilidade e desempenho computacional | 06 | a desenhar |
+| 33 | Conclusões e perspectivas | 07 | ✔ aprovado |
+| 34 | Conclusões | 07 | a desenhar |
+| 35 | Perspectivas | 07 | a desenhar |
+| 36 | Agradecimentos | 07 | a desenhar |

@@ -1,0 +1,290 @@
+[
+ {
+  "n": 1,
+  "titulo": "Capa",
+  "secao": 0,
+  "html": "capa/capa_oficial.html",
+  "pronto": true,
+  "notas": "Bom dia. Vou apresentar o SEEDS, um simulador modular de microrredes com gerenciamento energético hierárquico, desenvolvido com o professor Jorge e com o Daniel."
+ },
+ {
+  "n": 2,
+  "titulo": "Sumário",
+  "secao": 0,
+  "html": "capa/sumario.html",
+  "pronto": true,
+  "notas": "O percurso é este: contexto, fundamentos, a plataforma, os estudos, uma demonstração ao vivo, os resultados e as conclusões."
+ },
+ {
+  "n": 3,
+  "titulo": "Contexto e objetivos",
+  "secao": 1,
+  "html": "slides/divisor01.html",
+  "pronto": true,
+  "notas": "Separador da seção 01 — Contexto e objetivos."
+ },
+ {
+  "n": 4,
+  "titulo": "Contexto",
+  "secao": 1,
+  "html": "slides/slide03_aprovado.html",
+  "pronto": true,
+  "notas": "As renováveis ficaram competitivas e se expandiram rapidamente. A diversificação deixou de ser só uma questão do planejamento nacional: hoje, edificações, comunidades isoladas e até embarcações reúnem várias fontes ao mesmo tempo."
+ },
+ {
+  "n": 5,
+  "titulo": "Decisões com consequências futuras",
+  "secao": 1,
+  "html": "slides/slide04_aprovado.html",
+  "pronto": true,
+  "notas": "No SIN, a água turbinada hoje pode obrigar a acionar uma térmica mais cara amanhã; por isso a água armazenada tem um custo futuro. Numa microrrede acontece o mesmo: a energia retirada da bateria agora deixa de estar disponível na ponta; ligar uma célula impõe permanência. E a filosofia muda com o sistema: conectado, buscamos custo; isolado, garantir a demanda."
+ },
+ {
+  "n": 6,
+  "titulo": "Trabalhos relacionados",
+  "secao": 1,
+  "html": "slides/slide05_aprovado.html",
+  "pronto": true,
+  "notas": "De um lado, há EMS sofisticados, avaliados cada um numa microrrede de composição fixa. Do outro, ambientes que trocam a composição, mas com estratégias predefinidas. A lacuna está em reunir essas capacidades e avaliá-las em conjunto."
+ },
+ {
+  "n": 7,
+  "titulo": "Objetivos",
+  "secao": 1,
+  "html": "slides/slide06_aprovado.html",
+  "pronto": true,
+  "notas": "A pergunta que guia o trabalho é esta. Para respondê-la, o objetivo geral se desdobra em quatro objetivos específicos, que vou retomar, um a um, nas conclusões."
+ },
+ {
+  "n": 8,
+  "titulo": "O SEEDS",
+  "secao": 1,
+  "html": "slides/slide07_aprovado.html",
+  "pronto": true,
+  "notas": "O SEEDS é uma bancada experimental, no navegador. Compõe sistemas elétricos a partir dos modelos físicos dos equipamentos e testa o seu gerenciamento com um mesmo EMS hierárquico MILP–MPC, que considera o valor futuro da energia; cada rodada fica registrada para comparar e reproduzir resultados. Neste trabalho, aplicado a microrredes."
+ },
+ {
+  "n": 9,
+  "titulo": "Fundamentação teórica",
+  "secao": 2,
+  "html": "slides/divisor02.html",
+  "pronto": true,
+  "notas": "Separador da seção 02 — Fundamentação teórica."
+ },
+ {
+  "n": 10,
+  "titulo": "Modelagem dos recursos energéticos",
+  "secao": 2,
+  "html": "slides/slide08_aprovado.html",
+  "pronto": true,
+  "notas": "Cada tecnologia tem seu modelo físico, mas nenhum entra inteiro no otimizador: cada um entrega ao EMS só o que a decisão precisa."
+ },
+ {
+  "n": 11,
+  "titulo": "Modelagem dos recursos energéticos (2/2)",
+  "secao": 2,
+  "html": "slides/slide09_aprovado.html",
+  "pronto": true,
+  "notas": "O banco de baterias entra como balanço de energia entre fronteiras; a rede, como intercâmbio com tarifas no ponto de acoplamento comum — numa microrrede isolada, esses termos não existem."
+ },
+ {
+  "n": 12,
+  "titulo": "Programação linear inteira mista (MILP)",
+  "secao": 2,
+  "html": "slides/provisorios/p12.html",
+  "pronto": false,
+  "notas": "As decisões reais têm duas naturezas: quanto e sim ou não. A programação linear inteira mista representa as duas no mesmo modelo."
+ },
+ {
+  "n": 13,
+  "titulo": "Controle preditivo baseado em modelo (MPC)",
+  "secao": 2,
+  "html": "slides/provisorios/p13.html",
+  "pronto": false,
+  "notas": "O MPC resolve uma janela, aplica só o início, atualiza o estado e repete. Mas o horizonte é finito: se nada valoriza a energia que sobra no fim da janela, a otimização a gasta. O controle fica míope."
+ },
+ {
+  "n": 14,
+  "titulo": "Coordenação hierárquica e valor futuro",
+  "secao": 2,
+  "html": "slides/provisorios/p14.html",
+  "pronto": false,
+  "notas": "Se o termo terminal for o custo de continuação, a janela curta enxerga o resto do horizonte — o mesmo princípio do custo futuro da água. Como, com decisões inteiras, essa função pode não ter derivada, não usamos os duais do MILP como preço; construímos a função de outra forma."
+ },
+ {
+  "n": 15,
+  "titulo": "Desenvolvimento do SEEDS",
+  "secao": 3,
+  "html": "slides/divisor03.html",
+  "pronto": true,
+  "notas": "Separador da seção 03 — Desenvolvimento do SEEDS."
+ },
+ {
+  "n": 16,
+  "titulo": "Arquitetura do SEEDS",
+  "secao": 3,
+  "html": "slides/provisorios/p16.html",
+  "pronto": false,
+  "notas": "Uma estratégia escrita para uma composição fixa precisa ser reescrita a cada mudança de equipamento. O SEEDS evita isso: tudo é traduzido numa representação comum, e só ela chega ao EMS."
+ },
+ {
+  "n": 17,
+  "titulo": "Representação energética comum",
+  "secao": 3,
+  "html": "slides/provisorios/p17.html",
+  "pronto": false,
+  "notas": "Todos os recursos são expressos no mesmo barramento, em kW líquidos e na mesma malha temporal. Antes de executar, a plataforma verifica se tudo é representável; se faltar um dado, ela aponta a pendência em vez de seguir com um valor presumido."
+ },
+ {
+  "n": 18,
+  "titulo": "Gerenciamento energético hierárquico no SEEDS",
+  "secao": 3,
+  "html": "slides/provisorios/p18.html",
+  "pronto": false,
+  "notas": "O planejador responde a uma pergunta: se a janela terminar com tanta energia, quanto custa o resto da operação? Ele resolve o trecho seguinte várias vezes, com energias iniciais diferentes, e entrega uma função linear por partes ao MPC. O plano longo nunca é aplicado; ele só informa."
+ },
+ {
+  "n": 19,
+  "titulo": "Verificação e fluxo de execução",
+  "secao": 3,
+  "html": "slides/provisorios/p19.html",
+  "pronto": false,
+  "notas": "Cada solução é conferida por uma verificação independente do solver antes de ser aplicada, e ao fim uma auditoria refaz o balanço e os custos. Todo estudo segue estas cinco etapas — as mesmas que vou mostrar no aplicativo."
+ },
+ {
+  "n": 20,
+  "titulo": "Estudos de caso",
+  "secao": 4,
+  "html": "slides/divisor04.html",
+  "pronto": true,
+  "notas": "Separador da seção 04 — Estudos de caso."
+ },
+ {
+  "n": 21,
+  "titulo": "Estratégia de avaliação",
+  "secao": 4,
+  "html": "slides/provisorios/p21.html",
+  "pronto": false,
+  "notas": "Escolhemos dois sistemas com filosofias opostas, as mesmas do início. Na microrrede variamos a composição; na embarcação, o estado da bateria. São estudos computacionais com condições declaradas."
+ },
+ {
+  "n": 22,
+  "titulo": "Microrrede industrial CT-046 (C1–C4)",
+  "secao": 4,
+  "html": "slides/provisorios/p22.html",
+  "pronto": false,
+  "notas": "A demanda vem de uma curva real de carga da ANEEL, escolhida porque mantém consumo na ponta, onde a tarifa é 4,4 vezes maior. As quatro configurações compartilham tudo e diferem só nos recursos."
+ },
+ {
+  "n": 23,
+  "titulo": "Embarcação híbrida EMB-H2-120 (C5–C6)",
+  "secao": 4,
+  "html": "slides/provisorios/p23.html",
+  "pronto": false,
+  "notas": "A embarcação é hipotética, com perfil de propulsão real. A célula fica ligada; o EMS decide sua potência. O C6 muda só duas coisas: a bateria começa quase vazia e não há reserva final."
+ },
+ {
+  "n": 24,
+  "titulo": "Demonstração do SEEDS",
+  "secao": 5,
+  "html": "slides/divisor05.html",
+  "pronto": true,
+  "notas": "Separador da seção 05 — Demonstração do SEEDS."
+ },
+ {
+  "n": 25,
+  "titulo": "Demonstração do SEEDS — roteiro",
+  "secao": 5,
+  "html": "slides/provisorios/p25.html",
+  "pronto": false,
+  "notas": "Uma vez definidos os estudos, vou mostrar como eles são configurados e executados no SEEDS — e reproduzir aqui um dos resultados do artigo."
+ },
+ {
+  "n": 26,
+  "titulo": "Resultados",
+  "secao": 6,
+  "html": "slides/divisor06.html",
+  "pronto": true,
+  "notas": "Separador da seção 06 — Resultados."
+ },
+ {
+  "n": 27,
+  "titulo": "Resultados — custos operacionais (C1–C4)",
+  "secao": 6,
+  "html": "slides/provisorios/p27.html",
+  "pronto": false,
+  "notas": "Em C1, a ponta concentrou 13,7 % da energia e 41 % do custo. A FV reduziu o custo quase todo fora da ponta; a bateria atuou na ponta. Juntas: −32,1 % de custo e −56 % de importação na ponta."
+ },
+ {
+  "n": 28,
+  "titulo": "Resultados — operação do armazenamento",
+  "secao": 6,
+  "html": "slides/provisorios/p28.html",
+  "pronto": false,
+  "notas": "O banco carregou até praticamente o exato necessário para descarregar a 50 kW durante as três horas de ponta e chegar ao limite às 21 h. Cada kWh entregue na ponta custou 49 centavos, contra R$ 1,94 da rede."
+ },
+ {
+  "n": 29,
+  "titulo": "Resultados — coordenação hierárquica",
+  "secao": 6,
+  "html": "slides/provisorios/p29.html",
+  "pronto": false,
+  "notas": "Cada janela cobre duas horas; só a partir das 16:15 a ponta aparecia no horizonte. Mesmo assim, metade da carga foi decidida antes. O único termo que valorizava a energia guardada era o sinal do planejador: o custo futuro fez o controle enxergar além da janela — como a água do SIN."
+ },
+ {
+  "n": 30,
+  "titulo": "Resultados — embarcação híbrida (C5)",
+  "secao": 6,
+  "html": "slides/provisorios/p30.html",
+  "pronto": false,
+  "notas": "A célula ficou perto do mínimo e a bateria acompanhou a demanda, porque o hidrogênio por kWh cresce com a potência. A missão terminou com exatamente os 45 kWh exigidos."
+ },
+ {
+  "n": 31,
+  "titulo": "Resultados — papel do armazenamento (C4, C5 e C6)",
+  "secao": 6,
+  "html": "slides/provisorios/p31.html",
+  "pronto": false,
+  "notas": "No C6, a célula forneceu 88 % da energia e o hidrogênio quase dobrou — o número que vocês viram no aplicativo. Na microrrede, a bateria desloca energia por horas; na embarcação, dá suporte de potência em minutos."
+ },
+ {
+  "n": 32,
+  "titulo": "Expansibilidade e desempenho computacional",
+  "secao": 6,
+  "html": "slides/provisorios/p32.html",
+  "pronto": false,
+  "notas": "Executamos nove composições com o mesmo código, da rede sozinha até duas PEMFC. O problema cresceu de 7 para 217 variáveis, mas formulação, critérios e auditoria não mudaram. Todas as 168 janelas chegaram ao ótimo."
+ },
+ {
+  "n": 33,
+  "titulo": "Conclusões e perspectivas",
+  "secao": 7,
+  "html": "slides/divisor07.html",
+  "pronto": true,
+  "notas": "Separador da seção 07 — Conclusões e perspectivas."
+ },
+ {
+  "n": 34,
+  "titulo": "Conclusões",
+  "secao": 7,
+  "html": "slides/provisorios/p34.html",
+  "pronto": false,
+  "notas": "O SEEDS separou a descrição física da estratégia de despacho, e essa separação se sustentou em nove composições. O planejador transmitiu ao controle de curto prazo um custo de continuação com significado econômico verificável, e as decisões foram coerentes com ele nos dois sistemas."
+ },
+ {
+  "n": 35,
+  "titulo": "Perspectivas",
+  "secao": 7,
+  "html": "slides/provisorios/p35.html",
+  "pronto": false,
+  "notas": "Os estudos foram feitos em ambiente computacional, com condições declaradas. A plataforma já está estruturada para o passo natural: introduzir diferenças entre previsão e realização e comparar com dados experimentais."
+ },
+ {
+  "n": 36,
+  "titulo": "Agradecimentos",
+  "secao": 7,
+  "html": "slides/provisorios/p36.html",
+  "pronto": false,
+  "notas": "Agradeço ao CNPq, aos meus orientadores e à banca. Fico à disposição."
+ }
+]

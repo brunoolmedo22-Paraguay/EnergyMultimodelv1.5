@@ -10,7 +10,7 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`.
 - **Bloco I concluído** (slides 1–7; 4:20; margem reduzida para 0:35). PPTX `pptx/SEEDS_Defesa_TCC.pptx`: capa e sumário nativos; slides 3–7 como imagem 3840 × 2160 (`pptx/img_hd/`) com a fala nas notas; 8–28 em branco. PDF vetorial do bloco I: `pptx/SEEDS_Defesa_TCC_Bloco_I.pdf`.
 - Regerar: `cd pptx && NODE_PATH=$(npm root -g) node exportar_bloco1.js` (PNG HD + PDF dos HTML aprovados; acrescentar novos slides à lista `PAGS`) e depois `NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` (usa `img_hd/slideNN.png` quando existir; notas em `notas_bloco1.json`).
 - Guia em PDF: `guia/Guia_Defesa_SEEDS.pdf` (fonte `guia/conteudo.py`). Mapa: `ROTEIRO.md`. Sistema visual: `DESIGN.md`.
-- Próximo: slide 8 «Modelagem dos recursos energéticos», depois 9…28 (ver `ROTEIRO.md`).
+- **Deck: 36 slides** (ordem em `pptx/deck.py` → `deck.json`). Aprovados: 1–11 (inclui separadores 01 e 02, modelagem em 2 slides) + separadores 03–07. Próximo: slide 12 «Programação linear inteira mista (MILP)». (ver `ROTEIRO.md`).
 
 ## Como renderizar
 `cd docs/defesa_tcc/slides && python3 gerar_slideN.py && NODE_PATH=$(npm root -g) node render.js ARQ.html` → `png/`. Canvas 1920×1080, fontes em `capa/assets/fonts.css`.
@@ -23,3 +23,10 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`.
 - Sempre mostrar 2–4 propostas lado a lado; iterar com feedback; dados só de fontes conferidas (citar; marcar «esquemático» quando for).
 - Valorizar o trabalho (tom de venda, limitações suaves).
 - Conversa em espanhol/portunhol; slides em português.
+
+## Exportar (deck inteiro)
+1. Ordem/títulos/notas: editar `pptx/deck.py` (ORDEM; html aprovado ou None = provisório) e rodar `python3 pptx/deck.py`.
+2. `cd pptx && NODE_PATH=$(npm root -g) node exportar_deck.js` → `img_hd/deckNN.png` + `SEEDS_Defesa_TCC.pdf` (o número de página de cada HTML é trocado pelo do deck).
+3. `NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` → `SEEDS_Defesa_TCC.pptx`.
+- Separadores: `slides/gerar_divisores.py` (V1 aprovado; `divisor01…07`; subdivisões em SUB). Equações: `slides/tex2svg.js` (MathJax 3, `mathjax-full@3.2.2`).
+- Guia (`guia/`) ainda segue a numeração por conteúdo (28 slides); a numeração do deck é a de `ROTEIRO.md` § Ordem do deck.
