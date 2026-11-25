@@ -228,7 +228,7 @@ def h4():
     AZ, AZB, AZC = "#E3EAF6", "#6F8FC4", "#3B6FB6"  # níveis do EMS / borda / etiqueta MPC
     VERDE, VB = "#E6F3EA", "#6FB385"            # sistema elétrico
     s, html = "", ""
-    yc = 500                                    # linha central do fluxo
+    yc = 430                                    # linha central do fluxo
 
     def caixa(x, w, h, fill, borda, titulo, sub=None, tit_px=24, sub_px=19, dy=0, pb=0):
         y = yc - h / 2 + dy
@@ -276,11 +276,21 @@ def h4():
     a, b = caixa(1648, 162, 270, CINZA, CB, "Resultados da operação", "Potências / Estados (ex.: SOC) / Custos", tit_px=22, sub_px=19)
     s += a; html += b
     # realimentação: sistema elétrico → MPC (tracejado)
-    ys, yb = yc + 135, yc + 290
+    ys, yb = yc + 135, yc + 262
     xs, xm = 1514, 1018
     s += (f'<path d="M{xs} {ys+2} V{yb} H{xm} V{yc+10+125+6}" fill="none" stroke="{NAVY}" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#ar)"/>')
     s += f'<rect x="{(xs+xm)/2-100}" y="{yb-26}" width="200" height="52" rx="10" fill="#fff" stroke="{CB}" stroke-width="2"/>'
     s += T((xs + xm) / 2, yb + 7, "Estado atualizado", 20, 700, NAVY, "Gelasio", anchor="middle")
+    # pontos principais (Seções 4.4 e 5.3)
+    pts = [("O planejamento não decide", "Enxerga um horizonte maior e estima o custo de continuar; o plano longo nunca é aplicado."),
+           ("O valor futuro coordena", "Entra no MPC como custo terminal da janela (eq. 17): quanto vale a energia que sobra."),
+           ("O MPC decide e se corrige", "Aplica só o início do plano e recomeça do estado realizado, não do planejado.")]
+    w3, x3, y3 = 540, 110, 745
+    for k, (t, d) in enumerate(pts):
+        x = x3 + k * (w3 + 40)
+        if k:
+            s += f'<line x1="{x-20}" x2="{x-20}" y1="{y3}" y2="{y3+150}" stroke="{LINE}" stroke-width="2"/>'
+        html += div(x, y3, w3, None, f'<div style="font:700 25px Gelasio,serif;color:#14213D;margin-bottom:8px">{t}</div>{d}', "p", "font-size:22px")
     salvar("S16_H4_identico", s, html)
 
 
