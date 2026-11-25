@@ -16,6 +16,12 @@ SOLAR, WIND, PEM, BAT, REDE, NAVY, SLATE, TEAL = "#D9A21B", "#4C8DD6", "#1BA39C"
 ANOS = list(range(2016, 2026))
 MMGD = [48, 161, 533, 1648, 4764, 9019, 17378, 29813, 41006, 53144]   # GWh (2016–2019 lidos do gráfico vetorial)
 ROTULADO = {2020, 2021, 2022, 2023, 2024, 2025}
+# Geração eólica + solar (TWh) e participação na geração total (%) — BEN 2026, p. 43 (gráfico sem rótulos por ano; lido do
+# desenho vetorial, escala calibrada por 2025 = 116,5 + 88,1 TWh, p. 50; conferência: participação 2025 = 26,4 % (rótulo),
+# 2024 = 23,8 % × 23,7 % no texto do BEN; 2024 ≈ 107,7 + 70,7 = 178,4 TWh pelas taxas de crescimento publicadas).
+ANOS_ES = list(range(2007, 2026))
+ES = [0.4, 1.2, 1.2, 2.5, 2.9, 4.9, 6.5, 12.2, 22.0, 33.4, 43.2, 51.8, 62.4, 67.7, 89.3, 112.1, 146.7, 178.5, 204.6]
+PART = [0.1, 0.3, 0.3, 0.5, 0.5, 0.9, 1.1, 2.1, 3.8, 5.7, 7.3, 8.5, 9.9, 10.8, 13.6, 16.5, 20.7, 23.8, 26.4]
 
 ICON = {
  "sun": '<circle cx="20" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="3"/><g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M8 32l3.5-3.5M28.5 11.5L32 8"/></g>',
@@ -34,7 +40,7 @@ NOME = {"sun": "Solar", "wind": "Eólica", "h2": "Célula H₂", "bat": "Bateria
 # cargas de pequeno porte e as fontes que as alimentam (cada uma com a sua referência do artigo)
 CARGAS = [
     ("home", "Residências e comércios", "[3]", ["sun", "grid"]),
-    ("bld", "Edificações", "[4]", ["sun", "grid", "bat", "h2"]),
+    ("bld", "Edificações", "[4]", ["sun", "grid", "bat"]),
     ("vil", "Localidades isoladas", "[5]", ["wind", "sun", "h2", "bat"]),
     ("ship", "Embarcações", "[6]", ["h2", "bat"]),
 ]
@@ -63,6 +69,31 @@ def convergencia(W, H, fontes, carga, rf=22, rl=36):
                  f'<svg x="{xf-rf*.62}" y="{y-rf*.62}" width="{rf*1.24}" height="{rf*1.24}" viewBox="0 0 40 40" style="color:{c}">{ICON[k]}</svg>')
     s.append(f'<circle cx="{xl}" cy="{yl}" r="{rl}" fill="#fff" stroke="{NAVY}" stroke-width="3"/>'
              f'<svg x="{xl-rl*.6}" y="{yl-rl*.6}" width="{rl*1.2}" height="{rl*1.2}" viewBox="0 0 40 40" style="color:{NAVY}">{ICON[carga]}</svg>')
+    s.append("</svg>")
+    return "".join(s)
+
+
+def grafico_es(W, H, fs_lab=26):
+    pl, pr, pt, pb = 8, 8, 34, 46
+    ymax = 230
+    y = lambda v: pt + (H - pt - pb) * (1 - v / ymax)
+    n = len(ANOS_ES); gw = (W - pl - pr) / n; bw = gw * .64
+    s = [f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}"><defs><linearGradient id="ges" x1="0" y1="1" x2="0" y2="0">'
+         f'<stop offset="0" stop-color="{WIND}"/><stop offset="1" stop-color="{SOLAR}"/></linearGradient></defs>']
+    for g in (100, 200):
+        s.append(f'<line x1="{pl}" x2="{W-pr}" y1="{y(g)}" y2="{y(g)}" stroke="#EEF1F1" stroke-width="1.5"/>'
+                 f'<text x="{pl}" y="{y(g)-7}" font-family="Manrope" font-size="15" fill="#9AA5B1">{g} TWh</text>')
+    s.append(f'<line x1="{pl}" x2="{W-pr}" y1="{y(0)}" y2="{y(0)}" stroke="#C9D3DD" stroke-width="1.5"/>')
+    for i, (a, v, p) in enumerate(zip(ANOS_ES, ES, PART)):
+        cx = pl + gw * (i + .5); bx = cx - bw / 2; h = max(y(0) - y(v), 2); r = min(5, h / 2)
+        s.append(f'<path d="M{bx} {y(0)} V{y(0)-h+r} q0 -{r} {r} -{r} h{bw-2*r} q{r} 0 {r} {r} V{y(0)} Z" fill="#1E8A72"/>')
+        if a % 3 == 1 or a == 2025:
+            s.append(f'<text x="{cx}" y="{H-14}" text-anchor="middle" font-family="Manrope" font-weight="600" font-size="17" fill="{SLATE}">{a}</text>')
+        if a in (2007, 2016, 2025):
+            pf = f"{p:.1f}".replace(".", ",") + " %"
+            fs = fs_lab if a == 2025 else fs_lab * .75
+            anc, xx = ("end", bx + bw) if a == 2025 else ("start", bx) if a == 2007 else ("middle", cx)
+            s.append(f'<text x="{xx}" y="{y(v)-12}" text-anchor="{anc}" font-family="Gelasio" font-weight="700" font-size="{fs:.0f}" fill="{NAVY}">{pf}</text>')
     s.append("</svg>")
     return "".join(s)
 
@@ -130,10 +161,11 @@ def cabeca():
 
 def bloco_grafico(x, y, W, H):
     return (f'<div style="position:absolute;left:{x}px;top:{y}px">'
-            f'<div class="h" style="font-size:26px">Geração junto à carga cresceu mais de mil vezes</div>'
-            f'<div class="cap" style="margin-top:4px">Micro e minigeração distribuída solar no Brasil (TWh) [3]</div>'
-            f'<div style="margin-top:6px">{grafico_mmgd(W, H)}</div>'
-            f'<div class="cap" style="margin-top:2px"><b style="color:#14213D">44,7 GW</b> instalados em 2025 — 69 % de toda a capacidade solar do país [3]</div></div>')
+            f'<div class="h" style="font-size:26px">Eólica + solar: de 0,1 % a 26,4 % da geração do Brasil</div>'
+            f'<div class="cap" style="margin-top:4px">Geração eólica + solar fotovoltaica (TWh) e participação na geração total [3]</div>'
+            f'<div style="margin-top:6px">{grafico_es(W, H)}</div>'
+            f'<div class="cap" style="margin-top:2px">2025: <b style="color:#14213D">204,6 TWh</b> = eólica 116,5 + solar 88,1 — '
+            f'<b style="color:#14213D">60 %</b> da geração solar já ocorre junto à carga (MMGD) [3]</div></div>')
 
 
 P = {}
