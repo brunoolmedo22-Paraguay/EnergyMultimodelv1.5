@@ -72,10 +72,10 @@ def janelas(x0, y0, cw, ch, N=8, m=1, linhas=4, gap=12, rot=True, legenda=True, 
                   f'stroke-width="2.2" marker-end="url(#ar)"/>')
     if legenda:
         yl = y0 + linhas * (ch + gap) + 22
-        o += f'<rect x="{x0}" y="{yl}" width="22" height="18" rx="4" fill="{APL}"/>' + T(x0 + 32, yl + 15, "aplicado (m)", 16, 700, NAVY)
-        o += f'<rect x="{x0+170}" y="{yl}" width="22" height="18" rx="4" fill="{PLN}"/>' + T(x0 + 202, yl + 15, "planejado e descartado", 16, 700, NAVY)
+        o += f'<rect x="{x0}" y="{yl}" width="22" height="18" rx="4" fill="{APL}"/>' + T(x0 + 32, yl + 16, "aplicado (m)", 18, 700, NAVY)
+        o += f'<rect x="{x0+180}" y="{yl}" width="22" height="18" rx="4" fill="{PLN}"/>' + T(x0 + 212, yl + 16, "descartado", 18, 700, NAVY)
         fx, fy = (x0, yl + 30) if estreito else (x0 + 430, yl)
-        o += f'<line x1="{fx+10}" x2="{fx+10}" y1="{fy-2}" y2="{fy+20}" stroke="{FUT}" stroke-width="3"/>' + T(fx + 24, fy + 15, "fim da janela", 16, 700, FUT)
+        o += f'<line x1="{fx+10}" x2="{fx+10}" y1="{fy-2}" y2="{fy+20}" stroke="{FUT}" stroke-width="3"/>' + T(fx + 24, fy + 16, "fim da janela", 18, 700, FUT)
     return o
 
 
@@ -100,10 +100,10 @@ def miopia(x, y, w, h, legenda=True):
     o += f'<path d="{curva(sem)}" fill="none" stroke="{BAT}" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 7"/>'
     o += f'<circle cx="{sem[-1][0]}" cy="{sem[-1][1]}" r="7" fill="{BAT}"/><circle cx="{com[-1][0]}" cy="{com[-1][1]}" r="7" fill="{APL}"/>'
     if legenda:
-        o += f'<line x1="{x}" x2="{x+34}" y1="{y+14}" y2="{y+14}" stroke="{APL}" stroke-width="4"/>' + T(x + 44, y + 20, "com custo terminal", 15, 700, APL)
-        o += (f'<line x1="{x+220}" x2="{x+254}" y1="{y+14}" y2="{y+14}" stroke="{BAT}" stroke-width="4" stroke-dasharray="9 7"/>'
-              + T(x + 264, y + 20, "sem", 15, 700, BAT))
-    o += T(x, y - 10, "energia armazenada", 14, 700, SLATE) + T(xe, y - 12, "fim da janela", 13, 700, FUT, anchor="middle")
+        o += f'<line x1="{x}" x2="{x+34}" y1="{y+14}" y2="{y+14}" stroke="{APL}" stroke-width="4"/>' + T(x + 44, y + 21, "com custo terminal", 18, 700, APL)
+        o += (f'<line x1="{x+250}" x2="{x+284}" y1="{y+14}" y2="{y+14}" stroke="{BAT}" stroke-width="4" stroke-dasharray="9 7"/>'
+              + T(x + 294, y + 21, "sem", 18, 700, BAT))
+    o += T(x, y - 12, "energia armazenada", 17, 700, SLATE) + T(xe, y - 12, "fim", 16, 700, FUT, anchor="middle")
     return o
 
 
@@ -116,33 +116,30 @@ def cartao(x, y, w, h, n, tit, corpo_html, extra=""):
 
 # ===================================================================== P1 · equação + janelas + três cartões (por quê · como · limite)
 def p1():
-    s = f'<rect x="110" y="166" width="1700" height="190" rx="28" fill="{LIGHT}"/>'
-    html = eq("e15", 130, 172, 1660, 178, 32)
+    s = f'<rect x="110" y="166" width="1700" height="182" rx="28" fill="{LIGHT}"/>'
+    html = eq("e15", 130, 170, 1660, 174, 30)
     s += T(1780, 196, "eq. 15", 15, 600, MUTED, anchor="end")
-    y0, h, w, gap = 386, 520, 552, 22
+    y0, h, w, gap = 372, 538, 552, 22
     xs = [110 + i * (w + gap) for i in range(3)]
     # 1 · por quê
-    c1, _ = cartao(xs[0], y0, w, h, 1, "Por que MPC?", "")
-    s += c1
-    itens = [("cloud", "Demanda e geração futuras são conhecidas só por <b>previsões</b>; as decisões precisam ser revistas quando chega informação nova."),
-             ("rev", "A <b>realimentação</b> do estado incorpora as diferenças entre o previsto e o realizado."),
-             ("check", "Cada janela é um <b>MILP</b>: as mesmas restrições e decisões discretas a cada atualização (MPC econômico).")]
+    s += cartao(xs[0], y0, w, h, 1, "Por que MPC?", "")[0]
+    itens = [("cloud", "O futuro chega por <b>previsões</b>, revistas a cada nova informação."),
+             ("rev", "A <b>realimentação</b> do estado corrige o previsto pelo realizado."),
+             ("check", "Cada janela é um <b>MILP</b>, com as mesmas restrições e decisões discretas.")]
     for i, (k, t) in enumerate(itens):
-        yy = y0 + 108 + i * 132
-        s += f'<svg x="{xs[0]+36}" y="{yy}" width="34" height="34" viewBox="0 0 40 40" style="color:{TEAL}">{ICON[k]}</svg>'
-        html += div(xs[0] + 84, yy - 2, w - 116, None, t, "p", "font-size:17.5px")
+        yy = y0 + 104 + i * 140
+        s += f'<svg x="{xs[0]+32}" y="{yy+2}" width="40" height="40" viewBox="0 0 40 40" style="color:{TEAL}">{ICON[k]}</svg>'
+        html += div(xs[0] + 88, yy - 2, w - 116, None, t, "p", "font-size:23px;line-height:1.38")
     # 2 · como
-    c2, _ = cartao(xs[1], y0, w, h, 2, "Como funciona", "")
-    s += c2
-    s += janelas(xs[1] + 92, y0 + 104, 34, 34, N=8, m=1, linhas=5, gap=14, estreito=True)
-    html += div(xs[1] + 36, y0 + 428, w - 72, None, "Resolve <b>N</b> intervalos, aplica os <b>m</b> primeiros, atualiza o estado <b>x̂<sub>k</sub></b> e repete.<br>"
-                "<span style='color:#9AA5B1;font-size:15px'>ex.: N = 8 (2 h de 15 min), m = 1 — microrrede CT-046</span>", "p", "font-size:17.5px")
+    s += cartao(xs[1], y0, w, h, 2, "Como funciona", "")[0]
+    s += janelas(xs[1] + 96, y0 + 96, 36, 34, N=8, m=1, linhas=5, gap=12, estreito=True)
+    html += div(xs[1] + 36, y0 + 410, w - 72, None, "Resolve <b>N</b> intervalos, aplica os <b>m</b> primeiros, atualiza o estado <b>x̂<sub>k</sub></b> e repete.", "p", "font-size:22px;line-height:1.38")
+    html += div(xs[1] + 36, y0 + 488, w - 72, None, "ex.: N = 8 (2 h de 15 min), m = 1 — CT-046", "p", "font-size:17px;color:#7B8794")
     # 3 · limite
-    c3, _ = cartao(xs[2], y0, w, h, 3, "O limite: a janela acaba", "")
-    s += c3
-    s += miopia(xs[2] + 50, y0 + 130, w - 130, 200)
-    html += div(xs[2] + 36, y0 + 380, w - 72, None, "Sem custo terminal ou reserva mínima, a otimização tende a <b>esgotar a energia armazenada</b> no fim do horizonte: nada lhe atribui valor depois dele. "
-                "<i>V<sub>f</sub></i> é a peça que falta.", "p", "font-size:17.5px")
+    s += cartao(xs[2], y0, w, h, 3, "O limite: a janela acaba", "")[0]
+    s += miopia(xs[2] + 46, y0 + 108, w - 124, 210)
+    html += div(xs[2] + 36, y0 + 352, w - 72, None, "Sem custo terminal, a otimização tende a <b>esgotar a energia armazenada</b> no fim do horizonte: nada lhe dá valor depois dele.", "p", "font-size:22px;line-height:1.38")
+    html += div(xs[2] + 36, y0 + 476, w - 72, None, "<i>V<sub>f</sub></i> é a peça que falta.", "p", "font-size:24px")
     salvar("S14_P1_cartoes", s, html)
 
 

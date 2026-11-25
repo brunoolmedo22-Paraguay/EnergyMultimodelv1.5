@@ -31,7 +31,7 @@ ORDEM = [
     ("Modelagem dos recursos energéticos (2/2)", 2, "slides/slide09_aprovado.html"),
     ("Programação linear inteira mista (MILP)", 2, "slides/slide12_aprovado.html"),
     ("O MILP da microrrede", 2, "slides/slide13_aprovado.html"),
-    ("Controle preditivo baseado em modelo (MPC)", 2, None),
+    ("Controle preditivo baseado em modelo (MPC)", 2, "slides/slide14_aprovado.html"),
     ("Coordenação hierárquica e valor futuro", 2, None),
     ("Desenvolvimento do SEEDS", 3, "slides/divisor03.html"),
     ("Arquitetura do SEEDS", 3, None),
@@ -60,6 +60,7 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Controle preditivo baseado em modelo (MPC)": "O futuro só é conhecido por previsões; por isso a decisão é revista a cada intervalo. O MPC resolve uma janela de N intervalos, aplica só o início, atualiza o estado com o que de fato ocorreu e repete. Mas a janela acaba: sem um custo terminal, nada dá valor à energia que sobra, e a otimização tende a gastá-la. O V_f é a peça que falta.",
     "Programação linear inteira mista (MILP)": "As decisões têm duas naturezas: quanto e sim ou não. A célula, por exemplo, ou está desligada ou opera entre 10 e 50 kW — um conjunto que a programação linear não representa, mas uma binária sim. É a mesma ferramenta que o ONS usa no DESSEM para a programação diária.",
     "O MILP da microrrede": "Na nossa microrrede, cada recurso entra no balanço do barramento com as suas variáveis: potências contínuas e, quando há escolha, uma binária. O objetivo soma o custo de importação, o hidrogênio e as partidas e paradas.",
     "Modelagem dos recursos energéticos (2/2)": "O banco de baterias entra como balanço de energia entre fronteiras; a rede, como intercâmbio com tarifas no ponto de acoplamento comum — numa microrrede isolada, esses termos não existem.",

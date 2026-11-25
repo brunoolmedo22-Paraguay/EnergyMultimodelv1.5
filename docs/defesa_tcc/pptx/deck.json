@@ -107,9 +107,9 @@
   "n": 14,
   "titulo": "Controle preditivo baseado em modelo (MPC)",
   "secao": 2,
-  "html": "slides/provisorios/p14.html",
-  "pronto": false,
-  "notas": "O MPC resolve uma janela, aplica só o início, atualiza o estado e repete. Mas o horizonte é finito: se nada valoriza a energia que sobra no fim da janela, a otimização a gasta. O controle fica míope."
+  "html": "slides/slide14_aprovado.html",
+  "pronto": true,
+  "notas": "O futuro só é conhecido por previsões; por isso a decisão é revista a cada intervalo. O MPC resolve uma janela de N intervalos, aplica só o início, atualiza o estado com o que de fato ocorreu e repete. Mas a janela acaba: sem um custo terminal, nada dá valor à energia que sobra, e a otimização tende a gastá-la. O V_f é a peça que falta."
  },
  {
   "n": 15,
