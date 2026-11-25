@@ -14,3 +14,4 @@ Gerenciamento Energético Hierárquico Baseado em MILP–MPC* (UNILA, 9/12/2026)
 | `capa/assets/` | logos (SEEDS, UNILA) e fontes de maquete (Gelasio, Manrope, etc. — licença OFL, Google Fonts) |
 | `pptx/SEEDS_Defesa_TCC.pptx`, `pptx/SEEDS_Defesa_TCC.pdf` | deck: capa e sumário prontos; slides 3–27 em branco (rodapé + título planejado nas notas) |
 | `pptx/gerar_pptx.js` | gerador do deck (pptxgenjs; formas nativas e editáveis; fontes Georgia + Calibri) |
+| `guia/Guia_Defesa_SEEDS.pdf` | guia completo slide a slide (título, mensagem, tela, motivo, vínculos, fala-guia); fonte em `guia/conteudo.py` |

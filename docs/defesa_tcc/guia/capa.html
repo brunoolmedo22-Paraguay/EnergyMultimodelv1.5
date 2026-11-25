@@ -1,0 +1,85 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>
+@import url("../capa/assets/fonts.css");
+:root{--navy:#14213D;--slate:#4A5568;--teal:#1F7A6D;--light:#EEF3F2;--line:#DCE3E2;--lime:#C1FF72;--rust:#C0532F}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Manrope",sans-serif;color:var(--navy);font-size:10pt;line-height:1.45}
+.serif{font-family:"Gelasio",Georgia,serif}
+h1,h2,h3{font-family:"Gelasio",Georgia,serif;font-weight:700}
+.pb{break-before:page}
+/* ---------- capa ---------- */
+.capa{position:relative;width:210mm;height:297mm;overflow:hidden;padding:22mm 20mm}
+.capa .un{height:26mm}
+.capa .k{margin-top:46mm;font:italic 400 15pt "Gelasio",serif;color:var(--teal)}
+.capa h1{font-size:44pt;line-height:1.05;margin-top:4mm}
+.capa .tt{margin-top:9mm;font:700 15pt/1.3 "Gelasio",serif;color:#2B3648;max-width:165mm}
+.capa .meta{margin-top:10mm;font:500 10.5pt "Manrope";color:var(--slate);line-height:1.7}
+.capa .meta b{color:var(--navy)}
+.capa .bus{position:absolute;left:20mm;right:20mm;bottom:52mm;height:9mm;display:flex;gap:1.6mm}
+.capa .seg{flex:1;clip-path:polygon(0 0,calc(100% - 4mm) 0,100% 50%,calc(100% - 4mm) 100%,0 100%,4mm 50%)}
+.capa .seg:first-child{clip-path:polygon(0 0,calc(100% - 4mm) 0,100% 50%,calc(100% - 4mm) 100%,0 100%)}
+.capa .lg{position:absolute;right:20mm;bottom:20mm;height:19mm}
+.capa .dt{position:absolute;left:20mm;bottom:23mm;font:500 10pt "Manrope";color:var(--slate)}
+/* ---------- textos gerais ---------- */
+.sec{font-size:24pt;line-height:1.1;margin-bottom:5mm}
+.lead{font-size:10.5pt;color:#2B3648;max-width:170mm}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+.box{background:var(--light);border-radius:4mm;padding:5mm 6mm}
+.box h4{font:700 12pt "Gelasio",serif;margin-bottom:2mm}
+.dark{background:var(--navy);color:#fff}
+.dark .lbl{font:italic 400 11pt "Gelasio",serif;color:var(--lime)}
+.dark .q{font:400 15pt/1.35 "Gelasio",serif;margin-top:2.5mm}
+.dark .nt{font-size:8.5pt;color:#B8C4D6;margin-top:3mm}
+.pil{display:flex;gap:4mm;margin-top:3mm}
+.pil div{flex:1;display:flex;gap:3mm;align-items:center}
+.pil b{flex:none;width:9mm;height:9mm;border-radius:50%;border:1.5px solid var(--teal);color:var(--teal);display:flex;align-items:center;justify-content:center;font:700 11pt "Gelasio"}
+/* barra de tempo */
+.tbar{display:flex;gap:1.2mm;margin-top:4mm;height:16mm}
+.tbar div{min-width:17mm;position:relative;color:#fff;font-size:7.5pt;line-height:1.15;padding:2mm 0 0 5mm;clip-path:polygon(0 0,calc(100% - 3mm) 0,100% 50%,calc(100% - 3mm) 100%,0 100%,3mm 50%)}
+.tbar div:first-child{clip-path:polygon(0 0,calc(100% - 3mm) 0,100% 50%,calc(100% - 3mm) 100%,0 100%);padding-left:2.5mm}
+.tbar b{display:block;font:700 10pt "Gelasio"}
+.tbar .mg{background:#C9D3DD;color:var(--navy)}
+.tleg{display:flex;justify-content:space-between;font-size:8pt;color:var(--slate);margin-top:1.5mm}
+/* ---------- cabeçalho de bloco ---------- */
+.bloco{display:flex;gap:6mm;align-items:center;border-radius:5mm;padding:6mm 7mm;margin:0 0 5mm;color:#fff;break-inside:avoid;break-after:avoid}
+.bloco .r{font:700 34pt/1 "Gelasio",serif;min-width:20mm}
+.bloco h2{font-size:18pt;line-height:1.15}
+.bloco .f{font-size:9.5pt;opacity:.92;margin-top:1.5mm;max-width:140mm}
+.bloco .d{margin-left:auto;font:700 13pt "Gelasio";white-space:nowrap;background:rgba(255,255,255,.16);border-radius:10mm;padding:1.5mm 4mm}
+/* ---------- cartão de slide ---------- */
+.card{display:grid;grid-template-columns:24mm 1fr;gap:5mm;border:1px solid var(--line);border-radius:5mm;padding:6mm 6mm 5.5mm;margin-bottom:5mm;break-inside:avoid;background:#fff}
+.card .esq .nn{font:700 30pt/1 "Gelasio",serif}
+.card .esq .tm{font:600 8.5pt "Manrope";color:var(--slate);margin-top:2mm}
+.st{display:inline-block;margin-top:2.5mm;font:600 7.5pt "Manrope";border-radius:10mm;padding:.8mm 2.6mm}
+.st.ok{background:#E3F4D9;color:#3E7A12}.st.td{background:var(--light);color:var(--slate)}
+.ab{display:flex;gap:1.5mm;margin-top:2.5mm}
+.ab span{width:6.5mm;height:6.5mm;border-radius:50%;border:1.3px solid var(--teal);color:var(--teal);font:700 8pt "Gelasio";display:flex;align-items:center;justify-content:center}
+.card h3{font-size:15pt;line-height:1.2}
+.msg{margin-top:2.5mm;font:italic 400 12pt/1.35 "Gelasio",serif;color:var(--teal)}
+.cols{display:grid;grid-template-columns:1.25fr 1fr;gap:6mm;margin-top:4mm}
+.lab{font:700 7.5pt "Manrope";letter-spacing:.06em;color:#7B8794;text-transform:uppercase;margin-bottom:1.5mm}
+ul{padding-left:4mm}li{margin-bottom:1mm;font-size:9pt;color:#2B3648}
+li::marker{color:#9AA5B1}
+.pq{font-size:9pt;color:#2B3648}
+.vc{display:flex;flex-wrap:wrap;gap:1.5mm;margin-top:3.5mm}
+.vc span{font:600 7.5pt "Manrope";background:var(--light);color:var(--slate);border-radius:10mm;padding:.8mm 2.4mm}
+.fala{margin-top:4mm;padding-top:3mm;border-top:1px dashed var(--line);font:italic 400 9.5pt/1.45 "Gelasio",serif;color:#3A4558}
+.fala::before{content:"Fala-guia  ";font:700 7.5pt "Manrope";font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:#7B8794}
+.thumb{width:118mm;border-radius:2.5mm;border:1px solid var(--line);margin-top:3mm;display:block}
+/* demonstração */
+table{width:100%;border-collapse:collapse;font-size:9pt}
+td,th{text-align:left;vertical-align:top;padding:2.2mm 2.5mm;border-bottom:1px solid var(--line)}
+th{font:700 7.5pt "Manrope";letter-spacing:.06em;text-transform:uppercase;color:#7B8794}
+td.t{white-space:nowrap;font-weight:700;color:var(--navy)}
+td.f{font-family:"Gelasio",serif;font-style:italic;color:#3A4558}
+.demo{border:1px solid var(--line);border-radius:5mm;padding:6mm;margin-bottom:5mm;break-inside:avoid}
+.demo h3{font-size:14pt;margin-bottom:1mm}
+@page{size:A4;margin:0}</style></head><body><div class="capa">
+<img class="un" src="../capa/assets/unila.png">
+<div class="k">Defesa de TCC · Engenharia de Energia · ILATIT</div>
+<h1>Guia da apresentação</h1>
+<div class="tt">SEEDS: Desenvolvimento e Avaliação de um Simulador Modular Expansível com Gerenciamento Energético Hierárquico Baseado em MILP–MPC</div>
+<div class="meta"><b>Bruno Manuel Olmedo Chávez</b><br>Orientador: Prof. Dr. Jorge Javier Gimenez Ledesma<br>Coorientador: Me. Daniel Firmo Kazay</div>
+<div class="bus"><div class="seg" style="background:#6db527"></div><div class="seg" style="background:#55a83e"></div><div class="seg" style="background:#3d9b54"></div><div class="seg" style="background:#258e6b"></div><div class="seg" style="background:#168485"></div><div class="seg" style="background:#0b7b9f"></div><div class="seg" style="background:#0072ba"></div></div>
+<div class="dt">Foz do Iguaçu, 9 de dezembro de 2026</div>
+<img class="lg" src="../capa/assets/seeds.png"></div></body></html>
