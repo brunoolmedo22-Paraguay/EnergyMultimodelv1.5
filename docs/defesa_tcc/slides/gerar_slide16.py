@@ -24,7 +24,7 @@ CSSM = CSS + """
 """
 HEAD = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>{css}</style></head><body><div class="slide">{body}</div></body></html>'
 TIT = '<div class="tt">Gerenciamento energético hierárquico MILP–MPC</div>'
-REF = "Fig. 4.1 do artigo (redesenhada) · Seção 4 e 4.4 · eq. 15 (MPC) e 17 (custo terminal) · esquema conceitual"
+REF = "Fig. 4.1 do artigo (Seção 4), em disposição horizontal"
 
 
 def div(x, y, w, h, inner, cls="", st=""):
@@ -220,3 +220,69 @@ if __name__ == "__main__":
     h1()
     h2()
     h3()
+
+
+# ===================================================================== H4 · Fig. 4.1 IDÊNTICA (mesmos blocos, textos e cores), só na horizontal
+def h4():
+    CINZA, CB = "#EFEFEC", "#B9BCB8"            # entradas / resultados
+    AZ, AZB, AZC = "#E3EAF6", "#6F8FC4", "#3B6FB6"  # níveis do EMS / borda / etiqueta MPC
+    VERDE, VB = "#E6F3EA", "#6FB385"            # sistema elétrico
+    s, html = "", ""
+    yc = 500                                    # linha central do fluxo
+
+    def caixa(x, w, h, fill, borda, titulo, sub=None, tit_px=24, sub_px=19, dy=0, pb=0):
+        y = yc - h / 2 + dy
+        o = f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="16" fill="{fill}" stroke="{borda}" stroke-width="2.5"/>'
+        t = f'<div style="font:700 {tit_px}px/1.2 Gelasio,serif;color:#14213D">{titulo}</div>'
+        if sub:
+            t += f'<div style="font:500 {sub_px}px/1.35 Manrope;color:#4A5568;margin-top:8px">{sub}</div>'
+        return o, div(x + 12, y, w - 24, h - pb, t, "", "display:flex;flex-direction:column;justify-content:center;text-align:center")
+
+    def seta(x1, x2, y=yc):
+        return f'<line x1="{x1}" x2="{x2-4}" y1="{y}" y2="{y}" stroke="{NAVY}" stroke-width="3" marker-end="url(#ar)"/>'
+
+    # entradas
+    a, b = caixa(110, 210, 250, CINZA, CB, "Entradas do problema", "Previsões / Demanda / Restrições", sub_px=20)
+    s += a; html += b
+    s += seta(322, 360)
+    # contêiner do EMS
+    X0, X1 = 362, 1376
+    s += f'<rect x="{X0}" y="{yc-200}" width="{X1-X0}" height="400" rx="26" fill="#F4F7FC" stroke="{AZB}" stroke-width="2.5" stroke-dasharray="10 8"/>'
+    html += div(X0, yc - 184, X1 - X0, None, "Gerenciamento energético hierárquico", "", "font:700 26px Gelasio,serif;color:#14213D;text-align:center")
+    # planejamento
+    a, b = caixa(386, 236, 250, AZ, AZB, "Planejamento de horizonte ampliado", dy=10, pb=60, tit_px=25)
+    s += a; html += b
+    s += tags(386 + 236 / 2 - 34, yc + 10 + 125 - 50, [("MILP", NAVY)])
+    s += seta(624, 652, yc + 10)
+    # informação de coordenação
+    s += f'<rect x="654" y="{yc+10-70}" width="214" height="140" rx="70" fill="{CINZA}" stroke="{CB}" stroke-width="2"/>'
+    html += div(664, yc + 10 - 70, 194, 140, "Informação de coordenação<br>(valor futuro / custo terminal)", "",
+                "display:flex;align-items:center;justify-content:center;text-align:center;font:italic 500 20px/1.35 Gelasio,serif;color:#14213D")
+    s += seta(870, 898, yc + 10)
+    # MPC
+    a, b = caixa(900, 236, 250, AZ, AZB, "Controle preditivo operacional", dy=10, pb=60, tit_px=25)
+    s += a; html += b
+    s += tags(900 + 236 / 2 - 76, yc + 10 + 125 - 50, [("MPC", AZC), ("MILP", NAVY)])
+    s += seta(1138, 1166, yc + 10)
+    # decisão de despacho
+    s += f'<rect x="1168" y="{yc+10-44}" width="190" height="88" rx="44" fill="#fff" stroke="{AZC}" stroke-width="3"/>'
+    html += div(1168, yc + 10 - 44, 190, 88, "Decisão de despacho", "", "display:flex;align-items:center;justify-content:center;text-align:center;font:700 21px/1.2 Gelasio,serif;color:#14213D")
+    s += seta(1378, 1414)
+    # sistema elétrico
+    a, b = caixa(1416, 196, 270, VERDE, VB, "Sistema elétrico", "Geração / Armazenamento / Demanda / Rede de distribuição", sub_px=20)
+    s += a; html += b
+    s += seta(1614, 1646)
+    # resultados
+    a, b = caixa(1648, 162, 270, CINZA, CB, "Resultados da operação", "Potências / Estados (ex.: SOC) / Custos", tit_px=22, sub_px=19)
+    s += a; html += b
+    # realimentação: sistema elétrico → MPC (tracejado)
+    ys, yb = yc + 135, yc + 290
+    xs, xm = 1514, 1018
+    s += (f'<path d="M{xs} {ys+2} V{yb} H{xm} V{yc+10+125+6}" fill="none" stroke="{NAVY}" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#ar)"/>')
+    s += f'<rect x="{(xs+xm)/2-100}" y="{yb-26}" width="200" height="52" rx="10" fill="#fff" stroke="{CB}" stroke-width="2"/>'
+    s += T((xs + xm) / 2, yb + 7, "Estado atualizado", 20, 700, NAVY, "Gelasio", anchor="middle")
+    salvar("S16_H4_identico", s, html)
+
+
+if __name__ == "__main__":
+    h4()
