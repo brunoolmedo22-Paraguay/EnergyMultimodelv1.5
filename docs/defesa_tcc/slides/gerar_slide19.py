@@ -103,8 +103,8 @@ def p1():
         s += f'<circle cx="{cx}" cy="246" r="32" fill="#fff" stroke="{c}" stroke-width="3"/>' + ic(icn, cx - 20, 226, 40, c)
         s += f'<rect x="{x}" y="296" width="{w}" height="440" rx="24" fill="{LIGHT}"/>'
         s += T(cx, 340, nome, 24, 700, NAVY, "Gelasio", anchor="middle")
-        s += g(x + 34, 380, w - 68, 110)
-        h += div(x + 24, 520, w - 48, None, f'<div style="font:700 22px/1.25 Gelasio,serif;color:{c if k != "dem" else NAVY};margin-bottom:8px">{como}</div>{det}', "p",
+        s += g(x + 34, 372, w - 68, 106)
+        h += div(x + 24, 508, w - 48, None, f'<div style="font:600 18px Manrope;color:#7B8794;margin-bottom:4px">entra no MILP como</div><div style="font:700 22px/1.25 Gelasio,serif;color:{c if k != "dem" else NAVY};margin-bottom:8px">{como}</div>{det}', "p",
                  "font-size:21px;line-height:1.35;text-align:center")
     # convenções comuns
     s += f'<rect x="110" y="764" width="1700" height="112" rx="24" fill="#fff" stroke="{LINE}" stroke-width="2"/>'
