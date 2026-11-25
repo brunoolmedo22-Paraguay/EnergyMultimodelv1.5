@@ -1,33 +1,73 @@
 # Como continuar a preparação da defesa (passagem de sessão)
 
-Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`.
+Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC (SEEDS, UNILA) em **9/12/2026**, 30 min.
 
-## Estado
-- Aprovados: capa (`capa/capa_oficial.html`), sumário (`capa/sumario.html`), slide 3 (`slides/slide03_aprovado.html`, gerador `slides/gerar_slide3_v3.py`), slide 4 (`slides/slide04_aprovado.html`, gerador `slides/gerar_slide4_v6.py`, variante H1), slide 5 (`slides/slide05_aprovado.html`, gerador `slides/gerar_slide5_v4.py`, variante E1), slide 6 «Objetivos» (`slides/slide06_aprovado.html`, gerador `slides/gerar_slide6.py`, função `g6_final`), slide 7 «O SEEDS» (`slides/slide07_aprovado.html`, gerador `slides/gerar_slide7_v2.py`, função `k3v2`). Deck agora com **28 slides** (slide 7 novo; os antigos 7–27 viraram 8–28).
-- Pendências da auditoria: `AUDITORIA_BLOCO_I.md` (D1 redação da pergunta; D4 edificações no slide 3).
-- Slide 6 — validar com o orientador a redação da pergunta guia e dos objetivos específicos (derivados do artigo); o objetivo geral é o texto do artigo.
-- Slide 5 — conferir no PDF do artigo: frase exata da lacuna, números de referência de PyPSA/oemof/Calliope/ETHOS.FINE e a divisão dos simuladores em dois grupos.
-- **Bloco I concluído** (slides 1–7; 4:20; margem reduzida para 0:35). PPTX `pptx/SEEDS_Defesa_TCC.pptx`: capa e sumário nativos; slides 3–7 como imagem 3840 × 2160 (`pptx/img_hd/`) com a fala nas notas; 8–28 em branco. PDF vetorial do bloco I: `pptx/SEEDS_Defesa_TCC_Bloco_I.pdf`.
-- Regerar: `cd pptx && NODE_PATH=$(npm root -g) node exportar_bloco1.js` (PNG HD + PDF dos HTML aprovados; acrescentar novos slides à lista `PAGS`) e depois `NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` (usa `img_hd/slideNN.png` quando existir; notas em `notas_bloco1.json`).
-- Guia em PDF: `guia/Guia_Defesa_SEEDS.pdf` (fonte `guia/conteudo.py`). Mapa: `ROTEIRO.md`. Sistema visual: `DESIGN.md`.
-- **Deck: 37 slides** (ordem em `pptx/deck.py` → `deck.json`). Aprovados: 1–14 (separadores 01 e 02; modelagem em 2 slides; MILP em 2: `slides/gerar_slide12_v2.py`; MPC: `slides/gerar_slide14.py` P1) + separadores 03–07. Próximo: slide 15 «Coordenação hierárquica e valor futuro» (V_f na cor do custo futuro; volta a curva do slide 4).
-- DESSEM (ONS/CCEE) formulado como MILP: [10] Santos et al. (PSCC 2020/EPSR 189) e notas do CEPEL — conferido por busca; confirmar a frase no PDF de [10]. (ver `ROTEIRO.md`).
+## Estado (25/11/2026)
+- **Deck: 37 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
+- **Aprovados (19):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+  7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC ·
+  separadores 03–07 (16, 21, 25, 27, 34).
+- **Próximo: slide 15 «Coordenação hierárquica e valor futuro»** (contribuição B; Seção 4.4 do artigo, eq. 16–18). Ideia combinada:
+  voltar a curva «custo futuro» do slide 4 com o eixo «energia armazenada E»; V(E) e μ = −∂V/∂E [R$/kWh]; por que não os duais do MILP
+  (com inteiros V pode ser não convexa/descontínua). V_f/custo futuro sempre na cor `#C0532F` (como no slide 4 e no MPC).
+  Mesma lógica dos slides do MILP e do MPC: **por quê · como**. Depois: bloco 03 (Arquitetura, Representação comum, EMS hierárquico no SEEDS,
+  Verificação), plano em `PLANO_BLOCO_II.md`.
+- Geradores aprovados: `slides/gerar_slide3_v3.py`, `gerar_slide4_v6.py` (H1), `gerar_slide5_v4.py` (E1), `gerar_slide6.py` (`g6_final`),
+  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`),
+  `gerar_divisores.py` (V1). Cópias congeladas: `slides/slideNN_aprovado.html` (numeração antiga no nome) e `slides/divisor0N.html`.
 
-## Como renderizar
-`cd docs/defesa_tcc/slides && python3 gerar_slideN.py && NODE_PATH=$(npm root -g) node render.js ARQ.html` → `png/`. Canvas 1920×1080, fontes em `capa/assets/fonts.css`.
+## Fontes
+- **Artigo final do TCC: NÃO está no repositório** — pedir ao responsável o PDF (`TCC_BRUNO_OLMEDO_COMPLETO_1.pdf`, 56 p.) e lê-lo antes
+  de qualquer slide técnico. Seções: 3 modelos (eq. 1–8) · 4.1 MILP (eq. 9–13) · 4.2 longo horizonte (eq. 14) · 4.3 MPC (eq. 15) ·
+  4.4 hierarquia e valor futuro (eq. 16–18) · 5 SEEDS (Fig. 5.1–5.3) · 6 estudos (Tab. 6.1–6.3) · 7 resultados (Tab. 7.1–7.2, Fig. 7.1–7.5) ·
+  Anexo A = 13 capturas do aplicativo.
+- Código confere o artigo (resumo em `PLANO_BLOCO_II.md`). Divergência: o artigo diz 500 pontos de validação da curva H₂; o padrão do código é 402.
+- Números/dados SÓ do artigo ou de fonte conferida; marcar «esquemático/ilustrativo» quando não for dado real.
+
+## Pendências registradas
+- `AUDITORIA_BLOCO_I.md`: slide 4 (Contexto) «Edificações» deve ser **Bateria + H₂** [4] (o artigo diz «edificações que combinam baterias e
+  armazenamento de hidrogênio»); slide 6 (Trabalhos relacionados): PyPSA, oemof, Calliope, ETHOS.FINE = **[23–26]**; pymgrid [27] é «modelos
+  simplificados» (HOMER = «estratégias predefinidas»); lacuna: falta «energético» («sob um mesmo gerenciamento **energético** hierárquico»).
+  Correções ainda NÃO aplicadas (perguntar antes).
+- Validar com o orientador: redação da pergunta guia e dos objetivos específicos (slide 7).
+- Confirmar no PDF de [10] (Santos et al., DESSEM) a frase de que o DESSEM é MILP (conferido só por busca).
+- Tempo: separadores (~35 s) consumiram a margem; recortar ao ensaiar. Guia (`guia/`) ainda na numeração antiga de 28 slides.
+- Subdivisões dos separadores 04 e 05 foram redigidas a partir do roteiro (ajustáveis em `gerar_divisores.py`, SUB).
+
+## Como trabalhar (o fluxo que funcionou)
+1. Ler o artigo e o código da seção; dizer em 3–5 linhas o que o slide deve transmitir (o **por quê** e o **como**; a banca já conhece a técnica:
+   é preciso **defender** a escolha).
+2. Gerar **3 propostas diferentes** (gerador Python em `slides/gerar_slideNN.py` → HTML 1920×1080 → PNG), revisar cada PNG (sobreposições,
+   texto cortado, tamanhos), montar a folha lado a lado (`png/SNN_opcoes.png`), commit + push e enviar as imagens.
+3. O responsável escolhe uma e pede ajustes; iterar no mesmo gerador.
+4. Ao aprovar: copiar para `slides/slideNN_aprovado.html`, pôr o html em `pptx/deck.py` (+ fala em NOTA_EXTRA), rodar a exportação (abaixo),
+   atualizar `ROTEIRO.md` (§ Ordem do deck), `CONTINUAR.md` e `DESIGN.md`, commit + push e entregar PDF + PPTX.
+
+## Ambiente (instalar numa sessão nova)
+- Playwright/Chromium já vêm instalados (`NODE_PATH=$(npm root -g)`).
+- Numa pasta de trabalho fora do repositório: `npm install pptxgenjs sharp mathjax-full@3.2.2` e exportar `SEEDS_NODE_MODULES=<essa pasta>/node_modules`
+  (usado por `slides/tex2svg.js` via `gerar_slide8.py` → constante `NM`; ajustar `NM` se o caminho mudar).
+- Skill pptx: `apply_theme.js` e `office/validate.py` do skill `anthropic-skills:pptx`.
+
+## Como renderizar e exportar
+- Um slide: `cd docs/defesa_tcc/slides && PYTHONDONTWRITEBYTECODE=1 python3 gerar_slideN.py && NODE_PATH=$(npm root -g) node render.js ARQ.html` → `png/`.
+- Deck inteiro: `cd docs/defesa_tcc/pptx && python3 deck.py && NODE_PATH=$(npm root -g) node exportar_deck.js` (→ `img_hd/deckNN.png` 3840×2160 +
+  `SEEDS_Defesa_TCC.pdf`; o número de página é trocado pelo do deck) e depois
+  `NODE_PATH=<node_modules com pptxgenjs> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` + `validate.py` → `SEEDS_Defesa_TCC.pptx`
+  (capa e sumário nativos; aprovados como imagem HD com a fala nas notas; não desenhados = provisórios editáveis).
+- Equações: LaTeX → SVG por `slides/tex2svg.js` (chaves `i_…` = inline). Cor dentro do TeX: `{\color{#1F7A6D}{v}}`.
+- Separadores: `slides/gerar_divisores.py` (não importar `capa/gerar_sumario2.py` direto: ele regrava maquetas em `capa/`).
 
 ## Preferências do responsável (seguir à risca)
-- Visual, pouco texto; inovar mantendo a identidade (Gelasio títulos, Manrope texto, navy #14213D, teal #1F7A6D, gradiente SEEDS #6DB527→#1E8A72→#0072BA, cores dos recursos do app, rodapé UNILA + número grande).
-- Nada de ícones decorativos em listas de texto nem de rótulos que digam o óbvio (ex.: «?» sobre a pergunta, «respondida nas conclusões»).
-- NÃO parecer IA: nada de kicker em CAIXA ALTA + título + subtítulo empilhados; nada de faixa azul de resumo em todo slide; nada de rótulos óbvios («SISTEMA INTERLIGADO NACIONAL» em card). Um título humano por bloco.
-- Gráficos bonitos (áreas suaves, rótulos nas curvas); evitar desenhos tipo Paint.
-- Sempre mostrar 2–4 propostas lado a lado; iterar com feedback; dados só de fontes conferidas (citar; marcar «esquemático» quando for).
-- Valorizar o trabalho (tom de venda, limitações suaves).
-- Conversa em espanhol/portunhol; slides em português.
-
-## Exportar (deck inteiro)
-1. Ordem/títulos/notas: editar `pptx/deck.py` (ORDEM; html aprovado ou None = provisório) e rodar `python3 pptx/deck.py`.
-2. `cd pptx && NODE_PATH=$(npm root -g) node exportar_deck.js` → `img_hd/deckNN.png` + `SEEDS_Defesa_TCC.pdf` (o número de página de cada HTML é trocado pelo do deck).
-3. `NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` → `SEEDS_Defesa_TCC.pptx`.
-- Separadores: `slides/gerar_divisores.py` (V1 aprovado; `divisor01…07`; subdivisões em SUB). Equações: `slides/tex2svg.js` (MathJax 3, `mathjax-full@3.2.2`).
-- Guia (`guia/`) ainda segue a numeração por conteúdo (28 slides); a numeração do deck é a de `ROTEIRO.md` § Ordem do deck.
+- Visual, pouco texto, **texto grande** (corpo ≥ 22 px nos cartões); inovar mantendo a identidade: Gelasio títulos, Manrope texto, navy #14213D,
+  teal #1F7A6D, gradiente SEEDS #6DB527→#1E8A72→#0072BA, cores dos recursos do app (Solar #D9A21B, Eólica #4C8DD6, PEMFC #1BA39C,
+  Bateria #7B6CF6, Rede #E0524F), rodapé UNILA + número grande. Contínuas teal × binárias #C0532F; custo futuro #C0532F.
+- Motivo recorrente: **barramento SEEDS** com recursos pendurados (círculo + haste com seta) e cartões claros (#EEF3F2, raio 24).
+- NÃO parecer IA: nada de kicker em CAIXA ALTA + título + subtítulo; nada de faixa azul de resumo; nada de rótulos óbvios; nada de ícones
+  decorativos em listas de texto (ele pediu explicitamente para tirar). Um título humano por bloco. Frases começam com maiúscula.
+- Equações sempre em LaTeX, numeradas como no artigo; unidades só dos resultados (não de cada variável), salvo quando ele pedir.
+- Resultados (números de desempenho) não entram em slides de fundamentação — vão para o bloco de resultados.
+- Gráficos bonitos (áreas suaves, rótulos nas curvas); nada de desenho tipo Paint; tudo centrado e bem distribuído nos cartões.
+- Sempre 3 propostas diferentes lado a lado; iterar com feedback; dados só de fontes conferidas (citar; «esquemático» quando for).
+- Valorizar o trabalho (tom de defesa, limitações suaves). Conversa em espanhol/portunhol; slides em português.
+- Commit + push na mesma branch a cada passo; não abrir PR.
