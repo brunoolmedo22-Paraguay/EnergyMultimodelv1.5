@@ -204,3 +204,53 @@ if __name__ == "__main__":
     g2()
     g3()
     g4()
+
+
+# ===================================================================== v2 (a partir da G4): objetivo geral em largura total
+OG_REALCE = ('Apresentar <b>o desenvolvimento do SEEDS</b> e avaliar, por meio de estudos computacionais, sua capacidade de '
+             '<b>representar diferentes configurações de microrredes</b> e <b>coordenar o despacho energético</b> sob restrições operacionais.')
+CSS6 += """
+.ogg{font:400 31px/1.42 "Gelasio",Georgia,serif;color:#14213D}
+.ogg b{font-weight:700;color:#1F7A6D}
+"""
+
+
+def g4v2(nome, estilo):
+    s = ""
+    if estilo == "cartao":
+        s += f'<rect x="110" y="172" width="1700" height="214" rx="28" fill="{LIGHT}"/>'
+        s += f'<rect x="138" y="204" width="8" height="150" rx="4" fill="url(#gv)"/>'
+        s += T(172, 226, "Objetivo geral", 26, 700, TEAL, "Gelasio")
+        html = div(172, 244, 1600, OG_REALCE, "ogg")
+    else:  # aberto: rótulo à esquerda, texto grande, filete com o gradiente embaixo
+        s += T(110, 218, "Objetivo geral", 26, 700, TEAL, "Gelasio")
+        html = div(110, 236, 1700, OG_REALCE, "ogg", "font-size:33px")
+        s += f'<rect x="110" y="384" width="1700" height="5" rx="2.5" fill="url(#gb)"/>'
+    # pergunta
+    y0 = 420
+    s += f'<rect x="110" y="{y0}" width="640" height="{902-y0}" rx="28" fill="{NAVY}"/>'
+    s += T(150, y0 + 104, "?", 96, 700, LIME, "Gelasio")
+    perg = PERG.replace('class="b"', 'style="color:#C1FF72"').replace('class="a"', 'style="color:#C1FF72"')
+    html += div(150, y0 + 130, 570, perg, "perg", "font-size:37px;line-height:1.32;color:#fff")
+    # objetivos específicos
+    X = 810
+    s += T(X, y0 + 34, "Objetivos específicos", 28, 700, NAVY, "Gelasio")
+    yl, dy = y0 + 62, 105
+    for i, (n, ics, p, txt) in enumerate(OBJ):
+        y = yl + i * dy
+        c = COR[p] if p != "AB" else G2
+        s += f'<line x1="{X}" x2="1810" y1="{y}" y2="{y}" stroke="{LINE}" stroke-width="1.5"/>'
+        s += f'<rect x="{X}" y="{y+32}" width="40" height="40" rx="10" fill="#fff" stroke="{TEAL}" stroke-width="3"/>'
+        s += T(X + 70, y + 68, f"0{n}", 40, 700, c, "Gelasio")
+        k = ics[0] if len(ics) == 1 else None
+        html += div(X + 152, y + 22, 700, txt, "ot", "font-size:25px")
+        if k:
+            s += ic(k, 1810 - 44, y + 30, 44, c)
+        else:
+            s += ic(ics[1], 1810 - 44, y + 30, 44, c) + ic(ics[0], 1810 - 96, y + 30, 44, c)
+    s += f'<line x1="{X}" x2="1810" y1="{yl+4*dy}" y2="{yl+4*dy}" stroke="{LINE}" stroke-width="1.5"/>'
+    salvar(nome, s, html)
+
+
+g4v2("S6v2_H1_cartao", "cartao")
+g4v2("S6v2_H2_aberto", "aberto")
