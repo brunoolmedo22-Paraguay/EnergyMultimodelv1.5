@@ -167,12 +167,12 @@ REF = ('<div class="ref">[1] IRENA, Renewable Power Generation Costs in 2024 · 
 
 def cabeca():
     return (f'<div class="tt">Contexto</div>'
-            f'<div style="position:absolute;left:110px;top:172px">'
-            f'<div style="font:700 26px Gelasio,serif">Redução do custo da energia, 2010 → 2024 <span style="font:500 17px Manrope;color:#9AA5B1">[1]</span></div>'
-            f'<div style="display:flex;gap:64px;margin-top:8px">'
+            f'<div style="position:absolute;left:110px;top:180px;display:flex;align-items:center;gap:44px">'
+            f'<div style="font:700 26px/1.25 Gelasio,serif;border-right:2px solid #DCE3E2;padding-right:40px">Redução do custo<br>da energia'
+            f'<div style="font:500 17px Manrope;color:#4A5568;margin-top:4px">2010 → 2024 <span style="color:#9AA5B1">[1]</span></div></div>'
             f'<div><div class="big" style="color:{SOLAR}">−90 %</div><div class="bl" style="margin-top:4px">solar fotovoltaica</div></div>'
             f'<div><div class="big" style="color:{WIND}">−70 %</div><div class="bl" style="margin-top:4px">eólica terrestre</div></div>'
-            f'</div></div>')
+            f'</div>')
 
 
 def bloco_grafico(x, y, W, H):
@@ -187,7 +187,7 @@ def bloco_grafico(x, y, W, H):
 P = {}
 
 # ---------- V3a · gráfico à esquerda, cargas com fontes convergindo à direita, destaque em faixa
-b = cabeca() + bloco_grafico(110, 352, 980, 340)
+b = cabeca() + bloco_grafico(110, 322, 980, 370)
 b += '<div class="card" style="position:absolute;left:1150px;top:176px;width:660px;height:612px;padding:26px 32px">'
 b += '<div class="h" style="font-size:26px">Cargas pequenas, várias fontes</div>'
 for k, nome, ref, fontes in CARGAS:
