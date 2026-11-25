@@ -160,3 +160,14 @@ Gerador `slides/gerar_slide15.py`, função `p1` (P2 «valor», P3 «hierarquia�
   célula desligada — com salto onde ∂V/∂E não existe).
 - Fonte: Seção 4.4 (eq. 16–18; «com decisões inteiras, a função de valor pode ser não convexa ou descontínua») e 5.3 («os multiplicadores
   duais do MILP não são utilizados como preços»; função por modo terminal). Curvas ESQUEMÁTICAS (no rodapé de referências).
+
+## 15. Slide 16 (deck, novo) — Gerenciamento energético hierárquico MILP–MPC (aprovado) — `slides/slide16_aprovado.html`
+
+Gerador `slides/gerar_slide16.py`, função `h4` (H1–H3 = reinterpretações recusadas: o responsável quis a Fig. 4.1 **idêntica**).
+- Fig. 4.1 do artigo com os MESMOS blocos, textos e cores, só em disposição horizontal (linha central y 430): Entradas do problema (cinza) →
+  contêiner tracejado azul «Gerenciamento energético hierárquico» [Planejamento de horizonte ampliado (MILP) → cápsula cinza itálica
+  «Informação de coordenação (valor futuro / custo terminal)» → Controle preditivo operacional (MPC, MILP) → pílula «Decisão de despacho»]
+  → Sistema elétrico (verde) → Resultados da operação (cinza); laço tracejado «Estado atualizado» do sistema elétrico ao MPC.
+- Etiquetas MILP navy, MPC #3B6FB6, no pé de cada caixa. Pé: «Fig. 4.1 do artigo (Seção 4), em disposição horizontal».
+- Três pontos em colunas (y 745, títulos Gelasio 25, texto 22, filetes): o planejamento não decide · o valor futuro coordena · o MPC decide e
+  se corrige (Seções 4.4 e 5.3).

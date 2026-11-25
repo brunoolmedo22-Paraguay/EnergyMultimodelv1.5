@@ -121,6 +121,14 @@
  },
  {
   "n": 16,
+  "titulo": "Gerenciamento energético hierárquico MILP–MPC",
+  "secao": 2,
+  "html": "slides/slide16_aprovado.html",
+  "pronto": true,
+  "notas": "Juntando as peças: o planejamento de horizonte ampliado, também um MILP, enxerga além da janela e estima o custo de continuar — mas não decide; o plano longo nunca é aplicado. O que ele passa ao MPC é a informação de coordenação: o valor futuro, que entra como custo terminal da janela. O MPC decide o despacho, o sistema elétrico executa, e a decisão seguinte parte do estado realizado, não do planejado."
+ },
+ {
+  "n": 17,
   "titulo": "Desenvolvimento do SEEDS",
   "secao": 3,
   "html": "slides/divisor03.html",
@@ -128,39 +136,39 @@
   "notas": "Separador da seção 03 — Desenvolvimento do SEEDS."
  },
  {
-  "n": 17,
+  "n": 18,
   "titulo": "Arquitetura do SEEDS",
   "secao": 3,
-  "html": "slides/provisorios/p17.html",
+  "html": "slides/provisorios/p18.html",
   "pronto": false,
   "notas": "Uma estratégia escrita para uma composição fixa precisa ser reescrita a cada mudança de equipamento. O SEEDS evita isso: tudo é traduzido numa representação comum, e só ela chega ao EMS."
  },
  {
-  "n": 18,
+  "n": 19,
   "titulo": "Representação energética comum",
   "secao": 3,
-  "html": "slides/provisorios/p18.html",
+  "html": "slides/provisorios/p19.html",
   "pronto": false,
   "notas": "Todos os recursos são expressos no mesmo barramento, em kW líquidos e na mesma malha temporal. Antes de executar, a plataforma verifica se tudo é representável; se faltar um dado, ela aponta a pendência em vez de seguir com um valor presumido."
  },
  {
-  "n": 19,
+  "n": 20,
   "titulo": "Gerenciamento energético hierárquico no SEEDS",
   "secao": 3,
-  "html": "slides/provisorios/p19.html",
+  "html": "slides/provisorios/p20.html",
   "pronto": false,
   "notas": "O planejador responde a uma pergunta: se a janela terminar com tanta energia, quanto custa o resto da operação? Ele resolve o trecho seguinte várias vezes, com energias iniciais diferentes, e entrega uma função linear por partes ao MPC. O plano longo nunca é aplicado; ele só informa."
  },
  {
-  "n": 20,
+  "n": 21,
   "titulo": "Verificação e fluxo de execução",
   "secao": 3,
-  "html": "slides/provisorios/p20.html",
+  "html": "slides/provisorios/p21.html",
   "pronto": false,
   "notas": "Cada solução é conferida por uma verificação independente do solver antes de ser aplicada, e ao fim uma auditoria refaz o balanço e os custos. Todo estudo segue estas cinco etapas — as mesmas que vou mostrar no aplicativo."
  },
  {
-  "n": 21,
+  "n": 22,
   "titulo": "Estudos de caso",
   "secao": 4,
   "html": "slides/divisor04.html",
@@ -168,31 +176,31 @@
   "notas": "Separador da seção 04 — Estudos de caso."
  },
  {
-  "n": 22,
+  "n": 23,
   "titulo": "Estratégia de avaliação",
   "secao": 4,
-  "html": "slides/provisorios/p22.html",
+  "html": "slides/provisorios/p23.html",
   "pronto": false,
   "notas": "Escolhemos dois sistemas com filosofias opostas, as mesmas do início. Na microrrede variamos a composição; na embarcação, o estado da bateria. São estudos computacionais com condições declaradas."
  },
  {
-  "n": 23,
+  "n": 24,
   "titulo": "Microrrede industrial CT-046 (C1–C4)",
   "secao": 4,
-  "html": "slides/provisorios/p23.html",
+  "html": "slides/provisorios/p24.html",
   "pronto": false,
   "notas": "A demanda vem de uma curva real de carga da ANEEL, escolhida porque mantém consumo na ponta, onde a tarifa é 4,4 vezes maior. As quatro configurações compartilham tudo e diferem só nos recursos."
  },
  {
-  "n": 24,
+  "n": 25,
   "titulo": "Embarcação híbrida EMB-H2-120 (C5–C6)",
   "secao": 4,
-  "html": "slides/provisorios/p24.html",
+  "html": "slides/provisorios/p25.html",
   "pronto": false,
   "notas": "A embarcação é hipotética, com perfil de propulsão real. A célula fica ligada; o EMS decide sua potência. O C6 muda só duas coisas: a bateria começa quase vazia e não há reserva final."
  },
  {
-  "n": 25,
+  "n": 26,
   "titulo": "Demonstração do SEEDS",
   "secao": 5,
   "html": "slides/divisor05.html",
@@ -200,15 +208,15 @@
   "notas": "Separador da seção 05 — Demonstração do SEEDS."
  },
  {
-  "n": 26,
+  "n": 27,
   "titulo": "Demonstração do SEEDS — roteiro",
   "secao": 5,
-  "html": "slides/provisorios/p26.html",
+  "html": "slides/provisorios/p27.html",
   "pronto": false,
   "notas": "Uma vez definidos os estudos, vou mostrar como eles são configurados e executados no SEEDS — e reproduzir aqui um dos resultados do artigo."
  },
  {
-  "n": 27,
+  "n": 28,
   "titulo": "Resultados",
   "secao": 6,
   "html": "slides/divisor06.html",
@@ -216,55 +224,55 @@
   "notas": "Separador da seção 06 — Resultados."
  },
  {
-  "n": 28,
+  "n": 29,
   "titulo": "Resultados — custos operacionais (C1–C4)",
   "secao": 6,
-  "html": "slides/provisorios/p28.html",
+  "html": "slides/provisorios/p29.html",
   "pronto": false,
   "notas": "Em C1, a ponta concentrou 13,7 % da energia e 41 % do custo. A FV reduziu o custo quase todo fora da ponta; a bateria atuou na ponta. Juntas: −32,1 % de custo e −56 % de importação na ponta."
  },
  {
-  "n": 29,
+  "n": 30,
   "titulo": "Resultados — operação do armazenamento",
   "secao": 6,
-  "html": "slides/provisorios/p29.html",
+  "html": "slides/provisorios/p30.html",
   "pronto": false,
   "notas": "O banco carregou até praticamente o exato necessário para descarregar a 50 kW durante as três horas de ponta e chegar ao limite às 21 h. Cada kWh entregue na ponta custou 49 centavos, contra R$ 1,94 da rede."
  },
  {
-  "n": 30,
+  "n": 31,
   "titulo": "Resultados — coordenação hierárquica",
   "secao": 6,
-  "html": "slides/provisorios/p30.html",
+  "html": "slides/provisorios/p31.html",
   "pronto": false,
   "notas": "Cada janela cobre duas horas; só a partir das 16:15 a ponta aparecia no horizonte. Mesmo assim, metade da carga foi decidida antes. O único termo que valorizava a energia guardada era o sinal do planejador: o custo futuro fez o controle enxergar além da janela — como a água do SIN."
  },
  {
-  "n": 31,
+  "n": 32,
   "titulo": "Resultados — embarcação híbrida (C5)",
   "secao": 6,
-  "html": "slides/provisorios/p31.html",
+  "html": "slides/provisorios/p32.html",
   "pronto": false,
   "notas": "A célula ficou perto do mínimo e a bateria acompanhou a demanda, porque o hidrogênio por kWh cresce com a potência. A missão terminou com exatamente os 45 kWh exigidos."
  },
  {
-  "n": 32,
+  "n": 33,
   "titulo": "Resultados — papel do armazenamento (C4, C5 e C6)",
   "secao": 6,
-  "html": "slides/provisorios/p32.html",
+  "html": "slides/provisorios/p33.html",
   "pronto": false,
   "notas": "No C6, a célula forneceu 88 % da energia e o hidrogênio quase dobrou — o número que vocês viram no aplicativo. Na microrrede, a bateria desloca energia por horas; na embarcação, dá suporte de potência em minutos."
  },
  {
-  "n": 33,
+  "n": 34,
   "titulo": "Expansibilidade e desempenho computacional",
   "secao": 6,
-  "html": "slides/provisorios/p33.html",
+  "html": "slides/provisorios/p34.html",
   "pronto": false,
   "notas": "Executamos nove composições com o mesmo código, da rede sozinha até duas PEMFC. O problema cresceu de 7 para 217 variáveis, mas formulação, critérios e auditoria não mudaram. Todas as 168 janelas chegaram ao ótimo."
  },
  {
-  "n": 34,
+  "n": 35,
   "titulo": "Conclusões e perspectivas",
   "secao": 7,
   "html": "slides/divisor07.html",
@@ -272,26 +280,26 @@
   "notas": "Separador da seção 07 — Conclusões e perspectivas."
  },
  {
-  "n": 35,
+  "n": 36,
   "titulo": "Conclusões",
   "secao": 7,
-  "html": "slides/provisorios/p35.html",
+  "html": "slides/provisorios/p36.html",
   "pronto": false,
   "notas": "O SEEDS separou a descrição física da estratégia de despacho, e essa separação se sustentou em nove composições. O planejador transmitiu ao controle de curto prazo um custo de continuação com significado econômico verificável, e as decisões foram coerentes com ele nos dois sistemas."
  },
  {
-  "n": 36,
+  "n": 37,
   "titulo": "Perspectivas",
   "secao": 7,
-  "html": "slides/provisorios/p36.html",
+  "html": "slides/provisorios/p37.html",
   "pronto": false,
   "notas": "Os estudos foram feitos em ambiente computacional, com condições declaradas. A plataforma já está estruturada para o passo natural: introduzir diferenças entre previsão e realização e comparar com dados experimentais."
  },
  {
-  "n": 37,
+  "n": 38,
   "titulo": "Agradecimentos",
   "secao": 7,
-  "html": "slides/provisorios/p37.html",
+  "html": "slides/provisorios/p38.html",
   "pronto": false,
   "notas": "Agradeço ao CNPq, aos meus orientadores e à banca. Fico à disposição."
  }
