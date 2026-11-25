@@ -146,9 +146,9 @@ O_QUE_E2 = O_QUE_E.replace("compor microrredes", "compor sistemas elétricos")
 
 def k3v2():
     s = f'<rect x="110" y="172" width="560" height="730" rx="28" fill="{NAVY}"/>'
-    s += f'<image href="../capa/assets/seeds_dark.png" x="150" y="206" width="280" height="87"/>'
-    s += ilustracao(390, 702, 874, 236, 544, r=26, sep=26)
-    html = div(150, 318, 490, O_QUE_E2.replace("#1F7A6D", "#C1FF72").replace("#2E9E6B", "#C1FF72").replace("#2C6FB0", "#C1FF72"),
+    s += f'<image href="../capa/assets/seeds_dark.png" x="150" y="217" width="280" height="87"/>'
+    s += ilustracao(390, 679, 847, 236, 544, r=26, sep=26)
+    html = div(150, 329, 490, O_QUE_E2.replace("#1F7A6D", "#C1FF72").replace("#2E9E6B", "#C1FF72").replace("#2C6FB0", "#C1FF72"),
                "h", "font-size:37px;line-height:1.28;color:#fff")
     linhas = [("O que resolve", "reúne o que a literatura avaliava separado: <b>composição variável</b> e <b>gerenciamento avançado</b>"),
               ("Como", "modelos físicos dos equipamentos → sistema elétrico → <b style=\"white-space:nowrap\">EMS hierárquico MILP–MPC</b> com valor futuro → resultados registrados"),
