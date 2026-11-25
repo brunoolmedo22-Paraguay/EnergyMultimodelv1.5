@@ -38,7 +38,7 @@ ORDEM = [
     ("Arquitetura do SEEDS", 3, "slides/slide18_aprovado.html"),
     ("Representação energética comum", 3, "slides/slide19_aprovado.html"),
     ("Gerenciamento energético hierárquico no SEEDS", 3, "slides/slide20_aprovado.html"),
-    ("Verificação e fluxo de execução", 3, None),
+    ("Verificação e fluxo de execução", 3, "slides/slide21_aprovado.html"),
     ("Estudos de caso", 4, "slides/divisor04.html"),
     ("Estratégia de avaliação", 4, None),
     ("Microrrede industrial CT-046 (C1–C4)", 4, None),
@@ -61,6 +61,7 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Verificação e fluxo de execução": "Todo estudo segue estas cinco etapas: a microrrede, com seu inventário em revisão; e o cenário — estados iniciais, previsões e estratégia — salvo como uma versão imutável. Na execução, o Pyomo com o HiGHS resolve cada janela, uma verificação independente confere a solução e, ao fim, uma auditoria integral. Nada é presumido: o que falta volta como pendência. São exatamente as etapas que vou mostrar no aplicativo.",
     "Gerenciamento energético hierárquico no SEEDS": "Assim isso foi implementado. A cada instante de decisão, o planejador parte do estado executado, resolve um plano longo que nunca é aplicado e reotimiza o trecho após a janela várias vezes, com energias iniciais diferentes: daí sai o sinal de valor futuro, uma função linear por partes por modo das unidades. O MPC verifica esse sinal antes de usá-lo; se não for válido, aplica a degradação declarada. O MILP da janela soma operação e custo futuro, a solução é verificada de forma independente, só os m primeiros intervalos são aplicados, e o custo realizado nunca inclui o custo futuro.",
     "Representação energética comum": "Os recursos são muito diferentes, mas entram no mesmo MILP porque falam a mesma língua: um barramento equivalente, kW líquidos com uma convenção de sinais, potências médias por intervalo e energias nas fronteiras, na mesma malha de tempo. Toda a não linearidade é resolvida antes: a renovável vira um limite superior, a bateria um balanço por banco, a célula uma curva de hidrogênio linear por partes com erro verificado, e a rede só existe com sentidos, limites e tarifas declarados.",
     "Arquitetura do SEEDS": "O SEEDS separa o sistema físico da estratégia de gerenciamento. À esquerda, a modularidade: modelos e catálogos, a configuração de cada microrrede, com revisões, e o cenário operativo. No centro, a integração: tudo vira uma representação energética comum por recurso e passa por uma verificação de compatibilidade. À direita, o EMS hierárquico que acabamos de ver, em malha fechada. Trocar um equipamento muda a instância do problema, não a formulação, e cada resultado fica ligado à revisão e à versão do cenário que o originaram.",

@@ -163,9 +163,9 @@
   "n": 21,
   "titulo": "Verificação e fluxo de execução",
   "secao": 3,
-  "html": "slides/provisorios/p21.html",
-  "pronto": false,
-  "notas": "Cada solução é conferida por uma verificação independente do solver antes de ser aplicada, e ao fim uma auditoria refaz o balanço e os custos. Todo estudo segue estas cinco etapas — as mesmas que vou mostrar no aplicativo."
+  "html": "slides/slide21_aprovado.html",
+  "pronto": true,
+  "notas": "Todo estudo segue estas cinco etapas: a microrrede, com seu inventário em revisão; e o cenário — estados iniciais, previsões e estratégia — salvo como uma versão imutável. Na execução, o Pyomo com o HiGHS resolve cada janela, uma verificação independente confere a solução e, ao fim, uma auditoria integral. Nada é presumido: o que falta volta como pendência. São exatamente as etapas que vou mostrar no aplicativo."
  },
  {
   "n": 22,

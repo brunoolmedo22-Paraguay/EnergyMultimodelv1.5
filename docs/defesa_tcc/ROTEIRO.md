@@ -71,7 +71,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 18 | Arquitetura do SEEDS | 03 | ✔ aprovado (Fig. 5.1 em horizontal + 3 pontos) |
 | 19 | Representação energética comum | 03 | ✔ aprovado |
 | 20 | Gerenciamento energético hierárquico no SEEDS | 03 | ✔ aprovado (Fig. 5.2 + 3 pontos) |
-| 21 | Verificação e fluxo de execução | 03 | a desenhar |
+| 21 | Verificação e fluxo de execução | 03 | ✔ aprovado (Fig. 5.3 + 3 pontos) |
 | 22 | Estudos de caso | 04 | ✔ aprovado |
 | 23 | Estratégia de avaliação | 04 | a desenhar |
 | 24 | Microrrede industrial CT-046 (C1–C4) | 04 | a desenhar |

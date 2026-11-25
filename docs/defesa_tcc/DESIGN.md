@@ -188,3 +188,8 @@ entrelinha 1,55. Faixa «Comum a todos» (y 808). Fonte: Seção 5.2. Frases sem
 
 Gerador `slides/gerar_slide20.py`. Fig. 5.2 idêntica na largura do slide (y 168–750), legenda (y 772) e três pontos (y 808): custo futuro
 por pontos · sinal verificado · realizado ≠ futuro. Caixas 15–19 px (figura inteira).
+
+## 19. Slide 21 — Verificação e fluxo de execução (aprovado) — `slides/slide21_aprovado.html`
+
+Gerador `slides/gerar_slide21.py`. Fig. 5.3 idêntica ampliada (cartões 308 × 380, textos ≥ 22 px), retorno de pendências laranja, legenda;
+três pontos (y 768): nada é presumido · cada decisão é verificada (Pyomo 6.10.1, HiGHS 1.15.1) · cada estudo é reprodutível.
