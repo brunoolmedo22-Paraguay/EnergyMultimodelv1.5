@@ -1,0 +1,20 @@
+# Como continuar a preparação da defesa (passagem de sessão)
+
+Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`.
+
+## Estado
+- Aprovados: capa (`capa/capa_oficial.html`), sumário (`capa/sumario.html`), slide 3 (`slides/slide03_aprovado.html`, gerador `slides/gerar_slide3_v3.py`), slide 4 (`slides/slide04_aprovado.html`, gerador `slides/gerar_slide4_v6.py`, variante H1).
+- PPTX/PDF (`pptx/`) só tem capa + sumário; slides 3–4 ainda não foram passados ao PPTX (fazer depois, em lote).
+- Guia em PDF: `guia/Guia_Defesa_SEEDS.pdf` (fonte `guia/conteudo.py`). Mapa: `ROTEIRO.md`. Sistema visual: `DESIGN.md`.
+- Próximo: slide 5 «Trabalhos relacionados», depois 6…27 (ver `ROTEIRO.md`).
+
+## Como renderizar
+`cd docs/defesa_tcc/slides && python3 gerar_slideN.py && NODE_PATH=$(npm root -g) node render.js ARQ.html` → `png/`. Canvas 1920×1080, fontes em `capa/assets/fonts.css`.
+
+## Preferências do responsável (seguir à risca)
+- Visual, pouco texto; inovar mantendo a identidade (Gelasio títulos, Manrope texto, navy #14213D, teal #1F7A6D, gradiente SEEDS #6DB527→#1E8A72→#0072BA, cores dos recursos do app, rodapé UNILA + número grande).
+- NÃO parecer IA: nada de kicker em CAIXA ALTA + título + subtítulo empilhados; nada de faixa azul de resumo em todo slide; nada de rótulos óbvios («SISTEMA INTERLIGADO NACIONAL» em card). Um título humano por bloco.
+- Gráficos bonitos (áreas suaves, rótulos nas curvas); evitar desenhos tipo Paint.
+- Sempre mostrar 2–4 propostas lado a lado; iterar com feedback; dados só de fontes conferidas (citar; marcar «esquemático» quando for).
+- Valorizar o trabalho (tom de venda, limitações suaves).
+- Conversa em espanhol/portunhol; slides em português.

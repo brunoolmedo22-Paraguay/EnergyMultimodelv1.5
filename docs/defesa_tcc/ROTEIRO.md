@@ -11,7 +11,7 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 | 2 | Sumário | 7 seções; pergunta central | barra de progresso |
 | **I** | **Contexto e objetivos (3:30)** | | |
 | 3 | Contexto ✔ aprovado | LCOE −90 % / −70 % [1]; eólica + solar 2011–2025, 0,5 % → 26,4 % [3]; cargas pequenas com várias fontes [3–6]; «Várias fontes … exigem coordenação» | → 4 |
-| 4 | Decisões com consequências futuras | SIN (NEWAVE→DECOMP→DESSEM, custo futuro da água) × microrrede; conectada → custo, isolada → atendimento | → 10, 15, 21, 25 |
+| 4 | Decisões com consequências futuras ✔ aprovado (S4v6_H1) | «Conceito de valor da água» (custo imediato × futuro, adaptado ONS 2020 Fig. 3.15; eixo = usar agora ← → guardar depois) + NEWAVE→DECOMP→DESSEM; «Na microrrede, o mesmo dilema»: energia → falta na ponta (tarifa), célula → tempo mínimo; conectada × isolada | → 10, 15, 21, 25 |
 | 5 | Trabalhos relacionados | EMS MILP–MPC (composição fixa) × simuladores (estratégias predefinidas); lacuna (texto do artigo) | aux. literatura |
 | 6 | Objetivos e contribuições | pergunta, objetivo geral, específicos, pilares A e B | → 25 |
 | **II** | **Fundamentação e SEEDS (8:00)** | | |
