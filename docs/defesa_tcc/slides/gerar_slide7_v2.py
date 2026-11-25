@@ -115,19 +115,18 @@ if __name__ == "__main__":
 from gerar_slide7 import SOLAR, WIND, PEM, BAT, REDE  # noqa: E402
 
 
-def ilustracao(cx, y0, y1, xl, xr):
+def ilustracao(cx, y0, y1, xl, xr, r=37, sep=34):
     """Barramento vertical com o gradiente SEEDS; recursos à esquerda (fontes) e à direita (bateria, rede),
     ligados por curvas suaves com um traço de fluxo perto do barramento (como a referência do responsável)."""
     o = (f'<linearGradient id="gbv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{G1}"/>'
          f'<stop offset=".55" stop-color="{G2}"/><stop offset="1" stop-color="{G3}"/></linearGradient>')
-    esq = [("sun", SOLAR, y0 + 30), ("wind", WIND, (y0 + y1) / 2), ("h2", PEM, y1 - 30)]
-    dir_ = [("bat", BAT, y0 + 70), ("grid", REDE, y1 - 70)]
-    r = 37
+    esq = [("sun", SOLAR, y0 + r * .8), ("wind", WIND, (y0 + y1) / 2), ("h2", PEM, y1 - r * .8)]
+    dir_ = [("bat", BAT, y0 + (y1 - y0) * .28), ("grid", REDE, y1 - (y1 - y0) * .28)]
     for lado, itens in ((-1, esq), (1, dir_)):
         for j, (k, c, yy) in enumerate(itens):
             xn = xl if lado < 0 else xr
-            yb = (y0 + y1) / 2 + (j - (len(itens) - 1) / 2) * 34      # chegada no barramento
-            xb = cx + lado * 13
+            yb = (y0 + y1) / 2 + (j - (len(itens) - 1) / 2) * sep      # chegada no barramento
+            xb = cx + lado * 11
             x0 = xn - lado * r
             d = f"M{x0} {yy} C{(x0+xb)/2} {yy}, {(x0+xb)/2 + lado*20} {yb}, {xb} {yb}"
             o += f'<path d="{d}" fill="none" stroke="{c}" stroke-width="3.5" stroke-opacity=".55"/>'
@@ -135,23 +134,26 @@ def ilustracao(cx, y0, y1, xl, xr):
             o += (f'<path d="{d}" fill="none" stroke="{c}" stroke-width="6" stroke-linecap="round" '
                   f'pathLength="100" stroke-dasharray="7 100" stroke-dashoffset="-78"/>')
             o += f'<circle cx="{xn}" cy="{yy}" r="{r}" fill="{c}" fill-opacity=".18" stroke="{c}" stroke-opacity=".55" stroke-width="2"/>'
-            o += ic(k, xn - 21, yy - 21, 42, c)
-    o += f'<rect x="{cx-13}" y="{y0-10}" width="26" height="{y1-y0+20}" rx="13" fill="url(#gbv)"/>'
+            o += ic(k, xn - r * .57, yy - r * .57, r * 1.14, c)
+    o += f'<rect x="{cx-11}" y="{y0-10}" width="22" height="{y1-y0+20}" rx="11" fill="url(#gbv)"/>'
     for t in range(6):
         o += f'<circle cx="{cx}" cy="{y0 + 14 + t*(y1-y0-8)/5}" r="2.5" fill="#fff" opacity=".55"/>'
     return o
 
 
+O_QUE_E2 = O_QUE_E.replace("compor microrredes", "compor sistemas elétricos")
+
+
 def k3v2():
     s = f'<rect x="110" y="172" width="560" height="730" rx="28" fill="{NAVY}"/>'
     s += f'<image href="../capa/assets/seeds_dark.png" x="150" y="206" width="280" height="87"/>'
-    s += ilustracao(390, 352, 602, 205, 575)
-    html = div(150, 676, 480, O_QUE_E.replace("#1F7A6D", "#C1FF72").replace("#2E9E6B", "#C1FF72").replace("#2C6FB0", "#C1FF72"),
-               "h", "font-size:31px;line-height:1.3;color:#fff")
+    s += ilustracao(390, 702, 874, 236, 544, r=26, sep=26)
+    html = div(150, 318, 490, O_QUE_E2.replace("#1F7A6D", "#C1FF72").replace("#2E9E6B", "#C1FF72").replace("#2C6FB0", "#C1FF72"),
+               "h", "font-size:37px;line-height:1.28;color:#fff")
     linhas = [("O que resolve", "reúne o que a literatura avaliava separado: <b>composição variável</b> e <b>gerenciamento avançado</b>"),
-              ("Como", "modelos físicos dos equipamentos → microrrede → <b style=\"white-space:nowrap\">EMS hierárquico MILP–MPC</b> com valor futuro → resultados registrados"),
-              ("O que oferece", "compor microrredes diferentes, operá-las com o mesmo EMS, <b>comparar e reproduzir</b> resultados"),
-              ("Para quem", "quem <b>pesquisa</b>, <b>ensina</b>, <b>projeta</b> ou <b>opera</b> microrredes")]
+              ("Como", "modelos físicos dos equipamentos → sistema elétrico → <b style=\"white-space:nowrap\">EMS hierárquico MILP–MPC</b> com valor futuro → resultados registrados"),
+              ("O que oferece", "compor sistemas elétricos diferentes, operá-los com o mesmo EMS, <b>comparar e reproduzir</b> resultados"),
+              ("Para quem", "quem <b>pesquisa</b>, <b>ensina</b>, <b>projeta</b> ou <b>opera</b> sistemas elétricos")]
     X, y0, dy = 720, 172, 182.5
     for i, (q, r) in enumerate(linhas):
         y = y0 + i * dy
