@@ -29,7 +29,8 @@ ORDEM = [
     ("Fundamentação teórica", 2, "slides/divisor02.html"),
     ("Modelagem dos recursos energéticos", 2, "slides/slide08_aprovado.html"),
     ("Modelagem dos recursos energéticos (2/2)", 2, "slides/slide09_aprovado.html"),
-    ("Programação linear inteira mista (MILP)", 2, None),
+    ("Programação linear inteira mista (MILP)", 2, "slides/slide12_aprovado.html"),
+    ("O MILP da microrrede", 2, "slides/slide13_aprovado.html"),
     ("Controle preditivo baseado em modelo (MPC)", 2, None),
     ("Coordenação hierárquica e valor futuro", 2, None),
     ("Desenvolvimento do SEEDS", 3, "slides/divisor03.html"),
@@ -59,6 +60,8 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Programação linear inteira mista (MILP)": "As decisões têm duas naturezas: quanto e sim ou não. A célula, por exemplo, ou está desligada ou opera entre 10 e 50 kW — um conjunto que a programação linear não representa, mas uma binária sim. É a mesma ferramenta que o ONS usa no DESSEM para a programação diária.",
+    "O MILP da microrrede": "Na nossa microrrede, cada recurso entra no balanço do barramento com as suas variáveis: potências contínuas e, quando há escolha, uma binária. O objetivo soma o custo de importação, o hidrogênio e as partidas e paradas.",
     "Modelagem dos recursos energéticos (2/2)": "O banco de baterias entra como balanço de energia entre fronteiras; a rede, como intercâmbio com tarifas no ponto de acoplamento comum — numa microrrede isolada, esses termos não existem.",
 }
 PROV = """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>{css}

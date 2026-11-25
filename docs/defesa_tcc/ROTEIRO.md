@@ -45,7 +45,7 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 
 Slides auxiliares (arguição): ver `ROTEIRO_DETALHADO_v1.md` (A1–A15), a reorganizar.
 
-## Ordem do deck (36 slides; fonte: `pptx/deck.py`)
+## Ordem do deck (37 slides; fonte: `pptx/deck.py`)
 
 A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **vigente** do deck, com os separadores de seção, é esta:
 
@@ -62,28 +62,29 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 9 | Fundamentação teórica | 02 | ✔ aprovado |
 | 10 | Modelagem dos recursos energéticos | 02 | ✔ aprovado |
 | 11 | Modelagem dos recursos energéticos (2/2) | 02 | ✔ aprovado |
-| 12 | Programação linear inteira mista (MILP) | 02 | a desenhar |
-| 13 | Controle preditivo baseado em modelo (MPC) | 02 | a desenhar |
-| 14 | Coordenação hierárquica e valor futuro | 02 | a desenhar |
-| 15 | Desenvolvimento do SEEDS | 03 | ✔ aprovado |
-| 16 | Arquitetura do SEEDS | 03 | a desenhar |
-| 17 | Representação energética comum | 03 | a desenhar |
-| 18 | Gerenciamento energético hierárquico no SEEDS | 03 | a desenhar |
-| 19 | Verificação e fluxo de execução | 03 | a desenhar |
-| 20 | Estudos de caso | 04 | ✔ aprovado |
-| 21 | Estratégia de avaliação | 04 | a desenhar |
-| 22 | Microrrede industrial CT-046 (C1–C4) | 04 | a desenhar |
-| 23 | Embarcação híbrida EMB-H2-120 (C5–C6) | 04 | a desenhar |
-| 24 | Demonstração do SEEDS | 05 | ✔ aprovado |
-| 25 | Demonstração do SEEDS — roteiro | 05 | a desenhar |
-| 26 | Resultados | 06 | ✔ aprovado |
-| 27 | Resultados — custos operacionais (C1–C4) | 06 | a desenhar |
-| 28 | Resultados — operação do armazenamento | 06 | a desenhar |
-| 29 | Resultados — coordenação hierárquica | 06 | a desenhar |
-| 30 | Resultados — embarcação híbrida (C5) | 06 | a desenhar |
-| 31 | Resultados — papel do armazenamento (C4, C5 e C6) | 06 | a desenhar |
-| 32 | Expansibilidade e desempenho computacional | 06 | a desenhar |
-| 33 | Conclusões e perspectivas | 07 | ✔ aprovado |
-| 34 | Conclusões | 07 | a desenhar |
-| 35 | Perspectivas | 07 | a desenhar |
-| 36 | Agradecimentos | 07 | a desenhar |
+| 12 | Programação linear inteira mista (MILP) | 02 | ✔ aprovado |
+| 13 | O MILP da microrrede | 02 | ✔ aprovado |
+| 14 | Controle preditivo baseado em modelo (MPC) | 02 | a desenhar |
+| 15 | Coordenação hierárquica e valor futuro | 02 | a desenhar |
+| 16 | Desenvolvimento do SEEDS | 03 | ✔ aprovado |
+| 17 | Arquitetura do SEEDS | 03 | a desenhar |
+| 18 | Representação energética comum | 03 | a desenhar |
+| 19 | Gerenciamento energético hierárquico no SEEDS | 03 | a desenhar |
+| 20 | Verificação e fluxo de execução | 03 | a desenhar |
+| 21 | Estudos de caso | 04 | ✔ aprovado |
+| 22 | Estratégia de avaliação | 04 | a desenhar |
+| 23 | Microrrede industrial CT-046 (C1–C4) | 04 | a desenhar |
+| 24 | Embarcação híbrida EMB-H2-120 (C5–C6) | 04 | a desenhar |
+| 25 | Demonstração do SEEDS | 05 | ✔ aprovado |
+| 26 | Demonstração do SEEDS — roteiro | 05 | a desenhar |
+| 27 | Resultados | 06 | ✔ aprovado |
+| 28 | Resultados — custos operacionais (C1–C4) | 06 | a desenhar |
+| 29 | Resultados — operação do armazenamento | 06 | a desenhar |
+| 30 | Resultados — coordenação hierárquica | 06 | a desenhar |
+| 31 | Resultados — embarcação híbrida (C5) | 06 | a desenhar |
+| 32 | Resultados — papel do armazenamento (C4, C5 e C6) | 06 | a desenhar |
+| 33 | Expansibilidade e desempenho computacional | 06 | a desenhar |
+| 34 | Conclusões e perspectivas | 07 | ✔ aprovado |
+| 35 | Conclusões | 07 | a desenhar |
+| 36 | Perspectivas | 07 | a desenhar |
+| 37 | Agradecimentos | 07 | a desenhar |

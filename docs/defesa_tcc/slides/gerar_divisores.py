@@ -28,7 +28,7 @@ SUB = {
         "Embarcação híbrida (C5)", "Papel do armazenamento (C4, C5 e C6)", "Expansibilidade e desempenho computacional"],
     7: ["Conclusões", "Perspectivas", "Agradecimentos"],
 }
-PN = {1: 3, 2: 9, 3: 15, 4: 20, 5: 24, 6: 26, 7: 33}     # posição no deck de 36 slides (ver pptx/deck.json)
+PN = {1: 3, 2: 9, 3: 16, 4: 21, 5: 25, 6: 27, 7: 34}     # posição no deck de 36 slides (ver pptx/deck.json)
 CSSD = CSS + """
 .d{position:absolute}
 .big{font:700 86px/1.05 "Gelasio",Georgia,serif;color:#14213D}

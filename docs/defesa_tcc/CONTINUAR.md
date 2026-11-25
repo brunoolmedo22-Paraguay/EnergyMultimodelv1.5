@@ -10,7 +10,8 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`.
 - **Bloco I concluído** (slides 1–7; 4:20; margem reduzida para 0:35). PPTX `pptx/SEEDS_Defesa_TCC.pptx`: capa e sumário nativos; slides 3–7 como imagem 3840 × 2160 (`pptx/img_hd/`) com a fala nas notas; 8–28 em branco. PDF vetorial do bloco I: `pptx/SEEDS_Defesa_TCC_Bloco_I.pdf`.
 - Regerar: `cd pptx && NODE_PATH=$(npm root -g) node exportar_bloco1.js` (PNG HD + PDF dos HTML aprovados; acrescentar novos slides à lista `PAGS`) e depois `NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <skill pptx>/scripts/apply_theme.js` (usa `img_hd/slideNN.png` quando existir; notas em `notas_bloco1.json`).
 - Guia em PDF: `guia/Guia_Defesa_SEEDS.pdf` (fonte `guia/conteudo.py`). Mapa: `ROTEIRO.md`. Sistema visual: `DESIGN.md`.
-- **Deck: 36 slides** (ordem em `pptx/deck.py` → `deck.json`). Aprovados: 1–11 (inclui separadores 01 e 02, modelagem em 2 slides) + separadores 03–07. Próximo: slide 12 «Programação linear inteira mista (MILP)». (ver `ROTEIRO.md`).
+- **Deck: 37 slides** (ordem em `pptx/deck.py` → `deck.json`). Aprovados: 1–13 (separadores 01 e 02; modelagem em 2 slides; MILP em 2: «por que MILP» + «o MILP da microrrede», `slides/gerar_slide12_v2.py`) + separadores 03–07. Próximo: slide 14 «Controle preditivo baseado em modelo (MPC)».
+- DESSEM (ONS/CCEE) formulado como MILP: [10] Santos et al. (PSCC 2020/EPSR 189) e notas do CEPEL — conferido por busca; confirmar a frase no PDF de [10]. (ver `ROTEIRO.md`).
 
 ## Como renderizar
 `cd docs/defesa_tcc/slides && python3 gerar_slideN.py && NODE_PATH=$(npm root -g) node render.js ARQ.html` → `png/`. Canvas 1920×1080, fontes em `capa/assets/fonts.css`.

@@ -92,15 +92,26 @@ def slide_a():
     s += f'<path d="M{px(1.6)} {ly} H{px(8.4)}" stroke="#fff" stroke-width="0"/>'
     html += eq("set", x + 20, y0 + 256, w - 40, 60, 19)
     html += div(x + 36, y0 + 326, w - 72, None, "Um conjunto com um buraco não é convexo: a programação linear não o representa; uma binária <b>u</b> sim.", "p", "font-size:16.5px")
-    # 2 · ótimo comprovado e rápido
+    # 2 · contínuas e discretas no mesmo problema
     x = xs[1]
     s += f'<rect x="{x}" y="{y0}" width="{w}" height="{h}" rx="24" fill="{LIGHT}"/>'
     s += f'<circle cx="{x+46}" cy="{y0+52}" r="22" fill="{NAVY}"/>' + T(x + 46, y0 + 60, "2", 22, 700, "#fff", "Gelasio", anchor="middle")
-    s += T(x + 84, y0 + 46, "Ótimo comprovado", 26, 700, NAVY, "Gelasio") + T(x + 84, y0 + 74, "o solver prova a otimalidade de cada janela", 16, 600, SLATE)
-    for i, (num, rot) in enumerate((("168", "de 168 janelas resolvidas até a otimalidade na bancada de expansibilidade"), ("≤ 0,42 s", "por janela do MPC nos estudos C1 a C5, sem tolerância de gap"))):
-        yy = y0 + 160 + i * 116
-        s += T(x + 40, yy, num, 58, 700, TEAL, "Gelasio")
-        html += div(x + 40, yy + 10, w - 80, None, rot, "p", "font-size:17px")
+    s += T(x + 84, y0 + 46, "Contínuas e discretas juntas", 26, 700, NAVY, "Gelasio") + T(x + 84, y0 + 74, "um único problema para as duas decisões", 16, 600, SLATE)
+    # «quanto»: controle deslizante
+    ys = y0 + 130
+    s += T(x + 40, ys - 14, "quanto", 17, 800, CT)
+    s += f'<line x1="{x+40}" x2="{x+w-40}" y1="{ys+14}" y2="{ys+14}" stroke="#C9D3DD" stroke-width="6" stroke-linecap="round"/>'
+    s += f'<line x1="{x+40}" x2="{x+330}" y1="{ys+14}" y2="{ys+14}" stroke="{CT}" stroke-width="6" stroke-linecap="round"/>'
+    s += f'<circle cx="{x+330}" cy="{ys+14}" r="13" fill="#fff" stroke="{CT}" stroke-width="4"/>'
+    s += T(x + 40, ys + 52, "potência de cada fonte, energia armazenada", 16, 600, SLATE)
+    # «sim ou não»: três interruptores
+    s += T(x + 40, ys + 104, "sim ou não", 17, 800, BN)
+    for k_, (rot, lig) in enumerate((("máquina ligada ou desligada", True), ("bateria carrega ou descarrega", True), ("rede importa ou exporta", False))):
+        yy = ys + 126 + k_ * 44
+        tw, th = 52, 28
+        s += f'<rect x="{x+40}" y="{yy}" width="{tw}" height="{th}" rx="{th/2}" fill="{BN if lig else "#fff"}" stroke="{BN}" stroke-width="2.5"/>'
+        s += f'<circle cx="{x+40+(tw-th/2 if lig else th/2)}" cy="{yy+th/2}" r="{th/2-5}" fill="{"#fff" if lig else BN}"/>'
+        s += T(x + 108, yy + 21, rot, 17, 600, NAVY)
     # 3 · prática do setor
     x = xs[2]
     s += f'<rect x="{x}" y="{y0}" width="{w}" height="{h}" rx="24" fill="{LIGHT}"/>'
@@ -116,7 +127,7 @@ def slide_a():
     html += div(x + 40, cy + 196, w - 80, None, "Em microrredes, o mesmo tipo de formulação é aplicado ao despacho com restrições operacionais [17].", "p", "font-size:17px")
     s += f'<line x1="{x+40}" x2="{x+w-40}" y1="{cy+186}" y2="{cy+186}" stroke="#DCE3E2" stroke-width="1.5"/>'
     salvar("S12v2_A_porque", "Programação linear inteira mista (MILP)", s, html,
-           "eq. 9 do artigo · [10] Santos et al. (DESSEM) · [17] Parisio, Rikos e Glielmo · números: Tabelas 6.2–6.3 e Seção 7.4 do artigo", 12)
+           "eq. 9 do artigo · [10] Santos et al. (DESSEM) · [17] Parisio, Rikos e Glielmo · PEMFC de 10 a 50 kW: Tabela 6.3", 12)
 
 
 # ===================================================================== B · o MILP da microrrede
