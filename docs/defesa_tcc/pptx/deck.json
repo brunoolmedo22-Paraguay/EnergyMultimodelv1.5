@@ -139,9 +139,9 @@
   "n": 18,
   "titulo": "Arquitetura do SEEDS",
   "secao": 3,
-  "html": "slides/provisorios/p18.html",
-  "pronto": false,
-  "notas": "Uma estratégia escrita para uma composição fixa precisa ser reescrita a cada mudança de equipamento. O SEEDS evita isso: tudo é traduzido numa representação comum, e só ela chega ao EMS."
+  "html": "slides/slide18_aprovado.html",
+  "pronto": true,
+  "notas": "O SEEDS separa o sistema físico da estratégia de gerenciamento. À esquerda, a modularidade: modelos e catálogos, a configuração de cada microrrede, com revisões, e o cenário operativo. No centro, a integração: tudo vira uma representação energética comum por recurso e passa por uma verificação de compatibilidade. À direita, o EMS hierárquico que acabamos de ver, em malha fechada. Trocar um equipamento muda a instância do problema, não a formulação, e cada resultado fica ligado à revisão e à versão do cenário que o originaram."
  },
  {
   "n": 19,

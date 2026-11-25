@@ -171,3 +171,9 @@ Gerador `slides/gerar_slide16.py`, função `h4` (H1–H3 = reinterpretações r
 - Etiquetas MILP navy, MPC #3B6FB6, no pé de cada caixa. Pé: «Fig. 4.1 do artigo (Seção 4), em disposição horizontal».
 - Três pontos em colunas (y 745, títulos Gelasio 25, texto 22, filetes): o planejamento não decide · o valor futuro coordena · o MPC decide e
   se corrige (Seções 4.4 e 5.3).
+
+## 16. Slide 18 — Arquitetura do SEEDS (aprovado) — `slides/slide18_aprovado.html`
+
+Gerador `slides/gerar_slide18.py`. Fig. 5.1 idêntica em três colunas (Modularidade verde · Integração cinza com cabeçalho escuro da
+representação comum · EMS hierárquico azul + simulação + resultados), mesmos rótulos de setas, retornos laranja tracejados e legenda.
+Textos das caixas 16–22 px (figura inteira). Três pontos embaixo (y 800): físico separado da estratégia · representação comum · rastreáveis.

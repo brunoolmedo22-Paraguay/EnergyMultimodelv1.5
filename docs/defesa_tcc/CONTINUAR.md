@@ -4,14 +4,14 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 
 ## Estado (25/11/2026)
 - **Deck: 38 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
-- **Aprovados (21):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
-  7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) ·
+- **Aprovados (22):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+  7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) · 18 Arquitetura do SEEDS (Fig. 5.1) ·
   separadores 03–07 (17, 22, 26, 28, 35).
-- **Próximo: slide 18 «Arquitetura do SEEDS»** (bloco 03; Seção 5.1, Fig. 5.1), depois 19 Representação energética comum (5.2),
+- **Próximo: slide 19 «Representação energética comum»** (Seção 5.2),
   20 EMS hierárquico no SEEDS (5.3: reotimização paramétrica do custo futuro, função por modo, sinal de valor futuro, verificação — é o
   «como» do slide 15; não repetir o conceito do 16) e 21 Verificação e fluxo de execução (Fig. 5.3). Plano em `PLANO_BLOCO_II.md`.
 - Geradores aprovados: `slides/gerar_slide3_v3.py`, `gerar_slide4_v6.py` (H1), `gerar_slide5_v4.py` (E1), `gerar_slide6.py` (`g6_final`),
-  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`),
+  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`,
   `gerar_divisores.py` (V1). Cópias congeladas: `slides/slideNN_aprovado.html` (numeração antiga no nome) e `slides/divisor0N.html`.
 
 ## Fontes
@@ -63,6 +63,7 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 - Motivo recorrente: **barramento SEEDS** com recursos pendurados (círculo + haste com seta) e cartões claros (#EEF3F2, raio 24).
 - NÃO parecer IA: nada de kicker em CAIXA ALTA + título + subtítulo; nada de faixa azul de resumo; nada de rótulos óbvios; nada de ícones
   decorativos em listas de texto (ele pediu explicitamente para tirar). Um título humano por bloco. Frases começam com maiúscula.
+- Figuras do artigo (Fig. 4.1, 5.1…): reproduzir IDÊNTICAS (mesmos blocos/textos/cores), só em horizontal, + 3 pontos em colunas embaixo.
 - Equações sempre em LaTeX, numeradas como no artigo; unidades só dos resultados (não de cada variável), salvo quando ele pedir.
 - Resultados (números de desempenho) não entram em slides de fundamentação — vão para o bloco de resultados.
 - Gráficos bonitos (áreas suaves, rótulos nas curvas); nada de desenho tipo Paint; tudo centrado e bem distribuído nos cartões.
