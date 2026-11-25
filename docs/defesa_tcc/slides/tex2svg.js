@@ -11,7 +11,7 @@ const doc = mathjax.document('', { InputJax: new TeX({ packages: AllPackages }),
 let inp = ''; process.stdin.on('data', d => inp += d).on('end', () => {
   const src = JSON.parse(inp), out = {};
   for (const [k, tex] of Object.entries(src)) {
-    const node = doc.convert(tex, { display: true });
+    const node = doc.convert(tex, { display: !k.startsWith('i_') });
     out[k] = adaptor.innerHTML(node);
   }
   process.stdout.write(JSON.stringify(out));
