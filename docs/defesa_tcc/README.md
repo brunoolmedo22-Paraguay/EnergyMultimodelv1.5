@@ -17,3 +17,4 @@ Gerenciamento Energético Hierárquico Baseado em MILP–MPC* (UNILA, 9/12/2026)
 | `guia/Guia_Defesa_SEEDS.pdf` | guia completo slide a slide (título, mensagem, tela, motivo, vínculos, fala-guia); fonte em `guia/conteudo.py` |
 | `slides/slide03_aprovado.html`, `slides/png/slide03_aprovado.png` | slide 3 (Contexto) **aprovado**; gerador `slides/gerar_slide3_v3.py`; fontes originais em `slides/fonte_*` |
 | `slides/slide05_aprovado.html`, `slides/png/slide05_aprovado.png` | slide 5 (Trabalhos relacionados) **aprovado**; gerador `slides/gerar_slide5_v4.py` |
+| `slides/slide06_aprovado.html`, `slides/png/slide06_aprovado.png` | slide 6 (Objetivos e contribuições) **aprovado**; gerador `slides/gerar_slide6.py` (`g6_final`) |

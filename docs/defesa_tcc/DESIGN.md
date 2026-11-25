@@ -119,3 +119,10 @@ Gerador: `slides/gerar_slide5_v4.py` (variante `S5v4_E1`; usa `gerar_slide5.py`,
 - Simuladores: barramento centrado com recursos (eólica e H₂ tracejados = entram e saem) e duas colunas com divisor.
 - Ponto forte de cada lado (ícone colorido) e limitação no pé (cinza `#9AA5B1`), à mesma altura nos dois cartões.
 - Tracejado teal do SEEDS para «A lacuna: não se identificou uma abordagem que reunisse» + três partes com círculos G1/G2/G3.
+
+## 10. Slide 6 — Objetivos e contribuições (aprovado) — `slides/slide06_aprovado.html` · `slides/png/slide06_aprovado.png`
+
+Gerador: `slides/gerar_slide6.py`, função `g6_final` (as propostas G1–G4 e H1/H2 ficam no mesmo arquivo).
+- «Objetivo geral» (Gelasio 700, 26 px, teal) e o texto do artigo em Gelasio 700, 33 px, navy, largura 1700; filete de 5 px com o gradiente SEEDS em y 384.
+- Cartão navy (x 110, y 420, 640 × 482, raio 28) só com a pergunta (Gelasio 700, 40 px, branco; trechos-chave em lima `#C1FF72`), centrada na vertical.
+- «Objetivos específicos» (Gelasio 700, 28 px) + 4 linhas (passo 105 px) entre filetes: caixa vazia 40 px (contorno teal), número 0N (Gelasio 40; verde `#2E9E6B` para composição, azul `#2C6FB0` para o EMS, teal no 03), texto Gelasio 700, 26 px.

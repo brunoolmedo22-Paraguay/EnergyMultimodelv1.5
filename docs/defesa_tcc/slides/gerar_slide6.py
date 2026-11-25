@@ -254,3 +254,31 @@ def g4v2(nome, estilo):
 
 g4v2("S6v2_H1_cartao", "cartao")
 g4v2("S6v2_H2_aberto", "aberto")
+
+
+# ===================================================================== v3 (APROVADO): H2 com objetivo geral todo em negrito escuro,
+# sem ícones nos objetivos específicos e sem o «?» — só a pergunta.
+def g6_final(nome="S6v3_final"):
+    s = T(110, 218, "Objetivo geral", 26, 700, TEAL, "Gelasio")
+    html = div(110, 236, 1700, OG, "ogg", "font-size:33px;font-weight:700;color:#14213D")
+    s += f'<rect x="110" y="384" width="1700" height="5" rx="2.5" fill="url(#gb)"/>'
+    y0 = 420
+    s += f'<rect x="110" y="{y0}" width="640" height="{902-y0}" rx="28" fill="{NAVY}"/>'
+    perg = PERG.replace('class="b"', 'style="color:#C1FF72"').replace('class="a"', 'style="color:#C1FF72"')
+    html += div(150, y0, 570, f"<div>{perg}</div>", "perg",
+                f"font-size:40px;line-height:1.32;color:#fff;height:{902-y0}px;display:flex;align-items:center")
+    X = 810
+    s += T(X, y0 + 34, "Objetivos específicos", 28, 700, NAVY, "Gelasio")
+    yl, dy = y0 + 62, 105
+    for i, (n, ics, p, txt) in enumerate(OBJ):
+        y = yl + i * dy
+        c = COR[p] if p != "AB" else G2
+        s += f'<line x1="{X}" x2="1810" y1="{y}" y2="{y}" stroke="{LINE}" stroke-width="1.5"/>'
+        s += f'<rect x="{X}" y="{y+32}" width="40" height="40" rx="10" fill="#fff" stroke="{TEAL}" stroke-width="3"/>'
+        s += T(X + 70, y + 68, f"0{n}", 40, 700, c, "Gelasio")
+        html += div(X + 152, y + 22, 840, txt, "ot", "font-size:26px")
+    s += f'<line x1="{X}" x2="1810" y1="{yl+4*dy}" y2="{yl+4*dy}" stroke="{LINE}" stroke-width="1.5"/>'
+    salvar(nome, s, html)
+
+
+g6_final()
