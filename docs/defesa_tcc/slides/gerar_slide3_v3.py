@@ -16,12 +16,17 @@ SOLAR, WIND, PEM, BAT, REDE, NAVY, SLATE, TEAL = "#D9A21B", "#4C8DD6", "#1BA39C"
 ANOS = list(range(2016, 2026))
 MMGD = [48, 161, 533, 1648, 4764, 9019, 17378, 29813, 41006, 53144]   # GWh (2016–2019 lidos do gráfico vetorial)
 ROTULADO = {2020, 2021, 2022, 2023, 2024, 2025}
-# Geração eólica + solar (TWh) e participação na geração total (%) — BEN 2026, p. 43 (gráfico sem rótulos por ano; lido do
-# desenho vetorial, escala calibrada por 2025 = 116,5 + 88,1 TWh, p. 50; conferência: participação 2025 = 26,4 % (rótulo),
-# 2024 = 23,8 % × 23,7 % no texto do BEN; 2024 ≈ 107,7 + 70,7 = 178,4 TWh pelas taxas de crescimento publicadas).
+# Geração eólica e solar (TWh) e participação na geração total (%) — OFICIAL: EPE, BEN Séries Históricas Completas,
+# «Capítulo 5 (Balanço dos Centros de Transformação) – 1970 a 2025.xlsx», TABELA 5.3 (Centrais elétricas – total, serviço
+# público + autoprodução), linhas «GERAÇÃO DE ELETRICIDADE GWh», «EÓLICA», «SOLAR» (solar inclui MMGD: 2025 = 88.140 GWh).
 ANOS_ES = list(range(2007, 2026))
-ES = [0.4, 1.2, 1.2, 2.5, 2.9, 4.9, 6.5, 12.2, 22.0, 33.4, 43.2, 51.8, 62.4, 67.7, 89.3, 112.1, 146.7, 178.5, 204.6]
-PART = [0.1, 0.3, 0.3, 0.5, 0.5, 0.9, 1.1, 2.1, 3.8, 5.7, 7.3, 8.5, 9.9, 10.8, 13.6, 16.5, 20.7, 23.8, 26.4]
+EOL_GWH = [662.8, 1183, 1238, 2177, 2704.5, 5050.0, 6578.4, 12240.3, 21625.7, 33488.9, 42373.3, 48475.1, 55985.6, 57050.7, 72286.0, 81631.6, 95800.7, 107654.0, 116488.3]
+SOL_GWH = [0, 0, 0, 0, 0, 1.6, 4.8, 16.1, 58.9, 85.3, 831.8, 3461.4, 6654.6, 10748.3, 16752.3, 30126.5, 50632.9, 70664.7, 88140.5]
+TOT_GWH = [445148.9, 463171.6, 466158.1, 515798.7, 531758.2, 557939.1, 577364.0, 596286.4, 586646.8, 584059.0, 595574.3, 607203.1, 633032.6, 628763.7, 656380.5, 677150.1, 708119.2, 751335.5, 775895.9]
+EOL = [v / 1000 for v in EOL_GWH]
+SOL = [v / 1000 for v in SOL_GWH]
+ES = [e + s_ for e, s_ in zip(EOL, SOL)]
+PART = [100 * (e + s_) / t for e, s_, t in zip(EOL_GWH, SOL_GWH, TOT_GWH)]   # 2007 0,15 % · 2016 5,75 % · 2025 26,40 %
 
 ICON = {
  "sun": '<circle cx="20" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="3"/><g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M8 32l3.5-3.5M28.5 11.5L32 8"/></g>',
@@ -86,7 +91,14 @@ def grafico_es(W, H, fs_lab=26):
     s.append(f'<line x1="{pl}" x2="{W-pr}" y1="{y(0)}" y2="{y(0)}" stroke="#C9D3DD" stroke-width="1.5"/>')
     for i, (a, v, p) in enumerate(zip(ANOS_ES, ES, PART)):
         cx = pl + gw * (i + .5); bx = cx - bw / 2; h = max(y(0) - y(v), 2); r = min(5, h / 2)
-        s.append(f'<path d="M{bx} {y(0)} V{y(0)-h+r} q0 -{r} {r} -{r} h{bw-2*r} q{r} 0 {r} {r} V{y(0)} Z" fill="#1E8A72"/>')
+        he = max(y(0) - y(EOL[i]), 0); hs = y(0) - y(SOL[i])
+        if hs >= 1.5:   # solar em cima (cantos arredondados), eólica embaixo, 2 px de separação
+            s.append(f'<rect x="{bx}" y="{y(0)-he}" width="{bw}" height="{he}" fill="{WIND}"/>')
+            r2 = min(5, hs / 2)
+            ys = y(0) - he - 2
+            s.append(f'<path d="M{bx} {ys} V{ys-hs+r2} q0 -{r2} {r2} -{r2} h{bw-2*r2} q{r2} 0 {r2} {r2} V{ys} Z" fill="{SOLAR}"/>')
+        else:
+            s.append(f'<path d="M{bx} {y(0)} V{y(0)-h+r} q0 -{r} {r} -{r} h{bw-2*r} q{r} 0 {r} {r} V{y(0)} Z" fill="{WIND}"/>')
         if a % 3 == 1 or a == 2025:
             s.append(f'<text x="{cx}" y="{H-14}" text-anchor="middle" font-family="Manrope" font-weight="600" font-size="17" fill="{SLATE}">{a}</text>')
         if a in (2007, 2016, 2025):
@@ -162,7 +174,7 @@ def cabeca():
 def bloco_grafico(x, y, W, H):
     return (f'<div style="position:absolute;left:{x}px;top:{y}px">'
             f'<div class="h" style="font-size:26px">Eólica + solar: de 0,1 % a 26,4 % da geração do Brasil</div>'
-            f'<div class="cap" style="margin-top:4px">Geração eólica + solar fotovoltaica (TWh) e participação na geração total [3]</div>'
+            f'<div class="cap" style="margin-top:4px"><span style="color:{WIND}">■</span> Eólica  <span style="color:{SOLAR}">■</span> Solar fotovoltaica — geração anual (TWh) e participação na geração total [3]</div>'
             f'<div style="margin-top:6px">{grafico_es(W, H)}</div>'
             f'<div class="cap" style="margin-top:2px">2025: <b style="color:#14213D">204,6 TWh</b> = eólica 116,5 + solar 88,1 — '
             f'<b style="color:#14213D">60 %</b> da geração solar já ocorre junto à carga (MMGD) [3]</div></div>')
