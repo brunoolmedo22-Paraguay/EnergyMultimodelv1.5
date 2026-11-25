@@ -259,6 +259,8 @@ g4v2("S6v2_H2_aberto", "aberto")
 # ===================================================================== v3 (APROVADO): H2 com objetivo geral todo em negrito escuro,
 # sem ícones nos objetivos específicos e sem o «?» — só a pergunta.
 def g6_final(nome="S6v3_final"):
+    global TIT
+    TIT = '<div class="tt">Objetivos</div>'   # as contribuições passaram para o slide 7 (O SEEDS)
     s = T(110, 218, "Objetivo geral", 26, 700, TEAL, "Gelasio")
     html = div(110, 236, 1700, OG, "ogg", "font-size:33px;font-weight:700;color:#14213D")
     s += f'<rect x="110" y="384" width="1700" height="5" rx="2.5" fill="url(#gb)"/>'

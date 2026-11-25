@@ -1,5 +1,5 @@
-// Gera SEEDS_Defesa_TCC.pptx: capa e sumário aprovados (formas nativas) + slides 3–6 aprovados (imagem 3840 × 2160
-// de img_hd/, gerada por exportar_bloco1.js a partir dos HTML aprovados) + slides 7–27 em branco (com rodapé).
+// Gera SEEDS_Defesa_TCC.pptx: capa e sumário aprovados (formas nativas) + slides 3–7 aprovados (imagem 3840 × 2160
+// de img_hd/, gerada por exportar_bloco1.js a partir dos HTML aprovados) + slides 8–28 em branco (com rodapé).
 // Uso: NODE_PATH=<node_modules com pptxgenjs e sharp> node gerar_pptx.js <apply_theme.js>
 // Medidas do canvas de referência (1920 × 1080 px) convertidas: 1 px = 1/144 pol. = 0,5 pt.
 const path = require("path");
@@ -50,12 +50,12 @@ async function icone(k, c) {
 
 // ------------------------------------------------------------------ roteiro (notas dos slides em branco)
 const SECOES = [
-  ["I · Contexto e objetivos", [[3, "Contexto"], [4, "Decisões com consequências futuras"], [5, "Trabalhos relacionados"], [6, "Objetivos e contribuições"]]],
-  ["II · Fundamentação teórica e desenvolvimento do SEEDS", [[7, "Modelagem dos recursos energéticos"], [8, "Programação linear inteira mista (MILP)"], [9, "Controle preditivo baseado em modelo (MPC)"], [10, "Coordenação hierárquica e valor futuro"], [11, "Arquitetura do SEEDS"], [12, "Representação energética comum"], [13, "Gerenciamento energético hierárquico no SEEDS"], [14, "Verificação e fluxo de execução"]]],
-  ["III · Estudos de caso", [[15, "Estudos de caso"], [16, "Microrrede industrial CT-046 (C1–C4)"], [17, "Embarcação híbrida EMB-H2-120 (C5–C6)"]]],
-  ["IV · Demonstração do SEEDS", [[18, "Demonstração do SEEDS"]]],
-  ["V · Resultados", [[19, "Resultados — custos operacionais (C1–C4)"], [20, "Resultados — operação do armazenamento"], [21, "Resultados — coordenação hierárquica"], [22, "Resultados — embarcação híbrida (C5)"], [23, "Resultados — papel do armazenamento (C4, C5 e C6)"], [24, "Expansibilidade e desempenho computacional"]]],
-  ["VI · Conclusões e perspectivas", [[25, "Conclusões"], [26, "Perspectivas"], [27, "Agradecimentos"]]],
+  ["I · Contexto e objetivos", [[3, "Contexto"], [4, "Decisões com consequências futuras"], [5, "Trabalhos relacionados"], [6, "Objetivos"], [7, "O SEEDS"]]],
+  ["II · Fundamentação teórica e desenvolvimento do SEEDS", [[8, "Modelagem dos recursos energéticos"], [9, "Programação linear inteira mista (MILP)"], [10, "Controle preditivo baseado em modelo (MPC)"], [11, "Coordenação hierárquica e valor futuro"], [12, "Arquitetura do SEEDS"], [13, "Representação energética comum"], [14, "Gerenciamento energético hierárquico no SEEDS"], [15, "Verificação e fluxo de execução"]]],
+  ["III · Estudos de caso", [[16, "Estudos de caso"], [17, "Microrrede industrial CT-046 (C1–C4)"], [18, "Embarcação híbrida EMB-H2-120 (C5–C6)"]]],
+  ["IV · Demonstração do SEEDS", [[19, "Demonstração do SEEDS"]]],
+  ["V · Resultados", [[20, "Resultados — custos operacionais (C1–C4)"], [21, "Resultados — operação do armazenamento"], [22, "Resultados — coordenação hierárquica"], [23, "Resultados — embarcação híbrida (C5)"], [24, "Resultados — papel do armazenamento (C4, C5 e C6)"], [25, "Expansibilidade e desempenho computacional"]]],
+  ["VI · Conclusões e perspectivas", [[26, "Conclusões"], [27, "Perspectivas"], [28, "Agradecimentos"]]],
 ];
 
 (async () => {

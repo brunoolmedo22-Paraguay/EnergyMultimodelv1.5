@@ -150,17 +150,17 @@ def k3v2():
     s += ilustracao(390, 679, 847, 236, 544, r=26, sep=26)
     html = div(150, 329, 490, O_QUE_E2.replace("#1F7A6D", "#C1FF72").replace("#2E9E6B", "#C1FF72").replace("#2C6FB0", "#C1FF72"),
                "h", "font-size:37px;line-height:1.28;color:#fff")
-    linhas = [("O que resolve", "reúne o que a literatura avaliava separado: <b>composição variável</b> e <b>gerenciamento avançado</b>"),
-              ("Como", "modelos físicos dos equipamentos → sistema elétrico → <b style=\"white-space:nowrap\">EMS hierárquico MILP–MPC</b> com valor futuro → resultados registrados"),
-              ("O que oferece", "compor sistemas elétricos diferentes, operá-los com o mesmo EMS, <b>comparar e reproduzir</b> resultados"),
-              ("Para quem", "quem <b>pesquisa</b>, <b>ensina</b>, <b>projeta</b> ou <b>opera</b> sistemas elétricos")]
+    linhas = [("O que resolve", "Reúne o que a literatura avaliava separado: <b>composição variável</b> e <b>gerenciamento avançado</b>"),
+              ("Como", "Modelos físicos dos equipamentos → sistema elétrico → <b style=\"white-space:nowrap\">EMS hierárquico MILP–MPC</b> com valor futuro → resultados registrados"),
+              ("O que oferece", "Compor sistemas elétricos diferentes, operá-los com o mesmo EMS, <b>comparar e reproduzir</b> resultados"),
+              ("Para quem", "Quem <b>pesquisa</b>, <b>ensina</b>, <b>projeta</b> ou <b>opera</b> sistemas elétricos")]
     X, y0, dy = 720, 172, 182.5
     for i, (q, r) in enumerate(linhas):
         y = y0 + i * dy
         if i:
             s += f'<line x1="{X}" x2="1810" y1="{y}" y2="{y}" stroke="{LINE}" stroke-width="1.5"/>'
-        s += T(X, y + 70, q, 28, 700, TEAL, "Gelasio")
-        html += div(X + 270, y + 40, 820, r, "p", "font-size:23px;line-height:1.45;color:#14213D")
+        s += T(X, y + 70, q, 30, 700, TEAL, "Gelasio")
+        html += div(X + 270, y + 36, 820, r, "p", "font-size:27px;line-height:1.42;color:#14213D")
     salvar("S7v3_K3_ficha", "O SEEDS", s, html)
 
 

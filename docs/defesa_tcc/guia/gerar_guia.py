@@ -114,7 +114,7 @@ def capa():
 
 
 def intro():
-    dur = [(b[1] if b[0] != "0" else "Abertura", b[2], COR[b[0]], b[0]) for b in BLOCOS] + [("Margem", "1:25", None, "")]
+    dur = [(b[1] if b[0] != "0" else "Abertura", b[2], COR[b[0]], b[0]) for b in BLOCOS] + [("Margem", "0:35", None, "")]
     def mins(s):
         m, sec = s.split(":"); return int(m) + int(sec) / 60
     tb = "".join(
@@ -124,16 +124,16 @@ def intro():
 <h2 class="sec">Como usar este guia</h2>
 <p class="lead">Cada slide tem um cartão com o <b>título</b>, a <b>mensagem</b> que ele precisa deixar na banca, o que vai <b>na tela</b>,
 o <b>motivo de existir</b>, os <b>vínculos</b> com outros slides e uma <b>fala-guia</b> — uma ideia para treinar, não um texto para decorar.
-Os números de tempo somam 28 min 35 s, deixando 1 min 25 s de margem.</p>
+Os números de tempo somam 29 min 25 s, deixando 35 s de margem.</p>
 <div class="box dark" style="margin-top:6mm">
 <div class="lbl">Pergunta que guia a apresentação</div>
 <div class="q">{E(PERGUNTA)}</div>
-<div class="nt">Redação próxima ao objetivo do artigo; validar com o orientador. Aparece no slide 6 e é respondida no slide 25.</div>
+<div class="nt">Redação próxima ao objetivo do artigo; validar com o orientador. Aparece no slide 6 e é respondida no slide 26.</div>
 <div class="pil"><div><b>A</b><span>Plataforma modular — a parte «diferentes configurações»</span></div>
 <div><b>B</b><span>EMS hierárquico MILP–MPC — a parte «valor futuro»</span></div></div></div>
 <div class="grid2" style="margin-top:5mm">
 <div class="box"><h4>O fio condutor</h4>A metáfora do <b>custo futuro da água no SIN</b> (NEWAVE → DECOMP → DESSEM): a água turbinada hoje pode obrigar a acionar uma térmica amanhã;
-a energia descarregada agora pode faltar na ponta. Aparece no slide 4, volta nos slides 10 e 21 e fecha no 25.</div>
+a energia descarregada agora pode faltar na ponta. Aparece no slide 4, volta nos slides 11 e 22 e fecha no 26.</div>
 <div class="box"><h4>As regras dos slides</h4>Uma ideia por slide · títulos curtos · números grandes e poucos · cores do aplicativo nos recursos ·
 rodapé com UNILA, curso, Defesa de TCC e autor · número de página grande.</div></div>
 <h2 class="sec" style="margin-top:9mm;font-size:17pt">Distribuição do tempo</h2>
@@ -187,7 +187,7 @@ def corpo():
         partes.append(f'<div class="pb">{bloco_hdr(b)}')
         for s in (x for x in SLIDES if x["b"] == b[0]):
             partes.append(cartao(s))
-            if s["n"] == 18:
+            if s["n"] == 19:
                 partes.append(demo())
         partes.append("</div>")
     partes.append(aux())
