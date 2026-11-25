@@ -26,7 +26,9 @@ TOT_GWH = [445148.9, 463171.6, 466158.1, 515798.7, 531758.2, 557939.1, 577364.0,
 EOL = [v / 1000 for v in EOL_GWH]
 SOL = [v / 1000 for v in SOL_GWH]
 ES = [e + s_ for e, s_ in zip(EOL, SOL)]
-PART = [100 * (e + s_) / t for e, s_, t in zip(EOL_GWH, SOL_GWH, TOT_GWH)]   # 2007 0,15 % · 2016 5,75 % · 2025 26,40 %
+PART = [100 * (e + s_) / t for e, s_, t in zip(EOL_GWH, SOL_GWH, TOT_GWH)]
+_k = ANOS_ES.index(2011)
+ANOS_ES, EOL, SOL, ES, PART = ANOS_ES[_k:], EOL[_k:], SOL[_k:], ES[_k:], PART[_k:]   # gráfico a partir de 2011   # 2007 0,15 % · 2016 5,75 % · 2025 26,40 %
 
 ICON = {
  "sun": '<circle cx="20" cy="20" r="7" fill="none" stroke="currentColor" stroke-width="3"/><g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M8 32l3.5-3.5M28.5 11.5L32 8"/></g>',
@@ -99,12 +101,12 @@ def grafico_es(W, H, fs_lab=26):
             s.append(f'<path d="M{bx} {ys} V{ys-hs+r2} q0 -{r2} {r2} -{r2} h{bw-2*r2} q{r2} 0 {r2} {r2} V{ys} Z" fill="{SOLAR}"/>')
         else:
             s.append(f'<path d="M{bx} {y(0)} V{y(0)-h+r} q0 -{r} {r} -{r} h{bw-2*r} q{r} 0 {r} {r} V{y(0)} Z" fill="{WIND}"/>')
-        if a % 3 == 1 or a == 2025:
+        if (a - 2011) % 3 == 0 or a == 2025:
             s.append(f'<text x="{cx}" y="{H-14}" text-anchor="middle" font-family="Manrope" font-weight="600" font-size="17" fill="{SLATE}">{a}</text>')
-        if a in (2007, 2016, 2025):
+        if a in (2011, 2018, 2025):
             pf = f"{p:.1f}".replace(".", ",") + " %"
             fs = fs_lab if a == 2025 else fs_lab * .75
-            anc, xx = ("end", bx + bw) if a == 2025 else ("start", bx) if a == 2007 else ("middle", cx)
+            anc, xx = ("end", bx + bw) if a == 2025 else ("start", bx) if a == 2011 else ("middle", cx)
             s.append(f'<text x="{xx}" y="{y(v)-12}" text-anchor="{anc}" font-family="Gelasio" font-weight="700" font-size="{fs:.0f}" fill="{NAVY}">{pf}</text>')
     s.append("</svg>")
     return "".join(s)
@@ -165,15 +167,17 @@ REF = ('<div class="ref">[1] IRENA, Renewable Power Generation Costs in 2024 · 
 
 def cabeca():
     return (f'<div class="tt">Contexto</div>'
-            f'<div style="position:absolute;left:110px;top:190px;display:flex;gap:46px;align-items:flex-end">'
-            f'<div><span class="big" style="color:{SOLAR}">−90 %</span><span class="bl" style="margin-left:12px">solar</span></div>'
-            f'<div><span class="big" style="color:{WIND}">−70 %</span><span class="bl" style="margin-left:12px">eólica</span></div>'
-            f'<div class="cap" style="margin-bottom:6px">custo da energia, 2010 → 2024 [1]</div></div>')
+            f'<div style="position:absolute;left:110px;top:172px">'
+            f'<div style="font:700 26px Gelasio,serif">Redução do custo da energia, 2010 → 2024 <span style="font:500 17px Manrope;color:#9AA5B1">[1]</span></div>'
+            f'<div style="display:flex;gap:64px;margin-top:8px">'
+            f'<div><div class="big" style="color:{SOLAR}">−90 %</div><div class="bl" style="margin-top:4px">solar fotovoltaica</div></div>'
+            f'<div><div class="big" style="color:{WIND}">−70 %</div><div class="bl" style="margin-top:4px">eólica terrestre</div></div>'
+            f'</div></div>')
 
 
 def bloco_grafico(x, y, W, H):
     return (f'<div style="position:absolute;left:{x}px;top:{y}px">'
-            f'<div class="h" style="font-size:26px">Eólica + solar: de 0,1 % a 26,4 % da geração do Brasil</div>'
+            f'<div class="h" style="font-size:26px">Eólica + solar: de 0,5 % a 26,4 % da geração do Brasil</div>'
             f'<div class="cap" style="margin-top:4px"><span style="color:{WIND}">■</span> Eólica  <span style="color:{SOLAR}">■</span> Solar fotovoltaica — geração anual (TWh) e participação na geração total [3]</div>'
             f'<div style="margin-top:6px">{grafico_es(W, H)}</div>'
             f'<div class="cap" style="margin-top:2px">2025: <b style="color:#14213D">204,6 TWh</b> = eólica 116,5 + solar 88,1 — '
@@ -183,7 +187,7 @@ def bloco_grafico(x, y, W, H):
 P = {}
 
 # ---------- V3a · gráfico à esquerda, cargas com fontes convergindo à direita, destaque em faixa
-b = cabeca() + bloco_grafico(110, 290, 980, 400)
+b = cabeca() + bloco_grafico(110, 352, 980, 340)
 b += '<div class="card" style="position:absolute;left:1150px;top:176px;width:660px;height:612px;padding:26px 32px">'
 b += '<div class="h" style="font-size:26px">Cargas pequenas, várias fontes</div>'
 for k, nome, ref, fontes in CARGAS:
