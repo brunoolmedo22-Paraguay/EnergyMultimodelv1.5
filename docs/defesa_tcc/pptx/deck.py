@@ -32,7 +32,7 @@ ORDEM = [
     ("Programação linear inteira mista (MILP)", 2, "slides/slide12_aprovado.html"),
     ("O MILP da microrrede", 2, "slides/slide13_aprovado.html"),
     ("Controle preditivo baseado em modelo (MPC)", 2, "slides/slide14_aprovado.html"),
-    ("Coordenação hierárquica e valor futuro", 2, None),
+    ("Coordenação hierárquica e valor futuro", 2, "slides/slide15_aprovado.html"),
     ("Desenvolvimento do SEEDS", 3, "slides/divisor03.html"),
     ("Arquitetura do SEEDS", 3, None),
     ("Representação energética comum", 3, None),
@@ -60,6 +60,7 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Coordenação hierárquica e valor futuro": "O MPC só enxerga N intervalos; o que vem depois precisa entrar como custo. Pela relação de Bellman, decidir bem é somar o custo de agora ao custo de continuar a partir do estado final — e, se esse custo for exato, a janela reproduz o ótimo do horizonte completo. A inclinação dessa função é o valor de um kWh guardado, em reais: o mesmo valor da água do SIN, agora para a energia armazenada. Só que no SIN esse valor sai dos duais de problemas lineares; aqui, com decisões inteiras como ligar a célula, a função pode ser não convexa ou descontínua e a derivada pode nem existir. Por isso não usamos os duais do MILP como preço: o planejador constrói essa função por pontos, como mostro adiante.",
     "Controle preditivo baseado em modelo (MPC)": "O futuro só é conhecido por previsões; por isso a decisão é revista a cada intervalo. O MPC resolve uma janela de N intervalos, aplica só o início, atualiza o estado com o que de fato ocorreu e repete. Mas a janela acaba: sem um custo terminal, nada dá valor à energia que sobra, e a otimização tende a gastá-la. O V_f é a peça que falta.",
     "Programação linear inteira mista (MILP)": "As decisões têm duas naturezas: quanto e sim ou não. A célula, por exemplo, ou está desligada ou opera entre 10 e 50 kW — um conjunto que a programação linear não representa, mas uma binária sim. É a mesma ferramenta que o ONS usa no DESSEM para a programação diária.",
     "O MILP da microrrede": "Na nossa microrrede, cada recurso entra no balanço do barramento com as suas variáveis: potências contínuas e, quando há escolha, uma binária. O objetivo soma o custo de importação, o hidrogênio e as partidas e paradas.",

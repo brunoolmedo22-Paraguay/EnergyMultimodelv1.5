@@ -4,20 +4,18 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 
 ## Estado (25/11/2026)
 - **Deck: 37 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
-- **Aprovados (19):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
-  7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC ·
+- **Aprovados (20):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+  7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro ·
   separadores 03–07 (16, 21, 25, 27, 34).
-- **Próximo: slide 15 «Coordenação hierárquica e valor futuro»** (contribuição B; Seção 4.4 do artigo, eq. 16–18). Ideia combinada:
-  voltar a curva «custo futuro» do slide 4 com o eixo «energia armazenada E»; V(E) e μ = −∂V/∂E [R$/kWh]; por que não os duais do MILP
-  (com inteiros V pode ser não convexa/descontínua). V_f/custo futuro sempre na cor `#C0532F` (como no slide 4 e no MPC).
-  Mesma lógica dos slides do MILP e do MPC: **por quê · como**. Depois: bloco 03 (Arquitetura, Representação comum, EMS hierárquico no SEEDS,
-  Verificação), plano em `PLANO_BLOCO_II.md`.
+- **Próximo: slide 17 «Arquitetura do SEEDS»** (bloco 03; Seção 5.1, Fig. 5.1), depois 18 Representação energética comum (5.2),
+  19 EMS hierárquico no SEEDS (5.3: reotimização paramétrica do custo futuro, função por modo, sinal de valor futuro, verificação — é o
+  «como» do slide 15) e 20 Verificação e fluxo de execução (Fig. 5.3). Plano em `PLANO_BLOCO_II.md`.
 - Geradores aprovados: `slides/gerar_slide3_v3.py`, `gerar_slide4_v6.py` (H1), `gerar_slide5_v4.py` (E1), `gerar_slide6.py` (`g6_final`),
-  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`),
+  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`),
   `gerar_divisores.py` (V1). Cópias congeladas: `slides/slideNN_aprovado.html` (numeração antiga no nome) e `slides/divisor0N.html`.
 
 ## Fontes
-- **Artigo final do TCC: NÃO está no repositório** — pedir ao responsável o PDF (`TCC_BRUNO_OLMEDO_COMPLETO_1.pdf`, 56 p.) e lê-lo antes
+- **Artigo final do TCC: NÃO está no repositório** (texto extraído só na sessão) — pedir ao responsável o PDF (`TCC_BRUNO_OLMEDO_COMPLETO_1.pdf`, 56 p.) e lê-lo antes
   de qualquer slide técnico. Seções: 3 modelos (eq. 1–8) · 4.1 MILP (eq. 9–13) · 4.2 longo horizonte (eq. 14) · 4.3 MPC (eq. 15) ·
   4.4 hierarquia e valor futuro (eq. 16–18) · 5 SEEDS (Fig. 5.1–5.3) · 6 estudos (Tab. 6.1–6.3) · 7 resultados (Tab. 7.1–7.2, Fig. 7.1–7.5) ·
   Anexo A = 13 capturas do aplicativo.

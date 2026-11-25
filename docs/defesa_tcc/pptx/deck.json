@@ -115,9 +115,9 @@
   "n": 15,
   "titulo": "Coordenação hierárquica e valor futuro",
   "secao": 2,
-  "html": "slides/provisorios/p15.html",
-  "pronto": false,
-  "notas": "Se o termo terminal for o custo de continuação, a janela curta enxerga o resto do horizonte — o mesmo princípio do custo futuro da água. Como, com decisões inteiras, essa função pode não ter derivada, não usamos os duais do MILP como preço; construímos a função de outra forma."
+  "html": "slides/slide15_aprovado.html",
+  "pronto": true,
+  "notas": "O MPC só enxerga N intervalos; o que vem depois precisa entrar como custo. Pela relação de Bellman, decidir bem é somar o custo de agora ao custo de continuar a partir do estado final — e, se esse custo for exato, a janela reproduz o ótimo do horizonte completo. A inclinação dessa função é o valor de um kWh guardado, em reais: o mesmo valor da água do SIN, agora para a energia armazenada. Só que no SIN esse valor sai dos duais de problemas lineares; aqui, com decisões inteiras como ligar a célula, a função pode ser não convexa ou descontínua e a derivada pode nem existir. Por isso não usamos os duais do MILP como preço: o planejador constrói essa função por pontos, como mostro adiante."
  },
  {
   "n": 16,

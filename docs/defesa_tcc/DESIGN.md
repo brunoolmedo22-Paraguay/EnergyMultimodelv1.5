@@ -149,3 +149,14 @@ Eólica: curva de potência ILUSTRATIVA; bateria: banco com SOC_mín/SOC_máx; r
 
 Gerador `slides/gerar_divisores.py`. Chevrons do sumário no alto (seção atual cheia, demais a 22 %), número 230 px e ícone da seção na cor do nó do
 sumário, título Gelasio 86 px, subdivisões em cartões claros numerados (2 colunas; 05 com «ao vivo»).
+
+## 14. Slide 15 (deck) — Coordenação hierárquica e valor futuro (aprovado, P1) — `slides/slide15_aprovado.html`
+
+Gerador `slides/gerar_slide15.py`, função `p1` (P2 «valor», P3 «hierarquia» = alternativas). Mesma estrutura do slide 14 (MPC):
+- Faixa clara no alto (x 110, y 166, 1700 × 170): eq. 17 (34 px) à esquerda e, após filete, eq. 16 de Bellman (22 px); V em `#C0532F` nas duas.
+- Três cartões 552 × 552 (gap 22, número navy + título Gelasio 26): 1 «Por que valor futuro?» (três parágrafos, 23 px) ·
+  2 «Quanto vale o kWh guardado» (V(E) convexa com área suave, tangente pontilhada «inclinação = −μ», baterias vazia/cheia no eixo;
+  eq. 18 em 30 px; «valor da água» para a energia) · 3 «Por que não os duais do MILP» (V(E) esquemática em dois ramos — liga a célula ×
+  célula desligada — com salto onde ∂V/∂E não existe).
+- Fonte: Seção 4.4 (eq. 16–18; «com decisões inteiras, a função de valor pode ser não convexa ou descontínua») e 5.3 («os multiplicadores
+  duais do MILP não são utilizados como preços»; função por modo terminal). Curvas ESQUEMÁTICAS (no rodapé de referências).

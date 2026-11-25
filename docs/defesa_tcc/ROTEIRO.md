@@ -65,7 +65,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 12 | Programação linear inteira mista (MILP) | 02 | ✔ aprovado |
 | 13 | O MILP da microrrede | 02 | ✔ aprovado |
 | 14 | Controle preditivo baseado em modelo (MPC) | 02 | ✔ aprovado |
-| 15 | Coordenação hierárquica e valor futuro | 02 | a desenhar |
+| 15 | Coordenação hierárquica e valor futuro | 02 | ✔ aprovado |
 | 16 | Desenvolvimento do SEEDS | 03 | ✔ aprovado |
 | 17 | Arquitetura do SEEDS | 03 | a desenhar |
 | 18 | Representação energética comum | 03 | a desenhar |
