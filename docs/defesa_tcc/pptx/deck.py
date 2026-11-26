@@ -46,7 +46,7 @@ ORDEM = [
     ("Dados de entrada da embarcação EMB-H2-120", 4, "slides/slide26_aprovado.html"),
     ("Configuração da EMB-H2-120 no SEEDS", 4, "slides/slide27_aprovado.html"),
     ("Demonstração do SEEDS", 5, "slides/divisor05.html"),
-    ("Demonstração do SEEDS — roteiro", 5, None),
+    ("Demonstração do SEEDS — acesso ao aplicativo", 5, "slides/slide29_aprovado.html"),
     ("Resultados", 6, "slides/divisor06.html"),
     ("Resultados — custos operacionais (C1–C4)", 6, None),
     ("Resultados — operação do armazenamento", 6, None),
@@ -60,9 +60,10 @@ ORDEM = [
     ("Agradecimentos", 7, None),
 ]
 # título do slide no roteiro (conteudo.py) quando difere do título no deck — para buscar a fala
-ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
+ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — acesso ao aplicativo": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Demonstração do SEEDS — acesso ao aplicativo": "O SEEDS está publicado e pode ser aberto agora, por este QR code ou pelo endereço energymultimodelv15.streamlit.app. Vou mostrar ao vivo um dos estudos de caso: abrir uma rodada já concluída, que é reaberta e reauditada sem resolver de novo, e executar outra a partir do cenário salvo.",
     "Dados de entrada da microrrede CT-046": "Na microrrede industrial, as entradas são quatro. A demanda vem de uma curva real da ANEEL, a CT-046, de um dia útil, escalada para 100 kW de pico: são 1.967 kWh no dia, com consumo mantido também na ponta. Irradiância e temperatura são sintéticas, de um dia de céu claro, com máximo de 970 W/m². E a tarifa A4 Horária Verde da COPEL: entre 18 e 21 horas a energia custa 4,4 vezes mais. A potência fotovoltaica não é entrada: o modelo a calcula a partir da irradiância e da temperatura.",
     "Configuração da CT-046 no SEEDS": "No SEEDS, essa microrrede vira quatro configurações que só diferem na composição: só rede; rede e solar; rede e bateria; rede, solar e bateria — a bateria começando em 30 %. O dia tem 96 intervalos de 15 minutos. A cada intervalo, o MPC resolve uma janela de duas horas e aplica só o primeiro intervalo; o horizonte longo cobre o resto do dia e encurta até a meia-noite. A demanda é crítica, a realização é igual à previsão, e não declaramos condição final: quem orienta quanto guardar é o valor futuro, recalculado a cada janela.",
     "Dados de entrada da embarcação EMB-H2-120": "Na embarcação, a demanda é a propulsão: um registro de potência do projeto, repetido para completar 120 minutos e agregado em médias de 15 minutos. As médias conservam a energia da missão, 68,21 kWh, mas reduzem o pico original de 63 para 58,8 kW. Irradiância e temperatura são sintéticas, do meio-dia, quase constantes. O custo é o hidrogênio, a 10 reais por quilo, um preço sintético.",

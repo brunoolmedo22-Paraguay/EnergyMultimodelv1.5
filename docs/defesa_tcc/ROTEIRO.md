@@ -79,7 +79,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 26 | Dados de entrada da embarcação EMB-H2-120 | 04 | ✔ aprovado (E2b) |
 | 27 | Configuração da EMB-H2-120 no SEEDS | 04 | ✔ aprovado (K1b: C5–C6) |
 | 28 | Demonstração do SEEDS | 05 | ✔ aprovado |
-| 29 | Demonstração do SEEDS — roteiro | 05 | a desenhar |
+| 29 | Demonstração do SEEDS — acesso ao aplicativo | 05 | ✔ aprovado (logo, «Acesse o aplicativo», link e QR) |
 | 30 | Resultados | 06 | ✔ aprovado |
 | 31 | Resultados — custos operacionais (C1–C4) | 06 | a desenhar |
 | 32 | Resultados — operação do armazenamento | 06 | a desenhar |

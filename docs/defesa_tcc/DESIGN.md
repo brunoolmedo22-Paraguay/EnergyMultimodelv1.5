@@ -214,3 +214,10 @@ de referência dos exemplos; conferidas com as Tabelas 6.1–6.3).
   inicial e a reserva tracejada, ou «Sem armazenamento»); malha temporal (já aplicado cinza · m aplicado teal escuro · janela N teal claro;
   colchete teal da janela e colchete #C0532F do horizonte longo; legenda na linha do rótulo da janela); ficha em três painéis claros
   (Recursos com procedência · Execução · Gerenciamento).
+
+## 22. Slide 29 — Demonstração do SEEDS: acesso ao aplicativo (aprovado, B) — `slides/slide29_aprovado.html`
+
+Gerador `slides/gerar_slide29.py` (`b`). Título «Demonstração do SEEDS»; à esquerda o logo SEEDS (`capa/assets/seeds.png`, 820 px),
+filete, «Acesse o aplicativo» (Manrope 600 34 px) e o endereço `energymultimodelv15.streamlit.app` (Manrope 700 46 px, teal). À direita o
+QR (navy, `slides/assets/qr_app.png`, segno, correção M, 29 módulos) num cartão branco com sombra de 638 px e zona de silêncio de 4 módulos,
+terminando na margem direita (1810).

@@ -52,9 +52,9 @@ def b():
     s, h = "", ""
     h += img(LOGO, 110, 300, 820)
     s += f'<line x1="110" x2="930" y1="610" y2="610" stroke="{LINE}" stroke-width="2"/>'
-    h += div(110, 640, 900, None, "Acesse o aplicativo", "", "font:600 26px Manrope;color:#4A5568")
-    h += div(110, 684, 900, None, LINK, "")
-    a_, b_ = qr(1180, 220, 540)
+    h += div(110, 638, 1000, None, "Acesse o aplicativo", "", "font:600 34px Manrope;color:#4A5568")
+    h += div(110, 692, 1040, None, LINK.replace("font:700 40px", "font:700 46px"), "")
+    a_, b_ = qr(1172, 240, 500)          # cartão de 638 px: termina na margem direita (1810)
     s += a_; h += b_
     salvar("S29_B_metades", "Demonstração do SEEDS", s, h)
 

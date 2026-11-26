@@ -4,16 +4,17 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 
 ## Estado (26/11/2026)
 - **Deck: 40 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
-- **Aprovados (30):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+- **Aprovados (31):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
   7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) · 18 Arquitetura do SEEDS (Fig. 5.1) · 19 Representação energética comum · 20 EMS hierárquico no SEEDS (Fig. 5.2) · 21 Verificação e fluxo de execução (Fig. 5.3) · 23 Estratégia de avaliação ·
-  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 ·
+  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) ·
   separadores 03–07 (17, 22, 28, 30, 37).
-- **Próximo: slide 29 «Demonstração do SEEDS — roteiro»** (bloco 05); depois resultados 31–36 e encerramento 38–40.
+- **Próximo: resultados, slide 31 «Resultados — custos operacionais (C1–C4)»** (Tabela 7.1); depois 32–36 e encerramento 38–40.
+  Slide 29 = só link + QR + logo (pedido do responsável). QR gerado localmente com `segno` (`slides/assets/qr_app.png`, conferido com zxing-cpp).
   Estudos de caso: cada sistema em DOIS slides (pedido do responsável): entradas (gráfico com três eixos — demanda, irradiância,
   temperatura — + tarifa/preço do H₂; a potência FV é resultado, não entrada) e configuração no SEEDS (C1–C6, malha, ficha). Séries
   extraídas das rodadas de referência dos exemplos (`seeds2/exemplos`) para `slides/dados/*.json`.
 - Geradores aprovados: `slides/gerar_slide3_v3.py`, `gerar_slide4_v6.py` (H1), `gerar_slide5_v4.py` (E1), `gerar_slide6.py` (`g6_final`),
-  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`, `gerar_slide19.py` (`p1`), `gerar_slide20.py`, `gerar_slide21.py`, `gerar_slide23_v2.py` (`d`; ilustrações em `slides/assets/ilus_*.png`, fornecidas pelo responsável), `gerar_slide24_27_v2.py` (`e2b` e `k1b`; usa `gerar_slide24_27.py` e `gerar_slide24_25.py`),
+  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`, `gerar_slide19.py` (`p1`), `gerar_slide20.py`, `gerar_slide21.py`, `gerar_slide23_v2.py` (`d`; ilustrações em `slides/assets/ilus_*.png`, fornecidas pelo responsável), `gerar_slide24_27_v2.py` (`e2b` e `k1b`; usa `gerar_slide24_27.py` e `gerar_slide24_25.py`), `gerar_slide29.py` (`b`),
   `gerar_divisores.py` (V1). Cópias congeladas: `slides/slideNN_aprovado.html` (numeração antiga no nome) e `slides/divisor0N.html`.
 
 ## Fontes

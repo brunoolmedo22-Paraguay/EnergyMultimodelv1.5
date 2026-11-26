@@ -225,11 +225,11 @@
  },
  {
   "n": 29,
-  "titulo": "Demonstração do SEEDS — roteiro",
+  "titulo": "Demonstração do SEEDS — acesso ao aplicativo",
   "secao": 5,
-  "html": "slides/provisorios/p29.html",
-  "pronto": false,
-  "notas": "Uma vez definidos os estudos, vou mostrar como eles são configurados e executados no SEEDS — e reproduzir aqui um dos resultados do artigo."
+  "html": "slides/slide29_aprovado.html",
+  "pronto": true,
+  "notas": "O SEEDS está publicado e pode ser aberto agora, por este QR code ou pelo endereço energymultimodelv15.streamlit.app. Vou mostrar ao vivo um dos estudos de caso: abrir uma rodada já concluída, que é reaberta e reauditada sem resolver de novo, e executar outra a partir do cenário salvo."
  },
  {
   "n": 30,
