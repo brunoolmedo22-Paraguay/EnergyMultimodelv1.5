@@ -70,11 +70,43 @@ def tile(x, y, w, hc, titulo, a, b, chip=None):
     for k, (c, cor, big, sub) in enumerate((("C5", C5) + a, ("C6", C6) + b)):
         xx = x + 28 + k * (w - 56) / 2
         h += div(xx, y + 60, (w - 56) / 2 - 12, None,
-                 f'<div style="font:700 22px Manrope;color:{cor}">{c}</div><div style="font:700 38px/1.15 Gelasio,serif;color:#14213D;white-space:nowrap">{big}</div>'
+                 f'<div style="font:700 22px Manrope;color:{cor}">{c}</div><div style="font:700 34px/1.15 Gelasio,serif;color:#14213D;white-space:nowrap">{big}</div>'
                  f'<div style="font:500 22px/1.3 Manrope;color:#4A5568;margin-top:2px">{sub}</div>', "")
     if chip:
         h += div(x + w - 140, y + 16, 112, 38, chip, "", "display:flex;align-items:center;justify-content:center;border-radius:19px;background:#FBE4DC;"
                  f"font:700 22px Manrope;color:{C6}")
+    return s, h
+
+
+def bat_icone(x, y, w, hb, nivel, reserva=None):
+    """Bateria desenhada: nível = estado inicial; tracejado = reserva final exigida."""
+    o = (f'<rect x="{x}" y="{y}" width="{w}" height="{hb}" rx="10" fill="none" stroke="#fff" stroke-width="3"/>'
+         f'<rect x="{x+w/2-12}" y="{y-8}" width="24" height="8" rx="2" fill="#fff"/>')
+    lv = (hb - 10) * nivel
+    o += f'<rect x="{x+5}" y="{y+hb-5-lv}" width="{w-10}" height="{lv}" rx="6" fill="#fff"/>'
+    if reserva is not None:
+        yr = y + hb - 5 - (hb - 10) * reserva
+        o += f'<line x1="{x-10}" x2="{x+w+10}" y1="{yr}" y2="{yr}" stroke="#FFD9A8" stroke-width="3" stroke-dasharray="6 5"/>'
+    return o
+
+
+def cartao_bateria(x, y, w, hc):
+    """Cartão principal: a MESMA bateria, na MESMA missão, muda de papel só com a carga inicial."""
+    s = f'<rect x="{x}" y="{y}" width="{w}" height="{hc}" rx="24" fill="#5B4BC4"/>'
+    h = div(x + 30, y + 16, w - 60, None, "Papel da bateria · mesma missão, só muda a carga inicial", "",
+            "font:700 24px Gelasio,serif;color:#fff;white-space:nowrap")
+    metades = [("C5", "50&nbsp;%", .50, .30, "Variações", "Cobre os picos; a PEMFC fica na base."),
+               ("C6", "12&nbsp;%", .12, None, "Picos", "A PEMFC a recarrega; ela só entra nos picos.")]
+    cw = (w - 60) / 2
+    for k, (c, pct, nv, res, papel, txt) in enumerate(metades):
+        xx = x + 30 + k * cw
+        if k:
+            s += f'<line x1="{xx-14}" x2="{xx-14}" y1="{y+66}" y2="{y+hc-18}" stroke="#8C80DE" stroke-width="2"/>'
+        s += bat_icone(xx + 6, y + 78, 52, 100, nv, res)
+        h += div(xx + 6, y + 182, 60, None, pct, "", "font:700 20px Manrope;color:#fff;text-align:center;white-space:nowrap")
+        h += div(xx + 86, y + 62, cw - 110, None,
+                 f'<div style="font:700 22px Manrope;color:#D9D3FF">{c}</div><div style="font:700 40px/1.1 Gelasio,serif;color:#fff">{papel}</div>'
+                 f'<div style="font:500 22px/1.3 Manrope;color:#ECE9FF;margin-top:4px">{txt}</div>', "")
     return s, h
 
 
@@ -85,11 +117,11 @@ def slide():
             (974, C6, "C6", "bateria a 12 % · sem reserva final", "seeds_c6_op", [(18, "18 → 15 kWh (limite de 10 %)", 4)])):
         a, b = painel(x, 166, 836, 482, cor, c, cond, nome, notas); s += a; h += b
     h += legenda(656)
+    a_, b_ = cartao_bateria(110, 700, 820, 208); s += a_; h += b_
     for i, (t, a, b, chip) in enumerate((
-            ("Hidrogênio consumido", ("2,156&nbsp;kg", "R$&nbsp;21,56"), ("4,163&nbsp;kg", "R$&nbsp;41,63"), "1,93&nbsp;×"),
-            ("Energia suprida pela PEMFC", ("49,6&nbsp;%", "entre 10 e 19,9&nbsp;kW"), ("88,0&nbsp;%", "entre 20 e 44,3&nbsp;kW"), None),
-            ("Papel da bateria", ("Variações", "acompanha a demanda"), ("Picos", "recarregada pela PEMFC"), None))):
-        a_, b_ = tile(110 + i * 576, 700, 548, 208, t, a, b, chip); s += a_; h += b_
+            ("Hidrogênio", ("2,156&nbsp;kg", "R$&nbsp;21,56"), ("4,163&nbsp;kg", "R$&nbsp;41,63"), "1,93&nbsp;×"),
+            ("PEMFC supre", ("49,6&nbsp;%", "10–19,9&nbsp;kW"), ("88,0&nbsp;%", "20–44,3&nbsp;kW"), None))):
+        a_, b_ = tile(950 + i * 440, 700, 420, 208, t, a, b, chip); s += a_; h += b_
     body = ('<link rel="stylesheet" href="assets/fonts_seeds.css">' + f'<div class="tt">{TIT}</div>'
             + f'<svg width="1920" height="1080" viewBox="0 0 1920 1080" style="position:absolute;left:0;top:0">{s}</svg>'
             + h + f'<div class="ref">{REF}</div>' + rodape(33))
