@@ -54,7 +54,7 @@ ORDEM = [
     ("Expansibilidade e desempenho computacional", 6, "slides/slide34_aprovado.html"),
     ("Conclusões e perspectivas", 7, "slides/divisor07.html"),
     ("Conclusões", 7, "slides/slide36_aprovado.html"),
-    ("Perspectivas", 7, None),
+    ("Trabalhos futuros", 7, None),
     ("Agradecimentos", 7, None),
 ]
 # título do slide no roteiro (conteudo.py) quando difere do título no deck — para buscar a fala

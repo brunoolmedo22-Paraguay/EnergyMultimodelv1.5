@@ -1,4 +1,4 @@
-"""Slide 37 (deck) — Perspectivas, tom construtivo («a plataforma está pronta para avançar em…»). Cinco perspectivas do artigo
+"""Slide 37 (deck) — Trabalhos futuros (antes «Perspectivas»; pedido do responsável), tom construtivo («a plataforma está pronta para avançar em…»). Cinco perspectivas do artigo
 (Seção 7.4/8): térmica no EMS (custos de combustível e restrições operacionais); malha temporal e discretização automáticas; custo
 futuro para múltiplos bancos; previsões × condições realizadas (robustez); comparação com dados experimentais. A linha «Hoje» descreve
 o estado atual verificado no código (CLAUDE.md): térmica bloqueada no EMS V2 (M19/CVU não implementado); Δ, N e H_L declarados no
@@ -10,7 +10,7 @@ from gerar_slide16 import CSSM, HEAD, NAVY, LIGHT, div, ic
 from gerar_slide8 import rodape
 
 D = os.path.dirname(os.path.abspath(__file__))
-TIT = "Perspectivas"
+TIT = "Trabalhos futuros"
 REF = "Seções 7.4 e 8 do artigo"
 TEAL = "#1F7A6D"
 P = [("fire", "#C0532F", "Geração térmica no EMS", "Custos de combustível e restrições operacionais na formulação.",

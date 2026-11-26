@@ -87,5 +87,5 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 34 | Expansibilidade e desempenho computacional | 06 | ✔ aprovado (composições compactas, curva PWL gravada e erro relativo) |
 | 35 | Conclusões e perspectivas | 07 | ✔ aprovado |
 | 36 | Conclusões | 07 | ✔ aprovado (resposta à pergunta, objetivos marcados, comparação dos dois estudos) |
-| 37 | Perspectivas | 07 | a desenhar |
+| 37 | Trabalhos futuros | 07 | a desenhar |
 | 38 | Agradecimentos | 07 | a desenhar |
