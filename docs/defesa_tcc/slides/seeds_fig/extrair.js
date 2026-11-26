@@ -10,7 +10,10 @@ const { chromium } = require("playwright");
   const r = await p.evaluate(({ W, H, pref, o }) => {
     const P = document.querySelector(".pt.partitura").__pt, X = P.__x;
     const todas = X.lanesOperacao().filter(Boolean);
-    const lanes = pref.map((q) => { const L = todas.find((l) => l.title.startsWith(q)); if (!L) throw new Error("raia não encontrada: " + q); return L; });
+    // raias da Partitura por prefixo do título; ou raias montadas com a API do próprio motor (o.custom: séries gravadas, escala comum)
+    const lanes = o.custom ? o.custom.map((L) => ({ title: L.title, h: L.h || 60, w: 1, draw(c) { const y = c.sc(0, L.max); c.grid(y, L.ticks, (v) => String(v).replace(".", ","));
+        c.stack([{ v: L.v, c: L.cor || "var(--s-grid)", k: L.k || "grid" }], y); } }))
+      : pref.map((q) => { const L = todas.find((l) => l.title.startsWith(q)); if (!L) throw new Error("raia não encontrada: " + q); return L; });
     const box = document.createElement("div"); box.className = "pt"; box.dataset.theme = "light";
     box.style.cssText = "display:block;height:auto;padding:0;background:transparent;width:" + W + "px";
     const host = document.createElement("div"); host.style.cssText = `width:${W}px;height:${H}px;position:relative`;
@@ -20,7 +23,7 @@ const { chromium } = require("playwright");
     const titulos = [...svg.querySelectorAll("text.t")].map((t) => ({ title: t.textContent, y: +t.getAttribute("y") }));
     const rot = [...svg.querySelectorAll("text")].filter((t) => !t.classList.contains("t")).map((t) => ({ t: t.textContent, x: +t.getAttribute("x"), y: +t.getAttribute("y") }));
     return { svg: X.svgPdf(svg), meta: { W: +svg.getAttribute("width"), H: +svg.getAttribute("height"), padL: 46, padR: 10, K: X.K, view: o.view || [0, X.K], lanes: titulos, rotulos: rot } };
-  }, { W: +W, H: +H, pref: JSON.parse(pref).lanes, o: JSON.parse(pref) });
+  }, { W: +W, H: +H, pref: JSON.parse(pref).lanes || [], o: JSON.parse(pref) });
   console.log(JSON.stringify({ ...r, erros }));
   await b.close();
 })().catch((e) => { console.error(e); process.exit(1); });
