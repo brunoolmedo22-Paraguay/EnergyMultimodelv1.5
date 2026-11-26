@@ -15,7 +15,7 @@ TEAL, LIMA = "#1F7A6D", "#C1FF72"
 PERG = (f'<span style="color:{LIMA}">Um mesmo gerenciamento energético</span> consegue operar '
         f'<span style="color:{LIMA}">microrredes de composições diferentes</span>, considerando '
         f'<span style="color:{LIMA}">o valor futuro da energia armazenada</span>?')
-OBJ = [("Representação energética comum dos modelos físicos", "9 composições, sem inconsistências algébricas"),
+OBJ = [("Representação energética comum", "modelos físicos em 9 composições, sem inconsistências"),
        ("EMS hierárquico MILP–MPC com sinal de valor futuro", "valor futuro em todas as decisões; 168 janelas ótimas"),
        ("Avaliação em dois sistemas distintos", "microrrede industrial e embarcação híbrida"),
        ("Expansibilidade e desempenho computacional", "7 → 217 variáveis; até 5 s por decisão")]
@@ -27,9 +27,9 @@ def estudo(x, y, w, hc, cor, icones, titulo, pontos):
     for k, (kk, c) in enumerate(icones):
         cx = x + w - 44 - (len(icones) - 1 - k) * 50
         s += f'<circle cx="{cx}" cy="{y+40}" r="19" fill="#fff" stroke="{c}" stroke-width="2.5"/>' + ic(kk, cx - 12, y + 28, 24, c)
-    h = div(x + 34, y + 20, w - 260, None, titulo, "", "font:700 28px Gelasio,serif;color:#14213D")
+    h = div(x + 34, y + 20, w - 260, None, titulo, "", "font:700 30px Gelasio,serif;color:#14213D")
     lis = "".join(f'<li style="margin:0 0 12px 0">{p}</li>' for p in pontos)
-    h += div(x + 34, y + 76, w - 68, None, f'<ul style="margin:0;padding-left:24px">{lis}</ul>', "p", "font-size:26px;line-height:1.36")
+    h += div(x + 34, y + 76, w - 68, None, f'<ul style="margin:0;padding-left:24px">{lis}</ul>', "p", "font-size:28px;line-height:1.34")
     return s, h
 
 
@@ -37,17 +37,17 @@ def slide():
     s, h = "", ""
     # pergunta e resposta
     s += f'<rect x="110" y="166" width="700" height="330" rx="26" fill="{NAVY}"/>'
-    h += div(146, 194, 630, None, PERG, "", "font:600 26px/1.42 Manrope;color:#fff")
-    h += div(146, 352, 630, None, '<span style="font:700 52px Gelasio,serif;color:#fff">Sim,</span>'
-             '<span style="font:500 24px/1.35 Manrope;color:#DCE3EE"> dentro do conjunto de recursos que a formulação representa.</span>', "",
+    h += div(146, 194, 630, None, PERG, "", "font:600 28px/1.4 Manrope;color:#fff")
+    h += div(146, 362, 630, None, '<span style="font:700 56px Gelasio,serif;color:#fff">Sim,</span>'
+             '<span style="font:500 26px/1.35 Manrope;color:#DCE3EE"> dentro do conjunto de recursos que a formulação representa.</span>', "",
              "line-height:1.2")
     # objetivos marcados
-    h += div(110, 520, 700, None, "Objetivos específicos", "", "font:700 26px Gelasio,serif;color:#14213D")
+    h += div(110, 520, 700, None, "Objetivos específicos", "", "font:700 28px Gelasio,serif;color:#14213D")
     for k, (o, ev) in enumerate(OBJ):
         y = 570 + k * 86
         s += f'<circle cx="132" cy="{y+22}" r="20" fill="{TEAL}"/><g transform="translate({112} {y+2})">{CHECK}</g>'
-        h += div(168, y, 640, None, f'<div style="font:700 22px/1.25 Manrope;color:#14213D">{o}</div>'
-                 f'<div style="font:500 22px/1.3 Manrope;color:#1F7A6D">{ev}</div>', "")
+        h += div(168, y, 640, None, f'<div style="font:700 24px/1.25 Manrope;color:#14213D">{o}</div>'
+                 f'<div style="font:500 24px/1.3 Manrope;color:#1F7A6D">{ev}</div>', "")
     # os dois estudos
     a, b = estudo(850, 166, 960, 360, REDE, [("sun", SOLAR), ("bat", BAT), ("grid", REDE)], "Na microrrede industrial, observamos que",
                   ["A bateria começou a carregar <b>antes de a ponta entrar no horizonte do MPC</b>: o valor futuro indicou que guardar valia a pena.",
