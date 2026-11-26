@@ -65,14 +65,14 @@ def legenda(y):
 
 
 def tile(x, y, w, hc, titulo, a, b, chip=None, destaque=False):
-    """destaque = fundo violeta (cor da bateria): o cartão principal do slide."""
-    tc, sc = ("#fff", "#ECE9FF") if destaque else ("#14213D", "#4A5568")
-    s = f'<rect x="{x}" y="{y}" width="{w}" height="{hc}" rx="24" fill="{"#5B4BC4" if destaque else LIGHT}"/>'
+    """destaque = fundo verde (teal do deck): o cartão principal do slide."""
+    tc, sc = ("#fff", "#DDEFEC") if destaque else ("#14213D", "#4A5568")
+    s = f'<rect x="{x}" y="{y}" width="{w}" height="{hc}" rx="24" fill="{"#1F7A6D" if destaque else LIGHT}"/>'
     h = div(x + 28, y + 18, w - 56, None, titulo, "", f"font:700 24px Gelasio,serif;color:{tc}")
     for k, (c, cor, big, sub) in enumerate((("C5", C5) + a, ("C6", C6) + b)):
         xx = x + 28 + k * (w - 56) / 2
         h += div(xx, y + 60, (w - 56) / 2 - 12, None,
-                 f'<div style="font:700 22px Manrope;color:{"#D9D3FF" if destaque else cor}">{c}</div><div style="font:700 38px/1.15 Gelasio,serif;color:{tc};white-space:nowrap">{big}</div>'
+                 f'<div style="font:700 22px Manrope;color:{"#BFE3DC" if destaque else cor}">{c}</div><div style="font:700 38px/1.15 Gelasio,serif;color:{tc};white-space:nowrap">{big}</div>'
                  f'<div style="font:500 22px/1.3 Manrope;color:{sc};margin-top:2px">{sub}</div>', "")
     if chip:
         h += div(x + w - 140, y + 16, 112, 38, chip, "", "display:flex;align-items:center;justify-content:center;border-radius:19px;background:#FBE4DC;"
