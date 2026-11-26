@@ -29,7 +29,7 @@ def estudo(x, y, w, hc, cor, icones, titulo, pontos):
         s += f'<circle cx="{cx}" cy="{y+40}" r="19" fill="#fff" stroke="{c}" stroke-width="2.5"/>' + ic(kk, cx - 12, y + 28, 24, c)
     h = div(x + 34, y + 20, w - 260, None, titulo, "", "font:700 28px Gelasio,serif;color:#14213D")
     lis = "".join(f'<li style="margin:0 0 12px 0">{p}</li>' for p in pontos)
-    h += div(x + 34, y + 76, w - 68, None, f'<ul style="margin:0;padding-left:24px">{lis}</ul>', "p", "font-size:23px;line-height:1.38")
+    h += div(x + 34, y + 76, w - 68, None, f'<ul style="margin:0;padding-left:24px">{lis}</ul>', "p", "font-size:26px;line-height:1.36")
     return s, h
 
 
