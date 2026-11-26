@@ -251,9 +251,9 @@
   "n": 32,
   "titulo": "Resultados — custos operacionais (C1–C4)",
   "secao": 6,
-  "html": "slides/provisorios/p32.html",
-  "pronto": false,
-  "notas": "Em C1, a ponta concentrou 13,7 % da energia e 41 % do custo. A FV reduziu o custo quase todo fora da ponta; a bateria atuou na ponta. Juntas: −32,1 % de custo e −56 % de importação na ponta."
+  "html": "slides/slide32_aprovado.html",
+  "pronto": true,
+  "notas": "Aqui estão os quatro dias lado a lado, custo a cada quinze minutos, na mesma escala. Só com a rede, o dia custa 1.274 reais, e 41 % disso é pago na ponta, que tem apenas 13,7 % da energia. A solar baixa o custo do meio-dia; a bateria achata a ponta, e a parcela paga nela cai para perto da parcela de energia. Os efeitos se somam: em C4 a economia é de 409 reais por dia, 32 %, exatamente a soma da solar e da bateria. E o plano se cumpre: o custo previsto na primeira decisão difere do realizado em um centavo. Vale notar que, sem condição final, a bateria termina o dia com 20 kWh, abaixo dos 60 iniciais."
  },
  {
   "n": 33,

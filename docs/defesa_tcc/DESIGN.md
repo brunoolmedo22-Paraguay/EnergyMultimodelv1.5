@@ -231,3 +231,11 @@ ponta em vermelho translúcido com rótulo; valores gravados 178,04 / 20,15 kWh 
 colorido, título Source Sans 600 22 px, números Archivo): o que a bateria fez (trechos com chips de horário) · energia entregue na
 ponta (150 kWh → R$ 290,84 − 54,90 = 235,94) · decide antes de ver a ponta (50,3 %, C3). Sem marca de 16:15 nem custo de 1 kWh (o
 responsável os retirou: a tarifa já está no gráfico).
+
+## 24. Slide 32 — Resultados: custos operacionais C1–C4 (aprovado) — `slides/slide32_aprovado.html`
+
+Gerador `slides/gerar_slide32c.py` (estilo do deck; o visual do app foi recusado aqui). Esquerda: custo realizado a cada 15 min das
+quatro rodadas (séries gravadas, `seeds_fig/custos_c1c4.json`), escala comum 0–50 R$, ponta sombreada, cor por caso (C1 #6B7480,
+C2 #C98A00, C3 #7A63E0, C4 #1F7A6D) e total do dia em Gelasio 34 na cor do caso. Direita: cartão claro «Parcela do custo do dia paga
+na ponta» (barras 100 %, ponta em vermelho, linha tracejada em 13,7 % = parcela da energia) + nota dos 20 kWh. Embaixo: «O plano se
+cumpre (C4)» (865,02 × 865,03, diferença R$ 0,01) e «Economia de C1 para C4» em teal cheio (R$ 409,22, −32,1 %, 173,28 + 235,94).
