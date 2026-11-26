@@ -210,7 +210,7 @@ def ficha_html(c, grupos, w):
                       f'<div style="font:700 24px/1.3 Gelasio,serif;color:#14213D">{val}</div></div>')
             else:
                 o += (f'<div style="border-top:1.5px solid #DCE3E2;padding:5px 0;display:flex;gap:14px;align-items:baseline">'
-                      f'<span style="font:600 22px/1.25 Manrope;color:#7B8794;flex:0 0 {min(184, w*.4):.0f}px">{lab}</span>'
+                      f'<span style="font:600 22px/1.25 Manrope;color:#7B8794;flex:0 0 {min(176, w*.4):.0f}px">{lab}</span>'
                       f'<span style="font:700 24px/1.3 Gelasio,serif;color:#14213D">{val}</span></div>')
         o += '<div style="height:10px"></div>'
     return o
