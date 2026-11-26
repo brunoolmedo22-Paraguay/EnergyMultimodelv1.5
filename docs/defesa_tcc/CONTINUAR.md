@@ -4,13 +4,12 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 
 ## Estado (26/11/2026)
 - **Deck: 38 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
-- **Aprovados (34):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+- **Aprovados (35):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
   7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) · 18 Arquitetura do SEEDS (Fig. 5.1) · 19 Representação energética comum · 20 EMS hierárquico no SEEDS (Fig. 5.2) · 21 Verificação e fluxo de execução (Fig. 5.3) · 23 Estratégia de avaliação ·
-  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) · 31 Resultados — operação do armazenamento · 32 Resultados — custos C1–C4 · 33 Resultados — embarcação C5 × C6 ·
+  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) · 31 Resultados — operação do armazenamento · 32 Resultados — custos C1–C4 · 33 Resultados — embarcação C5 × C6 · 34 Expansibilidade e desempenho ·
   separadores 03–07 (17, 22, 28, 30, 36).
 - **Slide «papel do armazenamento (C4, C5 e C6)» REMOVIDO** (decisão do responsável): a comparação entre os dois
-  estudos ("na microrrede industrial observamos… / na embarcação observamos…") abre as CONCLUSÕES. **Próximo: slide 34** (expansibilidade,
-  apoio; perguntar se fica) e encerramento; depois 34 papel do armazenamento (C4 × C6),
+  estudos ("na microrrede industrial observamos… / na embarcação observamos…") abre as CONCLUSÕES. **Próximo: slide 36 Conclusões**, 37 Perspectivas, 38 Agradecimentos; depois 34 papel do armazenamento (C4 × C6),
   35 expansibilidade e desempenho (+ curva PWL da PEMFC; conferir 500 × 402 pontos), encerramento 37–39.
   Seção de resultados (plano aprovado): 31 operação do armazenamento (+ coordenação: «decide antes de ver a ponta»), 32 custos
   (+ «o plano se cumpre» 865,02 × 865,03), 33 C5, 34 C4 × C6, 35 apoio. **Gráficos com o MOTOR GRÁFICO DO SEEDS**: marcos das
@@ -27,7 +26,7 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
   de qualquer slide técnico. Seções: 3 modelos (eq. 1–8) · 4.1 MILP (eq. 9–13) · 4.2 longo horizonte (eq. 14) · 4.3 MPC (eq. 15) ·
   4.4 hierarquia e valor futuro (eq. 16–18) · 5 SEEDS (Fig. 5.1–5.3) · 6 estudos (Tab. 6.1–6.3) · 7 resultados (Tab. 7.1–7.2, Fig. 7.1–7.5) ·
   Anexo A = 13 capturas do aplicativo.
-- Código confere o artigo (resumo em `PLANO_BLOCO_II.md`). Divergência: o artigo diz 500 pontos de validação da curva H₂; o padrão do código é 402.
+- Código confere o artigo (resumo em `PLANO_BLOCO_II.md`). Divergência CONFIRMADA: o artigo diz 500 pontos de validação da curva H₂; a rodada gravada (C5) registra 402 (o slide 34 usa 402). Corrigir o artigo.
 - Números/dados SÓ do artigo ou de fonte conferida; marcar «esquemático/ilustrativo» quando não for dado real.
 
 ## Pendências registradas

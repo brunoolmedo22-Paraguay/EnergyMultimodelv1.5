@@ -84,7 +84,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 31 | Resultados — operação do armazenamento | 06 | ✔ aprovado (figura do motor gráfico do SEEDS, rodada C4; ordem da Fig. 7.1) |
 | 32 | Resultados — custos operacionais (C1–C4) | 06 | ✔ aprovado (quatro custos por intervalo, parcela na ponta, plano × economia) |
 | 33 | Resultados — embarcação híbrida (C5 × C6) | 06 | ✔ aprovado (despachos do SEEDS lado a lado; C6 reproduzido no SEEDS) |
-| 34 | Expansibilidade e desempenho computacional | 06 | a desenhar |
+| 34 | Expansibilidade e desempenho computacional | 06 | ✔ aprovado (composições compactas, curva PWL gravada e erro relativo) |
 | 35 | Conclusões e perspectivas | 07 | ✔ aprovado |
 | 36 | Conclusões | 07 | a desenhar (abrir com a comparação dos dois estudos: «na microrrede industrial observamos… · na embarcação observamos…») |
 | 37 | Perspectivas | 07 | a desenhar |

@@ -267,9 +267,9 @@
   "n": 34,
   "titulo": "Expansibilidade e desempenho computacional",
   "secao": 6,
-  "html": "slides/provisorios/p34.html",
-  "pronto": false,
-  "notas": "Executamos nove composições com o mesmo código, da rede sozinha até duas PEMFC. O problema cresceu de 7 para 217 variáveis, mas formulação, critérios e auditoria não mudaram. Todas as 168 janelas chegaram ao ótimo."
+  "html": "slides/slide34_aprovado.html",
+  "pronto": true,
+  "notas": "Por fim, o desempenho. O mesmo código do EMS rodou nove composições, da microrrede só com rede até bateria com duas PEMFC: o MILP da primeira janela vai de 7 a 217 variáveis, mas a formulação, os critérios e a auditoria são os mesmos. A PEMFC entra no MILP por uma curva linear por partes de 15 vértices, gerada pelo modelo físico; comparada ao modelo em 402 pontos independentes, o erro máximo foi de 0,087 %, e o consumo nunca foi subestimado. As 168 janelas foram resolvidas até a otimalidade, cada decisão em até 5 segundos, e um dia inteiro da microrrede industrial em menos de 5 minutos."
  },
  {
   "n": 35,

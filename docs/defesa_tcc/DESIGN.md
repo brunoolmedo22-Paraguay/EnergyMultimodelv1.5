@@ -247,3 +247,10 @@ motor Trama (raias Atendimento e Bateria, ordem da Fig. 7.3): C5 (#2C6FB0, rodad
 SEEDS). Legenda única centrada. Três cartões claros (Hidrogênio 2,156 × 4,163 kg, chip 1,93 × · Energia suprida pela PEMFC 49,6 × 88,0 %
 · Papel da bateria «Variações» × «Picos», este em DESTAQUE com fundo teal #1F7A6D — o violeta foi recusado). O responsável pediu para
 não mudar o layout ao destacar: só a cor de fundo.
+
+## 26. Slide 34 — Expansibilidade e desempenho computacional (aprovado) — `slides/slide34_aprovado.html`
+
+Gerador `slides/gerar_slide34.py` (estilo do deck). Esquerda (560 px): nove colunas (variáveis da 1.ª janela, binárias em teal
+escuro) com os ícones dos recursos de cada composição embaixo (selo «2» para dois bancos/duas PEMFC). Direita: curva PWL da PEMFC
+GRAVADA na rodada C5 (`dados/pemfc_curva_c5.json`: 15 vértices sobre o modelo estacionário) e, ao lado, o erro relativo nos 402 pontos
+de validação (arcos que zeram nos vértices; máx. 0,087 %), eixos com unidades. Embaixo, cinco cartões de desempenho (168 de 168 em teal).
