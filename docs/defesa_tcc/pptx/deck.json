@@ -257,11 +257,11 @@
  },
  {
   "n": 33,
-  "titulo": "Resultados — embarcação híbrida (C5)",
+  "titulo": "Resultados — embarcação híbrida (C5 × C6)",
   "secao": 6,
-  "html": "slides/provisorios/p33.html",
-  "pronto": false,
-  "notas": "A célula ficou perto do mínimo e a bateria acompanhou a demanda, porque o hidrogênio por kWh cresce com a potência. A missão terminou com exatamente os 45 kWh exigidos."
+  "html": "slides/slide33_aprovado.html",
+  "pronto": true,
+  "notas": "Na embarcação, rodamos a mesma missão duas vezes, mudando só a carga inicial da bateria. Os despachos são os do próprio SEEDS. Em C5, com a bateria a 50 % e reserva final de 45 kWh, a PEMFC fica na base, entre 10 e 20 kW, onde o hidrogênio rende melhor, e a bateria cobre as variações da demanda; a missão termina exatamente na reserva. Em C6, com a bateria a 12 %, não há energia para gastar: a PEMFC passa a suprir 88 % da energia, entre 20 e 44 kW, recarrega a própria bateria nos intervalos de baixa demanda, e a bateria só entra nos picos. O consumo de hidrogênio quase dobra: 4,163 contra 2,156 kg. Mesma bateria, mesma missão, mesmo EMS: o que mudou foi o estado inicial, e o gerenciamento se adaptou a ele."
  },
  {
   "n": 34,

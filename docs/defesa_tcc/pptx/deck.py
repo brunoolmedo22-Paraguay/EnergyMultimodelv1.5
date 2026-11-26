@@ -50,7 +50,7 @@ ORDEM = [
     ("Resultados", 6, "slides/divisor06.html"),
     ("Resultados — operação do armazenamento", 6, "slides/slide31_aprovado.html"),
     ("Resultados — custos operacionais (C1–C4)", 6, "slides/slide32_aprovado.html"),
-    ("Resultados — embarcação híbrida (C5)", 6, None),
+    ("Resultados — embarcação híbrida (C5 × C6)", 6, "slides/slide33_aprovado.html"),
     ("Resultados — papel do armazenamento (C4, C5 e C6)", 6, None),
     ("Expansibilidade e desempenho computacional", 6, None),
     ("Conclusões e perspectivas", 7, "slides/divisor07.html"),
@@ -62,6 +62,7 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — acesso ao aplicativo": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Resultados — embarcação híbrida (C5 × C6)": "Na embarcação, rodamos a mesma missão duas vezes, mudando só a carga inicial da bateria. Os despachos são os do próprio SEEDS. Em C5, com a bateria a 50 % e reserva final de 45 kWh, a PEMFC fica na base, entre 10 e 20 kW, onde o hidrogênio rende melhor, e a bateria cobre as variações da demanda; a missão termina exatamente na reserva. Em C6, com a bateria a 12 %, não há energia para gastar: a PEMFC passa a suprir 88 % da energia, entre 20 e 44 kW, recarrega a própria bateria nos intervalos de baixa demanda, e a bateria só entra nos picos. O consumo de hidrogênio quase dobra: 4,163 contra 2,156 kg. Mesma bateria, mesma missão, mesmo EMS: o que mudou foi o estado inicial, e o gerenciamento se adaptou a ele.",
     "Resultados — custos operacionais (C1–C4)": "Aqui estão os quatro dias lado a lado, custo a cada quinze minutos, na mesma escala. Só com a rede, o dia custa 1.274 reais, e 41 % disso é pago na ponta, que tem apenas 13,7 % da energia. A solar baixa o custo do meio-dia; a bateria achata a ponta, e a parcela paga nela cai para perto da parcela de energia. Os efeitos se somam: em C4 a economia é de 409 reais por dia, 32 %, exatamente a soma da solar e da bateria. E o plano se cumpre: o custo previsto na primeira decisão difere do realizado em um centavo. Vale notar que, sem condição final, a bateria termina o dia com 20 kWh, abaixo dos 60 iniciais.",
     "Resultados — operação do armazenamento": "Este é o dia da configuração C4, desenhado pelo próprio SEEDS a partir da rodada gravada. A rede fica embaixo, a solar e a bateria por cima, e a faixa vermelha é a ponta. A bateria preservou o estoque inicial durante a manhã, quando valeria só 0,44 reais por kWh, carregou fora de ponta até 178 kWh e descarregou no limite do banco, 50 kW, durante toda a ponta. Foram 150 kWh entregues na ponta: comprados da rede, custariam 290,84 reais; carregar fora de ponta custou 54,90 a mais; o ganho líquido foi de 235,94 reais. E metade dessa carga foi decidida antes de a ponta entrar no horizonte do MPC: quem indicou que valia a pena guardar foi o valor futuro do planejador.",
     "Demonstração do SEEDS — acesso ao aplicativo": "O SEEDS está publicado e pode ser aberto agora, por este QR code ou pelo endereço energymultimodelv15.streamlit.app. Vou mostrar ao vivo um dos estudos de caso: abrir uma rodada já concluída, que é reaberta e reauditada sem resolver de novo, e executar outra a partir do cenário salvo.",

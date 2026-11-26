@@ -239,3 +239,11 @@ quatro rodadas (séries gravadas, `seeds_fig/custos_c1c4.json`), escala comum 0�
 C2 #C98A00, C3 #7A63E0, C4 #1F7A6D) e total do dia em Gelasio 34 na cor do caso. Direita: cartão claro «Parcela do custo do dia paga
 na ponta» (barras 100 %, ponta em vermelho, linha tracejada em 13,7 % = parcela da energia) + nota dos 20 kWh. Embaixo: «O plano se
 cumpre (C4)» (865,02 × 865,03, diferença R$ 0,01) e «Economia de C1 para C4» em teal cheio (R$ 409,22, −32,1 %, 173,28 + 235,94).
+
+## 25. Slide 33 — Resultados: embarcação híbrida C5 × C6 (aprovado) — `slides/slide33_aprovado.html`
+
+Gerador `slides/gerar_slide33b.py`. Dois painéis do SEEDS (contêiner #e6e6e4/#f4f4f2) lado a lado com o despacho desenhado pelo
+motor Trama (raias Atendimento e Bateria, ordem da Fig. 7.3): C5 (#2C6FB0, rodada 055096cf) × C6 (#C0532F, rodada reproduzida no
+SEEDS). Legenda única centrada. Três cartões claros (Hidrogênio 2,156 × 4,163 kg, chip 1,93 × · Energia suprida pela PEMFC 49,6 × 88,0 %
+· Papel da bateria «Variações» × «Picos», este em DESTAQUE com fundo teal #1F7A6D — o violeta foi recusado). O responsável pediu para
+não mudar o layout ao destacar: só a cor de fundo.
