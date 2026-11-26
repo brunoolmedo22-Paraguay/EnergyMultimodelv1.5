@@ -254,3 +254,10 @@ Gerador `slides/gerar_slide34.py` (estilo do deck). Esquerda (560 px): nove colu
 escuro) com os ícones dos recursos de cada composição embaixo (selo «2» para dois bancos/duas PEMFC). Direita: curva PWL da PEMFC
 GRAVADA na rodada C5 (`dados/pemfc_curva_c5.json`: 15 vértices sobre o modelo estacionário) e, ao lado, o erro relativo nos 402 pontos
 de validação (arcos que zeram nos vértices; máx. 0,087 %), eixos com unidades. Embaixo, cinco cartões de desempenho (168 de 168 em teal).
+
+## 27. Slide 36 — Conclusões (aprovado) — `slides/slide36_aprovado.html`
+
+Gerador `slides/gerar_slide36.py`. Esquerda: a pergunta do slide 7 no cartão navy (destaques em lima) com a resposta «Sim,» (Gelasio 56)
+e a ressalva do artigo; embaixo, os quatro objetivos específicos com ✓ teal e a evidência em teal (24 px). Direita: dois cartões claros
+com filete («Na microrrede industrial, observamos que» — vermelho rede; «Na embarcação, observamos que» — PEMFC), ícones dos recursos e
+três frases cada (28 px). O responsável pediu letra maior em todo o slide.

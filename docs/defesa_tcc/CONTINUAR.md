@@ -4,12 +4,12 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
 
 ## Estado (26/11/2026)
 - **Deck: 38 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
-- **Aprovados (35):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+- **Aprovados (36):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
   7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) · 18 Arquitetura do SEEDS (Fig. 5.1) · 19 Representação energética comum · 20 EMS hierárquico no SEEDS (Fig. 5.2) · 21 Verificação e fluxo de execução (Fig. 5.3) · 23 Estratégia de avaliação ·
-  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) · 31 Resultados — operação do armazenamento · 32 Resultados — custos C1–C4 · 33 Resultados — embarcação C5 × C6 · 34 Expansibilidade e desempenho ·
+  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) · 31 Resultados — operação do armazenamento · 32 Resultados — custos C1–C4 · 33 Resultados — embarcação C5 × C6 · 34 Expansibilidade e desempenho · 36 Conclusões ·
   separadores 03–07 (17, 22, 28, 30, 36).
 - **Slide «papel do armazenamento (C4, C5 e C6)» REMOVIDO** (decisão do responsável): a comparação entre os dois
-  estudos ("na microrrede industrial observamos… / na embarcação observamos…") abre as CONCLUSÕES. **Próximo: slide 36 Conclusões**, 37 Perspectivas, 38 Agradecimentos; depois 34 papel do armazenamento (C4 × C6),
+  estudos ("na microrrede industrial observamos… / na embarcação observamos…") abre as CONCLUSÕES. **Próximo: slide 37 Perspectivas**, 38 Agradecimentos; depois 34 papel do armazenamento (C4 × C6),
   35 expansibilidade e desempenho (+ curva PWL da PEMFC; conferir 500 × 402 pontos), encerramento 37–39.
   Seção de resultados (plano aprovado): 31 operação do armazenamento (+ coordenação: «decide antes de ver a ponta»), 32 custos
   (+ «o plano se cumpre» 865,02 × 865,03), 33 C5, 34 C4 × C6, 35 apoio. **Gráficos com o MOTOR GRÁFICO DO SEEDS**: marcos das
@@ -18,7 +18,7 @@ Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC
   Cartões no estilo `.pt .card` (fundo #f4f4f2 sobre #e6e6e4, filete de cor, números em Archivo; fontes em `slides/assets/fonts_seeds`).
   Rodada de C6 REPRODUZIDA no SEEDS por `slides/seeds_fig/rodar_c6.py` (venv com pyomo/highspy no scratchpad; idêntica ao artigo: 4,163 kg, 60,00 kWh, fim em 15,00 kWh). Rodar com PYTHONDONTWRITEBYTECODE=1 (senão regenera os __pycache__ versionados).
 - Geradores aprovados: `slides/gerar_slide3_v3.py`, `gerar_slide4_v6.py` (H1), `gerar_slide5_v4.py` (E1), `gerar_slide6.py` (`g6_final`),
-  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`, `gerar_slide19.py` (`p1`), `gerar_slide20.py`, `gerar_slide21.py`, `gerar_slide23_v2.py` (`d`; ilustrações em `slides/assets/ilus_*.png`, fornecidas pelo responsável), `gerar_slide24_27_v2.py` (`e2b` e `k1b`; usa `gerar_slide24_27.py` e `gerar_slide24_25.py`), `gerar_slide29.py` (`b`), `gerar_slide31c.py`, `gerar_slide32c.py` (estilo do deck: o responsável preferiu, no 32, NÃO usar o visual do app), `gerar_slide33b.py` (despachos COM o visual do SEEDS),
+  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`, `gerar_slide19.py` (`p1`), `gerar_slide20.py`, `gerar_slide21.py`, `gerar_slide23_v2.py` (`d`; ilustrações em `slides/assets/ilus_*.png`, fornecidas pelo responsável), `gerar_slide24_27_v2.py` (`e2b` e `k1b`; usa `gerar_slide24_27.py` e `gerar_slide24_25.py`), `gerar_slide29.py` (`b`), `gerar_slide31c.py`, `gerar_slide32c.py` (estilo do deck: o responsável preferiu, no 32, NÃO usar o visual do app), `gerar_slide33b.py` (despachos COM o visual do SEEDS), `gerar_slide34.py`, `gerar_slide36.py`,
   `gerar_divisores.py` (V1). Cópias congeladas: `slides/slideNN_aprovado.html` (numeração antiga no nome) e `slides/divisor0N.html`.
 
 ## Fontes

@@ -283,9 +283,9 @@
   "n": 36,
   "titulo": "Conclusões",
   "secao": 7,
-  "html": "slides/provisorios/p36.html",
-  "pronto": false,
-  "notas": "O SEEDS separou a descrição física da estratégia de despacho, e essa separação se sustentou em nove composições. O planejador transmitiu ao controle de curto prazo um custo de continuação com significado econômico verificável, e as decisões foram coerentes com ele nos dois sistemas."
+  "html": "slides/slide36_aprovado.html",
+  "pronto": true,
+  "notas": "Voltando à pergunta do início: um mesmo gerenciamento energético consegue operar microrredes de composições diferentes, considerando o valor futuro da energia armazenada? Sim, dentro do conjunto de recursos que a formulação representa. Na microrrede industrial, a bateria começou a carregar antes de a ponta entrar no horizonte do MPC, guiada pelo valor futuro; a economia foi a soma dos efeitos da solar e da bateria; e o plano da primeira decisão coincidiu com o custo realizado. Na embarcação, a demanda foi atendida sem rede; com a bateria carregada, a PEMFC ficou na base e a reserva foi cumprida; com pouca bateria, a PEMFC assumiu quase tudo e o hidrogênio quase dobrou. Os quatro objetivos específicos foram cumpridos."
  },
  {
   "n": 37,

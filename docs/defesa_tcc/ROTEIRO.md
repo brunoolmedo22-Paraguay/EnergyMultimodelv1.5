@@ -86,6 +86,6 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 33 | Resultados — embarcação híbrida (C5 × C6) | 06 | ✔ aprovado (despachos do SEEDS lado a lado; C6 reproduzido no SEEDS) |
 | 34 | Expansibilidade e desempenho computacional | 06 | ✔ aprovado (composições compactas, curva PWL gravada e erro relativo) |
 | 35 | Conclusões e perspectivas | 07 | ✔ aprovado |
-| 36 | Conclusões | 07 | a desenhar (abrir com a comparação dos dois estudos: «na microrrede industrial observamos… · na embarcação observamos…») |
+| 36 | Conclusões | 07 | ✔ aprovado (resposta à pergunta, objetivos marcados, comparação dos dois estudos) |
 | 37 | Perspectivas | 07 | a desenhar |
 | 38 | Agradecimentos | 07 | a desenhar |
