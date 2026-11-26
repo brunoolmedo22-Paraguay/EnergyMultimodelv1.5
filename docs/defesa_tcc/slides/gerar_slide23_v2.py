@@ -161,3 +161,19 @@ if __name__ == "__main__":
     a()
     b()
     c()
+
+
+# ===================================================================== D · ilustrações fornecidas pelo responsável (assets/ilus_*.png)
+def d():
+    s, h = "", ""
+    for j, img in enumerate(("assets/ilus_microrrede.png", "assets/ilus_embarcacao.png")):
+        x = 110 + j * 870
+        s += f'<rect x="{x}" y="196" width="830" height="690" rx="32" fill="#fff" stroke="{LINE}" stroke-width="2" filter="url(#sh)"/>'
+        s += T(x + 415, 284, ["Ligado à rede", "Isolado"][j], 56, 700, NAVY, "Gelasio", anchor="middle")
+        h += f'<img src="{img}" style="position:absolute;left:{x+30}px;top:322px;width:770px;height:{770*340/730:.0f}px;object-fit:cover">'
+        h += obj(x + 60, 722, 710, OBJ[j], NAVY, 34)
+    salvar("S23v2_D_ilustracoes", s, h)
+
+
+if __name__ == "__main__":
+    d()
