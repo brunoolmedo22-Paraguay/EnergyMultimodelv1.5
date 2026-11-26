@@ -1,6 +1,6 @@
 """Slide 38 (deck) — Agradecimentos, fundo escuro (pedido do responsável: fundo diferenciado, que chame a atenção, letras maiores).
 Fundo navy com o gradiente SEEDS na borda inferior, textos em branco, destaques em lima. Sem nomes da banca; CNPq com o texto do
-artigo («apoio financeiro ao projeto n.º 460014/2025-0»); UNILA com o logotipo branco; QR do aplicativo (o mesmo do slide 29)."""
+artigo («apoio financeiro ao projeto n.º 460014/2025-0»); UNILA só no rodapé (logo branco); QR do aplicativo (o mesmo do slide 29)."""
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -33,7 +33,6 @@ def slide():
         s += f'<rect x="110" y="{y+6}" width="8" height="100" rx="4" fill="{LIMA}"/>'
         h += div(148, y, 900, None, f'<div style="font:700 42px Gelasio,serif;color:#fff">{t}</div>'
                  f'<div style="font:500 32px/1.35 Manrope;color:#C9D4E6;margin-top:4px">{d}</div>', "")
-    h += '<img src="../capa/assets/unila_branco.png" style="position:absolute;left:110px;top:778px;height:130px">'
     # cartão do aplicativo (mesmo QR do slide 29)
     lado = 380
     m = lado / 29 * 4

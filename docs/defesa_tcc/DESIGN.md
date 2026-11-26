@@ -268,3 +268,10 @@ Gerador `slides/gerar_slide37.py`. Frase «A plataforma está pronta para avanç
 do tema, título Gelasio 30, descrição 25 px, filete e linha «Hoje» com o estado atual verificado no código): geração térmica no EMS ·
 malha temporal automática · custo futuro com vários bancos · previsão × realidade · dados experimentais. Seção 07 renomeada para
 «Conclusões e trabalhos futuros».
+
+## 29. Slide 38 — Agradecimentos (aprovado) — `slides/slide38_aprovado.html`
+
+Gerador `slides/gerar_slide38.py`. Único slide de fundo escuro (navy em gradiente radial, brilho teal atrás do QR), rodapé com o logo
+UNILA branco e textos claros. «Obrigado!» Gelasio 150 com filete do gradiente SEEDS; três agradecimentos (banca sem nomes · CNPq,
+projeto n.º 460014/2025-0 · UNILA/ILATIT) com filete lima, títulos 42 px, texto 32 px; cartão translúcido «Acesse o SEEDS» com o QR
+do slide 29 e o endereço em lima. O logo da UNILA no corpo foi retirado a pedido do responsável (fica só no rodapé).

@@ -55,12 +55,13 @@ ORDEM = [
     ("Conclusões e trabalhos futuros", 7, "slides/divisor07.html"),
     ("Conclusões", 7, "slides/slide36_aprovado.html"),
     ("Trabalhos futuros", 7, "slides/slide37_aprovado.html"),
-    ("Agradecimentos", 7, None),
+    ("Agradecimentos", 7, "slides/slide38_aprovado.html"),
 ]
 # título do slide no roteiro (conteudo.py) quando difere do título no deck — para buscar a fala
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — acesso ao aplicativo": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Agradecimentos": "Agradeço à banca pela leitura e pelas contribuições, ao CNPq pelo apoio financeiro ao projeto, e à UNILA e ao curso de Engenharia de Energia. O SEEDS está aberto: quem quiser pode acessá-lo agora pelo QR code. Obrigado.",
     "Trabalhos futuros": "A plataforma está pronta para avançar. Primeiro, levar a geração térmica para dentro do EMS, com custos de combustível e restrições operacionais: hoje ela tem modelo físico na bancada, mas ainda fica fora do gerenciamento. Segundo, definir automaticamente a malha temporal, que hoje é declarada no cenário. Terceiro, aperfeiçoar o custo futuro quando há mais de um banco de baterias. Quarto, avaliar a robustez com erros de previsão, já que nos ensaios a realização foi igual à previsão. E, por fim, comparar com dados experimentais, para validar a representatividade dos modelos.",
     "Conclusões": "Voltando à pergunta do início: um mesmo gerenciamento energético consegue operar microrredes de composições diferentes, considerando o valor futuro da energia armazenada? Sim, dentro do conjunto de recursos que a formulação representa. Na microrrede industrial, a bateria começou a carregar antes de a ponta entrar no horizonte do MPC, guiada pelo valor futuro; a economia foi a soma dos efeitos da solar e da bateria; e o plano da primeira decisão coincidiu com o custo realizado. Na embarcação, a demanda foi atendida sem rede; com a bateria carregada, a PEMFC ficou na base e a reserva foi cumprida; com pouca bateria, a PEMFC assumiu quase tudo e o hidrogênio quase dobrou. Os quatro objetivos específicos foram cumpridos.",
     "Expansibilidade e desempenho computacional": "Por fim, o desempenho. O mesmo código do EMS rodou nove composições, da microrrede só com rede até bateria com duas PEMFC: o MILP da primeira janela vai de 7 a 217 variáveis, mas a formulação, os critérios e a auditoria são os mesmos. A PEMFC entra no MILP por uma curva linear por partes de 15 vértices, gerada pelo modelo físico; comparada ao modelo em 402 pontos independentes, o erro máximo foi de 0,087 %, e o consumo nunca foi subestimado. As 168 janelas foram resolvidas até a otimalidade, cada decisão em até 5 segundos, e um dia inteiro da microrrede industrial em menos de 5 minutos.",

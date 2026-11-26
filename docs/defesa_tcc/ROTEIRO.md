@@ -88,4 +88,4 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 35 | Conclusões e trabalhos futuros | 07 | ✔ aprovado |
 | 36 | Conclusões | 07 | ✔ aprovado (resposta à pergunta, objetivos marcados, comparação dos dois estudos) |
 | 37 | Trabalhos futuros | 07 | ✔ aprovado (cinco cartões com a linha «Hoje»; antes «Perspectivas») |
-| 38 | Agradecimentos | 07 | a desenhar |
+| 38 | Agradecimentos | 07 | ✔ aprovado (fundo escuro; banca sem nomes, CNPq, UNILA; QR do aplicativo) |

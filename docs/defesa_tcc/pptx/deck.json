@@ -299,8 +299,8 @@
   "n": 38,
   "titulo": "Agradecimentos",
   "secao": 7,
-  "html": "slides/provisorios/p38.html",
-  "pronto": false,
-  "notas": "Agradeço ao CNPq, aos meus orientadores e à banca. Fico à disposição."
+  "html": "slides/slide38_aprovado.html",
+  "pronto": true,
+  "notas": "Agradeço à banca pela leitura e pelas contribuições, ao CNPq pelo apoio financeiro ao projeto, e à UNILA e ao curso de Engenharia de Energia. O SEEDS está aberto: quem quiser pode acessá-lo agora pelo QR code. Obrigado."
  }
 ]
