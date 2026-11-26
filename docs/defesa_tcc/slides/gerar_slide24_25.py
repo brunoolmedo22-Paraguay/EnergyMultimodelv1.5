@@ -23,6 +23,7 @@ PONTA = "#E0524F"
 DEFS = DEF2.replace("</defs>",
     '<filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#14213D" flood-opacity=".08"/></filter>'
     f'<linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{NAVY}" stop-opacity=".16"/><stop offset="1" stop-color="{NAVY}" stop-opacity=".03"/></linearGradient>'
+    f'<linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C99412" stop-opacity=".16"/><stop offset="1" stop-color="#C99412" stop-opacity=".02"/></linearGradient>'
     f'<linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{SOLAR}" stop-opacity=".55"/><stop offset="1" stop-color="{SOLAR}" stop-opacity=".18"/></linearGradient></defs>')
 
 

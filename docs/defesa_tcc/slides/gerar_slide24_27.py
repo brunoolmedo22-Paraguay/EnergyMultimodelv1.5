@@ -140,7 +140,8 @@ def entradas(c, x, y, w, h):
     dtc = (h1 - h0) / len(ghi)
     ld = degraus(d, h0, dtd, Yd)
     s += f'<path d="{ld} L{X(h1):.1f} {yb} L{X(h0):.1f} {yb} Z" fill="url(#gd)"/><path d="{ld}" fill="none" stroke="{NAVY}" stroke-width="3.5" stroke-linejoin="round"/>'
-    s += f'<path d="{degraus(ghi, h0, dtc, Yg)}" fill="none" stroke="{GHI}" stroke-width="3" stroke-linejoin="round"/>'
+    lg = degraus(ghi, h0, dtc, Yg)
+    s += f'<path d="{lg}" fill="none" stroke="{GHI}" stroke-width="3" stroke-linejoin="round"/>'
     s += f'<path d="{degraus(tmp, h0, dtc, Yt)}" fill="none" stroke="{TEMP}" stroke-width="3" stroke-linejoin="round" stroke-dasharray="10 6"/>'
     s += f'<line x1="{xl}" x2="{xr}" y1="{yb}" y2="{yb}" stroke="{NAVY}" stroke-width="2"/>'
     # sinal econômico
@@ -215,9 +216,10 @@ def e2(k):
 
 
 # ------------------------------------------------------------------ malha temporal da missão (instância do slide 14)
-def malha(c, x, y, w):
+def malha(c, x, y, w, legenda="baixo", k=None):
     m = c["malha"]
-    n, N, k = m["n"], m["N"], m["k"]
+    n, N = m["n"], m["N"]
+    k = m["k"] if k is None else k
     cw = w / n
     hc = 46
     s, ht = "", ""
@@ -241,8 +243,13 @@ def malha(c, x, y, w):
     s += T(xa + cw / 2, y + hc / 2 + 8, "m", 22, 800, "#fff", "Gelasio", anchor="middle", it=True) if cw > 30 else ""
     for i, lab in m["ticks"]:
         s += T(x + i * cw, y + hc + 90, lab, 22, 600, MUTED, anchor="middle")
-    lx, ly = x, y + hc + 118
-    for cor, lab in (("#C9D3DD", "Já aplicado"), ("#1F7A6D", "Aplicado agora (m = 1)"), ("#9ED3CB", "Previsto na janela"), ("#E3E9E8", "Além da janela")):
+    itens = (("#C9D3DD", "Já aplicado"), ("#1F7A6D", "Aplicado agora (m = 1)"), ("#9ED3CB", "Previsto na janela"), ("#E3E9E8", "Além da janela"))
+    if legenda == "cima":
+        itens = itens[:3]
+        lx, ly = x + w - sum(66 + 12 * len(l) for _, l in itens) + 30, y - 62
+    else:
+        lx, ly = x, y + hc + 118
+    for cor, lab in itens:
         wi = 66 + 12 * len(lab)
         if lx + wi - 30 > x + w:
             lx, ly = x, ly + 40
