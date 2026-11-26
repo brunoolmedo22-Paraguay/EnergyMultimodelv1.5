@@ -3,18 +3,21 @@
 Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC (SEEDS, UNILA) em **9/12/2026**, 30 min.
 
 ## Estado (26/11/2026)
-- **Deck: 40 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
-- **Aprovados (31):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
+- **Deck: 39 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
+- **Aprovados (32):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
   7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) · 18 Arquitetura do SEEDS (Fig. 5.1) · 19 Representação energética comum · 20 EMS hierárquico no SEEDS (Fig. 5.2) · 21 Verificação e fluxo de execução (Fig. 5.3) · 23 Estratégia de avaliação ·
-  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) ·
-  separadores 03–07 (17, 22, 28, 30, 37).
-- **Próximo: resultados, slide 31 «Resultados — custos operacionais (C1–C4)»** (Tabela 7.1); depois 32–36 e encerramento 38–40.
-  Slide 29 = só link + QR + logo (pedido do responsável). QR gerado localmente com `segno` (`slides/assets/qr_app.png`, conferido com zxing-cpp).
-  Estudos de caso: cada sistema em DOIS slides (pedido do responsável): entradas (gráfico com três eixos — demanda, irradiância,
-  temperatura — + tarifa/preço do H₂; a potência FV é resultado, não entrada) e configuração no SEEDS (C1–C6, malha, ficha). Séries
-  extraídas das rodadas de referência dos exemplos (`seeds2/exemplos`) para `slides/dados/*.json`.
+  24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) · 31 Resultados — operação do armazenamento ·
+  separadores 03–07 (17, 22, 28, 30, 36).
+- **Próximo: slide 32 «Resultados — custos operacionais (C1–C4)»**; depois 33 embarcação C5, 34 papel do armazenamento (C4 × C6),
+  35 expansibilidade e desempenho (+ curva PWL da PEMFC; conferir 500 × 402 pontos), encerramento 37–39.
+  Seção de resultados (plano aprovado): 31 operação do armazenamento (+ coordenação: «decide antes de ver a ponta»), 32 custos
+  (+ «o plano se cumpre» 865,02 × 865,03), 33 C5, 34 C4 × C6, 35 apoio. **Gráficos com o MOTOR GRÁFICO DO SEEDS**: marcos das
+  rodadas por `slides/seeds_fig/marco.py` (exemplos, diretório temporário, evidência verificada) e figuras por
+  `slides/seeds_fig/extrair.py` (JS/CSS reais da Partitura; opção `ordem_artigo` = empilhamento da Fig. 7.1: rede, solar, bateria).
+  Cartões no estilo `.pt .card` (fundo #f4f4f2 sobre #e6e6e4, filete de cor, números em Archivo; fontes em `slides/assets/fonts_seeds`).
+  Rodada de C6 não está nos exemplos (decidir: reproduzir ou pedir ao responsável).
 - Geradores aprovados: `slides/gerar_slide3_v3.py`, `gerar_slide4_v6.py` (H1), `gerar_slide5_v4.py` (E1), `gerar_slide6.py` (`g6_final`),
-  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`, `gerar_slide19.py` (`p1`), `gerar_slide20.py`, `gerar_slide21.py`, `gerar_slide23_v2.py` (`d`; ilustrações em `slides/assets/ilus_*.png`, fornecidas pelo responsável), `gerar_slide24_27_v2.py` (`e2b` e `k1b`; usa `gerar_slide24_27.py` e `gerar_slide24_25.py`), `gerar_slide29.py` (`b`),
+  `gerar_slide7_v2.py` (`k3v2`), `gerar_slide8_v2.py` (modelagem), `gerar_slide12_v2.py` (MILP A e B), `gerar_slide14.py` (`p1`), `gerar_slide15.py` (`p1`), `gerar_slide16.py` (`h4`), `gerar_slide18.py`, `gerar_slide19.py` (`p1`), `gerar_slide20.py`, `gerar_slide21.py`, `gerar_slide23_v2.py` (`d`; ilustrações em `slides/assets/ilus_*.png`, fornecidas pelo responsável), `gerar_slide24_27_v2.py` (`e2b` e `k1b`; usa `gerar_slide24_27.py` e `gerar_slide24_25.py`), `gerar_slide29.py` (`b`), `gerar_slide31c.py`,
   `gerar_divisores.py` (V1). Cópias congeladas: `slides/slideNN_aprovado.html` (numeração antiga no nome) e `slides/divisor0N.html`.
 
 ## Fontes

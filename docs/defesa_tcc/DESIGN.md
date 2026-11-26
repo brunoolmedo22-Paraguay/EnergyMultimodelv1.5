@@ -221,3 +221,13 @@ Gerador `slides/gerar_slide29.py` (`b`). Título «Demonstração do SEEDS»; à
 filete, «Acesse o aplicativo» (Manrope 600 34 px) e o endereço `energymultimodelv15.streamlit.app` (Manrope 700 46 px, teal). À direita o
 QR (navy, `slides/assets/qr_app.png`, segno, correção M, 29 módulos) num cartão branco com sombra de 638 px e zona de silêncio de 4 módulos,
 terminando na margem direita (1810).
+
+## 23. Slide 31 — Resultados: operação do armazenamento (aprovado) — `slides/slide31_aprovado.html`
+
+Gerador `slides/gerar_slide31c.py`. **Linguagem visual do SEEDS** (pedido do responsável: «que pareça tirado do SEEDS»): contêiner
+#e6e6e4 (rx 30) com painel #f4f4f2; figura desenhada pelo motor Trama da Partitura sobre a rodada 14d8e5b3 (C4), dia inteiro, raias
+Atendimento · Bateria · Tarifa (sem «Decisões do MPC»), empilhamento rede → solar → bateria (Fig. 7.1), ~50 % da largura; faixa da
+ponta em vermelho translúcido com rótulo; valores gravados 178,04 / 20,15 kWh sobre a curva. À direita, cartões `.card` (filete
+colorido, título Source Sans 600 22 px, números Archivo): o que a bateria fez (trechos com chips de horário) · energia entregue na
+ponta (150 kWh → R$ 290,84 − 54,90 = 235,94) · decide antes de ver a ponta (50,3 %, C3). Sem marca de 16:15 nem custo de 1 kWh (o
+responsável os retirou: a tarifa já está no gráfico).

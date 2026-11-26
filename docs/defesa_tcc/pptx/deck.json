@@ -241,54 +241,46 @@
  },
  {
   "n": 31,
+  "titulo": "Resultados — operação do armazenamento",
+  "secao": 6,
+  "html": "slides/slide31_aprovado.html",
+  "pronto": true,
+  "notas": "Este é o dia da configuração C4, desenhado pelo próprio SEEDS a partir da rodada gravada. A rede fica embaixo, a solar e a bateria por cima, e a faixa vermelha é a ponta. A bateria preservou o estoque inicial durante a manhã, quando valeria só 0,44 reais por kWh, carregou fora de ponta até 178 kWh e descarregou no limite do banco, 50 kW, durante toda a ponta. Foram 150 kWh entregues na ponta: comprados da rede, custariam 290,84 reais; carregar fora de ponta custou 54,90 a mais; o ganho líquido foi de 235,94 reais. E metade dessa carga foi decidida antes de a ponta entrar no horizonte do MPC: quem indicou que valia a pena guardar foi o valor futuro do planejador."
+ },
+ {
+  "n": 32,
   "titulo": "Resultados — custos operacionais (C1–C4)",
   "secao": 6,
-  "html": "slides/provisorios/p31.html",
+  "html": "slides/provisorios/p32.html",
   "pronto": false,
   "notas": "Em C1, a ponta concentrou 13,7 % da energia e 41 % do custo. A FV reduziu o custo quase todo fora da ponta; a bateria atuou na ponta. Juntas: −32,1 % de custo e −56 % de importação na ponta."
  },
  {
-  "n": 32,
-  "titulo": "Resultados — operação do armazenamento",
-  "secao": 6,
-  "html": "slides/provisorios/p32.html",
-  "pronto": false,
-  "notas": "O banco carregou até praticamente o exato necessário para descarregar a 50 kW durante as três horas de ponta e chegar ao limite às 21 h. Cada kWh entregue na ponta custou 49 centavos, contra R$ 1,94 da rede."
- },
- {
   "n": 33,
-  "titulo": "Resultados — coordenação hierárquica",
-  "secao": 6,
-  "html": "slides/provisorios/p33.html",
-  "pronto": false,
-  "notas": "Cada janela cobre duas horas; só a partir das 16:15 a ponta aparecia no horizonte. Mesmo assim, metade da carga foi decidida antes. O único termo que valorizava a energia guardada era o sinal do planejador: o custo futuro fez o controle enxergar além da janela — como a água do SIN."
- },
- {
-  "n": 34,
   "titulo": "Resultados — embarcação híbrida (C5)",
   "secao": 6,
-  "html": "slides/provisorios/p34.html",
+  "html": "slides/provisorios/p33.html",
   "pronto": false,
   "notas": "A célula ficou perto do mínimo e a bateria acompanhou a demanda, porque o hidrogênio por kWh cresce com a potência. A missão terminou com exatamente os 45 kWh exigidos."
  },
  {
-  "n": 35,
+  "n": 34,
   "titulo": "Resultados — papel do armazenamento (C4, C5 e C6)",
   "secao": 6,
-  "html": "slides/provisorios/p35.html",
+  "html": "slides/provisorios/p34.html",
   "pronto": false,
   "notas": "No C6, a célula forneceu 88 % da energia e o hidrogênio quase dobrou — o número que vocês viram no aplicativo. Na microrrede, a bateria desloca energia por horas; na embarcação, dá suporte de potência em minutos."
  },
  {
-  "n": 36,
+  "n": 35,
   "titulo": "Expansibilidade e desempenho computacional",
   "secao": 6,
-  "html": "slides/provisorios/p36.html",
+  "html": "slides/provisorios/p35.html",
   "pronto": false,
   "notas": "Executamos nove composições com o mesmo código, da rede sozinha até duas PEMFC. O problema cresceu de 7 para 217 variáveis, mas formulação, critérios e auditoria não mudaram. Todas as 168 janelas chegaram ao ótimo."
  },
  {
-  "n": 37,
+  "n": 36,
   "titulo": "Conclusões e perspectivas",
   "secao": 7,
   "html": "slides/divisor07.html",
@@ -296,26 +288,26 @@
   "notas": "Separador da seção 07 — Conclusões e perspectivas."
  },
  {
-  "n": 38,
+  "n": 37,
   "titulo": "Conclusões",
   "secao": 7,
-  "html": "slides/provisorios/p38.html",
+  "html": "slides/provisorios/p37.html",
   "pronto": false,
   "notas": "O SEEDS separou a descrição física da estratégia de despacho, e essa separação se sustentou em nove composições. O planejador transmitiu ao controle de curto prazo um custo de continuação com significado econômico verificável, e as decisões foram coerentes com ele nos dois sistemas."
  },
  {
-  "n": 39,
+  "n": 38,
   "titulo": "Perspectivas",
   "secao": 7,
-  "html": "slides/provisorios/p39.html",
+  "html": "slides/provisorios/p38.html",
   "pronto": false,
   "notas": "Os estudos foram feitos em ambiente computacional, com condições declaradas. A plataforma já está estruturada para o passo natural: introduzir diferenças entre previsão e realização e comparar com dados experimentais."
  },
  {
-  "n": 40,
+  "n": 39,
   "titulo": "Agradecimentos",
   "secao": 7,
-  "html": "slides/provisorios/p40.html",
+  "html": "slides/provisorios/p39.html",
   "pronto": false,
   "notas": "Agradeço ao CNPq, aos meus orientadores e à banca. Fico à disposição."
  }
