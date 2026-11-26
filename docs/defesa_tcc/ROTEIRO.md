@@ -85,7 +85,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 32 | Resultados — custos operacionais (C1–C4) | 06 | ✔ aprovado (quatro custos por intervalo, parcela na ponta, plano × economia) |
 | 33 | Resultados — embarcação híbrida (C5 × C6) | 06 | ✔ aprovado (despachos do SEEDS lado a lado; C6 reproduzido no SEEDS) |
 | 34 | Expansibilidade e desempenho computacional | 06 | ✔ aprovado (composições compactas, curva PWL gravada e erro relativo) |
-| 35 | Conclusões e perspectivas | 07 | ✔ aprovado |
+| 35 | Conclusões e trabalhos futuros | 07 | ✔ aprovado |
 | 36 | Conclusões | 07 | ✔ aprovado (resposta à pergunta, objetivos marcados, comparação dos dois estudos) |
-| 37 | Trabalhos futuros | 07 | a desenhar |
+| 37 | Trabalhos futuros | 07 | ✔ aprovado (cinco cartões com a linha «Hoje»; antes «Perspectivas») |
 | 38 | Agradecimentos | 07 | a desenhar |

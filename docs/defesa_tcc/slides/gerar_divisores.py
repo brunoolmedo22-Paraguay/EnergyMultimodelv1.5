@@ -13,7 +13,7 @@ exec(_src[:_src.index("GRAD =")], SM.__dict__)          # só IC e cor(); não r
 
 D = os.path.dirname(os.path.abspath(__file__))
 SECOES = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolvimento do SEEDS", "Estudos de caso",
-          "Demonstração do SEEDS", "Resultados", "Conclusões e perspectivas"]
+          "Demonstração do SEEDS", "Resultados", "Conclusões e trabalhos futuros"]
 _XS = [315, 530, 745, 960, 1175, 1390, 1605]            # posições dos nós no sumário aprovado (zigue-zague)
 COR = [SM.cor((x - 110) / 1700) for x in _XS]
 SUB = {

@@ -16,7 +16,7 @@ BLOCOS = [
      "Provar que a plataforma existe, funciona e reproduz o artigo: reproduzir ao vivo um resultado publicado."),
     ("V", "Resultados", "6:00",
      "Transformar números em respostas. Cada slide responde a «o que isto prova?»: custo → comportamento → hierarquia → embarcação → contraste → expansibilidade."),
-    ("VI", "Conclusões e perspectivas", "2:00",
+    ("VI", "Conclusões e trabalhos futuros", "2:00",
      "Responder à pergunta do início, objetivo por objetivo, e mostrar para onde a plataforma pode avançar."),
 ]
 
@@ -34,7 +34,7 @@ SLIDES = [
  dict(n=2, b="0", t="Sumário", tempo="0:20", status="Pronto", contrib="",
       msg="O percurso tem sete etapas — e uma delas é ao vivo.",
       tela=["Barramento em chevrons com 7 etapas em sequência",
-            "Cartões alternados acima e abaixo: 01 Contexto e objetivos · 02 Fundamentação teórica · 03 Desenvolvimento do SEEDS · 04 Estudos de caso · 05 Demonstração do SEEDS · 06 Resultados · 07 Conclusões e perspectivas",
+            "Cartões alternados acima e abaixo: 01 Contexto e objetivos · 02 Fundamentação teórica · 03 Desenvolvimento do SEEDS · 04 Estudos de caso · 05 Demonstração do SEEDS · 06 Resultados · 07 Conclusões e trabalhos futuros",
             "Cartão 05 em destaque (azul-marinho) com «ao vivo»"],
       porque="Mostra o caminho e anuncia que haverá uma demonstração; os mesmos chevrons podem voltar como barra de progresso nas transições de bloco.",
       fala="O percurso é este: contexto, fundamentos, a plataforma, os estudos, uma demonstração ao vivo, os resultados e as conclusões.",

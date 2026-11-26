@@ -261,3 +261,10 @@ Gerador `slides/gerar_slide36.py`. Esquerda: a pergunta do slide 7 no cartão na
 e a ressalva do artigo; embaixo, os quatro objetivos específicos com ✓ teal e a evidência em teal (24 px). Direita: dois cartões claros
 com filete («Na microrrede industrial, observamos que» — vermelho rede; «Na embarcação, observamos que» — PEMFC), ícones dos recursos e
 três frases cada (28 px). O responsável pediu letra maior em todo o slide.
+
+## 28. Slide 37 — Trabalhos futuros (aprovado) — `slides/slide37_aprovado.html`
+
+Gerador `slides/gerar_slide37.py`. Frase «A plataforma está pronta para avançar em:» e cinco cartões claros iguais (ícone em círculo na cor
+do tema, título Gelasio 30, descrição 25 px, filete e linha «Hoje» com o estado atual verificado no código): geração térmica no EMS ·
+malha temporal automática · custo futuro com vários bancos · previsão × realidade · dados experimentais. Seção 07 renomeada para
+«Conclusões e trabalhos futuros».

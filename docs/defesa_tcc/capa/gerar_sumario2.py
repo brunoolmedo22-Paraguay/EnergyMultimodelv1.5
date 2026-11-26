@@ -5,7 +5,7 @@ D = os.path.dirname(os.path.abspath(__file__))
 AUT = "Bruno Manuel Olmedo Chávez"
 CUR = "Engenharia de Energia · ILATIT"
 TIT = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolvimento do&nbsp;SEEDS", "Estudos de caso",
-       "Demonstração do&nbsp;SEEDS", "Resultados", "Conclusões e perspectivas"]
+       "Demonstração do&nbsp;SEEDS", "Resultados", "Conclusões e trabalhos futuros"]
 
 # ícones de seção — mesmo traço dos ícones de recurso (40×40, 3 px, pontas arredondadas)
 IC = [

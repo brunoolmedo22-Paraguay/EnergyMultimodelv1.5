@@ -273,11 +273,11 @@
  },
  {
   "n": 35,
-  "titulo": "Conclusões e perspectivas",
+  "titulo": "Conclusões e trabalhos futuros",
   "secao": 7,
   "html": "slides/divisor07.html",
   "pronto": true,
-  "notas": "Separador da seção 07 — Conclusões e perspectivas."
+  "notas": "Separador da seção 07 — Conclusões e trabalhos futuros."
  },
  {
   "n": 36,
@@ -289,11 +289,11 @@
  },
  {
   "n": 37,
-  "titulo": "Perspectivas",
+  "titulo": "Trabalhos futuros",
   "secao": 7,
-  "html": "slides/provisorios/p37.html",
-  "pronto": false,
-  "notas": "Os estudos foram feitos em ambiente computacional, com condições declaradas. A plataforma já está estruturada para o passo natural: introduzir diferenças entre previsão e realização e comparar com dados experimentais."
+  "html": "slides/slide37_aprovado.html",
+  "pronto": true,
+  "notas": "A plataforma está pronta para avançar. Primeiro, levar a geração térmica para dentro do EMS, com custos de combustível e restrições operacionais: hoje ela tem modelo físico na bancada, mas ainda fica fora do gerenciamento. Segundo, definir automaticamente a malha temporal, que hoje é declarada no cenário. Terceiro, aperfeiçoar o custo futuro quando há mais de um banco de baterias. Quarto, avaliar a robustez com erros de previsão, já que nos ensaios a realização foi igual à previsão. E, por fim, comparar com dados experimentais, para validar a representatividade dos modelos."
  },
  {
   "n": 38,

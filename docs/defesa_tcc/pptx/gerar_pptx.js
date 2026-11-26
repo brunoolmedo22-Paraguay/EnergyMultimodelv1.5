@@ -52,7 +52,7 @@ async function icone(k, c) {
 // ordem, títulos, seções e notas: deck.json (gerado por deck.py); imagens: img_hd/deckNN.png (exportar_deck.js)
 const DECK = JSON.parse(fs.readFileSync(path.join(AQUI, "deck.json"), "utf8"));
 const SEC = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolvimento do SEEDS", "Estudos de caso",
-             "Demonstração do SEEDS", "Resultados", "Conclusões e perspectivas"];
+             "Demonstração do SEEDS", "Resultados", "Conclusões e trabalhos futuros"];
 
 (async () => {
   const pres = new pptxgen();
@@ -131,7 +131,7 @@ const SEC = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolviment
   // ---------------------------------------------------------------- 2 · sumário
   s = pres.addSlide({ masterName: "CONTEUDO", sectionTitle: "Abertura" });
   s.addText("Sumário", { placeholder: "title", align: "left" });
-  const TIT = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolvimento do\u00A0SEEDS", "Estudos de caso", "Demonstração do\u00A0SEEDS", "Resultados", "Conclusões e perspectivas"];
+  const TIT = ["Contexto e objetivos", "Fundamentação teórica", "Desenvolvimento do\u00A0SEEDS", "Estudos de caso", "Demonstração do\u00A0SEEDS", "Resultados", "Conclusões e trabalhos futuros"];
   const x0 = 110, x1 = 1810, w = 410, h = 250, gap = (x1 - x0 - 4 * w) / 3, yU = 205, yB = 545, yD = 635, H = 40, d = 20, g = 8;
   const up = [0, 1, 2, 3].map((k) => x0 + w / 2 + k * (w + gap));
   const dn = up.slice(0, 3).map((a, k) => (a + up[k + 1]) / 2);
