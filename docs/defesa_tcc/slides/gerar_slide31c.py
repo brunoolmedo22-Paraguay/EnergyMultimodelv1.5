@@ -1,7 +1,7 @@
 """Slide 31 (deck) — Resultados: operação do armazenamento (C4), segunda rodada sobre a proposta A (pedido do responsável):
 gráfico em METADE da largura, ponta destacada, sem a raia «Decisões do MPC»; a outra metade com a informação relevante.
 
-Figura: motor gráfico do SEEDS (Partitura/Trama) sobre a rodada 14d8e5b3, 12:00–24:00 (`seeds_fig/extrair.py`, view [48, 96]),
+Figura: motor gráfico do SEEDS (Partitura/Trama) sobre a rodada 14d8e5b3, dia completo 00:00–24:00 (`seeds_fig/extrair.py`),
 raias Atendimento · Bateria · Tarifa. Sobreposições do slide: faixa da ponta (18:00–21:00), marca das 16:15 (a ponta entra na
 janela do MPC, N = 8) e os valores gravados da energia às 18:00 (178,04 kWh) e às 21:00 (20,15 kWh), posicionados pela escala
 lida dos rótulos do próprio eixo.
@@ -59,7 +59,8 @@ def figura(nome, x, y, s):
     P = lambda k, yy: (x + X(k) * s, y + yy * s)
     h = ""
     px, py = P(72, m["lanes"][0]["y"] + 22)
-    h += (f'<div class="sd" style="left:{px}px;top:{py}px;width:{(X(84)-X(72))*s}px;text-align:center;font:700 22px/1.15 {FT};color:{GRID}">'
+    cx = px + (X(84) - X(72)) * s / 2
+    h += (f'<div class="sd" style="left:{cx-90}px;top:{py}px;width:180px;text-align:center;white-space:nowrap;font:700 22px/1.15 {FT};color:{GRID}">'
           f'Ponta<br><span style="font-weight:600;font-size:20px">18:00–21:00</span></div>')
     px, py = P(65, m["lanes"][2]["y"] + 6)            # raia da tarifa: espaço livre acima do patamar de 0,44 à esquerda da marca
     h += (f'<div class="sd" style="left:{px-282}px;top:{py}px;width:272px;text-align:right;font:600 20px/1.2 {FT};color:{FUT}">'
@@ -78,7 +79,7 @@ def cartao(x, y, w, h, acc, titulo, corpo):
 def slide():
     s = f'<rect x="110" y="166" width="1700" height="746" rx="30" fill="{BG}"/><rect x="124" y="180" width="860" height="718" rx="24" fill="{SURF}"/>'
     h = legenda(150, 196, 830).replace("margin-right:26px", "margin-right:18px")
-    f_, fh = figura("seeds_c4_tarde", 136, 238, 1.53)
+    f_, fh = figura("seeds_c4_dia", 136, 238, 1.53)
     s += f_; h += fh
     xr, wr = 1000, 796
     # 1 · o que a bateria fez
