@@ -1,0 +1,25 @@
+{
+ "W": 690,
+ "H": 420,
+ "padL": 46,
+ "padR": 10,
+ "K": 96,
+ "lanes": [
+  {
+   "title": "Decisões do MPC · bloco aplicado",
+   "y": 15
+  },
+  {
+   "title": "Atendimento · injeção por recurso × demanda realizada [kW]",
+   "y": 74.5068493150685
+  },
+  {
+   "title": "Bateria · energia interna nas fronteiras [kWh]  ↗",
+   "y": 262.5342465753425
+  },
+  {
+   "title": "Tarifa de decisão [R$/kWh] · degrau por intervalo [t_k, t_k+1)  ↗",
+   "y": 346.64383561643837
+  }
+ ]
+}
