@@ -40,7 +40,7 @@ ORDEM = [
     ("Gerenciamento energético hierárquico no SEEDS", 3, "slides/slide20_aprovado.html"),
     ("Verificação e fluxo de execução", 3, "slides/slide21_aprovado.html"),
     ("Estudos de caso", 4, "slides/divisor04.html"),
-    ("Estratégia de avaliação", 4, None),
+    ("Estratégia de avaliação", 4, "slides/slide23_aprovado.html"),
     ("Microrrede industrial CT-046 (C1–C4)", 4, None),
     ("Embarcação híbrida EMB-H2-120 (C5–C6)", 4, None),
     ("Demonstração do SEEDS", 5, "slides/divisor05.html"),
@@ -61,6 +61,7 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Estratégia de avaliação": "Avaliamos o SEEDS em dois sistemas com filosofias opostas. Uma microrrede industrial ligada à rede, em que o objetivo é otimizar o preço final pago à concessionária. E uma embarcação isolada, em que não há rede: é preciso usar bem a bateria e garantir o suprimento da carga com os recursos de bordo. O mesmo EMS, sem reformulação, nos dois casos.",
     "Verificação e fluxo de execução": "Todo estudo segue estas cinco etapas: a microrrede, com seu inventário em revisão; e o cenário — estados iniciais, previsões e estratégia — salvo como uma versão imutável. Na execução, o Pyomo com o HiGHS resolve cada janela, uma verificação independente confere a solução e, ao fim, uma auditoria integral. Nada é presumido: o que falta volta como pendência. São exatamente as etapas que vou mostrar no aplicativo.",
     "Gerenciamento energético hierárquico no SEEDS": "Assim isso foi implementado. A cada instante de decisão, o planejador parte do estado executado, resolve um plano longo que nunca é aplicado e reotimiza o trecho após a janela várias vezes, com energias iniciais diferentes: daí sai o sinal de valor futuro, uma função linear por partes por modo das unidades. O MPC verifica esse sinal antes de usá-lo; se não for válido, aplica a degradação declarada. O MILP da janela soma operação e custo futuro, a solução é verificada de forma independente, só os m primeiros intervalos são aplicados, e o custo realizado nunca inclui o custo futuro.",
     "Representação energética comum": "Os recursos são muito diferentes, mas entram no mesmo MILP porque falam a mesma língua: um barramento equivalente, kW líquidos com uma convenção de sinais, potências médias por intervalo e energias nas fronteiras, na mesma malha de tempo. Toda a não linearidade é resolvida antes: a renovável vira um limite superior, a bateria um balanço por banco, a célula uma curva de hidrogênio linear por partes com erro verificado, e a rede só existe com sentidos, limites e tarifas declarados.",

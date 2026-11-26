@@ -193,3 +193,9 @@ por pontos · sinal verificado · realizado ≠ futuro. Caixas 15–19 px (figur
 
 Gerador `slides/gerar_slide21.py`. Fig. 5.3 idêntica ampliada (cartões 308 × 380, textos ≥ 22 px), retorno de pendências laranja, legenda;
 três pontos (y 768): nada é presumido · cada decisão é verificada (Pyomo 6.10.1, HiGHS 1.15.1) · cada estudo é reprodutível.
+
+## 20. Slide 23 — Estratégia de avaliação (aprovado) — `slides/slide23_aprovado.html`
+
+Gerador `slides/gerar_slide23_v2.py` (`d`). Dois cartões brancos (830 × 690, sombra) «Ligado à rede» × «Isolado» (Gelasio 56), ilustrações
+do responsável (`slides/assets/ilus_microrrede.png`, `ilus_embarcacao.png`, recortadas da maquete dele) e o objetivo (Gelasio 34):
+«Otimizar o preço final pago à concessionária» · «Otimizar o uso da bateria garantindo o suprimento da carga». Sem especificações.

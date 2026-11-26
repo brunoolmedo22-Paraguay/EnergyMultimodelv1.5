@@ -179,9 +179,9 @@
   "n": 23,
   "titulo": "Estratégia de avaliação",
   "secao": 4,
-  "html": "slides/provisorios/p23.html",
-  "pronto": false,
-  "notas": "Escolhemos dois sistemas com filosofias opostas, as mesmas do início. Na microrrede variamos a composição; na embarcação, o estado da bateria. São estudos computacionais com condições declaradas."
+  "html": "slides/slide23_aprovado.html",
+  "pronto": true,
+  "notas": "Avaliamos o SEEDS em dois sistemas com filosofias opostas. Uma microrrede industrial ligada à rede, em que o objetivo é otimizar o preço final pago à concessionária. E uma embarcação isolada, em que não há rede: é preciso usar bem a bateria e garantir o suprimento da carga com os recursos de bordo. O mesmo EMS, sem reformulação, nos dois casos."
  },
  {
   "n": 24,

@@ -73,7 +73,7 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 20 | Gerenciamento energético hierárquico no SEEDS | 03 | ✔ aprovado (Fig. 5.2 + 3 pontos) |
 | 21 | Verificação e fluxo de execução | 03 | ✔ aprovado (Fig. 5.3 + 3 pontos) |
 | 22 | Estudos de caso | 04 | ✔ aprovado |
-| 23 | Estratégia de avaliação | 04 | a desenhar |
+| 23 | Estratégia de avaliação | 04 | ✔ aprovado (ilustrações do responsável) |
 | 24 | Microrrede industrial CT-046 (C1–C4) | 04 | a desenhar |
 | 25 | Embarcação híbrida EMB-H2-120 (C5–C6) | 04 | a desenhar |
 | 26 | Demonstração do SEEDS | 05 | ✔ aprovado |
