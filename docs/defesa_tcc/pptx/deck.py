@@ -41,8 +41,10 @@ ORDEM = [
     ("Verificação e fluxo de execução", 3, "slides/slide21_aprovado.html"),
     ("Estudos de caso", 4, "slides/divisor04.html"),
     ("Estratégia de avaliação", 4, "slides/slide23_aprovado.html"),
-    ("Microrrede industrial CT-046 (C1–C4)", 4, None),
-    ("Embarcação híbrida EMB-H2-120 (C5–C6)", 4, None),
+    ("Dados de entrada da microrrede CT-046", 4, "slides/slide24_aprovado.html"),
+    ("Configuração da CT-046 no SEEDS", 4, "slides/slide25_aprovado.html"),
+    ("Dados de entrada da embarcação EMB-H2-120", 4, "slides/slide26_aprovado.html"),
+    ("Configuração da EMB-H2-120 no SEEDS", 4, "slides/slide27_aprovado.html"),
     ("Demonstração do SEEDS", 5, "slides/divisor05.html"),
     ("Demonstração do SEEDS — roteiro", 5, None),
     ("Resultados", 6, "slides/divisor06.html"),
@@ -61,6 +63,10 @@ ORDEM = [
 ALIAS = {"Estratégia de avaliação": "Estudos de caso", "Demonstração do SEEDS — roteiro": "Demonstração do SEEDS",
          "Resultados — coordenação hierárquica": "Resultados — coordenação hierárquica"}
 NOTA_EXTRA = {
+    "Dados de entrada da microrrede CT-046": "Na microrrede industrial, as entradas são quatro. A demanda vem de uma curva real da ANEEL, a CT-046, de um dia útil, escalada para 100 kW de pico: são 1.967 kWh no dia, com consumo mantido também na ponta. Irradiância e temperatura são sintéticas, de um dia de céu claro, com máximo de 970 W/m². E a tarifa A4 Horária Verde da COPEL: entre 18 e 21 horas a energia custa 4,4 vezes mais. A potência fotovoltaica não é entrada: o modelo a calcula a partir da irradiância e da temperatura.",
+    "Configuração da CT-046 no SEEDS": "No SEEDS, essa microrrede vira quatro configurações que só diferem na composição: só rede; rede e solar; rede e bateria; rede, solar e bateria — a bateria começando em 30 %. O dia tem 96 intervalos de 15 minutos. A cada intervalo, o MPC resolve uma janela de duas horas e aplica só o primeiro intervalo; o horizonte longo cobre o resto do dia e encurta até a meia-noite. A demanda é crítica, a realização é igual à previsão, e não declaramos condição final: quem orienta quanto guardar é o valor futuro, recalculado a cada janela.",
+    "Dados de entrada da embarcação EMB-H2-120": "Na embarcação, a demanda é a propulsão: um registro de potência do projeto, repetido para completar 120 minutos e agregado em médias de 15 minutos. As médias conservam a energia da missão, 68,21 kWh, mas reduzem o pico original de 63 para 58,8 kW. Irradiância e temperatura são sintéticas, do meio-dia, quase constantes. O custo é o hidrogênio, a 10 reais por quilo, um preço sintético.",
+    "Configuração da EMB-H2-120 no SEEDS": "A composição é a mesma nas duas configurações: solar, bateria e uma PEMFC de cerca de 50 kW, sempre ligada, com mínimo de 10 kW. Muda a bateria: em C5 ela começa em 50 % e deve terminar com pelo menos 45 kWh; em C6 começa quase vazia, em 12 %, sem reserva. São 8 intervalos de 15 minutos; a janela do MPC é de uma hora e o horizonte longo cobre a missão inteira. O objetivo é consumir o mínimo de hidrogênio.",
     "Estratégia de avaliação": "Avaliamos o SEEDS em dois sistemas com filosofias opostas. Uma microrrede industrial ligada à rede, em que o objetivo é otimizar o preço final pago à concessionária. E uma embarcação isolada, em que não há rede: é preciso usar bem a bateria e garantir o suprimento da carga com os recursos de bordo. O mesmo EMS, sem reformulação, nos dois casos.",
     "Verificação e fluxo de execução": "Todo estudo segue estas cinco etapas: a microrrede, com seu inventário em revisão; e o cenário — estados iniciais, previsões e estratégia — salvo como uma versão imutável. Na execução, o Pyomo com o HiGHS resolve cada janela, uma verificação independente confere a solução e, ao fim, uma auditoria integral. Nada é presumido: o que falta volta como pendência. São exatamente as etapas que vou mostrar no aplicativo.",
     "Gerenciamento energético hierárquico no SEEDS": "Assim isso foi implementado. A cada instante de decisão, o planejador parte do estado executado, resolve um plano longo que nunca é aplicado e reotimiza o trecho após a janela várias vezes, com energias iniciais diferentes: daí sai o sinal de valor futuro, uma função linear por partes por modo das unidades. O MPC verifica esse sinal antes de usá-lo; se não for válido, aplica a degradação declarada. O MILP da janela soma operação e custo futuro, a solução é verificada de forma independente, só os m primeiros intervalos são aplicados, e o custo realizado nunca inclui o custo futuro.",

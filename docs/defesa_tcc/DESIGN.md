@@ -199,3 +199,18 @@ três pontos (y 768): nada é presumido · cada decisão é verificada (Pyomo 6.
 Gerador `slides/gerar_slide23_v2.py` (`d`). Dois cartões brancos (830 × 690, sombra) «Ligado à rede» × «Isolado» (Gelasio 56), ilustrações
 do responsável (`slides/assets/ilus_microrrede.png`, `ilus_embarcacao.png`, recortadas da maquete dele) e o objetivo (Gelasio 34):
 «Otimizar o preço final pago à concessionária» · «Otimizar o uso da bateria garantindo o suprimento da carga». Sem especificações.
+
+## 21. Slides 24–27 — Estudos de caso em dois slides cada (aprovados E2b + K1b) — `slides/slide24..27_aprovado.html`
+
+Gerador `slides/gerar_slide24_27_v2.py` (`e2b`, `k1b`); peças em `gerar_slide24_27.py` (`entradas`, `malha`, CASOS) e
+`gerar_slide24_25.py` (`ficha_html`, `bateria`). Dados em `slides/dados/ct046_c4.json` e `emb_c5.json` (séries do cenário das rodadas
+de referência dos exemplos; conferidas com as Tabelas 6.1–6.3).
+- **Entradas (24, 26):** cartão branco com sombra (1180 × 700) com o gráfico de TRÊS eixos verticais, cada um na cor da curva: demanda kW
+  (navy, área clara, à esquerda), irradiância W/m² (#C99412, linha), temperatura °C (#B5478B, tracejada); títulos dos eixos girados. Painel
+  de baixo com o mesmo eixo do tempo: tarifa escalonada (vermelho rede, ponta sombreada nos dois painéis) ou preço do H₂. A potência FV
+  NÃO aparece (é resultado). À direita, quatro fichas claras: nome + traço da curva, procedência em teal na mesma linha, número-chave
+  Gelasio 40, complemento 22 px.
+- **Configuração (25, 27):** cartões das configurações com o mesmo desenho nos dois casos (nome, ícones, composição; bateria com o estado
+  inicial e a reserva tracejada, ou «Sem armazenamento»); malha temporal (já aplicado cinza · m aplicado teal escuro · janela N teal claro;
+  colchete teal da janela e colchete #C0532F do horizonte longo; legenda na linha do rótulo da janela); ficha em três painéis claros
+  (Recursos com procedência · Execução · Gerenciamento).

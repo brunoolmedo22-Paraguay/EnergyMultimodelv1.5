@@ -45,7 +45,7 @@ Detalhamento anterior (falas e justificativas, numeração antiga): `ROTEIRO_DET
 
 Slides auxiliares (arguição): ver `ROTEIRO_DETALHADO_v1.md` (A1–A15), a reorganizar.
 
-## Ordem do deck (38 slides; fonte: `pptx/deck.py`)
+## Ordem do deck (40 slides; fonte: `pptx/deck.py`)
 
 A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **vigente** do deck, com os separadores de seção, é esta:
 
@@ -74,18 +74,20 @@ A tabela acima é o roteiro por conteúdo (numeração antiga). A numeração **
 | 21 | Verificação e fluxo de execução | 03 | ✔ aprovado (Fig. 5.3 + 3 pontos) |
 | 22 | Estudos de caso | 04 | ✔ aprovado |
 | 23 | Estratégia de avaliação | 04 | ✔ aprovado (ilustrações do responsável) |
-| 24 | Microrrede industrial CT-046 (C1–C4) | 04 | a desenhar |
-| 25 | Embarcação híbrida EMB-H2-120 (C5–C6) | 04 | a desenhar |
-| 26 | Demonstração do SEEDS | 05 | ✔ aprovado |
-| 27 | Demonstração do SEEDS — roteiro | 05 | a desenhar |
-| 28 | Resultados | 06 | ✔ aprovado |
-| 29 | Resultados — custos operacionais (C1–C4) | 06 | a desenhar |
-| 30 | Resultados — operação do armazenamento | 06 | a desenhar |
-| 31 | Resultados — coordenação hierárquica | 06 | a desenhar |
-| 32 | Resultados — embarcação híbrida (C5) | 06 | a desenhar |
-| 33 | Resultados — papel do armazenamento (C4, C5 e C6) | 06 | a desenhar |
-| 34 | Expansibilidade e desempenho computacional | 06 | a desenhar |
-| 35 | Conclusões e perspectivas | 07 | ✔ aprovado |
-| 36 | Conclusões | 07 | a desenhar |
-| 37 | Perspectivas | 07 | a desenhar |
-| 38 | Agradecimentos | 07 | a desenhar |
+| 24 | Dados de entrada da microrrede CT-046 | 04 | ✔ aprovado (E2b: três eixos + tarifa; fichas com número-chave) |
+| 25 | Configuração da CT-046 no SEEDS | 04 | ✔ aprovado (K1b: C1–C4, malha, ficha em três painéis) |
+| 26 | Dados de entrada da embarcação EMB-H2-120 | 04 | ✔ aprovado (E2b) |
+| 27 | Configuração da EMB-H2-120 no SEEDS | 04 | ✔ aprovado (K1b: C5–C6) |
+| 28 | Demonstração do SEEDS | 05 | ✔ aprovado |
+| 29 | Demonstração do SEEDS — roteiro | 05 | a desenhar |
+| 30 | Resultados | 06 | ✔ aprovado |
+| 31 | Resultados — custos operacionais (C1–C4) | 06 | a desenhar |
+| 32 | Resultados — operação do armazenamento | 06 | a desenhar |
+| 33 | Resultados — coordenação hierárquica | 06 | a desenhar |
+| 34 | Resultados — embarcação híbrida (C5) | 06 | a desenhar |
+| 35 | Resultados — papel do armazenamento (C4, C5 e C6) | 06 | a desenhar |
+| 36 | Expansibilidade e desempenho computacional | 06 | a desenhar |
+| 37 | Conclusões e perspectivas | 07 | ✔ aprovado |
+| 38 | Conclusões | 07 | a desenhar |
+| 39 | Perspectivas | 07 | a desenhar |
+| 40 | Agradecimentos | 07 | a desenhar |

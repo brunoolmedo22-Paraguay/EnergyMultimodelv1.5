@@ -185,22 +185,38 @@
  },
  {
   "n": 24,
-  "titulo": "Microrrede industrial CT-046 (C1–C4)",
+  "titulo": "Dados de entrada da microrrede CT-046",
   "secao": 4,
-  "html": "slides/provisorios/p24.html",
-  "pronto": false,
-  "notas": "A demanda vem de uma curva real de carga da ANEEL, escolhida porque mantém consumo na ponta, onde a tarifa é 4,4 vezes maior. As quatro configurações compartilham tudo e diferem só nos recursos."
+  "html": "slides/slide24_aprovado.html",
+  "pronto": true,
+  "notas": "Na microrrede industrial, as entradas são quatro. A demanda vem de uma curva real da ANEEL, a CT-046, de um dia útil, escalada para 100 kW de pico: são 1.967 kWh no dia, com consumo mantido também na ponta. Irradiância e temperatura são sintéticas, de um dia de céu claro, com máximo de 970 W/m². E a tarifa A4 Horária Verde da COPEL: entre 18 e 21 horas a energia custa 4,4 vezes mais. A potência fotovoltaica não é entrada: o modelo a calcula a partir da irradiância e da temperatura."
  },
  {
   "n": 25,
-  "titulo": "Embarcação híbrida EMB-H2-120 (C5–C6)",
+  "titulo": "Configuração da CT-046 no SEEDS",
   "secao": 4,
-  "html": "slides/provisorios/p25.html",
-  "pronto": false,
-  "notas": "A embarcação é hipotética, com perfil de propulsão real. A célula fica ligada; o EMS decide sua potência. O C6 muda só duas coisas: a bateria começa quase vazia e não há reserva final."
+  "html": "slides/slide25_aprovado.html",
+  "pronto": true,
+  "notas": "No SEEDS, essa microrrede vira quatro configurações que só diferem na composição: só rede; rede e solar; rede e bateria; rede, solar e bateria — a bateria começando em 30 %. O dia tem 96 intervalos de 15 minutos. A cada intervalo, o MPC resolve uma janela de duas horas e aplica só o primeiro intervalo; o horizonte longo cobre o resto do dia e encurta até a meia-noite. A demanda é crítica, a realização é igual à previsão, e não declaramos condição final: quem orienta quanto guardar é o valor futuro, recalculado a cada janela."
  },
  {
   "n": 26,
+  "titulo": "Dados de entrada da embarcação EMB-H2-120",
+  "secao": 4,
+  "html": "slides/slide26_aprovado.html",
+  "pronto": true,
+  "notas": "Na embarcação, a demanda é a propulsão: um registro de potência do projeto, repetido para completar 120 minutos e agregado em médias de 15 minutos. As médias conservam a energia da missão, 68,21 kWh, mas reduzem o pico original de 63 para 58,8 kW. Irradiância e temperatura são sintéticas, do meio-dia, quase constantes. O custo é o hidrogênio, a 10 reais por quilo, um preço sintético."
+ },
+ {
+  "n": 27,
+  "titulo": "Configuração da EMB-H2-120 no SEEDS",
+  "secao": 4,
+  "html": "slides/slide27_aprovado.html",
+  "pronto": true,
+  "notas": "A composição é a mesma nas duas configurações: solar, bateria e uma PEMFC de cerca de 50 kW, sempre ligada, com mínimo de 10 kW. Muda a bateria: em C5 ela começa em 50 % e deve terminar com pelo menos 45 kWh; em C6 começa quase vazia, em 12 %, sem reserva. São 8 intervalos de 15 minutos; a janela do MPC é de uma hora e o horizonte longo cobre a missão inteira. O objetivo é consumir o mínimo de hidrogênio."
+ },
+ {
+  "n": 28,
   "titulo": "Demonstração do SEEDS",
   "secao": 5,
   "html": "slides/divisor05.html",
@@ -208,15 +224,15 @@
   "notas": "Separador da seção 05 — Demonstração do SEEDS."
  },
  {
-  "n": 27,
+  "n": 29,
   "titulo": "Demonstração do SEEDS — roteiro",
   "secao": 5,
-  "html": "slides/provisorios/p27.html",
+  "html": "slides/provisorios/p29.html",
   "pronto": false,
   "notas": "Uma vez definidos os estudos, vou mostrar como eles são configurados e executados no SEEDS — e reproduzir aqui um dos resultados do artigo."
  },
  {
-  "n": 28,
+  "n": 30,
   "titulo": "Resultados",
   "secao": 6,
   "html": "slides/divisor06.html",
@@ -224,55 +240,55 @@
   "notas": "Separador da seção 06 — Resultados."
  },
  {
-  "n": 29,
+  "n": 31,
   "titulo": "Resultados — custos operacionais (C1–C4)",
   "secao": 6,
-  "html": "slides/provisorios/p29.html",
+  "html": "slides/provisorios/p31.html",
   "pronto": false,
   "notas": "Em C1, a ponta concentrou 13,7 % da energia e 41 % do custo. A FV reduziu o custo quase todo fora da ponta; a bateria atuou na ponta. Juntas: −32,1 % de custo e −56 % de importação na ponta."
  },
  {
-  "n": 30,
+  "n": 32,
   "titulo": "Resultados — operação do armazenamento",
   "secao": 6,
-  "html": "slides/provisorios/p30.html",
+  "html": "slides/provisorios/p32.html",
   "pronto": false,
   "notas": "O banco carregou até praticamente o exato necessário para descarregar a 50 kW durante as três horas de ponta e chegar ao limite às 21 h. Cada kWh entregue na ponta custou 49 centavos, contra R$ 1,94 da rede."
  },
  {
-  "n": 31,
+  "n": 33,
   "titulo": "Resultados — coordenação hierárquica",
   "secao": 6,
-  "html": "slides/provisorios/p31.html",
+  "html": "slides/provisorios/p33.html",
   "pronto": false,
   "notas": "Cada janela cobre duas horas; só a partir das 16:15 a ponta aparecia no horizonte. Mesmo assim, metade da carga foi decidida antes. O único termo que valorizava a energia guardada era o sinal do planejador: o custo futuro fez o controle enxergar além da janela — como a água do SIN."
  },
  {
-  "n": 32,
+  "n": 34,
   "titulo": "Resultados — embarcação híbrida (C5)",
   "secao": 6,
-  "html": "slides/provisorios/p32.html",
+  "html": "slides/provisorios/p34.html",
   "pronto": false,
   "notas": "A célula ficou perto do mínimo e a bateria acompanhou a demanda, porque o hidrogênio por kWh cresce com a potência. A missão terminou com exatamente os 45 kWh exigidos."
  },
  {
-  "n": 33,
+  "n": 35,
   "titulo": "Resultados — papel do armazenamento (C4, C5 e C6)",
   "secao": 6,
-  "html": "slides/provisorios/p33.html",
+  "html": "slides/provisorios/p35.html",
   "pronto": false,
   "notas": "No C6, a célula forneceu 88 % da energia e o hidrogênio quase dobrou — o número que vocês viram no aplicativo. Na microrrede, a bateria desloca energia por horas; na embarcação, dá suporte de potência em minutos."
  },
  {
-  "n": 34,
+  "n": 36,
   "titulo": "Expansibilidade e desempenho computacional",
   "secao": 6,
-  "html": "slides/provisorios/p34.html",
+  "html": "slides/provisorios/p36.html",
   "pronto": false,
   "notas": "Executamos nove composições com o mesmo código, da rede sozinha até duas PEMFC. O problema cresceu de 7 para 217 variáveis, mas formulação, critérios e auditoria não mudaram. Todas as 168 janelas chegaram ao ótimo."
  },
  {
-  "n": 35,
+  "n": 37,
   "titulo": "Conclusões e perspectivas",
   "secao": 7,
   "html": "slides/divisor07.html",
@@ -280,26 +296,26 @@
   "notas": "Separador da seção 07 — Conclusões e perspectivas."
  },
  {
-  "n": 36,
+  "n": 38,
   "titulo": "Conclusões",
   "secao": 7,
-  "html": "slides/provisorios/p36.html",
+  "html": "slides/provisorios/p38.html",
   "pronto": false,
   "notas": "O SEEDS separou a descrição física da estratégia de despacho, e essa separação se sustentou em nove composições. O planejador transmitiu ao controle de curto prazo um custo de continuação com significado econômico verificável, e as decisões foram coerentes com ele nos dois sistemas."
  },
  {
-  "n": 37,
+  "n": 39,
   "titulo": "Perspectivas",
   "secao": 7,
-  "html": "slides/provisorios/p37.html",
+  "html": "slides/provisorios/p39.html",
   "pronto": false,
   "notas": "Os estudos foram feitos em ambiente computacional, com condições declaradas. A plataforma já está estruturada para o passo natural: introduzir diferenças entre previsão e realização e comparar com dados experimentais."
  },
  {
-  "n": 38,
+  "n": 40,
   "titulo": "Agradecimentos",
   "secao": 7,
-  "html": "slides/provisorios/p38.html",
+  "html": "slides/provisorios/p40.html",
   "pronto": false,
   "notas": "Agradeço ao CNPq, aos meus orientadores e à banca. Fico à disposição."
  }
