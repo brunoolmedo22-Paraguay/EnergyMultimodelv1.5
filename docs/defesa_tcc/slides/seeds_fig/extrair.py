@@ -20,8 +20,21 @@ EST = RAIZ / "seeds2" / "ui" / "static" / "trama"
 FONTES = Path(__file__).resolve().parents[1] / "assets" / "fonts_seeds.css"
 
 
-def js_partitura() -> str:
+INJ_SEEDS = ('const inj = [{ v: A.wtP, c: COR.wt, k: "wt" }, { v: A.fvP, c: COR.fv, k: "fv" }, { v: A.pd, c: COR.bat, k: "bat" }, '
+             '{ v: A.fcP, c: COR.fc, k: "fc" }, { v: A.impR, c: COR.grid, k: "grid" }];')
+# Ordem de empilhamento da Fig. 7.1 do artigo: rede embaixo, renováveis acima e armazenamento por cima — a parcela suprida pela
+# rede (carga líquida) fica legível direto no gráfico. Só muda a ORDEM das camadas; valores, escalas e cores são os mesmos.
+INJ_ARTIGO = ('const inj = [{ v: A.impR, c: COR.grid, k: "grid" }, { v: A.wtP, c: COR.wt, k: "wt" }, { v: A.fvP, c: COR.fv, k: "fv" }, '
+              '{ v: A.fcP, c: COR.fc, k: "fc" }, { v: A.pd, c: COR.bat, k: "bat" }];')
+
+
+def js_partitura(ordem_artigo: bool = False) -> str:
     src = (EST / "partitura.js").read_text("utf-8")
+    if ordem_artigo:
+        ancora = "function lanesOperacao() {\n    "          # só a raia Atendimento de lanesOperacao (há outra lista igual)
+        if src.count(ancora + INJ_SEEDS) != 1:
+            raise RuntimeError("ordem de injeção de lanesOperacao não encontrada em partitura.js")
+        src = src.replace(ancora + INJ_SEEDS, ancora + INJ_ARTIGO)
     trocas = [
         ("export default function (component)", "window.__monta = function (component)"),
         ("return { render, relatorio, relStatus, gerarRelatorio };",
@@ -36,12 +49,12 @@ def js_partitura() -> str:
     return (EST / "trama.js").read_text("utf-8") + "\n" + src
 
 
-def pagina(frame: dict) -> str:
+def pagina(frame: dict, ordem_artigo: bool = False) -> str:
     fontes = FONTES.read_text("utf-8").replace("url(fonts_seeds/", f"url(file://{FONTES.parent}/fonts_seeds/")
     dados = json.dumps(frame, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
     return ('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><style>html,body{margin:0;background:#f4f4f2}'
             + fontes + (EST / "trama.css").read_text("utf-8") + "</style></head><body><div id=\"raiz\" style=\"width:1400px\"></div>"
-            f"<script>window.__F = {dados};</script><script>{js_partitura()}\n"
+            f"<script>window.__F = {dados};</script><script>{js_partitura(ordem_artigo)}\n"
             "localStorage.setItem('seeds2.partitura.tema','light');"
             "window.__monta({ data: { frame: window.__F }, parentElement: document.getElementById('raiz') });</script></body></html>")
 
@@ -65,7 +78,7 @@ def hachuras(svg: str) -> str:
 def main():
     marco, saida, W, H, opcoes = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
     pag = saida.resolve().with_suffix(".bancada.html")
-    pag.write_text(pagina(json.loads(marco.read_text("utf-8"))), encoding="utf-8")
+    pag.write_text(pagina(json.loads(marco.read_text("utf-8")), bool(json.loads(opcoes).get("ordem_artigo"))), encoding="utf-8")
     js = Path(__file__).with_name("extrair.js")
     out = subprocess.run(["node", str(js), str(pag), str(W), str(H), opcoes], capture_output=True, text=True, check=True)
     pag.unlink()
