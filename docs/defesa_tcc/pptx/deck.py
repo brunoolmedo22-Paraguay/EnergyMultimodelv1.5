@@ -51,7 +51,6 @@ ORDEM = [
     ("Resultados — operação do armazenamento", 6, "slides/slide31_aprovado.html"),
     ("Resultados — custos operacionais (C1–C4)", 6, "slides/slide32_aprovado.html"),
     ("Resultados — embarcação híbrida (C5 × C6)", 6, "slides/slide33_aprovado.html"),
-    ("Resultados — papel do armazenamento (C4, C5 e C6)", 6, None),
     ("Expansibilidade e desempenho computacional", 6, None),
     ("Conclusões e perspectivas", 7, "slides/divisor07.html"),
     ("Conclusões", 7, None),

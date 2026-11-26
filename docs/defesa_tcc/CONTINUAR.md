@@ -3,12 +3,14 @@
 Branch: `claude/dazzling-bohr-5d0121` · pasta `docs/defesa_tcc/`. Defesa de TCC (SEEDS, UNILA) em **9/12/2026**, 30 min.
 
 ## Estado (26/11/2026)
-- **Deck: 39 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
+- **Deck: 38 slides**, ordem única em `pptx/deck.py` (→ `deck.json`). Tabela vigente: `ROTEIRO.md` § «Ordem do deck».
 - **Aprovados (34):** 1 capa · 2 sumário · 3 separador 01 · 4 Contexto · 5 Decisões com consequências futuras · 6 Trabalhos relacionados ·
   7 Objetivos · 8 O SEEDS · 9 separador 02 · 10–11 Modelagem dos recursos (3 + 2) · 12 Por que MILP · 13 O MILP da microrrede · 14 MPC · 15 Coordenação hierárquica e valor futuro · 16 Gerenciamento energético hierárquico MILP–MPC (Fig. 4.1) · 18 Arquitetura do SEEDS (Fig. 5.1) · 19 Representação energética comum · 20 EMS hierárquico no SEEDS (Fig. 5.2) · 21 Verificação e fluxo de execução (Fig. 5.3) · 23 Estratégia de avaliação ·
   24 Dados de entrada CT-046 · 25 Configuração CT-046 · 26 Dados de entrada EMB-H2-120 · 27 Configuração EMB-H2-120 · 29 Demonstração — acesso ao aplicativo (QR) · 31 Resultados — operação do armazenamento · 32 Resultados — custos C1–C4 · 33 Resultados — embarcação C5 × C6 ·
   separadores 03–07 (17, 22, 28, 30, 36).
-- **Próximo: slide 34** (decidir com o responsável: o 33 já compara C5 × C6); depois 34 papel do armazenamento (C4 × C6),
+- **Slide «papel do armazenamento (C4, C5 e C6)» REMOVIDO** (decisão do responsável): a comparação entre os dois
+  estudos ("na microrrede industrial observamos… / na embarcação observamos…") abre as CONCLUSÕES. **Próximo: slide 34** (expansibilidade,
+  apoio; perguntar se fica) e encerramento; depois 34 papel do armazenamento (C4 × C6),
   35 expansibilidade e desempenho (+ curva PWL da PEMFC; conferir 500 × 402 pontos), encerramento 37–39.
   Seção de resultados (plano aprovado): 31 operação do armazenamento (+ coordenação: «decide antes de ver a ponta»), 32 custos
   (+ «o plano se cumpre» 865,02 × 865,03), 33 C5, 34 C4 × C6, 35 apoio. **Gráficos com o MOTOR GRÁFICO DO SEEDS**: marcos das

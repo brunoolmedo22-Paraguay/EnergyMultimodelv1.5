@@ -24,8 +24,8 @@ SUB = {
         "Verificação e fluxo de execução"],
     4: ["Estratégia de avaliação", "Microrrede industrial CT-046 (C1–C4)", "Embarcação híbrida EMB-H2-120 (C5–C6)"],
     5: ["Reprodução ao vivo de um estudo de caso no aplicativo"],
-    6: ["Custos operacionais (C1–C4)", "Operação do armazenamento", "Coordenação hierárquica",
-        "Embarcação híbrida (C5)", "Papel do armazenamento (C4, C5 e C6)", "Expansibilidade e desempenho computacional"],
+    6: ["Operação do armazenamento", "Custos operacionais (C1–C4)", "Embarcação híbrida (C5 × C6)",
+        "Expansibilidade e desempenho computacional"],
     7: ["Conclusões", "Perspectivas", "Agradecimentos"],
 }
 PN = {1: 3, 2: 9, 3: 16, 4: 21, 5: 25, 6: 27, 7: 34}     # posição no deck de 36 slides (ver pptx/deck.json)

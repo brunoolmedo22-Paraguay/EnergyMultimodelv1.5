@@ -265,22 +265,14 @@
  },
  {
   "n": 34,
-  "titulo": "Resultados — papel do armazenamento (C4, C5 e C6)",
-  "secao": 6,
-  "html": "slides/provisorios/p34.html",
-  "pronto": false,
-  "notas": "No C6, a célula forneceu 88 % da energia e o hidrogênio quase dobrou — o número que vocês viram no aplicativo. Na microrrede, a bateria desloca energia por horas; na embarcação, dá suporte de potência em minutos."
- },
- {
-  "n": 35,
   "titulo": "Expansibilidade e desempenho computacional",
   "secao": 6,
-  "html": "slides/provisorios/p35.html",
+  "html": "slides/provisorios/p34.html",
   "pronto": false,
   "notas": "Executamos nove composições com o mesmo código, da rede sozinha até duas PEMFC. O problema cresceu de 7 para 217 variáveis, mas formulação, critérios e auditoria não mudaram. Todas as 168 janelas chegaram ao ótimo."
  },
  {
-  "n": 36,
+  "n": 35,
   "titulo": "Conclusões e perspectivas",
   "secao": 7,
   "html": "slides/divisor07.html",
@@ -288,26 +280,26 @@
   "notas": "Separador da seção 07 — Conclusões e perspectivas."
  },
  {
-  "n": 37,
+  "n": 36,
   "titulo": "Conclusões",
   "secao": 7,
-  "html": "slides/provisorios/p37.html",
+  "html": "slides/provisorios/p36.html",
   "pronto": false,
   "notas": "O SEEDS separou a descrição física da estratégia de despacho, e essa separação se sustentou em nove composições. O planejador transmitiu ao controle de curto prazo um custo de continuação com significado econômico verificável, e as decisões foram coerentes com ele nos dois sistemas."
  },
  {
-  "n": 38,
+  "n": 37,
   "titulo": "Perspectivas",
   "secao": 7,
-  "html": "slides/provisorios/p38.html",
+  "html": "slides/provisorios/p37.html",
   "pronto": false,
   "notas": "Os estudos foram feitos em ambiente computacional, com condições declaradas. A plataforma já está estruturada para o passo natural: introduzir diferenças entre previsão e realização e comparar com dados experimentais."
  },
  {
-  "n": 39,
+  "n": 38,
   "titulo": "Agradecimentos",
   "secao": 7,
-  "html": "slides/provisorios/p39.html",
+  "html": "slides/provisorios/p38.html",
   "pronto": false,
   "notas": "Agradeço ao CNPq, aos meus orientadores e à banca. Fico à disposição."
  }
