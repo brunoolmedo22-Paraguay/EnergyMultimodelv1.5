@@ -58,10 +58,19 @@ def rodape(n):
             f'<div class="pn">{n}</div>')
 
 
+CACHE = os.path.join(D, "tex_cache_slide8.json")     # equações já convertidas: o kit funciona sem Node/MathJax
+
+
 def tex_svgs():
-    env = dict(os.environ, NODE_PATH=NM)
-    out = subprocess.run(["node", os.path.join(D, "tex2svg.js")], input=json.dumps(TEX), capture_output=True, text=True, env=env, check=True)
-    return json.loads(out.stdout)
+    """LaTeX → SVG por MathJax (Node). Sem Node/MathJax disponíveis, usa o cache gravado (mesmas equações)."""
+    try:
+        env = dict(os.environ, NODE_PATH=NM)
+        out = subprocess.run(["node", os.path.join(D, "tex2svg.js")], input=json.dumps(TEX), capture_output=True, text=True, env=env, check=True)
+        svg = json.loads(out.stdout)
+        json.dump(svg, open(CACHE, "w", encoding="utf-8"), ensure_ascii=False)
+        return svg
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return json.load(open(CACHE, encoding="utf-8"))
 
 
 SVG = tex_svgs()
